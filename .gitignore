@@ -1,0 +1,6 @@
+data/
+buildDir/
+.idea
+
+*.png
+*.csv
