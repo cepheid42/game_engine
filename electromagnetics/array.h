@@ -30,9 +30,14 @@ struct Array2D {
 
     [[nodiscard]] auto get_index(size_t i, size_t j) const { assert(i < shape[0] and j < shape[1]); return j + (shape[1] * i); }
 
+
     // 2D indexing
     auto& operator()(const size_t i, const size_t j) { return data[get_index(i, j)]; }
     const auto& operator()(const size_t i, const size_t j) const { return data[get_index(i, j)]; }
+
+    // 2D offset indexing
+    auto& operator()(const size_t i, const size_t j, const size_t offset) { return data[get_index(i, j) + offset]; }
+    const auto& operator()(const size_t i, const size_t j, const size_t offset) const { return data[get_index(i, j) + offset]; }
 
     // 2D difference
     [[nodiscard]] auto backward_diff_x(size_t i, size_t j) const { return data[get_index(i, j)] - data[get_index(i - 1, j)]; }
@@ -40,6 +45,13 @@ struct Array2D {
 
     [[nodiscard]] auto forward_diff_x(size_t i, size_t j) const { return data[get_index(i + 1, j)] - data[get_index(i, j)]; }
     [[nodiscard]] auto forward_diff_y(size_t i, size_t j) const { return data[get_index(i, j + 1)] - data[get_index(i, j)]; }
+
+    // 2D offset difference
+    [[nodiscard]] auto backward_diff_x(size_t i, size_t j, size_t offset) const { return data[get_index(i, j) + offset] - data[get_index(i - 1, j) + offset]; }
+    [[nodiscard]] auto backward_diff_y(size_t i, size_t j, size_t offset) const { return data[get_index(i, j) + offset] - data[get_index(i, j - 1) + offset]; }
+
+    [[nodiscard]] auto forward_diff_x(size_t i, size_t j, size_t offset) const { return data[get_index(i + 1, j) + offset] - data[get_index(i, j) + offset]; }
+    [[nodiscard]] auto forward_diff_y(size_t i, size_t j, size_t offset) const { return data[get_index(i, j + 1) + offset] - data[get_index(i, j) + offset]; }
 };
 
 struct Array3D {
@@ -64,14 +76,13 @@ struct Array3D {
     }
 
     // 3D indexing
-    auto& operator()(const size_t i, const size_t j, const size_t k)
-    {
-        return data[get_index(i, j, k)];
-    }
-    const auto& operator()(const size_t i, const size_t j, const size_t k) const
-    {
-        return data[get_index(i, j, k)];
-    }
+    auto& operator()(const size_t i, const size_t j, const size_t k) { return data[get_index(i, j, k)]; }
+    const auto& operator()(const size_t i, const size_t j, const size_t k) const { return data[get_index(i, j, k)]; }
+
+    // 3D offset indexing
+    auto& operator()(const size_t i, const size_t j, const size_t k, const size_t offset) { return data[get_index(i, j, k) + offset]; }
+    const auto& operator()(const size_t i, const size_t j, const size_t k, const size_t offset) const { return data[get_index(i, j, k) + offset]; }
+
 
     // 3D difference
     [[nodiscard]] auto backward_diff_x(size_t i, size_t j, size_t k) const { return data[get_index(i, j, k)] - data[get_index(i - 1, j, k)]; }

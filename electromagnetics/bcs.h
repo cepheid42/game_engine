@@ -9,19 +9,25 @@
 #include "curls.h"
 #include "array.h"
 
-struct PMLBoundary2D
-{
-    Array2D psi;
-    Array2D c_psi;
-    Array2D c_f;
+
+template<size_t Axis, size_t Side>
+size_t getPMLIndexOffset(const size_t dim[2], const size_t d_pml) {
+    if constexpr (Side == 0) {
+        return 0; // X0/Y0/Z0
+    }
+
+    if constexpr(Axis == 0) {
+        return dim[1] - d_pml; // X1
+    } else {
+        return dim[1] * (dim[0] - d_pml); // Y1
+    }
+}
+
+template<size_t DIM>
+struct PMLOffsets {
+    std::array<size_t, 2 * DIM + 1> offsets;
 };
 
-// struct BCS
-// {
-//     PMLBoundary2D ez_pml;
-//     PMLBoundary2D hx_pml;
-//     PMLBoundary2D hy_pml;
-// };
 
 template<typename TL, FieldType FT, Derivative CURL, typename... IDXS>
 struct PMLConvolutionFunctor {
@@ -33,35 +39,14 @@ struct PMLConvolutionFunctor {
     using CP = TypeListAt<4, TL>;
     using CD = TypeListAt<5, TL>;
 
-    static auto apply(F& psi, const D1& d, const CP& c_psi, const CD& c_d, IDXS... idxs) {
+    static auto apply(P& psi, const D1& d, const CP& c_psi, const CD& c_d, const size_t f_offset, const IDXS... idxs) {
         const auto prev = c_psi(idxs...) * psi(idxs...);
-        const auto diff = c_d(idxs...) * curl1::apply(d, idxs...);
+        const auto diff = c_d(idxs..., f_offset) * curl1::apply(d, idxs..., f_offset);
         psi(idxs...) = prev + diff;
     }
 };
 
-
-template<typename TL, FieldType FT, Derivative CURL>
-struct PMLConvIntegrator2D {
-    using F = TypeListAt<0, TL>;
-    using P = TypeListAt<1, TL>;
-    using D1 = TypeListAt<2, TL>;
-    using CF = TypeListAt<3, TL>;
-    using CP = TypeListAt<4, TL>;
-    using CD = TypeListAt<5, TL>;
-    using conv_func = PMLConvolutionFunctor<TL, FT, CURL, size_t, size_t>;
-
-    static auto apply(P& psi, const D1& d, const CP& c_psi, const CD& c_d, const IntegratorOffsets<2>& o) {
-        const auto [x0, x1, y0, y1] = o.offsets;
-        for (size_t i = x0; i < psi.shape[0] - x1; i++) {
-            for (size_t j = y0; j < psi.shape[1] - y1; j++) {
-                conv_func::apply(psi, d, c_psi, c_d, i, j);
-            }
-        }
-    }
-};
-
-template<typename TL, FieldType FT, typename... IDXS>
+template<typename TL, FieldComp FC, typename... IDXS>
 struct PMLUpdateFunctor {
     using F = TypeListAt<0, TL>;
     using P = TypeListAt<1, TL>;
@@ -70,40 +55,53 @@ struct PMLUpdateFunctor {
     using CP = TypeListAt<4, TL>;
     using CD = TypeListAt<5, TL>;
 
-    static auto apply(F& f, const P& psi, const CF& c_f, const IDXS... idxs) {
-
+    static auto apply(F& f, const P& psi, const CF& c_f, const size_t f_offset, const IDXS... idxs) {
+        if constexpr (FC == FieldComp::X) {
+            f(idxs..., f_offset) += c_f(idxs..., f_offset) * psi(idxs...);
+        } else {
+            f(idxs..., f_offset) -= c_f(idxs..., f_offset) * psi(idxs...);
+        }
     }
 };
 
-template<typename TL, FieldType FT>
-struct PMLUpdateIntegrator2D {
+
+template<typename TL, FieldType FT, FieldComp FC, Derivative CURL>
+struct PMLIntegrator2D {
     using F = TypeListAt<0, TL>;
     using P = TypeListAt<1, TL>;
     using D1 = TypeListAt<2, TL>;
     using CF = TypeListAt<3, TL>;
     using CP = TypeListAt<4, TL>;
     using CD = TypeListAt<5, TL>;
-    using update_func = PMLUpdateFunctor<TL, FT,  size_t, size_t>;
+    using conv_func = PMLConvolutionFunctor<TL, FT, CURL, size_t, size_t>;
+    using update_func = PMLUpdateFunctor<TL, FC, size_t, size_t>;
 
-    static auto apply(F& f, const P& psi, const CF& c_f, const IntegratorOffsets<2>& o) {
-        const auto [x0, x1, y0, y1] = o.offsets;
-        for (size_t i = x0; i < f.shape[0] - x1; i++) {
-            for (size_t j = y0; j < f.shape[1] - y1; j++) {
-                update_func::apply(f, psi, c_f, i, j);
+    static auto apply(F& f, P& psi, const D1& d, const CF& c_f, const CP& c_psi, const CD& c_d, const PMLOffsets<2>& o) {
+        const auto [x0, x1, y0, y1, lo] = o.offsets;
+
+        for (size_t i = x0; i < psi.shape[0] - x1; i++) {
+            for (size_t j = y0; j < psi.shape[1] - y1; j++) {
+                conv_func::apply(psi, d, c_psi, c_d, lo, i, j);
+                update_func::apply(f, psi, c_f, lo, i, j);
             }
         }
     }
 };
 
-// template<>
-// struct PMLBoundary
-// {
-//     static void updateE(auto& pml, auto& field, const auto& coeff) {
-//         CI::apply(pml.psi, field, coeff);
-//     }
-//
-//     static void updateB() {}
-// };
+
+
+template<typename EIX0, typename HIX0>
+struct PMLBoundary
+{
+    static void updateE(auto& pml, auto& field, const auto& coeff, const size_t d_pml) {
+        const PMLOffsets<2> x0_offsets = {1u, 0u, 0u, 0u, getPMLIndexOffset<0, 0>(field.Ex.shape, d_pml)};
+        EIX0::apply(field.Ez, pml.psiE, field.By, coeff.cezh, pml.bE, pml.cE, x0_offsets);
+    }
+
+    static void updateB(auto& pml, auto& field, const auto& coeff) {
+        HIX0::apply();
+    }
+};
 
 
 #endif //BCS_H

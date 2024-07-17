@@ -18,6 +18,8 @@
 
 using fptype = double;
 
+inline constexpr size_t DPML = 10;
+
 inline constexpr double pi{3.141592653589793};
 inline constexpr double eta0{376.73031366686992}; // Ohms
 // inline constexpr double cfl{1.0 / 1.414213562373095}; // 2D = 1 / sqrt(2)
@@ -51,8 +53,7 @@ struct FieldData2D {
     EMPTYARRAY Jy{};
 };
 
-struct CoeffData2D
-{
+struct CoeffData2D {
     CoeffData2D(size_t nx, size_t ny)
     : ceze(nx, ny),
       cezh(nx, ny),
@@ -77,8 +78,17 @@ struct CoeffData2D
     EMPTYARRAY chze{};
     EMPTYARRAY cjy{};
 };
-void set_coefficients2D(CoeffData2D& c)
-{
+
+struct PMLData {
+    Array2D psiE;
+    Array2D psiB;
+    Array2D bE;
+    Array2D cE;
+    Array2D bB;
+    Array2D cB;
+};
+
+void set_coefficients2D(CoeffData2D& c) {
     for (size_t i = 0; i < c.ceze.shape[0]; i++) {
         for (size_t j = 0; j < c.ceze.shape[1]; j++) {
             c.ceze(i, j) = 1.0;
@@ -100,8 +110,8 @@ void set_coefficients2D(CoeffData2D& c)
         }
     }
 }
-void save_array(const Array2D& a, const std::string& path, const size_t step)
-{
+
+void save_array(const Array2D& a, const std::string& path, const size_t step) {
     std::string count_padded = std::to_string(step);
     count_padded.insert(count_padded.begin(), 8 - count_padded.length(), '0');
 
@@ -277,11 +287,10 @@ auto calculate_rms2D(const Array& fancy, const Array& regular, const std::string
 //     std::cout << name << ": " << std::scientific << lse << std::endl;
 // }
 
-int main()
-{
+int main() {
     constexpr size_t nx = 100;
     constexpr size_t ny = 100;
-    constexpr size_t nz = 100;
+    // constexpr size_t nz = 100;
 
     constexpr size_t nt = 200;
     
@@ -303,28 +312,47 @@ int main()
     using HyIntegrator = FieldIntegrator2D<HyUpdateTL, FieldType::H, Derivative::DX, Derivative::NoOp>;
     using HzIntegrator = FieldIntegratorNull;
     using EMSolver = Electromagnetics<ExIntegrator, EyIntegrator, EzIntegrator, HxIntegrator, HyIntegrator, HzIntegrator>;
+
+    using EX0_TL = TypeList<ARRAY, ARRAY, ARRAY, ARRAY, ARRAY, ARRAY>;
+    using PML_EX0 = PMLIntegrator2D<EX0_TL, FieldType::E, FieldComp::X, Derivative::DX>;
+    using PML_HX0 = PMLIntegrator2D<EX0_TL, FieldType::H, FieldComp::X, Derivative::DX>;
+
+    using PMLs = PMLBoundary<PML_EX0, PML_HX0>;
+
+
     FieldData2D ff(nx, ny);
-    FieldData2D rf(nx, ny);
+    // FieldData2D rf(nx, ny);
     CoeffData2D coeffs(nx, ny);
+
+    PMLData x0_pml{};
+    x0_pml.psiE = Array2D(DPML, ny - 1);
+    x0_pml.bE = Array2D(DPML, ny - 1);
+    x0_pml.cE = Array2D(DPML, ny - 1);
+
     set_coefficients2D(coeffs);
+
     for (size_t n = 0; n < nt; n++) {
         std::cout << "Step " << n << std::endl;
         const auto src = gauss_deriv(n);
         EMSolver::updateB(ff, coeffs);
         EMSolver::updateE(ff, coeffs);
         ff.Ez(50, 50) += src;
-        update_Hx2D(rf.Hx, rf.Ez, coeffs.chxh, coeffs.chxe);
-        update_Hy2D(rf.Hy, rf.Ez, coeffs.chyh, coeffs.chye);
-        update_Ez2D(rf.Ez, rf.Hy, rf.Hx, coeffs.ceze, coeffs.cezh);
-        rf.Ez(50, 50) += src;
+
+        PMLs::updateE(x0_pml, ff, coeffs, DPML);
+
+        // update_Hx2D(rf.Hx, rf.Ez, coeffs.chxh, coeffs.chxe);
+        // update_Hy2D(rf.Hy, rf.Ez, coeffs.chyh, coeffs.chye);
+        // update_Ez2D(rf.Ez, rf.Hy, rf.Hx, coeffs.ceze, coeffs.cezh);
+        // rf.Ez(50, 50) += src;
+
         // if (n % save_step == 0) {
         //     save_array(fields.Ez, "/home/cepheid/TriForce/game_engine/data/ez", file_count);
         //     file_count++;
         // }
     }
-    calculate_rms2D(ff.Ez, rf.Ez, "Ez");
-    calculate_rms2D(ff.Hx, rf.Hx, "Hx");
-    calculate_rms2D(ff.Hy, rf.Hy, "Hy");
+    // calculate_rms2D(ff.Ez, rf.Ez, "Ez");
+    // calculate_rms2D(ff.Hx, rf.Hx, "Hx");
+    // calculate_rms2D(ff.Hy, rf.Hy, "Hy");
 
     // //                            E      H1    H2      J      C1     C2     C3
     // using ExUpdateTL = TypeList<ARRAY, ARRAY, ARRAY, EMPTY, ARRAY, ARRAY, EMPTY>;
