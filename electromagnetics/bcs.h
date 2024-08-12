@@ -9,7 +9,8 @@
 #include "curls.h"
 #include "array.h"
 
-
+//=================== PML Functors ========================
+//=========================================================
 template<size_t Axis, size_t Side>
 size_t getPMLIndexOffset(const size_t dim[2], const size_t d_pml) {
     if constexpr (Side == 0) {
@@ -88,20 +89,26 @@ struct PMLIntegrator2D {
     }
 };
 
-
-
-template<typename EIX0, typename HIX0>
-struct PMLBoundary
-{
-    static void updateE(auto& pml, auto& field, const auto& coeff, const size_t d_pml) {
-        const PMLOffsets<2> x0_offsets = {1u, 0u, 0u, 0u, getPMLIndexOffset<0, 0>(field.Ex.shape, d_pml)};
-        EIX0::apply(field.Ez, pml.psiE, field.By, coeff.cezh, pml.bE, pml.cE, x0_offsets);
-    }
-
-    static void updateB(auto& pml, auto& field, const auto& coeff) {
-        HIX0::apply();
-    }
+//=================== Boundary Functors ========================
+//==============================================================
+struct NullBoundary {
+    static constexpr auto apply(...) {}
 };
+
+template<typename TL>
+struct PeriodicBoundary {
+    static auto apply(...) {}
+};
+
+//=================== Boundary Condition Class ========================
+//=====================================================================
+template<typename EBC, typename HBC>
+struct EMBoundary {
+    static void updateE(auto& f, auto& bcs, const auto& c) { EBC::apply(f.Ex, f.Ey, f.Ez); }
+    static void updateH() { HBC::apply(); }
+};
+
+
 
 
 #endif //BCS_H
