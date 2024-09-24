@@ -9,19 +9,27 @@ project(
 )
 
 gcc_opts = [
- '-fconcepts-diagnostics-depth=200',
+# '-fconcepts-diagnostics-depth=200',
  '-march=native',
- '-Wconversion'
+ '-Wconversion',
+# '-save-temps'
  ]
 
-includes = include_directories('core', 'electromagnetics')
+includes = include_directories('core', 'electromagnetics', 'aydenstuff')
 
 sources = [
     'main.cpp',
-    'core/memory.cpp',
+#    'core/memory.cpp',
 ]
 
+thread_dep = dependency('OpenMP')
 
-game_engine = executable('game_engine', sources: sources, cpp_args: gcc_opts, include_directories: includes)
+game_engine = executable(
+    'game_engine',
+    sources: sources,
+    cpp_args: gcc_opts,
+    include_directories: includes,
+    dependencies: thread_dep
+)
 
 #test('test', game_engine)
