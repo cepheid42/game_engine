@@ -128,38 +128,32 @@ struct em_data_3d : base_em_data<Array> {
   em_data_3d() = default;
 
   em_data_3d(const size_t nx, const size_t ny, const size_t nz)
-    : base_em_data<Array>(),
-      Ex{nx - 1, ny, nz},
-      Ey{nx, ny - 1, nz},
-      Ez{nx, ny, nz - 1},
-      Hx{nx, ny - 1, nz - 1},
-      Hy{nx - 1, ny, nz - 1},
-      Hz{nx - 1, ny - 1, nz},
-      Jx{nx - 1, ny, nz},
-      Jy{nx, ny - 1, nz},
-      Jz{nx, ny, nz - 1},
-      Cexe{nx - 1, ny, nz},
-      Cexh{nx - 1, ny, nz},
-      Ceye{nx, ny - 1, nz - 1},
-      Ceyh{nx, ny - 1, nz - 1},
-      Ceze{nx, ny, nz - 1},
-      Cezh{nx, ny, nz - 1},
-      Chxe{nx, ny - 1, nz - 1},
-      Chxh{nx, ny - 1, nz - 1},
-      Chye{nx - 1, ny, nz - 1},
-      Chyh{nx - 1, ny, nz - 1},
-      Chze{nx - 1, ny - 1, nz},
-      Chzh{nx - 1, ny - 1, nz},
-      Cjx{nx - 1, ny, nz},
-      Cjy{nx, ny - 1, nz},
-      Cjz{nx, ny, nz - 1}
+  : base_em_data<Array>(),
+    Ex{nx - 1, ny, nz},
+    Ey{nx, ny - 1, nz},
+    Ez{nx, ny, nz - 1},
+    Hx{nx, ny - 1, nz - 1},
+    Hy{nx - 1, ny, nz - 1},
+    Hz{nx - 1, ny - 1, nz},
+    Jx{nx - 1, ny, nz},
+    Jy{nx, ny - 1, nz},
+    Jz{nx, ny, nz - 1},
+    Cexe{nx - 1, ny, nz},
+    Cexh{nx - 1, ny, nz},
+    Ceye{nx, ny - 1, nz - 1},
+    Ceyh{nx, ny - 1, nz - 1},
+    Ceze{nx, ny, nz - 1},
+    Cezh{nx, ny, nz - 1},
+    Chxe{nx, ny - 1, nz - 1},
+    Chxh{nx, ny - 1, nz - 1},
+    Chye{nx - 1, ny, nz - 1},
+    Chyh{nx - 1, ny, nz - 1},
+    Chze{nx - 1, ny - 1, nz},
+    Chzh{nx - 1, ny - 1, nz},
+    Cjx{nx - 1, ny, nz},
+    Cjy{nx, ny - 1, nz},
+    Cjz{nx, ny, nz - 1}
   {}
-
-  using base_em_data<Array>::dimension_t;
-
-  using base_em_data<Array>::value_t;
-
-  em_data_3d() = default;
 
   array_t Ex;
   array_t Ey;
