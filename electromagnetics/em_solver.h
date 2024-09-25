@@ -10,7 +10,7 @@
 
 #include "./aydenstuff/tags.h"
 // #include "em_data.h"
-
+#include "panic.h"
 
 // template<typename EMClass>
 // struct EIntegrator1D {
@@ -103,6 +103,8 @@ struct EM : Solver<EM<Solver>> {
     HIX::advance();
     HIY::advance();
     HIZ::advance();
+
+    panic("{} = {}", __PRETTY_FUNCTION__, __LINE__);
 
     EIX::advance();
     EIY::advance();
