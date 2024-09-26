@@ -22,14 +22,14 @@ sources = [
 #    'core/memory.cpp',
 ]
 
-thread_dep = dependency('OpenMP')
+#thread_dep = dependency('OpenMP')
 
 game_engine = executable(
     'game_engine',
     sources: sources,
     cpp_args: gcc_opts,
     include_directories: includes,
-    dependencies: thread_dep
+#    dependencies: thread_dep
 )
 
 #test('test', game_engine)

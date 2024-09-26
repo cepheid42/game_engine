@@ -5,8 +5,6 @@
 #ifndef EM_DATA_H
 #define EM_DATA_H
 
-#include <array>
-
 #include "aydenstuff/array.h"
 
 template<typename Array>
@@ -18,9 +16,9 @@ struct base_em_data {
 
 template<typename Array>
 struct em_data_1d : base_em_data<Array> {
-  using base_em_data<Array>::array_t;
-  using base_em_data<Array>::dimension_t;
-  using base_em_data<Array>::value_t;
+  using array_t = typename base_em_data<Array>::array_t;
+  using dimension_t = typename base_em_data<Array>::dimension_t;
+  using value_t = typename base_em_data<Array>::value_t;
 
   em_data_1d() = default;
 
@@ -47,9 +45,9 @@ struct em_data_1d : base_em_data<Array> {
 
 template<typename Array>
 struct em_data_tm : base_em_data<Array> {
-  using base_em_data<Array>::array_t;
-  using base_em_data<Array>::dimension_t;
-  using base_em_data<Array>::value_t;
+  using array_t = typename base_em_data<Array>::array_t;
+  using dimension_t = typename base_em_data<Array>::dimension_t;
+  using value_t = typename base_em_data<Array>::value_t;
 
   em_data_tm() = default;
 
@@ -82,9 +80,9 @@ struct em_data_tm : base_em_data<Array> {
 
 template<typename Array>
 struct em_data_te : base_em_data<Array> {
-  using base_em_data<Array>::array_t;
-  using base_em_data<Array>::dimension_t;
-  using base_em_data<Array>::value_t;
+  using array_t = typename base_em_data<Array>::array_t;
+  using dimension_t = typename base_em_data<Array>::dimension_t;
+  using value_t = typename base_em_data<Array>::value_t;
 
   em_data_te() = default;
 
@@ -121,9 +119,9 @@ struct em_data_te : base_em_data<Array> {
 
 template<typename Array>
 struct em_data_3d : base_em_data<Array> {
-  using base_em_data<Array>::array_t;
-  using base_em_data<Array>::dimension_t;
-  using base_em_data<Array>::value_t;
+  using array_t = typename base_em_data<Array>::array_t;
+  using dimension_t = typename base_em_data<Array>::dimension_t;
+  using value_t = typename base_em_data<Array>::value_t;
 
   em_data_3d() = default;
 

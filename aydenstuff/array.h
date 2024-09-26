@@ -41,8 +41,8 @@ namespace tf::types
       auto end() const { return data.end(); }
       
       // Basic accessors
-      value_t& operator[](int i) { return data[i]; }
-      const value_t& operator[](int i) const { return data[i]; }
+      value_t& operator[](std::size_t i) { return data[i]; }
+      const value_t& operator[](std::size_t i) const { return data[i]; }
     
     protected:
       vector_t data;
@@ -60,8 +60,8 @@ namespace tf::types
     
     // Constructors & Destructor
     explicit Array1D() = default;
-    explicit Array1D(int nx_) : detail::ArrayBase<T, 1>(nx_), nx(nx_) {}
-    Array1D(int nx_, value_t fill) : detail::ArrayBase<T, 1>(nx_, fill), nx(nx_) {}
+    explicit Array1D(std::size_t nx_) : detail::ArrayBase<T, 1>(nx_), nx(nx_) {}
+    Array1D(std::size_t nx_, value_t fill) : detail::ArrayBase<T, 1>(nx_, fill), nx(nx_) {}
     Array1D(const Array1D& other) : detail::ArrayBase<T, 1>(other), nx(other.nx) {}
     
     // Array1D& operator=(const Array1D& other);
@@ -69,16 +69,16 @@ namespace tf::types
     ~Array1D() = default;
     
     // Indexing Function
-    [[nodiscard]] static inline size_t get_scid(int i) { return i; }
+    [[nodiscard]] static inline size_t get_scid(std::size_t i) { return i; }
     
     // Specialized Accessors
-    value_t& operator()(int i) { return (*this)[i]; }
-    const value_t& operator()(int i) const { return (*this)[i]; }
+    value_t& operator()(std::size_t i) { return (*this)[i]; }
+    const value_t& operator()(std::size_t i) const { return (*this)[i]; }
     
     // Unary Negation
     auto operator-() const {
       Array1D result(nx);
-      for (int i = 0; i < nx; i++) { result[i] = value_t(-1) * this->data[i]; }
+      for (std::size_t i = 0; i < nx; i++) { result[i] = value_t(-1) * this->data[i]; }
       return result;
     }
     
@@ -130,8 +130,8 @@ namespace tf::types
     
     // Constructors & Destructor
     explicit Array2D() = default;
-    Array2D(int nx_, int nz_) : detail::ArrayBase<T, 2>(nx_ * nz_), nx(nx_), nz(nz_) {}
-    Array2D(int nx_, int nz_, value_t fill) : detail::ArrayBase<T, 2>(nx_ * nz_, fill), nx(nx_), nz(nz_) {}
+    Array2D(std::size_t nx_, std::size_t nz_) : detail::ArrayBase<T, 2>(nx_ * nz_), nx(nx_), nz(nz_) {}
+    Array2D(std::size_t nx_, std::size_t nz_, value_t fill) : detail::ArrayBase<T, 2>(nx_ * nz_, fill), nx(nx_), nz(nz_) {}
     Array2D(const Array2D& other) : detail::ArrayBase<T, 2>(other), nx(other.nx), nz(other.nz) {}
     
     ~Array2D() = default;
@@ -152,7 +152,7 @@ namespace tf::types
     // Unary Negation
     auto operator-() const {
       Array2D result(nx);
-      for (int i = 0; i < nx; i++) { result[i] = value_t(-1) * this->data[i]; }
+      for (std::size_t i = 0; i < nx; i++) { result[i] = value_t(-1) * this->data[i]; }
       return result;
     }
     
@@ -191,7 +191,7 @@ namespace tf::types
     }
     
     // Stride data
-    const int nx, nz;
+    const std::size_t nx, nz;
     //
   };// end class Array2D
   
@@ -204,11 +204,11 @@ namespace tf::types
     
     Array3D(size_t nx_, size_t ny_, size_t nz_) : detail::ArrayBase<T, 3>(nx_ * ny_ * nz_), nx(nx_), ny(ny_), nz(nz_) {}
     
-    inline size_t get_scid(int i, int j, int k) { return k + nz * j + nz * ny * i; }
+    inline size_t get_scid(std::size_t i, std::size_t j, std::size_t k) { return k + nz * j + nz * ny * i; }
     
     // Specialized accessors
-    value_t& operator()(int i, int j, int k) { return (*this)[get_scid(i, j, k)]; }
-    const value_t& operator()(int i, int j, int k) const { return (*this)[get_scid(i, j, k)]; }
+    value_t& operator()(std::size_t i, std::size_t j, std::size_t k) { return (*this)[get_scid(i, j, k)]; }
+    const value_t& operator()(std::size_t i, std::size_t j, std::size_t k) const { return (*this)[get_scid(i, j, k)]; }
     
     // Stride data
     const size_t nx, ny, nz;

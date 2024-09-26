@@ -13,8 +13,13 @@ void print_type() {
 }
 
 int main() {
+  using emdata_t = em_data_tm<tf::types::Array2D<double>>;
 
-  EM1D::advance();
+  const size_t nx = 10;
+
+  emdata_t em{nx, nx};
+
+  EMTM::advance(em);
 
 
   // EM2D::advance();

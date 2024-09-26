@@ -9,50 +9,38 @@
 #include <iostream>
 
 #include "./aydenstuff/tags.h"
-// #include "em_data.h"
-#include "panic.h"
+#include "em_data.h"
 
-// template<typename EMClass>
-// struct EIntegrator1D {
-//   static void advanceE() {
-//     std::cout << "Hi, EIntegrator1D." << std::endl;
-//     // EMClass::advanceE1D("EIntegrator");
-//   }
-// };
-//
-// template<typename EMClass>
-// struct EIntegrator2D {
-//   static void advanceE() {
-//     std::cout << "Hi, EIntegrator2D." << std::endl;
-//     // EMClass::advanceE1D("EIntegrator");
-//   }
-// };
-//
-// template<typename EMClass>
-// struct BIntegrator1D {
-//   static void advanceB() {
-//     std::cout << "Hi, BIntegrator1D." << std::endl;
-//     // EMClass::advanceB1D("BIntegrator");
-//   }
-// };
-//
-// template<typename EMClass>
-// struct BIntegrator2D {
-//   static void advanceB() {
-//     std::cout << "Hi, BIntegrator2D." << std::endl;
-//     // EMClass::advanceB1D("BIntegrator");
-//   }
-// };
 
 enum class Fields { Ex, Ey, Ez, Hx, Hy, Hz };
 
+template<template<typename> typename EMData, Fields Field>
+struct ExplicitUpdate;
+
 template<Fields Field>
-struct ExplicitFunctor1D {
-  static void apply(size_t i) {
+struct ExplicitUpdate<em_data_1d, Field> {
+  using emdata_t = em_data_1d<tf::types::Array1D<double>>;
+
+  static void apply(emdata_t& em, const size_t i) {
     if constexpr (Field == Fields::Ez) {
-      std::cout << "ExplicitFunctor::Ez(" << i <<")" << std::endl;
+      std::cout << "ExplicitFunctor1D::Ez(" << i << ") = " << em.Ez.size() << std::endl;
     } else {
-      std::cout << "ExplicitFunctor::Hy(" << i <<")" << std::endl;
+      std::cout << "ExplicitFunctor1D::Hy(" << i << ") = " << em.Hy.size() << std::endl;
+    }
+  }
+};
+
+template<Fields Field>
+struct ExplicitUpdate<em_data_tm, Field> {
+  using emdata_t = em_data_tm<tf::types::Array2D<double>>;
+
+  static void apply(emdata_t& em, size_t i, size_t j) {
+    if constexpr (Field == Fields::Ez) {
+      std::cout << "ExplicitFunctorTM_2D::Ez(" << i << ", " << j << ") = " << em.Ez.nx << ", " << em.Ez.nz << std::endl;
+    } else if constexpr (Field == Fields::Hx) {
+      std::cout << "ExplicitFunctor2D::TM_Hx(" << i << ", " << j << ") = " << em.Hx.nx << ", " << em.Hx.nz << std::endl;
+    } else {
+      std::cout << "ExplicitFunctor2D::TM_Hy(" << i << ", " << j << ") = " << em.Hx.nx << ", " << em.Hx.nz << std::endl;
     }
   }
 };
@@ -60,33 +48,76 @@ struct ExplicitFunctor1D {
 
 template<typename EMClass, typename Func>
 struct Integrator1D {
-  static void advance() {
+  using emdata_t = em_data_1d<tf::types::Array1D<double>>;
+
+  static void advance(emdata_t& em) {
     for (size_t i = 0; i < 2; i++) {
-      Func::apply(i);
+      Func::apply(em, i);
     }
   }
 };
 
-using ElectricUpdateEz = ExplicitFunctor1D<Fields::Ez>;
-using MagneticUpdateHy = ExplicitFunctor1D<Fields::Hy>;
+template<typename EMClass, typename Func>
+struct Integrator2D {
+  using emdata_t = em_data_tm<tf::types::Array2D<double>>;
 
-struct NullIntegrator {
-  static void advance() { std::cout << "NullIntegrator::advance()" << std::endl; }
+  static void advance(emdata_t& em) {
+    for (size_t i = 0; i < 2; i++) {
+      for (size_t j = 0; j < 2; j++) {
+        Func::apply(em, i, j);
+      }
+    }
+  }
 };
 
+template<template<typename> typename EMData>
+using ElectricUpdateEx = ExplicitUpdate<EMData, Fields::Ex>;
+template<template<typename> typename EMData>
+using ElectricUpdateEy = ExplicitUpdate<EMData, Fields::Ey>;
+template<template<typename> typename EMData>
+using ElectricUpdateEz = ExplicitUpdate<EMData, Fields::Ez>;
+template<template<typename> typename EMData>
+using MagneticUpdateHx = ExplicitUpdate<EMData, Fields::Hx>;
+template<template<typename> typename EMData>
+using MagneticUpdateHy = ExplicitUpdate<EMData, Fields::Hy>;
+template<template<typename> typename EMData>
+using MagneticUpdateHz = ExplicitUpdate<EMData, Fields::Hz>;
+
+struct NullIntegrator {
+  static void advance(auto&) { std::cout << "NullIntegrator::advance()" << std::endl; }
+};
+
+
 template<typename EMClass>
-struct Solver1D : Integrator1D<EMClass, ElectricUpdateEz>, Integrator1D<EMClass, MagneticUpdateHy> {
+struct Solver1D
+: Integrator1D<EMClass, ElectricUpdateEz<em_data_1d>>,
+  Integrator1D<EMClass, MagneticUpdateHy<em_data_1d>>
+{
+  using emdata_t = em_data_1d<tf::types::Array1D<double>>;
+
   using EIX = NullIntegrator;
   using EIY = NullIntegrator;
-  using EIZ = Integrator1D<EMClass, ElectricUpdateEz>;
+  using EIZ = Integrator1D<EMClass, ElectricUpdateEz<em_data_1d>>;
   using HIX = NullIntegrator;
-  using HIY = Integrator1D<EMClass, MagneticUpdateHy>;
+  using HIY = Integrator1D<EMClass, MagneticUpdateHy<em_data_1d>>;
   using HIZ = NullIntegrator;
 };
 
-// template<typename EMClass>
-// struct Solver2D : EIntegrator2D<EMClass>, BIntegrator2D<EMClass> {};
+template<typename EMClass>
+struct SolverTM
+: Integrator2D<EMClass, ElectricUpdateEz<em_data_tm>>,
+  Integrator2D<EMClass, MagneticUpdateHx<em_data_tm>>,
+  Integrator2D<EMClass, MagneticUpdateHy<em_data_tm>>
+{
+  using emdata_t = em_data_tm<tf::types::Array2D<double>>;
 
+  using EIX = NullIntegrator;
+  using EIY = NullIntegrator;
+  using EIZ = Integrator2D<EMClass, ElectricUpdateEz<em_data_tm>>;
+  using HIX = Integrator2D<EMClass, MagneticUpdateHx<em_data_tm>>;
+  using HIY = Integrator2D<EMClass, MagneticUpdateHy<em_data_tm>>;
+  using HIZ = NullIntegrator;
+};
 
 
 
@@ -99,21 +130,21 @@ struct EM : Solver<EM<Solver>> {
   using HIY = typename Solver<EM>::HIY;
   using HIZ = typename Solver<EM>::HIZ;
 
-  static void advance() {
-    HIX::advance();
-    HIY::advance();
-    HIZ::advance();
+  using emdata_t = typename Solver<EM>::emdata_t;
 
-    panic("{} = {}", __PRETTY_FUNCTION__, __LINE__);
+  static void advance(emdata_t& em) {
+    HIX::advance(em);
+    HIY::advance(em);
+    HIZ::advance(em);
 
-    EIX::advance();
-    EIY::advance();
-    EIZ::advance();
+    EIX::advance(em);
+    EIY::advance(em);
+    EIZ::advance(em);
   }
 };
 
 using EM1D = EM<Solver1D>;
-// using EM2D = EM<Solver2D>;
+using EMTM = EM<SolverTM>;
 
 
 // using X12 = X<ExtraFeature1, ExtraFeature2>;
