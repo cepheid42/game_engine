@@ -16,10 +16,70 @@ void print_type() {
   std::cout << __PRETTY_FUNCTION__ << std::endl;
 }
 
+//============== Functor Classes =============
+//============================================
+struct ForwardDiff1D {
+  static auto apply(const auto& d, const std::size_t i) {
+    std::cout << "ForwardDiff1D::apply()" << std::endl;
+    return 0.0;
+    // return d[i + 1] - d[i];
+  }
+};
+
+struct BackwardDiff1D {
+  static auto apply(const auto& d, const std::size_t i) {
+    std::cout << "BackwardDiff1D::apply()" << std::endl;
+    return 0.0;
+    // return d[i] - d[i - 1];
+  }
+};
+
+//============== Functor Classes =============
+//============================================
+template<typename emdata_t, typename DIFF>
+struct UpdateFunctor1D {
+  using value_t = typename emdata_t::value_t;
+  using array_t = typename emdata_t::array_t;
+
+  static value_t apply(array_t& F, const array_t& D1, const array_t& J, const array_t& c_F, const array_t& c_D, const array_t& c_J, const std::size_t i) {
+    std::cout << "UpdateFunctor1D::apply()" << std::endl;
+    DIFF::apply(D1, i);
+    return 0.0;
+    // const auto    self = c_F[i] * F[i];
+    // const auto    diff = c_D[i] * DIFF::apply(D1);
+    // const auto current = c_J[i] * J[i];
+    // return self + diff - current;
+  }
+
+  static value_t apply(array_t& F, const array_t& D1, const array_t& c_F, const array_t& c_D, const std::size_t i) {
+    std::cout << "UpdateFunctor1D::apply()" << std::endl;
+    DIFF::apply(D1, i);
+    return 0.0;
+    // const auto    self = c_F[i] * F[i];
+    // const auto    diff = c_D[i] * DIFF::apply(D1);
+    // const auto current = c_J[i] * J[i];
+    // return self + diff - current;
+  }
+};
+
 //============== Integrator Classes =============
 //===============================================
+template<typename emdata_t, typename DIFF>
 struct Integrator1D {
-  static void advance() { std::cout << "Integrator1D::advance()" << std::endl; }
+  using value_t = typename emdata_t::value_t;
+  using array_t = typename emdata_t::array_t;
+
+  static void advance(array_t& F, const array_t& D1, const array_t& J, const array_t& c_F, const array_t& c_D, const array_t& c_J) {
+    for (std::size_t i = 0; i < 2; i++) {
+      UpdateFunctor1D<emdata_t, DIFF>::apply(F, D1, J, c_F, c_D, c_J, i);
+    }
+  }
+
+  static void advance(array_t& F, const array_t& D1, const array_t& c_F, const array_t& c_D) {
+    for (std::size_t i = 0; i < 2; i++) {
+      UpdateFunctor1D<emdata_t, DIFF>::apply(F, D1, c_F, c_D, i);
+    }
+  }
 };
 
 struct Integrator2D {
@@ -90,6 +150,8 @@ struct HzIntegrator_is : virtual DefaultSolver {
 //========================================================
 template<typename Solver>
 struct EM {
+  using emdata_t = typename Solver::emdata_t;
+
   using EIX = typename Solver::Integrators::EIX;
   using EIY = typename Solver::Integrators::EIY;
   using EIZ = typename Solver::Integrators::EIZ;
@@ -97,14 +159,14 @@ struct EM {
   using HIY = typename Solver::Integrators::HIY;
   using HIZ = typename Solver::Integrators::HIZ;
 
-  static void advance() {
+  static void advance(emdata_t& em) {
     HIX::advance();
-    HIY::advance();
+    HIY::advance(em.Hy, em.Ez, em.Chyh, em.Ceze);
     HIZ::advance();
 
     EIX::advance();
     EIY::advance();
-    EIZ::advance();
+    EIZ::advance(em.Ez, em.Hy, em.Jz, em.Ceze, em.Cezh, em.Cjz);
   }
 };
 
@@ -120,43 +182,46 @@ struct SolverNone {
 
 
 struct Solver1D {
+  using emdata_t = em_data_1d<double>;
   using Integrators = SolverSelector<DefaultSolverArgs,
                                      DefaultSolverArgs,
-                                     EzIntegrator_is<Integrator1D>,
+                                     EzIntegrator_is<Integrator1D<emdata_t, BackwardDiff1D>>,
                                      DefaultSolverArgs,
-                                     HyIntegrator_is<Integrator1D>,
+                                     HyIntegrator_is<Integrator1D<emdata_t, ForwardDiff1D>>,
                                      DefaultSolverArgs>;
 };
 
-struct SolverTM {
-  using Integrators = SolverSelector<DefaultSolverArgs,
-                                     DefaultSolverArgs,
-                                     EzIntegrator_is<Integrator2D>,
-                                     HxIntegrator_is<Integrator2D>,
-                                     HyIntegrator_is<Integrator2D>,
-                                     DefaultSolverArgs>;
-};
+using Electromagnetics = EM<Solver1D>;
 
-struct SolverTE {
-  using Integrators = SolverSelector<ExIntegrator_is<Integrator2D>,
-                                     EyIntegrator_is<Integrator2D>,
-                                     DefaultSolverArgs,
-                                     DefaultSolverArgs,
-                                     DefaultSolverArgs,
-                                     HzIntegrator_is<Integrator2D>>;
-};
-
-struct Solver3D {
-  using Integrators = SolverSelector<ExIntegrator_is<Integrator3D>,
-                                     EyIntegrator_is<Integrator3D>,
-                                     EzIntegrator_is<Integrator3D>,
-                                     HxIntegrator_is<Integrator3D>,
-                                     HyIntegrator_is<Integrator3D>,
-                                     HzIntegrator_is<Integrator3D>>;
-};
-
-using SolverTypeList = TypeList<SolverNone, Solver1D, SolverTM, SolverTE, Solver3D>;
-
-using Electromagnetics = EM<TypeListAt<3, SolverTypeList>>;
+// struct SolverTM {
+//   using Integrators = SolverSelector<DefaultSolverArgs,
+//                                      DefaultSolverArgs,
+//                                      EzIntegrator_is<Integrator2D>,
+//                                      HxIntegrator_is<Integrator2D>,
+//                                      HyIntegrator_is<Integrator2D>,
+//                                      DefaultSolverArgs>;
+// };
+//
+// struct SolverTE {
+//   using Integrators = SolverSelector<ExIntegrator_is<Integrator2D>,
+//                                      EyIntegrator_is<Integrator2D>,
+//                                      DefaultSolverArgs,
+//                                      DefaultSolverArgs,
+//                                      DefaultSolverArgs,
+//                                      HzIntegrator_is<Integrator2D>>;
+// };
+//
+// struct Solver3D {
+//   using Integrators = SolverSelector<ExIntegrator_is<Integrator3D>,
+//                                      EyIntegrator_is<Integrator3D>,
+//                                      EzIntegrator_is<Integrator3D>,
+//                                      HxIntegrator_is<Integrator3D>,
+//                                      HyIntegrator_is<Integrator3D>,
+//                                      HzIntegrator_is<Integrator3D>>;
+// };
+//
+// using SolverTypeList = TypeList<SolverNone, Solver1D, SolverTM, SolverTE, Solver3D>;
+//
+// using Electromagnetics = EM<TypeListAt<1, SolverTypeList>>;
 
 #endif //EM_SOLVER_H

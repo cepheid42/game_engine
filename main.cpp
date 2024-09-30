@@ -11,7 +11,8 @@
 
 int main() {
 
-  Electromagnetics::advance();
+  em_data_1d<double> emdata{};
+  Electromagnetics::advance(emdata);
 
   // auto start = std::chrono::high_resolution_clock::now();
   // auto stop = std::chrono::high_resolution_clock::now() - start;
