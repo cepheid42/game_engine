@@ -5,7 +5,30 @@
 #ifndef EM_DATA_H
 #define EM_DATA_H
 
+
 #include "aydenstuff/array.h"
+
+template<typename T, std::size_t... N>
+struct EmptyArray {
+  using value_t = T;
+  using vector_t = std::vector<value_t>;
+  using dimension_t = tf::tags::Dimension<sizeof...(N)>;
+
+  EmptyArray() = default;
+  explicit EmptyArray(std::size_t...) {}
+
+  value_t operator()(std::size_t...) const { return static_cast<value_t>(0.0); }
+};
+
+template<typename T>
+using EmptyArray1D = EmptyArray<T, 1>;
+
+template<typename T>
+using EmptyArray2D = EmptyArray<T, 2>;
+
+template<typename T>
+using EmptyArray3D = EmptyArray<T, 3>;
+
 
 template<typename Array>
 struct base_em_data {
@@ -14,11 +37,11 @@ struct base_em_data {
   using dimension_t = typename Array::dimension_t;
 };
 
-template<typename Array>
-struct em_data_1d : base_em_data<Array> {
-  using array_t = typename base_em_data<Array>::array_t;
-  using dimension_t = typename base_em_data<Array>::dimension_t;
-  using value_t = typename base_em_data<Array>::value_t;
+template<typename T>
+struct em_data_1d : base_em_data<tf::types::Array1D<T>> {
+  using array_t = typename base_em_data<tf::types::Array1D<T>>::array_t;
+  using dimension_t = typename base_em_data<tf::types::Array1D<T>>::dimension_t;
+  using value_t = typename base_em_data<tf::types::Array1D<T>>::value_t;
 
   em_data_1d() = default;
 
@@ -48,6 +71,7 @@ struct em_data_tm : base_em_data<Array> {
   using array_t = typename base_em_data<Array>::array_t;
   using dimension_t = typename base_em_data<Array>::dimension_t;
   using value_t = typename base_em_data<Array>::value_t;
+  using empty_t = EmptyArray2D<value_t>;
 
   em_data_tm() = default;
 
@@ -65,16 +89,29 @@ struct em_data_tm : base_em_data<Array> {
     Chyh{nx - 1, ny},
     Cjz{nx, ny}
   {}
+  empty_t Ex{};
+  empty_t Ey{};
   array_t Ez;
   array_t Hx;
   array_t Hy;
+  empty_t Hz{};
+  empty_t Jx{};
+  empty_t Jy{};
   array_t Jz;
+  empty_t Cexe{};
+  empty_t Cexh{};
+  empty_t Ceye{};
+  empty_t Ceyh{};
   array_t Ceze;
   array_t Cezh;
   array_t Chxe;
   array_t Chxh;
   array_t Chye;
   array_t Chyh;
+  empty_t Chze{};
+  empty_t Chzh{};
+  empty_t Cjx{};
+  empty_t Cjy{};
   array_t Cjz;
 };
 
