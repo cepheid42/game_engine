@@ -6,6 +6,7 @@
 #define TRIFORCE_ARRAY_H
 
 #include <vector>
+#include <cassert>
 
 #include "tags.h"
 
