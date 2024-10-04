@@ -45,27 +45,28 @@ void print_type() {
 
 int main() {
 
-  emdata_t emdata{};
-
-  emdata.Ez{5};
-
-  for (int i = 0; i < 5; i++) {
-    emdata.Ez[i] = 1.0;
-  }
-
-
-  // print_type<emdata_t>();
-  // print_type<emdata_t::ex_t>();
-  // print_type<emdata_t::ey_t>();
-  // print_type<emdata_t::ez_t>();
-  // BreadSlicer<Policy3_is<CustomPolicy>> bc;
+  // emdata_t<double> emdata1d{5};
   //
-  // bc.print();
-  //
-  // print_type<BreadSlicer<Policy3_is<CustomPolicy>>>();
+  // emdata1d.Ez[0] = 1.0;
+  // DBG(emdata1d.Ez);
 
-  // emdata_t emdata{5, 5};
-  // EMSolver::advance(emdata);
+  DBG(sizeof(emdata_t<double>));
+  DBG(sizeof(emdata_t<double>::ex_t));
+  DBG(sizeof(emdata_t<double>::ey_t));
+  DBG(sizeof(emdata_t<double>::));
+  DBG(sizeof(emdata_t<double>));
+  // emdata_t<double> emdata2d{5, 5};
+  //
+  // emdata2d.Ez(0, 0) = 1.0;
+  // DBG(emdata2d.Ez);
+
+  // print_type<emdata_t<double>>();
+  //
+  // print_type<emdata_t<double>::ex_t>();
+  // print_type<emdata_t<double>::ey_t>();
+  // print_type<emdata_t<double>::ez_t>();
+
+
 
   // auto start = std::chrono::high_resolution_clock::now();
   // auto stop = std::chrono::high_resolution_clock::now() - start;

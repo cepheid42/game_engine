@@ -28,7 +28,7 @@ namespace tf::types
       
       explicit ArrayBase() = default;
       explicit ArrayBase(size_t size) : data(size) {}
-      ArrayBase(size_t size, value_t fill) : data(size, fill) {}
+      // explicit ArrayBase(size_t size, value_t fill) : data(size, fill) {}
       ArrayBase(const ArrayBase& other) : data(other.data) {}
       
       ~ArrayBase() = default;
@@ -62,7 +62,7 @@ namespace tf::types
     // Constructors & Destructor
     explicit Array1D() = default;
     explicit Array1D(std::size_t nx_) : detail::ArrayBase<T, 1>(nx_), nx(nx_) {}
-    Array1D(std::size_t nx_, value_t fill) : detail::ArrayBase<T, 1>(nx_, fill), nx(nx_) {}
+    // explicit Array1D(std::size_t nx_, value_t fill) : detail::ArrayBase<T, 1>(nx_, fill), nx(nx_) {}
     Array1D(const Array1D& other) : detail::ArrayBase<T, 1>(other), nx(other.nx) {}
     
     // Array1D& operator=(const Array1D& other);
@@ -131,8 +131,8 @@ namespace tf::types
     
     // Constructors & Destructor
     explicit Array2D() = default;
-    Array2D(std::size_t nx_, std::size_t nz_) : detail::ArrayBase<T, 2>(nx_ * nz_), nx(nx_), nz(nz_) {}
-    Array2D(std::size_t nx_, std::size_t nz_, value_t fill) : detail::ArrayBase<T, 2>(nx_ * nz_, fill), nx(nx_), nz(nz_) {}
+    explicit Array2D(std::size_t nx_, std::size_t nz_) : detail::ArrayBase<T, 2>(nx_ * nz_), nx(nx_), nz(nz_) {}
+    // explicit Array2D(std::size_t nx_, std::size_t nz_, value_t fill) : detail::ArrayBase<T, 2>(nx_ * nz_, fill), nx(nx_), nz(nz_) {}
     Array2D(const Array2D& other) : detail::ArrayBase<T, 2>(other), nx(other.nx), nz(other.nz) {}
     
     ~Array2D() = default;
@@ -203,7 +203,7 @@ namespace tf::types
     using vector_t = typename detail::ArrayBase<T, 3>::vector_t;
     using dimension_t = typename detail::ArrayBase<T, 3>::dimension_t;
     
-    Array3D(size_t nx_, size_t ny_, size_t nz_) : detail::ArrayBase<T, 3>(nx_ * ny_ * nz_), nx(nx_), ny(ny_), nz(nz_) {}
+    explicit Array3D(size_t nx_, size_t ny_, size_t nz_) : detail::ArrayBase<T, 3>(nx_ * ny_ * nz_), nx(nx_), ny(ny_), nz(nz_) {}
     
     inline size_t get_scid(std::size_t i, std::size_t j, std::size_t k) { return k + nz * j + nz * ny * i; }
     
