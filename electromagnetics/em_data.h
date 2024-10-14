@@ -91,6 +91,9 @@ struct disable_field {
 template<FieldComponent EXF, FieldComponent EYF, FieldComponent EZF, FieldComponent HXF, FieldComponent HYF, FieldComponent HZF>
 struct EMData {
   using value_t = typename EXF::arr_t::value_t;
+  using dimension_t = typename EXF::arr_t::dimension_t;
+
+  using empty_t = EmptyArray<value_t, dimension_t::value>;
 
   using ex_t = typename EXF::arr_t;
   using ey_t = typename EYF::arr_t;
@@ -155,8 +158,6 @@ struct EMData {
   hz_t Chze;
   hz_t Chzh;
 };
-
-
 
 
 template<typename T>

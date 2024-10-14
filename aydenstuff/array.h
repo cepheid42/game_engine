@@ -144,11 +144,11 @@ namespace tf::types
     value_t& operator()(const size_t  i, const size_t  k) { return (*this)[get_scid(i, k)]; }
     const value_t& operator()(const size_t  i, const size_t  k) const { return (*this)[get_scid(i, k)]; }
 
-    value_t forward_diff_x(const size_t i, const size_t k) const { return (*this)[get_scid(i + 1, k)] - (*this)[get_scid(i, k)]; }
-    value_t backward_diff_x(const size_t i, const size_t k) const { return (*this)[get_scid(i - 1, k)] - (*this)[get_scid(i, k)]; }
-
-    value_t forward_diff_z(const size_t i, const size_t k) const { return (*this)[get_scid(i, k + 1)] - (*this)[get_scid(i, k)]; }
-    value_t backward_diff_z(const size_t i, const size_t k) const { return (*this)[get_scid(i, k - 1)] - (*this)[get_scid(i, k)]; }
+    // value_t forward_diff_x(const size_t i, const size_t k) const { return (*this)[get_scid(i + 1, k)] - (*this)[get_scid(i, k)]; }
+    // value_t backward_diff_x(const size_t i, const size_t k) const { return (*this)[get_scid(i - 1, k)] - (*this)[get_scid(i, k)]; }
+    //
+    // value_t forward_diff_z(const size_t i, const size_t k) const { return (*this)[get_scid(i, k + 1)] - (*this)[get_scid(i, k)]; }
+    // value_t backward_diff_z(const size_t i, const size_t k) const { return (*this)[get_scid(i, k - 1)] - (*this)[get_scid(i, k)]; }
 
     // Unary Negation
     auto operator-() const {
