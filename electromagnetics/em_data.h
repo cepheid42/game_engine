@@ -43,36 +43,31 @@ template<typename T>
 using EmptyArray3D = EmptyArray<T, 3>;
 
 template<typename T>
-concept is_empty_field = requires
+concept is_empty_field = std::same_as<EmptyArray<typename T::value_t, T::dimension_t::value>, T>;
+
+template<typename T>
+concept is_1D_fields = requires
 {
-  requires std::same_as<EmptyArray<typename T::value_t, T::dimension_t::value>, T>;
+  requires is_empty_field<typename T::ex_t>;
+  requires is_empty_field<typename T::ey_t>;
+  requires is_empty_field<typename T::hx_t>;
+  requires is_empty_field<typename T::hz_t>;
+  
+  requires !is_empty_field<typename T::ez_t>;
+  requires !is_empty_field<typename T::hy_t>;
 };
 
-
-template<typename EXF, typename EYF, typename EZF, typename HXF, typename HYF, typename HZF>
-concept is_1D_data = requires
+template<typename T>
+concept is_TM_fields = requires
 {
-  {is_empty_field<typename EXF::arr_t>};
-  {is_empty_field<typename EYF::arr_t>};
-  {is_empty_field<typename HXF::arr_t>};
-  {is_empty_field<typename HZF::arr_t>};
+  requires is_empty_field<typename T::ex_t>;
+  requires is_empty_field<typename T::ey_t>;
+  requires is_empty_field<typename T::hz_t>;
 
-  {!is_empty_field<typename EZF::arr_t>};
-  {!is_empty_field<typename HYF::arr_t>};
+  requires !is_empty_field<typename T::ez_t>;
+  requires !is_empty_field<typename T::hx_t>;
+  requires !is_empty_field<typename T::hy_t>;
 };
-
-template<typename EXF, typename EYF, typename EZF, typename HXF, typename HYF, typename HZF>
-concept is_TM_data = requires
-{
-  {is_empty_field<typename EXF::arr_t>};
-  {is_empty_field<typename EYF::arr_t>};
-  {is_empty_field<typename HZF::arr_t>};
-
-  {!is_empty_field<typename EZF::arr_t>};
-  {!is_empty_field<typename HXF::arr_t>};
-  {!is_empty_field<typename HYF::arr_t>};
-};
-
 
 template<typename Array>
 struct enable_field {
@@ -92,20 +87,19 @@ template<FieldComponent EXF, FieldComponent EYF, FieldComponent EZF, FieldCompon
 struct EMData {
   using value_t = typename EXF::arr_t::value_t;
   using dimension_t = typename EXF::arr_t::dimension_t;
-
+  
   using empty_t = EmptyArray<value_t, dimension_t::value>;
-
+  
   using ex_t = typename EXF::arr_t;
   using ey_t = typename EYF::arr_t;
   using ez_t = typename EZF::arr_t;
   using hx_t = typename HXF::arr_t;
   using hy_t = typename HYF::arr_t;
   using hz_t = typename HZF::arr_t;
-
+  
   EMData() = default;
-
+  
   explicit EMData(size_t nx)
-  requires is_1D_data<EXF, EYF, EZF, HXF, HYF, HZF>
   : Ex{nx}, Jx{nx}, Cexe{nx}, Cexh{nx}, Cjx{nx},
     Ey{nx}, Jy{nx}, Ceye{nx}, Ceyh{nx}, Cjy{nx},
     Ez{nx}, Jz{nx}, Ceze{nx}, Cezh{nx}, Cjz{nx},
@@ -115,9 +109,8 @@ struct EMData {
   {
     DBG("EMData::EMData(nx)", nx);
   }
-
+  
   explicit EMData(size_t nx, size_t ny)
-  requires is_TM_data<EXF, EYF, EZF, HXF, HYF, HZF>
   : Ex{nx, ny}, Jx{nx, ny}, Cexe{nx, ny}, Cexh{nx, ny}, Cjx{nx, ny},
     Ey{nx, ny}, Jy{nx, ny}, Ceye{nx, ny}, Ceyh{nx, ny}, Cjy{nx, ny},
     Ez{nx, ny}, Jz{nx, ny}, Ceze{nx, ny}, Cezh{nx, ny}, Cjz{nx, ny},
@@ -127,33 +120,33 @@ struct EMData {
   {
     DBG("EMData::EMData(nx, ny)", nx, ny);
   }
-
+  
   ex_t Ex;
   ex_t Jx;
   ex_t Cexe;
   ex_t Cexh;
   ex_t Cjx;
-
+  
   ey_t Ey;
   ey_t Jy;
   ey_t Ceye;
   ey_t Ceyh;
   ey_t Cjy;
-
+  
   ez_t Ez;
   ez_t Jz;
   ez_t Ceze;
   ex_t Cezh;
   ez_t Cjz;
-
+  
   hx_t Hx;
   hx_t Chxe;
   hx_t Chxh;
-
+  
   hy_t Hy;
   hy_t Chye;
   hy_t Chyh;
-
+  
   hz_t Hz;
   hz_t Chze;
   hz_t Chzh;
