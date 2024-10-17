@@ -8,7 +8,7 @@
 template<typename T>
 concept FieldComponent = requires
 {
-  typename T::arr_t;
+  typename T::array_t;
 };
 
 template<typename T, typename EMPTY>

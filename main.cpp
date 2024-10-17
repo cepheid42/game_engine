@@ -92,8 +92,8 @@ int main() {
   constexpr size_t ny = 100u;
   constexpr size_t nt = 400u;
 
-  // emdata_t<double> em{nx, cfl};
-  emdata_t<double> em{nx, ny, cfl};
+  emdata_t<double> em{nx, cfl};
+  // emdata_t<double> em{nx, ny, cfl};
 
   constexpr auto save_step = 4;
   size_t filecount = 0;
@@ -102,8 +102,8 @@ int main() {
 
     EMSolver<fp_t>::advance(em);
 
-    // em.Ez[50] = ricker(static_cast<fp_t>(n));
-    em.Ez(50, 50) = ricker(static_cast<fp_t>(n));
+    em.Ez[50] = ricker(static_cast<fp_t>(n));
+    // em.Ez(50, 50) = ricker(static_cast<fp_t>(n));
 
     if (n % save_step == 0) {
       to_csv(em.Ez, filecount, "Ez");

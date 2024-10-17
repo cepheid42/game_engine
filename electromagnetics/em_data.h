@@ -10,22 +10,23 @@
 #include "core/debug.h"
 #include "em_emtpyarray.h"
 #include "em_traits.h"
+#include "boundaries.h"
 
 using tf::types::Array1D;
 using tf::types::Array2D;
 
 template<FieldComponent EXF, FieldComponent EYF, FieldComponent EZF, FieldComponent HXF, FieldComponent HYF, FieldComponent HZF>
 struct EMData {
-  using value_t = typename EXF::arr_t::value_t;
-  using dimension_t = typename EXF::arr_t::dimension_t;
+  using value_t = typename EXF::array_t::value_t;
+  using dimension_t = typename EXF::array_t::dimension_t;
   using empty_t = EmptyArray<value_t, dimension_t::value>;
   
-  using ex_t = typename EXF::arr_t;
-  using ey_t = typename EYF::arr_t;
-  using ez_t = typename EZF::arr_t;
-  using hx_t = typename HXF::arr_t;
-  using hy_t = typename HYF::arr_t;
-  using hz_t = typename HZF::arr_t;
+  using ex_t = typename EXF::array_t;
+  using ey_t = typename EYF::array_t;
+  using ez_t = typename EZF::array_t;
+  using hx_t = typename HXF::array_t;
+  using hy_t = typename HYF::array_t;
+  using hz_t = typename HZF::array_t;
   
   EMData() = default;
   

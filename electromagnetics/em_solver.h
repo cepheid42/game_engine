@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <array>
+#include <electromagnetics.h>
 
 
 #include "../aydenstuff/array.h"
@@ -91,6 +92,7 @@ template<typename T, Derivative ACURL, Derivative BCURL, bool Forward>
 struct FieldIntegrator1D {
   using value_t = typename T::value_t;
   using dimension_t = typename T::dimension_t;
+  using array_t = Array1D<value_t>;
   using update_func = UpdateFunctor<ACURL, BCURL, Forward, std::size_t>;
 
   static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
@@ -105,6 +107,7 @@ template<typename T, Derivative ACURL, Derivative BCURL, bool Forward>
 struct FieldIntegrator2D {
   using value_t = typename T::value_t;
   using dimension_t = typename T::dimension_t;
+  using array_t = Array2D<value_t>;
   using update_func = UpdateFunctor<ACURL, BCURL, Forward, std::size_t, std::size_t>;
 
   static void apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
@@ -139,8 +142,9 @@ template<typename T>
 struct FieldIntegratorNull {
   using value_t = typename T::value_t;
   using dimension_t = typename T::dimension_t;
+  using array_t = EmptyArray<value_t, dimension_t::value>;
 
-  static constexpr void apply(auto&, auto&, auto&, auto&, auto&, auto&, auto&, auto&) { DBG("FieldIntegratorNull::apply()"); }
+  static constexpr void apply(auto&, auto&, auto&, auto&, auto&, auto&, auto&, auto&) {}
 };
 
 
@@ -161,6 +165,8 @@ struct Electromagnetics {
     EIX::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexh, emdata.Cjx, one_offsets);
     EIY::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyh, emdata.Cjy, one_offsets);
     EIZ::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezh, emdata.Cjz, one_offsets);
+
+    Boundary<Periodic1D<typename EIZ::array_t>>::apply();//&emdata.Ez);
   }
 
   static void updateH(auto& emdata) {

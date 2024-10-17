@@ -15,14 +15,14 @@ template<typename Array>
 struct enable_field {
   using value_t = typename Array::value_t;
   using dimension_t = typename Array::dimension_t;
-  using arr_t = Array;
+  using array_t = Array;
 };
 
 template<typename Array>
 struct disable_field {
   using value_t = typename Array::value_t;
   using dimension_t = typename Array::dimension_t;
-  using arr_t = EmptyArray<value_t, dimension_t::value>;
+  using array_t = EmptyArray<value_t, dimension_t::value>;
 };
 
 template<typename T>

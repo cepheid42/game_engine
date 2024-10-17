@@ -7,8 +7,8 @@
 
 #include "em_definitions.h"
 
-#define SELECT_EMDATA 2
-#define SELECT_EMSOLVER 2
+#define SELECT_EMDATA 1
+#define SELECT_EMSOLVER 1
 
 template<typename T>
 using EMDataTL = TypeList<emdataNone<T>, emdata1D<T>, emdataTM<T>>;
