@@ -63,16 +63,15 @@ struct curl<Derivative::DZ, Forward, IDXS...> {
   }
 };
 
-// //=================== Field Functors ========================
-// //===========================================================
+//=================== Field Functors ========================
+//===========================================================
 template<Derivative ACURL, Derivative BCURL, bool Forward, typename... IDXS>
 struct UpdateFunctor {
   using curl1 = curl<ACURL, Forward, IDXS...>;
   using curl2 = curl<BCURL, Forward, IDXS...>;
-  // using value_t = typename F::value_t;
 
   static auto apply(auto& f, const auto& d1, const auto& d2, const auto& j, const auto& c_f, const auto& c_d, const auto& c_j, IDXS... idxs) {
-    DBG("UpdateFunctor::apply()"); //, ACURL, BCURL);
+    DBG("UpdateFunctor::apply()");
     const auto    self = c_f(idxs...) * f(idxs...);
     const auto   diff1 = curl1::apply(d1, idxs...);
     const auto   diff2 = curl2::apply(d2, idxs...);
@@ -85,12 +84,10 @@ struct UpdateFunctor {
 template<typename T, Derivative ACURL, Derivative BCURL, bool Forward>
 struct FieldIntegrator1D {
   using dimension_t = tf::tags::Dimension<1>;
-  // using offset_t = IntegratorOffsets<1, !Forward>;
   using update_func = UpdateFunctor<ACURL, BCURL, Forward, std::size_t>;
 
   static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
-    // const auto [x0, x1] = o.offsets;
-    DBG(o.x0, o.x1);
+    DBG("FI1D::apply()");
     for (size_t i = o.x0; i < f.nx - o.x1; ++i) {
       update_func::apply(f, d1, d2, js, c_f, c_d, c_src, i);
     }
@@ -101,13 +98,10 @@ template<typename T, Derivative ACURL, Derivative BCURL, bool Forward>
 struct FieldIntegrator2D {
   using value_t = typename T::value_t;
   using dimension_t = typename T::dimension_t;
-  // using offset_t = IntegratorOffsets<2, !Forward>;
   using update_func = UpdateFunctor<ACURL, BCURL, Forward, std::size_t, std::size_t>;
 
   static void apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
-    // const auto [x0, x1, y0, y1] = o.offsets;
-    DBG(o.x0, o.x1, o.y0, o.y1);
-    DBG("FI2D::apply");//, ACURL, BCURL, x0, f.nx - x1, y0, f.nz - y1);
+    DBG("FI2D::apply()");
     for (size_t i = o.x0; i < f.nx - o.x1; ++i) {
       for (size_t j = o.y0; j < f.nz - o.y1; ++j) {
         // DBG(i, j);
@@ -155,51 +149,25 @@ struct Electromagnetics {
   static constexpr IntegratorOffsets one_offsets{1, 1, 1, 1, 1, 1};
   static constexpr IntegratorOffsets zero_offsets{0, 0, 0, 0, 0, 0};
 
-  // static constexpr IntegratorOffsets<dimension_t::value, 1> one_offsets{};
-  // static constexpr IntegratorOffsets<dimension_t::value, 0> zero_offsets{};
-
-  static void updateE(emdata_t<value_t>& emdata) {
+  static void updateE(auto& emdata) {
     DBG("Electromagnetics::updateE()");
-    EIX::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexh, emdata.Cjx, zero_offsets);
-    EIY::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyh, emdata.Cjy, zero_offsets);
+    EIX::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexh, emdata.Cjx, one_offsets);
+    EIY::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyh, emdata.Cjy, one_offsets);
     EIZ::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezh, emdata.Cjz, one_offsets);
   }
 
-  static void updateH(emdata_t<value_t>& emdata) {
+  static void updateH(auto& emdata) {
     DBG("Electromagnetics::updateH()");
     HIX::apply(emdata.Hx, emdata.Ey, emdata.Ez, empty, emdata.Chxh, emdata.Chxe, empty, zero_offsets);
     HIY::apply(emdata.Hy, emdata.Ez, emdata.Ex, empty, emdata.Chyh, emdata.Chye, empty, zero_offsets);
     HIZ::apply(emdata.Hz, emdata.Ex, emdata.Ey, empty, emdata.Chzh, emdata.Chze, empty, zero_offsets);
   }
 
-  static void advance(emdata_t<value_t>& emdata) {
+  static void advance(auto& emdata) {
     DBG("Electromagnetics::Advance()");
     updateH(emdata);
     updateE(emdata);
   }
 };
-
-
-template<typename T>
-requires is_1D_fields<T>
-using EM1D = TypeList<
-  /* Ex */ FieldIntegratorNull<T>,
-  /* Ey */ FieldIntegratorNull<T>,
-  /* Ez */ FieldIntegrator1D<T, Derivative::DX, Derivative::NoOp, false>,
-  /* Hx */ FieldIntegratorNull<T>,
-  /* Hy */ FieldIntegrator1D<T, Derivative::DX, Derivative::NoOp, true>,
-  /* Hz */ FieldIntegratorNull<T>
->;
-
-template<typename T>
-requires is_TM_fields<T>
-using EMTM = TypeList<
-  /* Ex */ FieldIntegratorNull<T>,
-  /* Ey */ FieldIntegratorNull<T>,
-  /* Ez */ FieldIntegrator2D<T, Derivative::DX, Derivative::DY, false>,
-  /* Hx */ FieldIntegrator2D<T, Derivative::NoOp, Derivative::DY, true>,
-  /* Hy */ FieldIntegrator2D<T, Derivative::DX, Derivative::NoOp, true>,
-  /* Hz */ FieldIntegratorNull<T>
->;
 
 #endif //EM_SOLVER_H

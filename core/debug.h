@@ -1001,7 +1001,7 @@ auto identity(T&&, U&&... u) -> last_t<U...> {
       .print({DBG_MAP(DBG_STRINGIFY, __VA_ARGS__)}, \
              {DBG_MAP(DBG_TYPE_NAME, __VA_ARGS__)}, __VA_ARGS__)
 #else
-#define DEBUG(...) dbg::identity(__VA_ARGS__)
+#define DBG(...) dbg::identity(__VA_ARGS__)
 #endif  // DBG_MACRO_DISABLE
 
 #endif  // DBG_MACRO_DBG_H

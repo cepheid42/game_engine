@@ -2,38 +2,85 @@
 #include <cmath>
 #include <iostream>
 #include <chrono>
+#include <string>
 
-#define DEBUG
+#define DBG_MACRO_DISABLE
 
-#include "electromagnetics/em_solver.h"
-#include "electromagnetics/em_data.h"
+
+#include "electromagnetics/electromagnetics.h"
 
 using fp_t = double;
+constexpr fp_t DIM = 1.0;
+
+constexpr fp_t cfl = 0.95 / std::sqrt(DIM);
+
+template<typename T>
+T sqr(T x) { return x * x; }
 
 template<typename T>
 void print_type() {
   std::cout << __PRETTY_FUNCTION__ << std::endl;
 }
 
+template<typename Array>
+void to_csv(const Array& arr, const size_t step, const std::string& name) {
+  std::string count_padded = std::to_string(step);
+  count_padded.insert(count_padded.begin(), 4 - count_padded.length(), '0');
+
+  std::string filename{"../data/" + name + "_" + count_padded + ".csv"};
+  std::ofstream file;
+  file.open(filename.c_str());
+
+  if constexpr (Array::dimension_t::value == 1) {
+    for (size_t i = 0; i < arr.nx; i++) {
+        file << arr[i] << ", ";
+    }
+    file << std::endl;
+  } else {
+    for (size_t i = 0; i < arr.nx; i++) {
+      for (size_t j = 0; j < arr.nz; j++) {
+        file << arr(i, j);
+        if (j < arr.nz - 1) {
+          file << ", ";
+        }
+      }
+      file << std::endl;
+    }
+  }
+
+  file.close();
+}
+
+fp_t ricker(fp_t q) {
+  constexpr auto Np = 10.0;
+  constexpr auto Md = 1.0;
+
+  const auto alpha = sqr(M_PI * (cfl * q / Np - Md));
+
+  return (1.0 - 2.0 * alpha) * std::exp(-alpha);
+}
+
+
 int main() {
-  // emdata_t<double> em{3};
-  // using EMType = EM1D<emdata_t<double>>;
+  constexpr size_t nx = 100;
+  // constexpr size_t ny = 10;
+  constexpr size_t nt = 400;
 
-  emdata_t<double> em{3, 3};
-  using EMType = EMTM<emdata_t<double>>;
+  emdata_t<double> em{nx};
 
-  using EMSolver = Electromagnetics<
-    TypeListAt<0, EMType>,
-    TypeListAt<1, EMType>,
-    TypeListAt<2, EMType>,
-    TypeListAt<3, EMType>,
-    TypeListAt<4, EMType>,
-    TypeListAt<5, EMType>
-  >;
+  constexpr auto save_step = 4;
+  size_t filecount = 0;
+  for (size_t n = 0; n < nt; n++) {
+    std::cout << "Step " << n << std::endl;
+    EMSolver<fp_t>::advance(em);
 
+    em.Ez[nx / 2] += ricker(static_cast<fp_t>(n));
 
-  EMSolver::advance(em);
-
+    if (n % save_step == 0) {
+      to_csv(em.Ez, filecount, "Ez");
+      filecount++;
+    }
+  }
 
   // auto start = std::chrono::high_resolution_clock::now();
   // auto stop = std::chrono::high_resolution_clock::now() - start;
