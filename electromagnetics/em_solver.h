@@ -70,20 +70,27 @@ struct UpdateFunctor {
   using curl1 = curl<ACURL, Forward, IDXS...>;
   using curl2 = curl<BCURL, Forward, IDXS...>;
 
-  static auto apply(auto& f, const auto& d1, const auto& d2, const auto& j, const auto& c_f, const auto& c_d, const auto& c_j, IDXS... idxs) {
+  static void apply(auto& f, const auto& d1, const auto& d2, const auto& j, const auto& c_f, const auto& c_d, const auto& c_j, IDXS... idxs) {
     DBG("UpdateFunctor::apply()");
     const auto    self = c_f(idxs...) * f(idxs...);
     const auto   diff1 = curl1::apply(d1, idxs...);
     const auto   diff2 = curl2::apply(d2, idxs...);
     const auto    diff = c_d(idxs...) * (diff1 - diff2);
     const auto current = c_j(idxs...) * j(idxs...);
-    return self + diff - current;
+    // (..., (std::cout << idxs)) << " ";
+    // std::cout << diff1 << ", " << diff2 << std::endl;
+    // (..., DBG(idxs));
+    // DBG(diff1, diff2);
+    // DBG(c_f(idxs...), c_d(idxs...));
+    // DBG(self, diff, current);
+    f(idxs...) = self + diff - current;
   }
 };
 
 template<typename T, Derivative ACURL, Derivative BCURL, bool Forward>
 struct FieldIntegrator1D {
-  using dimension_t = tf::tags::Dimension<1>;
+  using value_t = typename T::value_t;
+  using dimension_t = typename T::dimension_t;
   using update_func = UpdateFunctor<ACURL, BCURL, Forward, std::size_t>;
 
   static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
@@ -101,7 +108,7 @@ struct FieldIntegrator2D {
   using update_func = UpdateFunctor<ACURL, BCURL, Forward, std::size_t, std::size_t>;
 
   static void apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
-    DBG("FI2D::apply()");
+    // DBG("FI2D::apply()");
     for (size_t i = o.x0; i < f.nx - o.x1; ++i) {
       for (size_t j = o.y0; j < f.nz - o.y1; ++j) {
         // DBG(i, j);

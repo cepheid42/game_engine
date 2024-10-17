@@ -10,7 +10,7 @@
 #include "electromagnetics/electromagnetics.h"
 
 using fp_t = double;
-constexpr fp_t DIM = 1.0;
+constexpr fp_t DIM = 2.0;
 
 constexpr fp_t cfl = 0.95 / std::sqrt(DIM);
 
@@ -51,8 +51,34 @@ void to_csv(const Array& arr, const size_t step, const std::string& name) {
   file.close();
 }
 
+template<typename Array>
+requires is_empty_field<Array, EmptyArray<typename Array::value_t, Array::dimension_t::value>>
+void print_array(const Array&) {
+  std::cout << "Empty Array." << std::endl;
+}
+
+template<typename Array>
+void print_array(const Array& arr) {
+  if constexpr (Array::dimension_t::value == 1) {
+    for (size_t i = 0; i < arr.nx; i++) {
+      std::cout << arr[i] << ", ";
+    }
+    std::cout << std::endl;
+  } else {
+    for (size_t i = 0; i < arr.nx; i++) {
+      for (size_t j = 0; j < arr.nz; j++) {
+        std::cout << arr(i, j);
+        if (j < arr.nz - 1) {
+          std::cout << ", ";
+        }
+      }
+      std::cout << std::endl;
+    }
+  }
+}
+
 fp_t ricker(fp_t q) {
-  constexpr auto Np = 10.0;
+  constexpr auto Np = 20.0;
   constexpr auto Md = 1.0;
 
   const auto alpha = sqr(M_PI * (cfl * q / Np - Md));
@@ -62,19 +88,22 @@ fp_t ricker(fp_t q) {
 
 
 int main() {
-  constexpr size_t nx = 100;
-  // constexpr size_t ny = 10;
-  constexpr size_t nt = 400;
+  constexpr size_t nx = 100u;
+  constexpr size_t ny = 100u;
+  constexpr size_t nt = 400u;
 
-  emdata_t<double> em{nx};
+  // emdata_t<double> em{nx, cfl};
+  emdata_t<double> em{nx, ny, cfl};
 
   constexpr auto save_step = 4;
   size_t filecount = 0;
   for (size_t n = 0; n < nt; n++) {
     std::cout << "Step " << n << std::endl;
+
     EMSolver<fp_t>::advance(em);
 
-    em.Ez[nx / 2] += ricker(static_cast<fp_t>(n));
+    // em.Ez[50] = ricker(static_cast<fp_t>(n));
+    em.Ez(50, 50) = ricker(static_cast<fp_t>(n));
 
     if (n % save_step == 0) {
       to_csv(em.Ez, filecount, "Ez");
