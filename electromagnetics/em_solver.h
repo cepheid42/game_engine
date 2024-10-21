@@ -7,62 +7,18 @@
 
 #include <cassert>
 #include <array>
-#include <electromagnetics.h>
 
 
 #include "../aydenstuff/array.h"
 #include "../core/typelist.h"
 #include "../core/debug.h"
 #include "em_data.h"
+#include "curl_operators.h"
+#include "boundaries.h"
 
-enum class Derivative { DX, DY, DZ, NoOp };
+constexpr size_t nHalo = 2u;
+constexpr size_t dPML = 10u;
 
-struct IntegratorOffsets {
-  size_t x0, x1, y0, y1, z0, z1;
-};
-
-//====== Curl Operators =======
-//=============================
-template<Derivative D, bool Forward, typename... IDXS>
-struct curl {
-  static constexpr auto apply(const auto&, IDXS...) { DBG("curl<NoOp>::apply()"); return 0.0; }
-};
-
-template<bool Forward, typename... IDXS>
-struct curl<Derivative::DX, Forward, IDXS...> {
-  static auto apply(const auto& f, IDXS... idxs) {
-    DBG("curl<DX>::apply()");
-    if constexpr (Forward) {
-      return f.forward_diff_x(idxs...);
-    } else {
-      return f.backward_diff_x(idxs...);
-    }
-  }
-};
-
-template<bool Forward, typename... IDXS>
-struct curl<Derivative::DY, Forward, IDXS...> {
-  static auto apply(const auto& f, IDXS... idxs) {
-    DBG("curl<DY>::apply()");
-    if constexpr (Forward) {
-      return f.forward_diff_y(idxs...);
-    } else {
-      return f.backward_diff_y(idxs...);
-    }
-  }
-};
-
-template<bool Forward, typename... IDXS>
-struct curl<Derivative::DZ, Forward, IDXS...> {
-  static auto apply(const auto& f, IDXS... idxs) {
-    DBG("curl<DZ>::apply()");
-    if constexpr (Forward) {
-      return f.forward_diff_z(idxs...);
-    } else {
-      return f.backward_diff_z(idxs...);
-    }
-  }
-};
 
 //=================== Field Functors ========================
 //===========================================================
@@ -72,18 +28,13 @@ struct UpdateFunctor {
   using curl2 = curl<BCURL, Forward, IDXS...>;
 
   static void apply(auto& f, const auto& d1, const auto& d2, const auto& j, const auto& c_f, const auto& c_d, const auto& c_j, IDXS... idxs) {
-    DBG("UpdateFunctor::apply()");
+    // DBG("UpdateFunctor::apply()");
     const auto    self = c_f(idxs...) * f(idxs...);
     const auto   diff1 = curl1::apply(d1, idxs...);
     const auto   diff2 = curl2::apply(d2, idxs...);
     const auto    diff = c_d(idxs...) * (diff1 - diff2);
     const auto current = c_j(idxs...) * j(idxs...);
-    // (..., (std::cout << idxs)) << " ";
-    // std::cout << diff1 << ", " << diff2 << std::endl;
     // (..., DBG(idxs));
-    // DBG(diff1, diff2);
-    // DBG(c_f(idxs...), c_d(idxs...));
-    // DBG(self, diff, current);
     f(idxs...) = self + diff - current;
   }
 };
@@ -96,7 +47,7 @@ struct FieldIntegrator1D {
   using update_func = UpdateFunctor<ACURL, BCURL, Forward, std::size_t>;
 
   static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
-    DBG("FI1D::apply()");
+    // DBG("FI1D::apply()", o.x0, o.x1, f.nx - o.x1);
     for (size_t i = o.x0; i < f.nx - o.x1; ++i) {
       update_func::apply(f, d1, d2, js, c_f, c_d, c_src, i);
     }
@@ -147,38 +98,51 @@ struct FieldIntegratorNull {
   static constexpr void apply(auto&, auto&, auto&, auto&, auto&, auto&, auto&, auto&) {}
 };
 
+struct IntegratorOffsets {
+  size_t x0, x1, y0, y1, z0, z1;
+};
 
 template<typename EIX, typename EIY, typename EIZ, typename HIX, typename HIY, typename HIZ>
 struct Electromagnetics {
   using value_t = typename EIX::value_t;
   using dimension_t = typename EIX::dimension_t;
-
-  using empty_t = EmptyArray<double, dimension_t::value>;
+  using empty_t = EmptyArray<value_t, dimension_t::value>;
 
   static constexpr empty_t empty{};
+  static constexpr IntegratorOffsets Eoffsets{1, 1, 1, 1, 1, 1};
+  static constexpr IntegratorOffsets Hoffsets{0, 0, 0, 0, 0, 0};
 
-  static constexpr IntegratorOffsets one_offsets{1, 1, 1, 1, 1, 1};
-  static constexpr IntegratorOffsets zero_offsets{0, 0, 0, 0, 0, 0};
+  using Ez_x0 = PML1D<typename EIZ::array_t, true, false>;
+  using Ez_x1 = PML1D<typename EIZ::array_t, true, false>;
+
+  using Hy_x0 = PML1D<typename HIY::array_t, false, true>;
+  using Hy_x1 = PML1D<typename HIY::array_t, false, true>;
 
   static void updateE(auto& emdata) {
     DBG("Electromagnetics::updateE()");
-    EIX::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexh, emdata.Cjx, one_offsets);
-    EIY::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyh, emdata.Cjy, one_offsets);
-    EIZ::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezh, emdata.Cjz, one_offsets);
-
-    Boundary<Periodic1D<typename EIZ::array_t>>::apply();//&emdata.Ez);
+    EIX::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexh, emdata.Cjx, Eoffsets);
+    EIY::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyh, emdata.Cjy, Eoffsets);
+    EIZ::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezh, emdata.Cjz, Eoffsets);
   }
 
   static void updateH(auto& emdata) {
     DBG("Electromagnetics::updateH()");
-    HIX::apply(emdata.Hx, emdata.Ey, emdata.Ez, empty, emdata.Chxh, emdata.Chxe, empty, zero_offsets);
-    HIY::apply(emdata.Hy, emdata.Ez, emdata.Ex, empty, emdata.Chyh, emdata.Chye, empty, zero_offsets);
-    HIZ::apply(emdata.Hz, emdata.Ex, emdata.Ey, empty, emdata.Chzh, emdata.Chze, empty, zero_offsets);
+    HIX::apply(emdata.Hx, emdata.Ey, emdata.Ez, empty, emdata.Chxh, emdata.Chxe, empty, Hoffsets);
+    HIY::apply(emdata.Hy, emdata.Ez, emdata.Ex, empty, emdata.Chyh, emdata.Chye, empty, Hoffsets);
+    HIZ::apply(emdata.Hz, emdata.Ex, emdata.Ey, empty, emdata.Chzh, emdata.Chze, empty, Hoffsets);
   }
 
   static void advance(auto& emdata) {
     DBG("Electromagnetics::Advance()");
+
     updateH(emdata);
+
+    Ez_x0::apply(emdata.Ez, emdata.Hy, emdata.E_x0_bc.psi, emdata.Cezh, emdata.Ex0_bc.b, emdata.Ex0_bc.c, dPML);
+    Hy_x0::apply(emdata.Ez, emdata.Hy, emdata.x0_bc.psi, emdata.Cezh, emdata.x0_bc.b, emdata.x0_bc.c, dPML);
+
+    // Periodic1D<typename HIY::array_t>::apply(emdata.Hy, nHalo);
+    // Periodic1D<typename EIZ::array_t>::apply(emdata.Ez, nHalo);
+
     updateE(emdata);
   }
 };

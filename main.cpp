@@ -4,14 +4,13 @@
 #include <chrono>
 #include <string>
 
-#define DBG_MACRO_DISABLE
-
+// #define DBG_MACRO_DISABLE
 
 #include "electromagnetics/electromagnetics.h"
 
 using fp_t = double;
-constexpr fp_t DIM = 2.0;
 
+constexpr fp_t DIM = 1.0;
 constexpr fp_t cfl = 0.95 / std::sqrt(DIM);
 
 template<typename T>
@@ -84,12 +83,14 @@ fp_t ricker(fp_t q) {
   const auto alpha = sqr(M_PI * (cfl * q / Np - Md));
 
   return (1.0 - 2.0 * alpha) * std::exp(-alpha);
+  // return std::exp(-sqr((q - 30.0) / 10.0));
 }
 
 
 int main() {
-  constexpr size_t nx = 100u;
-  constexpr size_t ny = 100u;
+
+  constexpr size_t nx = 100u + 2 * dPML + 2 * nHalo;
+  // constexpr size_t ny = 100u;
   constexpr size_t nt = 400u;
 
   emdata_t<double> em{nx, cfl};
@@ -102,7 +103,7 @@ int main() {
 
     EMSolver<fp_t>::advance(em);
 
-    em.Ez[50] = ricker(static_cast<fp_t>(n));
+    em.Ez[nx / 2 - 20] += ricker(static_cast<fp_t>(n));
     // em.Ez(50, 50) = ricker(static_cast<fp_t>(n));
 
     if (n % save_step == 0) {
