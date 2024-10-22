@@ -89,28 +89,32 @@ fp_t ricker(fp_t q) {
 
 int main() {
 
-  constexpr size_t nx = 100u + 2 * dPML + 2 * nHalo;
+
+  const size_t nx = 100u + 2 * dPML + 2 * nHalo;
   // constexpr size_t ny = 100u;
   constexpr size_t nt = 400u;
 
   emdata_t<double> em{nx, cfl};
   // emdata_t<double> em{nx, ny, cfl};
 
-  constexpr auto save_step = 4;
-  size_t filecount = 0;
-  for (size_t n = 0; n < nt; n++) {
-    std::cout << "Step " << n << std::endl;
+  // Periodic1D<emdata_t<double>::ex_t>::apply(em.Ex, em.Hz, em.Ex, em.Cexh, em.Ex, em.Ex);
+  // Periodic1D<emdata_t<double>::ez_t>::apply(em.Ez, em.Hy, em.Ez, em.Cezh, em.Ez, em.Ez);
 
-    EMSolver<fp_t>::advance(em);
-
-    em.Ez[nx / 2 - 20] += ricker(static_cast<fp_t>(n));
-    // em.Ez(50, 50) = ricker(static_cast<fp_t>(n));
-
-    if (n % save_step == 0) {
-      to_csv(em.Ez, filecount, "Ez");
-      filecount++;
-    }
-  }
+  // constexpr auto save_step = 4;
+  // size_t filecount = 0;
+  // for (size_t n = 0; n < nt; n++) {
+  //   std::cout << "Step " << n << std::endl;
+  //
+  //   EMSolver<fp_t>::advance(em);
+  //
+  //   em.Ez[nx / 2 - 20] += ricker(static_cast<fp_t>(n));
+  //   // em.Ez(50, 50) = ricker(static_cast<fp_t>(n));
+  //
+  //   if (n % save_step == 0) {
+  //     to_csv(em.Ez, filecount, "Ez");
+  //     filecount++;
+  //   }
+  // }
 
   // auto start = std::chrono::high_resolution_clock::now();
   // auto stop = std::chrono::high_resolution_clock::now() - start;

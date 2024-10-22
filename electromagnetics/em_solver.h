@@ -16,8 +16,6 @@
 #include "curl_operators.h"
 #include "boundaries.h"
 
-constexpr size_t nHalo = 2u;
-constexpr size_t dPML = 10u;
 
 
 //=================== Field Functors ========================
@@ -112,12 +110,6 @@ struct Electromagnetics {
   static constexpr IntegratorOffsets Eoffsets{1, 1, 1, 1, 1, 1};
   static constexpr IntegratorOffsets Hoffsets{0, 0, 0, 0, 0, 0};
 
-  using Ez_x0 = PML1D<typename EIZ::array_t, true, false>;
-  using Ez_x1 = PML1D<typename EIZ::array_t, true, false>;
-
-  using Hy_x0 = PML1D<typename HIY::array_t, false, true>;
-  using Hy_x1 = PML1D<typename HIY::array_t, false, true>;
-
   static void updateE(auto& emdata) {
     DBG("Electromagnetics::updateE()");
     EIX::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexh, emdata.Cjx, Eoffsets);
@@ -137,8 +129,8 @@ struct Electromagnetics {
 
     updateH(emdata);
 
-    Ez_x0::apply(emdata.Ez, emdata.Hy, emdata.E_x0_bc.psi, emdata.Cezh, emdata.Ex0_bc.b, emdata.Ex0_bc.c, dPML);
-    Hy_x0::apply(emdata.Ez, emdata.Hy, emdata.x0_bc.psi, emdata.Cezh, emdata.x0_bc.b, emdata.x0_bc.c, dPML);
+    // Ez_x0::apply(emdata.Ez, emdata.Hy, emdata.E_x0_bc.psi, emdata.Cezh, emdata.Ex0_bc.b, emdata.Ex0_bc.c, dPML);
+    // Hy_x0::apply(emdata.Ez, emdata.Hy, emdata.x0_bc.psi, emdata.Cezh, emdata.x0_bc.b, emdata.x0_bc.c, dPML);
 
     // Periodic1D<typename HIY::array_t>::apply(emdata.Hy, nHalo);
     // Periodic1D<typename EIZ::array_t>::apply(emdata.Ez, nHalo);
