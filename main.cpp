@@ -88,17 +88,15 @@ fp_t ricker(fp_t q) {
 
 
 int main() {
+  print_type<EMSolver<double>>();
 
+  // const size_t nx = 100u + 2 * dPML + 2 * nHalo;
+  // // constexpr size_t ny = 100u;
+  // constexpr size_t nt = 400u;
+  //
+  // emdata_t<double> em{nx, cfl};
+  // // emdata_t<double> em{nx, ny, cfl};
 
-  const size_t nx = 100u + 2 * dPML + 2 * nHalo;
-  // constexpr size_t ny = 100u;
-  constexpr size_t nt = 400u;
-
-  emdata_t<double> em{nx, cfl};
-  // emdata_t<double> em{nx, ny, cfl};
-
-  // Periodic1D<emdata_t<double>::ex_t>::apply(em.Ex, em.Hz, em.Ex, em.Cexh, em.Ex, em.Ex);
-  // Periodic1D<emdata_t<double>::ez_t>::apply(em.Ez, em.Hy, em.Ez, em.Cezh, em.Ez, em.Ez);
 
   // constexpr auto save_step = 4;
   // size_t filecount = 0;

@@ -9,6 +9,7 @@
 #include "aydenstuff/array.h"
 #include "em_emtpyarray.h"
 #include "em_traits.h"
+#include "bc_data.h"
 
 using tf::types::Array1D;
 using tf::types::Array2D;

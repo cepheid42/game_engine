@@ -13,6 +13,7 @@ concept FieldComponent = requires
   typename T::array_t;
 };
 
+
 template<typename T, typename EMPTY>
 concept is_empty_field = std::same_as<EMPTY, T>;
 

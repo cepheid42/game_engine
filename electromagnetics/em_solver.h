@@ -14,6 +14,7 @@
 #include "../core/debug.h"
 #include "em_data.h"
 #include "curl_operators.h"
+#include "bc_data.h"
 #include "boundaries.h"
 
 
@@ -21,7 +22,7 @@
 //=================== Field Functors ========================
 //===========================================================
 template<Derivative ACURL, Derivative BCURL, bool Forward, typename... IDXS>
-struct UpdateFunctor {
+struct FieldUpdate {
   using curl1 = curl<ACURL, Forward, IDXS...>;
   using curl2 = curl<BCURL, Forward, IDXS...>;
 
@@ -37,12 +38,12 @@ struct UpdateFunctor {
   }
 };
 
-template<typename T, Derivative ACURL, Derivative BCURL, bool Forward>
+template<typename T, typename UpdateFunctor>
 struct FieldIntegrator1D {
   using value_t = typename T::value_t;
   using dimension_t = typename T::dimension_t;
   using array_t = Array1D<value_t>;
-  using update_func = UpdateFunctor<ACURL, BCURL, Forward, std::size_t>;
+  using update_func = UpdateFunctor;
 
   static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
     // DBG("FI1D::apply()", o.x0, o.x1, f.nx - o.x1);
@@ -52,12 +53,12 @@ struct FieldIntegrator1D {
   }
 };
 
-template<typename T, Derivative ACURL, Derivative BCURL, bool Forward>
+template<typename T, typename UpdateFunctor>
 struct FieldIntegrator2D {
   using value_t = typename T::value_t;
   using dimension_t = typename T::dimension_t;
   using array_t = Array2D<value_t>;
-  using update_func = UpdateFunctor<ACURL, BCURL, Forward, std::size_t, std::size_t>;
+  using update_func = UpdateFunctor;
 
   static void apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
     // DBG("FI2D::apply()");
@@ -101,6 +102,7 @@ struct IntegratorOffsets {
 };
 
 template<typename EIX, typename EIY, typename EIZ, typename HIX, typename HIY, typename HIZ>
+         // typename BCX0, typename BCY0, typename BCZ0, typename BCX1, typename BCY1, typename BCZ1>
 struct Electromagnetics {
   using value_t = typename EIX::value_t;
   using dimension_t = typename EIX::dimension_t;
@@ -124,16 +126,18 @@ struct Electromagnetics {
     HIZ::apply(emdata.Hz, emdata.Ex, emdata.Ey, empty, emdata.Chzh, emdata.Chze, empty, Hoffsets);
   }
 
+  // static void updateH_BC() {
+  //   DBG("Electromagnetics::updateH_BC()");
+  //   BCX0::apply();
+  //   BCY0::apply();
+  //   BCZ0::apply();
+  // }
+
   static void advance(auto& emdata) {
     DBG("Electromagnetics::Advance()");
 
     updateH(emdata);
 
-    // Ez_x0::apply(emdata.Ez, emdata.Hy, emdata.E_x0_bc.psi, emdata.Cezh, emdata.Ex0_bc.b, emdata.Ex0_bc.c, dPML);
-    // Hy_x0::apply(emdata.Ez, emdata.Hy, emdata.x0_bc.psi, emdata.Cezh, emdata.x0_bc.b, emdata.x0_bc.c, dPML);
-
-    // Periodic1D<typename HIY::array_t>::apply(emdata.Hy, nHalo);
-    // Periodic1D<typename EIZ::array_t>::apply(emdata.Ez, nHalo);
 
     updateE(emdata);
   }
