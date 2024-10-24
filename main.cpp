@@ -8,11 +8,6 @@
 
 #include "electromagnetics/electromagnetics.h"
 
-using fp_t = double;
-
-constexpr fp_t DIM = 1.0;
-constexpr fp_t cfl = 0.95 / std::sqrt(DIM);
-
 template<typename T>
 T sqr(T x) { return x * x; }
 
@@ -88,31 +83,32 @@ fp_t ricker(fp_t q) {
 
 
 int main() {
-  print_type<EMSolver<double>>();
+  constexpr size_t nx = 100u + 2 * dPML + 2 * nHalo;
+  // constexpr size_t ny = 100u + 2 * dPML + 2 * nHalo;
+  constexpr size_t nt = 1u;
 
-  // const size_t nx = 100u + 2 * dPML + 2 * nHalo;
-  // // constexpr size_t ny = 100u;
-  // constexpr size_t nt = 400u;
-  //
-  // emdata_t<double> em{nx, cfl};
-  // // emdata_t<double> em{nx, ny, cfl};
+  // print_type<bcdata_t<double>::hy_t>();
+  // print_type<bcdata_t<double>::ez_t>();
+  emdata_t<double> em{nx, cfl};
+  bcdata_t<double> bc{nx};
 
+  // emdata_t<double> em{nx, ny, cfl};
 
-  // constexpr auto save_step = 4;
-  // size_t filecount = 0;
-  // for (size_t n = 0; n < nt; n++) {
-  //   std::cout << "Step " << n << std::endl;
-  //
-  //   EMSolver<fp_t>::advance(em);
-  //
-  //   em.Ez[nx / 2 - 20] += ricker(static_cast<fp_t>(n));
-  //   // em.Ez(50, 50) = ricker(static_cast<fp_t>(n));
-  //
-  //   if (n % save_step == 0) {
-  //     to_csv(em.Ez, filecount, "Ez");
-  //     filecount++;
-  //   }
-  // }
+  constexpr auto save_step = 4;
+  size_t filecount = 0;
+  for (size_t n = 0; n < nt; n++) {
+    std::cout << "Step " << n << std::endl;
+
+    EMSolver<fp_t>::advance(em, bc);
+
+    em.Ez[nx / 2 - 20] += ricker(static_cast<fp_t>(n));
+    // em.Ez(nx / 2, ny / 2) = ricker(static_cast<fp_t>(n));
+
+    if (n % save_step == 0) {
+      to_csv(em.Ez, filecount, "Ez");
+      filecount++;
+    }
+  }
 
   // auto start = std::chrono::high_resolution_clock::now();
   // auto stop = std::chrono::high_resolution_clock::now() - start;
