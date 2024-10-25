@@ -9,7 +9,7 @@
 #include "aydenstuff/array.h"
 #include "em_emtpyarray.h"
 #include "em_traits.h"
-#include "bc_data.h"
+// #include "bc_data.h"
 
 using tf::types::Array1D;
 using tf::types::Array2D;
@@ -47,14 +47,14 @@ struct EMData {
   
   EMData() = default;
   
-  explicit EMData(const size_t nx, const value_t cfl)
+  explicit EMData(const size_t nx, const value_t cfl) requires (dimension_t::value == 1)
   : Ez{nx}, Jz{nx}, Ceze{nx}, Cezh{nx}, Cjz{nx},
     Hy{nx - 1}, Chye{nx - 1}, Chyh{nx - 1}
   {
     init_coefficients_1D(cfl);
   }
   
-  explicit EMData(const size_t nx, const size_t ny, const value_t cfl)
+  explicit EMData(const size_t nx, const size_t ny, const value_t cfl) requires (dimension_t::value == 2 and !is_empty_field<hx_t, empty_t>)
   :
     // Ex{nx, ny}, Jx{nx, ny}, Cexe{nx, ny}, Cexh{nx, ny}, Cjx{nx, ny},
     // Ey{nx, ny}, Jy{nx, ny}, Ceye{nx, ny}, Ceyh{nx, ny}, Cjy{nx, ny},

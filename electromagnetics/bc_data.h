@@ -5,10 +5,7 @@
 #ifndef BC_DATA_H
 #define BC_DATA_H
 
-// #include "core/typelist.h"
 #include "aydenstuff/array.h"
-// #include "em_emtpyarray.h"
-// #include "em_traits.h"
 
 using tf::types::Array1D;
 using tf::types::Array2D;
@@ -26,11 +23,19 @@ struct BCData {
   using hy_t = typename HYF::array_t;
   using hz_t = typename HZF::array_t;
 
-  explicit BCData(const size_t nx)
+  explicit BCData(const size_t nx) requires (dimension_t::value == 1)
   : psiEz{nx}, bEz{nx}, cEz{nx},
     psiHy{nx - 1}, bHy{nx - 1}, cHy{nx - 1}
   {
     // init_coefficients_1D(nx, cfl);
+  }
+
+  explicit BCData(const size_t nx, const size_t ny) requires (dimension_t::value == 2 and !is_empty_field<hx_t, empty_t>)
+  : psiEz{nx, ny}, bEz{nx, ny}, cEz{nx, ny},
+    psiHx{nx, ny - 1}, bHx{nx, ny - 1}, cHx{nx, ny - 1},
+    psiHy{nx - 1, ny}, bHy{nx - 1, ny}, cHy{nx - 1, ny}
+  {
+    // init_coefficients_2D(nx, cfl);
   }
 
   ex_t psiEx;

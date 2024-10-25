@@ -5,11 +5,11 @@
 #ifndef EM_DEFINITIONS_H
 #define EM_DEFINITIONS_H
 
-// #include "em_traits.h"
 #include "em_data.h"
 #include "em_solver.h"
 #include "bc_data.h"
 #include "boundaries.h"
+#include "offsets.h"
 
 //=================== EMData Definitions ========================
 //===============================================================
@@ -152,36 +152,37 @@ using bcdataTE = BCData<
 >;
 
 //=================== Boundary Conditions Definitions ========================
-//=========================================================================
+//============================================================================
+
 template<typename T>
 using NullBC = TypeList<
-  /* Ex */ BCIntegratorNull<T>,
-  /* Ey */ BCIntegratorNull<T>,
-  /* Ez */ BCIntegratorNull<T>,
-  /* Hx */ BCIntegratorNull<T>,
-  /* Hy */ BCIntegratorNull<T>,
-  /* Hz */ BCIntegratorNull<T>
+  /* X0 */ BCIntegratorNull<T>,
+  /* Y0 */ BCIntegratorNull<T>,
+  /* Z0 */ BCIntegratorNull<T>,
+  /* X1 */ BCIntegratorNull<T>,
+  /* Y1 */ BCIntegratorNull<T>,
+  /* Z1 */ BCIntegratorNull<T>
 >;
 
 template<typename T>
 using Periodic1D = TypeList<
-  /* Ex */ BCIntegratorNull<T>,
-  /* Ey */ BCIntegratorNull<T>,
-  /* Ez */ BCIntegrator1D<T, PeriodicBC<Array1D<T>, size_t>>,
-  /* Hx */ BCIntegratorNull<T>,
-  /* Hy */ BCIntegrator1D<T, PeriodicBC<Array1D<T>, size_t>>,
-  /* Hz */ BCIntegratorNull<T>
+  /* X0 */ BCIntegrator1D<T, PeriodicBC<Array1D<T>, size_t>>,
+  /* Y0 */ BCIntegratorNull<T>,
+  /* Z0 */ BCIntegratorNull<T>,
+  /* X1 */ BCIntegrator1D<T, PeriodicBC<Array1D<T>, size_t>>,
+  /* Y1 */ BCIntegratorNull<T>,
+  /* Z1 */ BCIntegratorNull<T>
 >;
 
-// template<typename T>
-// using PeriodicTM = TypeList<
-//   /* Ex */ BCIntegratorNull<T>,
-//   /* Ey */ BCIntegratorNull<T>,
-//   /* Ez */ BCIntegrator2D<T, PeriodicBC<Array2D<T>>>,
-//   /* Hx */ BCIntegrator2D<T, PeriodicBC<Array2D<T>>>,
-//   /* Hy */ BCIntegrator2D<T, PeriodicBC<Array2D<T>>>,
-//   /* Hz */ BCIntegratorNull<T>
-// >;
+template<typename T>
+using PeriodicTM = TypeList<
+  /* X0 */ BCIntegrator2D<T, PeriodicBC<Array2D<T>>>,
+  /* Y0 */ BCIntegratorNull<T>,
+  /* Z0 */ BCIntegratorNull<T>,
+  /* X1 */ BCIntegratorNull<T>,
+  /* Y1 */ BCIntegratorNull<T>,
+  /* Z1 */ BCIntegratorNull<T>
+>;
 
 // template<typename T>
 // using PML1D = TypeList<

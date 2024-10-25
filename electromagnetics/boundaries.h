@@ -6,11 +6,6 @@
 #define BOUNDARIES_H
 
 #include "curl_operators.h"
-// #include "em_data.h"
-// #include "aydenstuff/array.h"
-
-constexpr size_t dPML = 10u;
-constexpr size_t nHalo = 2u;
 
 template<typename T>
 struct BCIntegratorNull {
@@ -36,32 +31,26 @@ struct BCIntegrator1D {
   }
 };
 
-// template<typename T, typename UpdateFunctor>
-// struct BCIntegrator2D {
-//   using value_t = typename T::value_t;
-//   using dimension_t = typename T::dimension_t;
-//   using array_t = Array2D<value_t>;
-//   using update_func = UpdateFunctor;
-//
-//   static void apply(auto& f1, const auto& d1, const auto& d2, const auto& c_d, auto& psi, const auto& b, const auto& c, const auto& o) {
-//     for (size_t i = o.x0; i < o.x1; ++i) {
-//       for (size_t j = o.y0; j < o.y1; ++j) {
-//         update_func::apply(f1, d1, d2, c_d, psi, b, c, i, j);
-//       }
-//     }
-//   }
-// };
+template<typename T, typename UpdateFunctor>
+struct BCIntegrator2D {
+  using value_t = typename T::value_t;
+  using dimension_t = typename T::dimension_t;
+  using array_t = Array2D<value_t>;
+  using update_func = UpdateFunctor;
+
+  static void apply(auto& f1, const auto& d1, const auto& d2, const auto& c_d, auto& psi, const auto& b, const auto& c, const auto& o) {
+    for (size_t i = o.x0; i < o.x1; ++i) {
+      for (size_t j = o.y0; j < o.y1; ++j) {
+        update_func::apply(f1, d1, d2, c_d, psi, b, c, i, j);
+      }
+    }
+  }
+};
 
 //====== 1D Boundaries ========
 //=============================
-// template<typename Array, bool HI=false, bool Forward=false>
-// struct NoneBC {
-//   using array_t = Array;
-//   using value_t = typename Array::value_t;
-//   using dimension_t = typename Array::dimension_t;
-//
-//   static void apply(const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const auto&) {}
-// };
+template<typename, bool=false, bool=false>
+struct NoneBC {};
 
 template<typename Array, typename... IDXS>
 struct PeriodicBC {
@@ -73,14 +62,15 @@ struct PeriodicBC {
     const auto numInterior = (f1.nx) - (2 * nHalo);
     const auto hi_idx = (f1.nx - 1) - (nHalo);
 
-    DBG(f1.nx, p, numInterior, nHalo, hi_idx);
+    // DBG(f1.nx, p, numInterior, nHalo, hi_idx);
     const auto pm = p % numInterior;
 
-    DBG(nHalo - 1 - p, hi_idx - pm, hi_idx + 1 + p, nHalo + pm);
+    // DBG(nHalo - 1 - p, hi_idx - pm, hi_idx + 1 + p, nHalo + pm);
 
     f1[nHalo - 1 - p] = f1[hi_idx - pm];
     f1[hi_idx + 1 + p] = f1[nHalo + pm];
   }
+
   static void apply2D(auto& f1, const size_t i, const size_t j) {
     // DBG("Periodic1D::apply1D()");
     // static auto numInterior = (f1.nx) - (2 * nHalo);
@@ -96,7 +86,7 @@ struct PeriodicBC {
   }
 
 
-  static void apply3D(auto& f1) {}
+  static void apply3D(auto& f1, const size_t i, const size_t j, const size_t k) {}
 
   static void apply(auto& f1, const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, IDXS... idxs) {
     DBG("PeriodicBC::apply()");
@@ -114,7 +104,7 @@ struct PeriodicBC {
   { DBG("PeriodicBc::apply()::empty"); }
 };
 
-template<typename Array, bool HI, bool Forward>
+template<typename Array, bool HI, bool Forward, typename... IDXS>
 struct PmlBC {
   // using array_t = Array;
   using value_t = typename Array::value_t;
@@ -125,39 +115,36 @@ struct PmlBC {
   static constexpr bool hi_side = HI;
   static constexpr bool forward = Forward;
 
-  static void apply1D(auto& f1, const auto& d1, const auto& d2, const auto& c_d, auto& psi, const auto& b, const auto& c) {
-    size_t start, stop;
-    if constexpr (HI) {
-      start = (f1.nx - 1) - dPML;  // need -1?
-      stop = f1.nx - 1;
-    } else {
-      start = 0;
-      stop = dPML;
-    }
-
-    for (size_t i = start; i < stop; ++i) {
-      const auto ipml = i - start;
-
-      const auto self = b[ipml] * psi[ipml];
-      const auto diff1 = curl1::apply(d1, i);
-      const auto diff2 = curl2::apply(d2, i);
-      const auto diff = c[ipml] * (diff1 - diff2);
-
-      psi[ipml] = self + diff;
-      f1[i] += c_d[i] * psi[ipml];
-    }
+  static void apply1D(auto& f1, const auto& d1, const auto& d2, const auto& c_d, auto& psi, const auto& b, const auto& c, const size_t i) {
+    // size_t start, stop;
+    // if constexpr (HI) {
+    //   start = (f1.nx - 1) - dPML;  // need -1?
+    //   stop = f1.nx - 1;
+    // } else {
+    //   start = 0;
+    //   stop = dPML;
+    // }
+    // const auto ipml = i - start;
+    //
+    // const auto self = b[ipml] * psi[ipml];
+    // const auto diff1 = curl1::apply(d1, i);
+    // const auto diff2 = curl2::apply(d2, i);
+    // const auto diff = c[ipml] * (diff1 - diff2);
+    //
+    // psi[ipml] = self + diff;
+    // f1[i] += c_d[i] * psi[ipml];
   }
 
   static void apply2D(auto& f1, const auto& d1, const auto& d2, const auto& c_d, auto& psi, const auto& b, const auto& c) {}
   static void apply3D(auto& f1, const auto& d1, const auto& d2, const auto& c_d, auto& psi, const auto& b, const auto& c) {}
 
-  static void apply(auto& f1, const auto& d1, const auto& d2, const auto& c_d, auto& psi, const auto& b, const auto& c) {
+  static void apply(auto& f1, const auto& d1, const auto& d2, const auto& c_d, auto& psi, const auto& b, const auto& c, IDXS... idxs) {
     if constexpr (dimension_t::value == 1) {
-      apply1D(f1, d1, d2, c_d, psi, b, c);
+      apply1D(f1, d1, d2, c_d, psi, b, c, idxs...);
     } else if constexpr (dimension_t::value == 2) {
-      apply2D(f1, d1, d2, c_d, psi, b, c);
+      apply2D(f1, d1, d2, c_d, psi, b, c, idxs...);
     } else {
-      apply3D(f1, d1, d2, c_d, psi, b, c);
+      apply3D(f1, d1, d2, c_d, psi, b, c, idxs...);
     }
   }
 
