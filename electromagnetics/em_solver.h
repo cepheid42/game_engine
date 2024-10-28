@@ -72,22 +72,23 @@ struct FieldIntegrator2D {
   }
 };
 
-// template<typename TL, Derivative ACURL, Derivative BCURL>
-// struct FieldIntegrator3D {
-//   using dimension_t = tf::tags::Dimension<3>;
-//   using offset_t = IntegratorOffsets<3>;
-//   using update_func = UpdateFunctor<TL, ACURL, BCURL, std::size_t, std::size_t, std::size_t>;
-//   
-//   static auto apply(F& f, const D1& d1, const D2& d2, const J1& j1, const C1& c1, const C2& c2, const C3& c3, const offset_t& o) {
-//     for (size_t i = 0; i < f.shape[0]; i++) {
-//       for (size_t j = 0; j < f.shape[1]; j++) {
-//         for (size_t k = 0; k < f.shape[2]; k++) {
-//           update_func::apply(f, d1, d2, j1, c1, c2, c3, i, j, k);
-//         }
-//       }
-//     }
-//   }
-// };
+template<typename T, typename UpdateFunctor>
+struct FieldIntegrator3D {
+  using value_t = typename T::value_t;
+  using dimension_t = typename T::dimension_t;
+  using array_t = Array3D<value_t>;
+  using update_func = UpdateFunctor;
+
+  static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
+    for (size_t i = o.x0; i < f.shape[0] - o.x1; ++i) {
+      for (size_t j = o.y0; j < f.shape[1] - o.y1; ++j) {
+        for (size_t k = o.z0; k < f.shape[2] - o.z1; ++k) {
+          update_func::apply(f, d1, d2, js, c_f, c_d, c_src, i, j, k);
+        }
+      }
+    }
+  }
+};
 
 template<typename T>
 struct FieldIntegratorNull {
@@ -99,60 +100,11 @@ struct FieldIntegratorNull {
 };
 
 
-// template<EMFace F, bool=false>
-// struct PeriodicOffsets {
-//
-//   explicit PeriodicOffsets(const auto& f) requires (F == EMFace::X)
-//   : offsets{0, nHalo, 0, f.ny, 0, f.nz}
-//   {}
-//
-//   explicit PeriodicOffsets(const auto& f) requires (F == EMFace::Y)
-//   : offsets{0, f.nx, 0, nHalo, 0, f.nz}
-//   {}
-//
-//   explicit PeriodicOffsets(const auto& f) requires (F == EMFace::Z)
-//   : offsets{0, f.nx, 0, f.ny, 0, nHalo}
-//   {}
-//
-//   explicit PeriodicOffsets(auto&) {}
-//
-//   IntegratorOffsets offsets{};
-// };
-//
-// template<EMFace F, bool HI>
-// struct PMLOffsets {
-//
-//   explicit PMLOffsets(const auto& f) requires (F == EMFace::X and !HI)
-//   : offsets{0, dPML, 0, f.ny, 0, f.nz}
-//   {}
-//
-//   explicit PMLOffsets(const auto& f) requires (F == EMFace::Y and !HI)
-//   : offsets{0, f.nx, 0, nHalo, 0, f.nz}
-//   {}
-//
-//   explicit PMLOffsets(const auto& f) requires (F == EMFace::Z and !HI)
-//   : offsets{0, f.nx, 0, f.ny, 0, nHalo}
-//   {}
-//
-//   explicit PMLOffsets(const auto& f) requires (F == EMFace::X and HI)
-//   : offsets{f.nx - dPML, f.nx, 0, f.ny, 0, f.nz}
-//   {}
-//
-//   explicit PMLOffsets(const auto& f) requires (F == EMFace::Y and HI)
-//   : offsets{0, f.nx, 0, nHalo, 0, f.nz}
-//   {}
-//
-//   explicit PMLOffsets(const auto& f) requires (F == EMFace::Z and HI)
-//   : offsets{0, f.nx, 0, f.ny, 0, nHalo}
-//   {}
-//
-//   explicit PMLOffsets(auto&) {}
-//
-//   IntegratorOffsets offsets{};
-// };
 
 
-template<typename EIX, typename EIY, typename EIZ, typename HIX, typename HIY, typename HIZ, typename LOBC>//, typename HIBC>
+
+
+template<typename EIX, typename EIY, typename EIZ, typename HIX, typename HIY, typename HIZ, typename X0BC>//, typename Y0BC, typename Z0BC>
 struct Electromagnetics {
   using value_t = typename EIX::value_t;
   using dimension_t = typename EIX::dimension_t;
@@ -162,72 +114,43 @@ struct Electromagnetics {
   static constexpr IntegratorOffsets one_offsets{1, 1, 1, 1, 1, 1};
   static constexpr IntegratorOffsets zero_offsets{0, 0, 0, 0, 0, 0};
 
-  using XLo = TypeListAt<0, LOBC>;
-  using YLo = TypeListAt<1, LOBC>;
-  using ZLo = TypeListAt<2, LOBC>;
-
-  
-  // using ExHi = TypeListAt<0, HIBC>;
-  // using EyHi = TypeListAt<1, HIBC>;
-  // using EzHi = TypeListAt<2, HIBC>;
-  // using HxHi = TypeListAt<3, HIBC>;
-  // using HyHi = TypeListAt<4, HIBC>;
-  // using HzHi = TypeListAt<5, HIBC>;
-
-  static void updateELoBC(auto& emdata, auto& bcdata) {
+  static void updateEBC(auto& emdata, auto& bcdata) {
     DBG("Electromagnetics::updateELoBC()");
-    // const auto Ex_offsets =
-    // XLo::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Cexh, bcdata.psiEx, bcdata.bEx, bcdata.cEx, {0, 0, 0, 0, 0, 0});
-    // EyLo::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Ceyh, bcdata.psiEy, bcdata.bEy, bcdata.cEy, EyPeriodic);
-    // EzLo::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Cezh, bcdata.psiEz, bcdata.bEz, bcdata.cEz, EzPeriodic);
+    X0BC::applyE(emdata, bcdata);
+    // Y0BC::applyE(emdata, bcdata);
+    // Z0BC::applyE(emdata, bcdata);
   }
 
-  static void updateHLoBC(auto& emdata, auto& bcdata) {
+  static void updateHBC(auto& emdata, auto& bcdata) {
     DBG("Electromagnetics::updateHLoBC()");
-    // HxLo::apply(emdata.Hx, emdata.Ey, emdata.Ez, emdata.Chxe, bcdata.psiHx, bcdata.bHx, bcdata.cHx, HxPeriodic);
-    // HyLo::apply(emdata.Hy, emdata.Ez, emdata.Ex, emdata.Chye, bcdata.psiHy, bcdata.bHy, bcdata.cHy, HyPeriodic);
-    // HzLo::apply(emdata.Hz, emdata.Ex, emdata.Ey, emdata.Chze, bcdata.psiHz, bcdata.bHz, bcdata.cHz, HzPeriodic);
+    X0BC::applyH(emdata, bcdata);
+    // Y0BC::applyH(emdata, bcdata);
+    // Z0BC::applyH(emdata, bcdata);
   }
 
   static void updateE(auto& emdata, auto& bcdata) {
-    // DBG("Electromagnetics::updateE()");
+    DBG("Electromagnetics::updateE()");
     EIX::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexh, emdata.Cjx, one_offsets);
     EIY::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyh, emdata.Cjy, one_offsets);
     EIZ::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezh, emdata.Cjz, one_offsets);
 
-    updateELoBC(emdata, bcdata);
-    // ExLo::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Cexh, bcdata.psiEx, bcdata.bEx, bcdata.cEx, ExPeriodic);
-    // EyLo::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Ceyh, bcdata.psiEy, bcdata.bEy, bcdata.cEy, EyPeriodic);
-    // EzLo::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Cezh, bcdata.psiEz, bcdata.bEz, bcdata.cEz, EzPeriodic);
-
-    // ExHi::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Cexh, bcdata.psiEx, bcdata.bEx, bcdata.cEx, ExPeriodic);
-    // EyHi::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Ceyh, bcdata.psiEy, bcdata.bEy, bcdata.cEy, EyPeriodic);
-    // EzHi::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Cezh, bcdata.psiEz, bcdata.bEz, bcdata.cEz, EzPeriodic);
+    updateEBC(emdata, bcdata);
   }
 
   static void updateH(auto& emdata, auto& bcdata) {
-    // DBG("Electromagnetics::updateH()");
+    DBG("Electromagnetics::updateH()");
     HIX::apply(emdata.Hx, emdata.Ey, emdata.Ez, empty, emdata.Chxh, emdata.Chxe, empty, zero_offsets);
     HIY::apply(emdata.Hy, emdata.Ez, emdata.Ex, empty, emdata.Chyh, emdata.Chye, empty, zero_offsets);
     HIZ::apply(emdata.Hz, emdata.Ex, emdata.Ey, empty, emdata.Chzh, emdata.Chze, empty, zero_offsets);
 
-    updateHLoBC(emdata, bcdata);
-    // HxLo::apply(emdata.Hx, emdata.Ey, emdata.Ez, emdata.Chxe, bcdata.psiHx, bcdata.bHx, bcdata.cHx, HxPeriodic);
-    // HyLo::apply(emdata.Hy, emdata.Ez, emdata.Ex, emdata.Chye, bcdata.psiHy, bcdata.bHy, bcdata.cHy, HyPeriodic);
-    // HzLo::apply(emdata.Hz, emdata.Ex, emdata.Ey, emdata.Chze, bcdata.psiHz, bcdata.bHz, bcdata.cHz, HzPeriodic);
-
-    // HxHi::apply(emdata.Hx, emdata.Ey, emdata.Ez, emdata.Chxe, bcdata.psiHx, bcdata.bHx, bcdata.cHx, HxPeriodic);
-    // HyHi::apply(emdata.Hy, emdata.Ez, emdata.Ex, emdata.Chye, bcdata.psiHy, bcdata.bHy, bcdata.cHy, HyPeriodic);
-    // HzHi::apply(emdata.Hz, emdata.Ex, emdata.Ey, emdata.Chze, bcdata.psiHz, bcdata.bHz, bcdata.cHz, HzPeriodic);
+    updateHBC(emdata, bcdata);
   }
 
 
   static void advance(auto& emdata, auto& bcdata) {
-    // DBG("Electromagnetics::Advance()");
-    // DBG(dbg::type<LOBC>());
-    DBG(dbg::type<XLo>(), dbg::type<YLo>(), dbg::type<ZLo>());
-    // updateH(emdata, bcdata);
-    // updateE(emdata, bcdata);
+    DBG("Electromagnetics::Advance()");
+    updateH(emdata, bcdata);
+    updateE(emdata, bcdata);
   }
 };
 

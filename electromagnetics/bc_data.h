@@ -5,10 +5,12 @@
 #ifndef BC_DATA_H
 #define BC_DATA_H
 
+#include "em_traits.h"
 #include "aydenstuff/array.h"
 
 using tf::types::Array1D;
 using tf::types::Array2D;
+using tf::types::Array3D;
 
 template<FieldComponent EXF, FieldComponent EYF, FieldComponent EZF, FieldComponent HXF, FieldComponent HYF, FieldComponent HZF>
 struct BCData {

@@ -5,6 +5,10 @@
 #ifndef EM_DEFINITIONS_H
 #define EM_DEFINITIONS_H
 
+#include <electromagnetics.h>
+#include <electromagnetics.h>
+#include <electromagnetics.h>
+
 #include "em_data.h"
 #include "em_solver.h"
 #include "bc_data.h"
@@ -26,6 +30,10 @@ struct disabled {
   using dimension_t = typename Array::dimension_t;
   using array_t = Array;
 };
+
+struct X_FACE {};
+struct Y_FACE {};
+struct Z_FACE {};
 
 template<typename T>
 using emdataNone = EMData<
@@ -109,6 +117,16 @@ using EMTE = TypeList<
   /* Hz */ FieldIntegrator2D<T, FieldUpdate<Derivative::DY, Derivative::DX, true, size_t, size_t>>
 >;
 
+template<typename T>
+using EM3D = TypeList<
+  /* Ex */ FieldIntegrator3D<T, FieldUpdate<Derivative::DY, Derivative::DZ, false, size_t, size_t>>,
+  /* Ey */ FieldIntegrator3D<T, FieldUpdate<Derivative::DZ, Derivative::DX, false, size_t, size_t>>,
+  /* Ez */ FieldIntegrator3D<T, FieldUpdate<Derivative::DX, Derivative::DY, false, size_t, size_t>>,
+  /* Hx */ FieldIntegrator3D<T, FieldUpdate<Derivative::DY, Derivative::DZ, true, size_t, size_t>>,
+  /* Hy */ FieldIntegrator3D<T, FieldUpdate<Derivative::DZ, Derivative::DX, true, size_t, size_t>>,
+  /* Hz */ FieldIntegrator3D<T, FieldUpdate<Derivative::DX, Derivative::DY, true, size_t, size_t>>
+>;
+
 //=================== BCData Definitions ========================
 //===============================================================
 template<typename T>
@@ -151,47 +169,96 @@ using bcdataTE = BCData<
   enabled<Array2D<T>>        // Hz
 >;
 
+template<typename T>
+using bcdata3D = BCData<
+  enabled<Array3D<T>>, // Ex
+  enabled<Array3D<T>>, // Ey
+  enabled<Array3D<T>>, // Ez
+  enabled<Array3D<T>>, // Hx
+  enabled<Array3D<T>>, // Hy
+  enabled<Array3D<T>>  // Hz
+>;
+
 //=================== Boundary Conditions Definitions ========================
 //============================================================================
 
-template<typename T>
-using NullBC = TypeList<
-  /* X0 */ BCIntegratorNull<T>,
-  /* Y0 */ BCIntegratorNull<T>,
-  /* Z0 */ BCIntegratorNull<T>,
-  /* X1 */ BCIntegratorNull<T>,
-  /* Y1 */ BCIntegratorNull<T>,
-  /* Z1 */ BCIntegratorNull<T>
->;
 
 template<typename T>
-using Periodic1D = TypeList<
-  /* X0 */ BCIntegrator1D<T, PeriodicBC<Array1D<T>, size_t>>,
-  /* Y0 */ BCIntegratorNull<T>,
-  /* Z0 */ BCIntegratorNull<T>,
-  /* X1 */ BCIntegrator1D<T, PeriodicBC<Array1D<T>, size_t>>,
-  /* Y1 */ BCIntegratorNull<T>,
-  /* Z1 */ BCIntegratorNull<T>
->;
+using Periodic1D = PeriodicBC<T, nHalo, size_t>;
 
 template<typename T>
-using PeriodicTM = TypeList<
-  /* X0 */ BCIntegrator2D<T, PeriodicBC<Array2D<T>>>,
-  /* Y0 */ BCIntegratorNull<T>,
-  /* Z0 */ BCIntegratorNull<T>,
-  /* X1 */ BCIntegratorNull<T>,
-  /* Y1 */ BCIntegratorNull<T>,
-  /* Z1 */ BCIntegratorNull<T>
->;
+using Periodic2D = PeriodicBC<T, nHalo, size_t, size_t>;
 
-// template<typename T>
-// using PML1D = TypeList<
-//   /* Ex */ BCIntegratorNull<T>,
-//   /* Ey */ BCIntegratorNull<T>,
-//   /* Ez */ PmlBC<Array1D<T>>,
-//   /* Hx */ BCIntegratorNull<T>,
-//   /* Hy */ PeriodicBC<EmptyArray1D<T>>,
-//   /* Hz */ BCIntegratorNull<T>
-// >;
+template<typename T>
+using Periodic3D = PeriodicBC<T, nHalo, size_t, size_t, size_t>;
+
+enum class EMFace { X, Y, Z};
+enum class EMSide { Lo, Hi};
+
+template<EMFace Face, EMSide Side>
+struct Boundary {
+  static constexpr EMFace face = Face;
+  static constexpr EMSide side = Side;
+  static IntegratorOffsets get_offsets(auto&, size_t);
+};
+
+template <>
+IntegratorOffsets Boundary<EMFace::X, EMSide::Lo>::get_offsets(auto& f1, const size_t depth) {
+  return {0, depth, 0, f1.nx, 0, f1.nz};
+}
+
+template <>
+IntegratorOffsets Boundary<EMFace::X, EMSide::Hi>::get_offsets(auto& f1, const size_t depth) {
+  return {f1.nx - depth, f1.nx, 0, f1.nx, 0, f1.nz};
+}
+
+
+using XLo = Boundary<EMFace::X, EMSide::Lo>;
+using YLo = Boundary<EMFace::Y, EMSide::Lo>;
+using ZLo = Boundary<EMFace::Z, EMSide::Lo>;
+using XHi = Boundary<EMFace::X, EMSide::Hi>;
+using YHi = Boundary<EMFace::Y, EMSide::Hi>;
+using ZHi = Boundary<EMFace::Z, EMSide::Hi>;
+
+template<typename Boundary, typename Ex, typename Ey, typename Ez, typename Hx, typename Hy, typename Hz>
+struct BCApplicator {
+  static constexpr size_t boundary_depth = Ex::boundary_depth;
+
+  static void applyE(auto& emdata, auto& bcdata) {
+    static const auto ex_offsets = Boundary::get_offsets(emdata.Ex, boundary_depth);
+    static const auto ey_offsets = Boundary::get_offsets(emdata.Ey, boundary_depth);
+    static const auto ez_offsets = Boundary::get_offsets(emdata.Ez, boundary_depth);
+
+    Ex::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Cexh, bcdata.psiEx, bcdata.bEx, bcdata.cEx, ex_offsets);
+    Ey::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Ceyh, bcdata.psiEy, bcdata.bEy, bcdata.cEy, ey_offsets);
+    Ez::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Cezh, bcdata.psiEz, bcdata.bEz, bcdata.cEz, ez_offsets);
+
+    // EzHi::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Cezh, bcdata.psiEz, bcdata.bEz, bcdata.cEz, {0, 0, 0, 0, 0, 0});
+    // EyHi::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Ceyh, bcdata.psiEy, bcdata.bEy, bcdata.cEy, {0, 0, 0, 0, 0, 0});
+    // EzHi::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Cezh, bcdata.psiEz, bcdata.bEz, bcdata.cEz, {0, 0, 0, 0, 0, 0});
+  }
+
+  static void applyH(auto& emdata, auto& bcdata) {
+    static const auto hx_offsets = Boundary::get_offsets(emdata.Hx, boundary_depth);
+    static const auto hy_offsets = Boundary::get_offsets(emdata.Hy, boundary_depth);
+    static const auto hz_offsets = Boundary::get_offsets(emdata.Hz, boundary_depth);
+
+    Hx::apply(emdata.Hx, emdata.Ey, emdata.Ez, emdata.Chxe, bcdata.psiHx, bcdata.bHx, bcdata.cHx, hx_offsets);
+    Hy::apply(emdata.Hy, emdata.Ez, emdata.Ex, emdata.Chye, bcdata.psiHy, bcdata.bHy, bcdata.cHy, hy_offsets);
+    Hz::apply(emdata.Hz, emdata.Ex, emdata.Ey, emdata.Chze, bcdata.psiHz, bcdata.bHz, bcdata.cHz, hz_offsets);
+
+    // HxHi::apply(emdata.Hx, emdata.Ey, emdata.Ez, emdata.Chxe, bcdata.psiHx, bcdata.bHx, bcdata.cHx, {0, 0, 0, 0, 0, 0});
+    // HyHi::apply(emdata.Hy, emdata.Ez, emdata.Ex, emdata.Chye, bcdata.psiHy, bcdata.bHy, bcdata.cHy, {0, 0, 0, 0, 0, 0});
+    // HzHi::apply(emdata.Hz, emdata.Ex, emdata.Ey, emdata.Chze, bcdata.psiHz, bcdata.bHz, bcdata.cHz, {0, 0, 0, 0, 0, 0});
+  }
+};
+
+// template<typename BC>
+// requires std::same_as<BC, YLo>
+// struct BCApplicator {};
+//
+// template<typename BC>
+// requires std::same_as<BC, ZLo>
+// struct BCApplicator {};
 
 #endif //EM_DEFINITIONS_H

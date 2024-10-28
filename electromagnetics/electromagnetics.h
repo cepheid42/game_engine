@@ -7,24 +7,23 @@
 
 #include "em_definitions.h"
 
-inline constexpr size_t SELECT_EMDATA = 2;
-inline constexpr size_t SELECT_EMSOLVER = 2;
+inline constexpr size_t SELECT_EMDATA = 1;
+inline constexpr size_t SELECT_EMSOLVER = 1;
 
-inline constexpr size_t SELECT_BCDATA = 2;
-inline constexpr size_t SELECT_BCInt[6] = {1, 0, 0, 0, 0, 0};
+inline constexpr size_t SELECT_BCDATA = 1;
 inline constexpr size_t SELECT_BCS[6] = {
   1, // X0
   0, // Y0
   0, // Z0
   0, // X1
   0, // Y1
-  0, // Z1
+  0  // Z1
 };
 
 
 using fp_t = double;
-constexpr fp_t DIM = 2.0;
-constexpr fp_t cfl = 0.95 / std::sqrt(DIM);
+constexpr size_t DIM = 1;
+constexpr fp_t cfl = 0.95 / std::sqrt(static_cast<fp_t>(DIM));
 // constexpr size_t dPML = 10u;
 // constexpr size_t nHalo = 2u;
 
@@ -36,44 +35,38 @@ template<typename T>
 using emdata_t = TypeListAt<SELECT_EMDATA, EMDataTL<T>>;
 
 template<typename T>
-using EMTypeTL = TypeList<EMNull<T>, EM1D<T>, EMTM<T>, EMTE<T>>; // Typelist of typelists
+using EMTypeTL = TypeList<EMNull<T>, EM1D<T>, EMTM<T>, EMTE<T>, EM3D<T>>; // Typelist of typelists
 
 template<typename T>
 using EMType = TypeListAt<SELECT_EMSOLVER, EMTypeTL<emdata_t<T>>>; // Selects desired typelist of integrators
 
 template<typename T>
-using BCDataTL = TypeList<bcdataNone<T>, bcdata1d<T>, bcdataTM<T>, bcdataTE<T>>;
+using BCDataTL = TypeList<bcdataNone<T>, bcdata1d<T>, bcdataTM<T>, bcdataTE<T>, bcdata3D<T>>;
 
 template<typename T>
 using bcdata_t = TypeListAt<SELECT_BCDATA, BCDataTL<T>>;
 
-template<typename T, bool HI, typename... IDXS>
-using BCTypeTL = TypeList<NoneBC<T>, PeriodicBC<T, IDXS...>>;
+template<typename T, typename Func>
+using BCIntegratorTL = TypeList<BCIntegrator1D<T, Func>, BCIntegrator2D<T, Func>, BCIntegrator3D<T, Func>>;
 
-template<size_t I, typename T, bool HI, typename... IDXS>
-using BCType = TypeListAt<I, BCTypeTL<bcdata_t<T>, HI, IDXS...>>;
+template<size_t I, typename T, typename Func>
+using BCIntegratorType = TypeListAt<I, BCIntegratorTL<bcdata_t<T>, Func>>;
 
-template<typename T, typename UpdateFunc>
-using BCIntegratorTL = TypeList<BCIntegratorNull<T>, BCIntegrator1D<T, UpdateFunc>, BCIntegrator2D<T, UpdateFunc>>;
+template<typename T>
+using BCTypeTL = TypeList<ReflectingBC<bcdata_t<T>, nHalo>, Periodic1D<bcdata_t<T>, nHalo>, Periodic2D<bcdata_t<T>>, Periodic3D<bcdata_t<T>>>;
 
-template<size_t I, typename T, typename UpdateFunc>
-using BCIntegratorType = TypeListAt<I, BCIntegratorTL<bcdata_t<T>, UpdateFunc>>;
-
-template<typename T, typename... IDXS>
-using LoBoundaries = TypeList<
-  BCIntegratorType<SELECT_BCInt[0], T, BCType<SELECT_BCS[0], T, false, IDXS...>>,
-  BCIntegratorType<SELECT_BCInt[1], T, BCType<SELECT_BCS[0], T, false, IDXS...>>,
-  BCIntegratorType<SELECT_BCInt[2], T, BCType<SELECT_BCS[0], T, false, IDXS...>>
+template<typename T, typename B, size_t I>
+using BoundaryType = BCApplicator<
+  B,
+  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I], BCTypeTL<T>>>,
+  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I], BCTypeTL<T>>>,
+  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I], BCTypeTL<T>>>,
+  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I], BCTypeTL<T>>>,
+  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I], BCTypeTL<T>>>,
+  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I], BCTypeTL<T>>>
 >;
 
 template<typename T>
-using HiBoundaries = TypeList<
-  // TypeListAt<0, BCType<SELECT_BCS[3], T, IDXS...>>,
-  // TypeListAt<1, BCType<SELECT_BCS[4], T, IDXS...>>,
-  // TypeListAt<2, BCType<SELECT_BCS[5], T, IDXS...>>
->;
-
-template<typename T, typename... IDXS>
 using EMSolver = Electromagnetics<
   TypeListAt<0, EMType<T>>, // Ex
   TypeListAt<1, EMType<T>>, // Ey
@@ -81,8 +74,9 @@ using EMSolver = Electromagnetics<
   TypeListAt<3, EMType<T>>, // Hx
   TypeListAt<4, EMType<T>>, // Hy
   TypeListAt<5, EMType<T>>, // Hz,
-  LoBoundaries<T, IDXS...>
-  // HiBoundaries<T>
+  BoundaryType<T, XLo, 0>
+  // BoundaryType<T, YLo, 1>,
+  // BoundaryType<T, ZLo, 2>
 >;
 
 #endif //ELECTROMAGNETICS_H

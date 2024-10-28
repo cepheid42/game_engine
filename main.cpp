@@ -87,30 +87,28 @@ int main() {
   constexpr size_t ny = 100u + 2 * dPML + 2 * nHalo;
   constexpr size_t nt = 1u;
 
-  using type = EMSolver<fp_t, size_t, size_t>;
-  DBG(dbg::type<type>());
-  //
-  // using lb = LoBoundaries<double, size_t, size_t>;
-  // DBG(dbg::type<lb>());
+
+  emdata_t<double> em{nx, cfl};
+  bcdata_t<double> bc{nx};
 
   // emdata_t<double> em{nx, ny, cfl};
   // bcdata_t<double> bc{nx, ny};
-  //
-  // constexpr auto save_step = 4;
-  // size_t filecount = 0;
-  // for (size_t n = 0; n < nt; n++) {
-  //   std::cout << "Step " << n << std::endl;
-  //
-  //   EMSolver<fp_t, size_t, size_t>::advance(em, bc);
-  //
-  //   em.Ez[nx / 2 - 20] += ricker(static_cast<fp_t>(n));
-  //   // em.Ez(nx / 2, ny / 2) = ricker(static_cast<fp_t>(n));
-  //
-  //   if (n % save_step == 0) {
-  //     to_csv(em.Ez, filecount, "Ez");
-  //     filecount++;
-  //   }
-  // }
+
+  constexpr auto save_step = 4;
+  size_t filecount = 0;
+  for (size_t n = 0; n < nt; n++) {
+    std::cout << "Step " << n << std::endl;
+
+    EMSolver<fp_t>::advance(em, bc);
+
+    em.Ez[nx / 2 - 20] += ricker(static_cast<fp_t>(n));
+    // em.Ez(nx / 2, ny / 2) = ricker(static_cast<fp_t>(n));
+
+    if (n % save_step == 0) {
+      to_csv(em.Ez, filecount, "Ez");
+      filecount++;
+    }
+  }
 
   // auto start = std::chrono::high_resolution_clock::now();
   // auto stop = std::chrono::high_resolution_clock::now() - start;

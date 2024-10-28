@@ -13,6 +13,7 @@
 
 using tf::types::Array1D;
 using tf::types::Array2D;
+using tf::types::Array3D;
 
 // template<typename T>
 // std::vector<T> linspace(T start, T stop, size_t n_points, const bool endpoint=true) {
