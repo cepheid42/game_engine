@@ -14,23 +14,31 @@ using std::size_t;
 // ================
 namespace tf::tags
 {
+  // ----- Dimension -----
   template <size_t N>
-  struct Dimension {
-    static constexpr size_t value = N;
-  };
+  struct Dimension { static constexpr size_t value = N; };
+  
+  // ----- Order -----
+  template <size_t N>
+  struct Order { static constexpr size_t value = N; };
   //
 } // end namespace tf::tags
 
 namespace tf::concepts
 {
+  // ----- Dimension -----
   template <typename T>
-  concept is_dimensional = requires { typename T::dimension_t; };
+  concept has_dimension = requires { typename T::dimension_t; };
   
   template <typename T, size_t N>
-  concept is_n_dimensional = std::same_as<typename T::dimension_t, tags::Dimension<N>>;
-
-  template<typename T1, typename T2>
-  concept is_same_dimensional = std::same_as<typename T1::dimension_t, typename T2::dimension_t>;
+  concept is_dimension_n = std::same_as<typename T::dimension_t, tags::Dimension<N>>;
+  
+  // ----- Order -----
+  template <typename T>
+  concept has_order = requires { typename T::order_t; };
+  
+  template <typename T, size_t N>
+  concept is_order_n = std::same_as<typename T::dimension_t, tags::Order<N>>;
   //
 } // end namespace tf::concepts
 

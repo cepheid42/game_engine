@@ -11,14 +11,20 @@ inline constexpr size_t SELECT_EMDATA = 1;
 inline constexpr size_t SELECT_EMSOLVER = 1;
 
 inline constexpr size_t SELECT_BCDATA = 1;
-inline constexpr size_t SELECT_BCS[6] = {
-  1, // X0
-  0, // Y0
-  0, // Z0
-  0, // X1
-  0, // Y1
-  0  // Z1
+inline constexpr size_t SELECT_BCS[2][6] = {
+  {0, 0, 0, 0, 1, 0},
+  {0, 0, 0, 0, 0, 0}
 };
+
+
+//   {
+//   1, // X0
+//   0, // Y0
+//   0, // Z0
+//   0, // X1
+//   0, // Y1
+//   0  // Z1
+// };
 
 
 using fp_t = double;
@@ -53,17 +59,25 @@ template<size_t I, typename T, typename Func>
 using BCIntegratorType = TypeListAt<I, BCIntegratorTL<bcdata_t<T>, Func>>;
 
 template<typename T>
-using BCTypeTL = TypeList<ReflectingBC<bcdata_t<T>, nHalo>, Periodic1D<bcdata_t<T>, nHalo>, Periodic2D<bcdata_t<T>>, Periodic3D<bcdata_t<T>>>;
+using BCTypeTL = TypeList<
+  // Reflecting1D<bcdata_t<T>>,
+  // Reflecting2D<bcdata_t<T>>,
+  // Reflecting3D<bcdata_t<T>>,
+  ReflectingBC<typename bcdata_t<T>::array_t>,
+  Periodic1D<bcdata_t<T>>,
+  Periodic2D<bcdata_t<T>>,
+  Periodic3D<bcdata_t<T>>
+>;
 
 template<typename T, typename B, size_t I>
 using BoundaryType = BCApplicator<
   B,
-  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I], BCTypeTL<T>>>,
-  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I], BCTypeTL<T>>>,
-  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I], BCTypeTL<T>>>,
-  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I], BCTypeTL<T>>>,
-  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I], BCTypeTL<T>>>,
-  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I], BCTypeTL<T>>>
+  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I][0], BCTypeTL<T>>>,
+  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I][1], BCTypeTL<T>>>,
+  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I][2], BCTypeTL<T>>>,
+  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I][3], BCTypeTL<T>>>,
+  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I][4], BCTypeTL<T>>>,
+  BCIntegratorType<DIM - 1, T, TypeListAt<SELECT_BCS[I][5], BCTypeTL<T>>>
 >;
 
 template<typename T>

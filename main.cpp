@@ -4,7 +4,7 @@
 #include <chrono>
 #include <string>
 
-// #define DBG_MACRO_DISABLE
+#define DBG_MACRO_DISABLE
 
 #include "electromagnetics/electromagnetics.h"
 
@@ -26,15 +26,15 @@ void to_csv(const Array& arr, const size_t step, const std::string& name) {
   file.open(filename.c_str());
 
   if constexpr (Array::dimension_t::value == 1) {
-    for (size_t i = 0; i < arr.nx; i++) {
+    for (size_t i = 0; i < arr.nx(); i++) {
         file << arr[i] << ", ";
     }
     file << std::endl;
   } else {
-    for (size_t i = 0; i < arr.nx; i++) {
-      for (size_t j = 0; j < arr.nz; j++) {
+    for (size_t i = 0; i < arr.nx(); i++) {
+      for (size_t j = 0; j < arr.ny(); j++) {
         file << arr(i, j);
-        if (j < arr.nz - 1) {
+        if (j < arr.ny() - 1) {
           file << ", ";
         }
       }
@@ -54,15 +54,15 @@ void print_array(const Array&) {
 template<typename Array>
 void print_array(const Array& arr) {
   if constexpr (Array::dimension_t::value == 1) {
-    for (size_t i = 0; i < arr.nx; i++) {
+    for (size_t i = 0; i < arr.nx(); i++) {
       std::cout << arr[i] << ", ";
     }
     std::cout << std::endl;
   } else {
-    for (size_t i = 0; i < arr.nx; i++) {
-      for (size_t j = 0; j < arr.nz; j++) {
+    for (size_t i = 0; i < arr.nx(); i++) {
+      for (size_t j = 0; j < arr.ny(); j++) {
         std::cout << arr(i, j);
-        if (j < arr.nz - 1) {
+        if (j < arr.ny() - 1) {
           std::cout << ", ";
         }
       }
@@ -85,7 +85,7 @@ fp_t ricker(fp_t q) {
 int main() {
   constexpr size_t nx = 100u + 2 * dPML + 2 * nHalo;
   constexpr size_t ny = 100u + 2 * dPML + 2 * nHalo;
-  constexpr size_t nt = 1u;
+  constexpr size_t nt = 400u;
 
 
   emdata_t<double> em{nx, cfl};
@@ -106,6 +106,7 @@ int main() {
 
     if (n % save_step == 0) {
       to_csv(em.Ez, filecount, "Ez");
+      // to_csv(em.Hy, filecount, "Hy");
       filecount++;
     }
   }

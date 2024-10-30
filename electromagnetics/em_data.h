@@ -107,15 +107,15 @@ void init_1d_coeff(Array&, auto) {}
 
 template<typename Array>
 void init_1d_coeff(Array& arr, auto val) {
-  for (size_t i = 0; i < arr.nx; ++i) {
+  for (size_t i = 0; i < arr.nx(); ++i) {
     arr[i] = val;
   }
 }
 
 template<typename Array>
 void init_2d_coeff(Array& arr, auto val) {
-  for (size_t i = 0; i < arr.nx; ++i) {
-    for (size_t j = 0; j < arr.nz; ++j) {
+  for (size_t i = 0; i < arr.nx(); ++i) {
+    for (size_t j = 0; j < arr.nz(); ++j) {
       arr(i, j) = val;
     }
   }

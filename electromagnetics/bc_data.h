@@ -12,10 +12,11 @@ using tf::types::Array1D;
 using tf::types::Array2D;
 using tf::types::Array3D;
 
-template<FieldComponent EXF, FieldComponent EYF, FieldComponent EZF, FieldComponent HXF, FieldComponent HYF, FieldComponent HZF>
+template<typename T, FieldComponent EXF, FieldComponent EYF, FieldComponent EZF, FieldComponent HXF, FieldComponent HYF, FieldComponent HZF>
 struct BCData {
-  using value_t = typename EXF::array_t::value_t;
-  using dimension_t = typename EXF::array_t::dimension_t;
+  using array_t = T;
+  using value_t = typename array_t::value_t;
+  using dimension_t = typename array_t::dimension_t;
   using empty_t = EmptyArray<value_t, dimension_t::value>;
   
   using ex_t = typename EXF::array_t;

@@ -4,23 +4,23 @@
 
 #ifndef BOUNDARIES_H
 #define BOUNDARIES_H
-#include <em_definitions.h>
+
 
 // #include "aydenstuff/array.h"
-// #include "curl_operators.h"
+// #include <electromagnetics.h>
+
+#include "bc_data.h"
+#include "offsets.h"
 
 
 //====== 1D Boundaries ========
 //=============================
-template<typename Array, size_t DEPTH, typename... IDXS>
+template<typename Array>
 struct ReflectingBC {
+  using array_t = Array;
   using value_t = typename Array::value_t;
   using dimension_t = typename Array::dimension_t;
-  static constexpr size_t boundary_depth = DEPTH;
-
-  static void apply(auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, IDXS... idxs) {
-    DBG("ReflectingBC::apply()");
-  }
+  static constexpr size_t bc_depth = 0;
 };
 
 template<typename Array, size_t DEPTH, typename... IDXS>
@@ -28,21 +28,29 @@ struct PeriodicBC {
   using value_t = typename Array::value_t;
   using dimension_t = typename Array::dimension_t;
 
-  static constexpr size_t boundary_depth = DEPTH;
+  static constexpr size_t bc_depth = DEPTH;
 
   static void apply1D(auto& f1, const size_t i) {
-    std::string msg{"PeriodicBC::apply1D(" + std::to_string(i) + ")"};
-    DBG(msg);
-    const auto numInterior = (f1.nx) - (2 * nHalo);
-    const auto hi_idx = (f1.nx - 1) - (nHalo);
+    // std::string msg{"PeriodicBC::apply1D(" + std::to_string(i) + ")"};
+    // DBG(msg);
+    const auto numInterior = f1.nx() - (2 * bc_depth);
+    const auto hi_idx = (f1.nx() - 1) - (bc_depth);
 
-    // DBG(f1.nx, p, numInterior, nHalo, hi_idx);
+    // DBG(f1.nx(), i, numInterior, bc_depth, hi_idx);
     const auto pm = i % numInterior;
 
-    // DBG(nHalo - 1 - p, hi_idx - pm, hi_idx + 1 + p, nHalo + pm);
+    // DBG(i, pm, bc_depth - 1 - i, hi_idx - pm, hi_idx + 1 + i, bc_depth + pm);
 
-    f1[nHalo - 1 - i] = f1[hi_idx - pm];
-    f1[hi_idx + 1 + i] = f1[nHalo + pm];
+    f1[bc_depth - 1 - i] = f1[hi_idx - pm];
+    f1[hi_idx + 1 + i] = f1[bc_depth + pm];
+
+    // for (size_t p = 0; p < 5; ++p) {
+    //      DBG(p, f1[p]);
+    //    }
+    //
+    // for (size_t p = f1.nx - bc_depth - 5; p < f1.nx; ++p) {
+    //  DBG(p, f1[p]);
+    // }
   }
 
   static void apply2D(auto& f1, const size_t i, const size_t j) {
@@ -64,7 +72,7 @@ struct PeriodicBC {
 
   template<typename ARR>
   static void apply(ARR& f1, const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, IDXS... idxs) {
-    DBG("PeriodicBC::apply()");
+    // DBG("PeriodicBC::apply()");
     if constexpr (dimension_t::value == 1) {
       apply1D(f1, idxs...);
     } else if constexpr (dimension_t::value == 2) {
@@ -132,21 +140,21 @@ template<typename T, typename UpdateFunctor>
 struct BCIntegrator1D {
   using value_t = typename T::value_t;
   using dimension_t = typename T::dimension_t;
-  using array_t = Array1D<value_t>;
+  using array_t = typename T::array_t;
   using update_func = UpdateFunctor;
   using offset_t = IntegratorOffsets;
-  static constexpr size_t boundary_depth = UpdateFunctor::boundary_depth;
+  static constexpr size_t bc_depth = UpdateFunctor::bc_depth;
 
   static void apply(auto& f1, const auto& d1, const auto& d2, const auto& c_d, auto& psi, const auto& b, const auto& c, const offset_t& o) {
-    DBG("BCIntegrator1D::apply()");
-    for (size_t i = o.x0; i < o.x1; ++i) {
-      update_func::apply(f1, d1, d2, c_d, psi, b, c, i);
+    if constexpr (!std::same_as<UpdateFunctor, ReflectingBC<array_t>>) {
+      DBG("BCIntegrator1D::apply()");
+      for (size_t i = o.x0; i < o.x1; ++i) {
+        update_func::apply(f1, d1, d2, c_d, psi, b, c, i);
+      }
+    } else {
+      DBG("BCIntegrator1D::apply()::empty");
     }
   }
-
-  static void apply(auto& f1, const auto& d1, const auto& d2, const auto& c_d, auto& psi, const auto& b, const auto& c, const offset_t& o)
-  requires std::is_same_v<UpdateFunctor, ReflectingBC<array_t>>
-  {    DBG("BCIntegrator1D::apply()::empty");}
 };
 
 template<typename T, typename UpdateFunctor>
@@ -156,20 +164,20 @@ struct BCIntegrator2D {
   using array_t = Array2D<value_t>;
   using update_func = UpdateFunctor;
   using offset_t = IntegratorOffsets;
-  static constexpr size_t boundary_depth = UpdateFunctor::boundary_depth;
+  static constexpr size_t bc_depth = UpdateFunctor::bc_depth;
 
   static void apply(auto& f1, const auto& d1, const auto& d2, const auto& c_d, auto& psi, const auto& b, const auto& c, const offset_t& o) {
-    DBG("BCIntegrator2D::apply()");
-    for (size_t i = o.x0; i < o.x1; ++i) {
-      for (size_t j = o.y0; j < o.y1; ++j) {
-        update_func::apply(f1, d1, d2, c_d, psi, b, c, i, j);
+    if constexpr (!std::same_as<UpdateFunctor, ReflectingBC<array_t>>) {
+      DBG("BCIntegrator2D::apply()");
+      for (size_t i = o.x0; i < o.x1; ++i) {
+        for (size_t j = o.y0; j < o.y1; ++j) {
+          update_func::apply(f1, d1, d2, c_d, psi, b, c, i, j);
+        }
       }
+    } else {
+      DBG("BCIntegrator2D::apply()::empty");
     }
   }
-
-  static void apply(auto&, const auto&, const auto&, const auto&, auto&, const auto&, const auto&, const offset_t&)
-  requires std::is_same_v<UpdateFunctor, ReflectingBC<array_t>>
-  { DBG("BCIntegrator2D::apply()::empty"); }
 };
 
 template<typename T, typename UpdateFunctor>
@@ -179,19 +187,22 @@ struct BCIntegrator3D {
   using array_t = Array3D<value_t>;
   using update_func = UpdateFunctor;
   using offset_t = IntegratorOffsets;
-  static constexpr size_t boundary_depth = UpdateFunctor::boundary_depth;
+  static constexpr size_t bc_depth = UpdateFunctor::bc_depth;
 
   static void apply(auto& f1, const auto& d1, const auto& d2, const auto& c_d, auto& psi, const auto& b, const auto& c, const offset_t& o) {
-    for (size_t i = o.x0; i < o.x1; ++i) {
-      for (size_t j = o.y0; j < o.y1; ++j) {
-        update_func::apply(f1, d1, d2, c_d, psi, b, c, i, j);
+    if constexpr (!std::same_as<UpdateFunctor, ReflectingBC<array_t>>) {
+      DBG("BCIntegrator3D::apply()");
+      for (size_t i = o.x0; i < o.x1; ++i) {
+        for (size_t j = o.y0; j < o.y1; ++j) {
+          for (size_t k = o.z0; k < o.z1; ++k) {
+            update_func::apply(f1, d1, d2, c_d, psi, b, c, i, j);
+          }
+        }
       }
+    } else {
+      DBG("BCIntegrator3D::apply()::empty");
     }
   }
-
-  static void apply(auto&, const auto&, const auto&, const auto&, auto&, const auto&, const auto&, const offset_t&)
-  requires std::is_same_v<UpdateFunctor, ReflectingBC<array_t>>
-  {}
 };
 
 

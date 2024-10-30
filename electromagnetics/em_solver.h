@@ -5,20 +5,15 @@
 #ifndef EM_SOLVER_H
 #define EM_SOLVER_H
 
-#include <cassert>
-#include <array>
-
+// #include <cassert>
+// #include <array>
 
 #include "../aydenstuff/array.h"
-#include "../core/typelist.h"
+// #include "../core/typelist.h"
 #include "../core/debug.h"
 #include "em_data.h"
 #include "curl_operators.h"
 #include "offsets.h"
-// #include "bc_data.h"
-// #include "boundaries.h"
-
-
 
 //=================== Field Functors ========================
 //===========================================================
@@ -47,8 +42,8 @@ struct FieldIntegrator1D {
   using update_func = UpdateFunctor;
 
   static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
-    // DBG("FI1D::apply()", o.x0, o.x1, f.nx - o.x1);
-    for (size_t i = o.x0; i < f.nx - o.x1; ++i) {
+    // DBG("FI1D::apply()", o.x0, o.x1, f.nx() - o.x1);
+    for (size_t i = o.x0; i < f.nx() - o.x1; ++i) {
       update_func::apply(f, d1, d2, js, c_f, c_d, c_src, i);
     }
   }
@@ -63,8 +58,8 @@ struct FieldIntegrator2D {
 
   static void apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
     // DBG("FI2D::apply()");
-    for (size_t i = o.x0; i < f.nx - o.x1; ++i) {
-      for (size_t j = o.y0; j < f.nz - o.y1; ++j) {
+    for (size_t i = o.x0; i < f.nx() - o.x1; ++i) {
+      for (size_t j = o.y0; j < f.ny() - o.y1; ++j) {
         // DBG(i, j);
         update_func::apply(f, d1, d2, js, c_f, c_d, c_src, i, j);
       }
@@ -80,9 +75,9 @@ struct FieldIntegrator3D {
   using update_func = UpdateFunctor;
 
   static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
-    for (size_t i = o.x0; i < f.shape[0] - o.x1; ++i) {
-      for (size_t j = o.y0; j < f.shape[1] - o.y1; ++j) {
-        for (size_t k = o.z0; k < f.shape[2] - o.z1; ++k) {
+    for (size_t i = o.x0; i < f.nx() - o.x1; ++i) {
+      for (size_t j = o.y0; j < f.ny() - o.y1; ++j) {
+        for (size_t k = o.z0; k < f.nz() - o.z1; ++k) {
           update_func::apply(f, d1, d2, js, c_f, c_d, c_src, i, j, k);
         }
       }
