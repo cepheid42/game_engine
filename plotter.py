@@ -14,9 +14,10 @@ for n in range(0, nt // step):
     data = np.genfromtxt(file, dtype=np.float64, delimiter=',')
 
     fig, ax = plt.subplots()
-    # ax.contourf(data)
-    ax.plot(data, label='data')
-    ax.set_ylim([-1, 1])
+    ax.contourf(data)
+
+    # ax.plot(data, label='data')
+    # ax.set_ylim([-1, 1])
 
     # ax.legend()
     plt.savefig(data_path + f'/pngs/ez_{n:04d}.png')

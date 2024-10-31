@@ -23,7 +23,7 @@ struct ReflectingBC {
   static constexpr size_t bc_depth = 0;
 };
 
-template<typename Array, size_t DEPTH, typename... IDXS>
+template<typename Array, EMFace Face, size_t DEPTH, typename... IDXS>
 struct PeriodicBC {
   using value_t = typename Array::value_t;
   using dimension_t = typename Array::dimension_t;
@@ -31,40 +31,32 @@ struct PeriodicBC {
   static constexpr size_t bc_depth = DEPTH;
 
   static void apply1D(auto& f1, const size_t i) {
-    // std::string msg{"PeriodicBC::apply1D(" + std::to_string(i) + ")"};
-    // DBG(msg);
+    DBG("PeriodicBC::apply1D()");
     const auto numInterior = f1.nx() - (2 * bc_depth);
-    const auto hi_idx = (f1.nx() - 1) - (bc_depth);
-
-    // DBG(f1.nx(), i, numInterior, bc_depth, hi_idx);
+    const auto hi_idx = (f1.nx() - 1) - bc_depth;
     const auto pm = i % numInterior;
-
-    // DBG(i, pm, bc_depth - 1 - i, hi_idx - pm, hi_idx + 1 + i, bc_depth + pm);
 
     f1[bc_depth - 1 - i] = f1[hi_idx - pm];
     f1[hi_idx + 1 + i] = f1[bc_depth + pm];
-
-    // for (size_t p = 0; p < 5; ++p) {
-    //      DBG(p, f1[p]);
-    //    }
-    //
-    // for (size_t p = f1.nx - bc_depth - 5; p < f1.nx; ++p) {
-    //  DBG(p, f1[p]);
-    // }
   }
 
   static void apply2D(auto& f1, const size_t i, const size_t j) {
     DBG("PeriodicBC::apply2D()");
-    // static auto numInterior = (f1.nx) - (2 * nHalo);
-    // static auto lo_idx = nHalo;
-    // static auto hi_idx = (f1.nx - 1) - (nHalo);
-    //
-    // for (size_t p = 0; p < nHalo; ++p) {
-    //   // degenerate case
-    //   const auto pm = p % numInterior;
-    //   f1[lo_idx - 1 - p] = f1[hi_idx - pm];
-    //   f1[hi_idx + 1 + p] = f1[lo_idx + pm];
-    // }
+    if constexpr (Face == EMFace::X) {
+      static auto numInterior = (f1.nx()) - (2 * bc_depth);
+      static auto hi_idx = (f1.nx() - 1) - bc_depth;
+
+      const auto pm = i % numInterior;
+      f1[bc_depth - 1 - i] = f1[hi_idx - pm];
+      f1[hi_idx + 1 + i] = f1[bc_depth + pm];
+
+    } else if constexpr (Face == EMFace::Y) {
+      static auto numInterior = (f1.ny()) - (2 * bc_depth);
+      static auto hi_idx = (f1.ny() - 1) - bc_depth;
+      const auto pm = j % numInterior;
+      f1[bc_depth - 1 - j] = f1[hi_idx - pm];
+      f1[hi_idx + 1 + j] = f1[bc_depth + pm];
+    }
   }
 
 

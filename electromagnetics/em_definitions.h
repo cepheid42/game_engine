@@ -31,10 +31,6 @@ struct disabled {
   using array_t = Array;
 };
 
-struct X_FACE {};
-struct Y_FACE {};
-struct Z_FACE {};
-
 template<typename T>
 using emdataNone = EMData<
   disabled<EmptyArray1D<T>>, // Ex
@@ -73,6 +69,16 @@ using emdataTE = EMData<
   disabled<EmptyArray2D<T>>, // Hx
   disabled<EmptyArray2D<T>>, // Hy
   enabled<Array2D<T>>        // Hz
+>;
+
+template<typename T>
+using emdata3D = EMData<
+  enabled<Array2D<T>>, // Ex
+  enabled<Array2D<T>>, // Ey
+  enabled<Array2D<T>>, // Ez
+  enabled<Array2D<T>>, // Hx
+  enabled<Array2D<T>>, // Hy
+  enabled<Array2D<T>>  // Hz
 >;
 
 //=================== Electromagnetics Definitions ========================
@@ -187,26 +193,9 @@ using bcdata3D = BCData<
 //=================== Boundary Conditions Definitions ========================
 //============================================================================
 
-// template<typename T>
-// using Reflecting1D = ReflectingBC<T, 0, size_t>;
-//
-// template<typename T>
-// using Reflecting2D = ReflectingBC<T, 0, size_t, size_t>;
-//
-// template<typename T>
-// using Reflecting3D = ReflectingBC<T, 0, size_t, size_t, size_t>;
 
-template<typename T>
-using Periodic1D = PeriodicBC<T, nHalo, size_t>;
-
-template<typename T>
-using Periodic2D = PeriodicBC<T, nHalo, size_t, size_t>;
-
-template<typename T>
-using Periodic3D = PeriodicBC<T, nHalo, size_t, size_t, size_t>;
-
-enum class EMFace { X, Y, Z};
-enum class EMSide { Lo, Hi};
+// enum class EMFace { X, Y, Z};
+// enum class EMSide { Lo, Hi};
 
 template<EMFace Face, EMSide Side>
 struct Boundary {
@@ -219,88 +208,39 @@ struct Boundary {
 
 template <>
 template <typename T>
-IntegratorOffsets Boundary<EMFace::X, EMSide::Lo>::get_offsets(const T& f1, const size_t depth) {
-  return {0, depth, 0, f1.ny(), 0, f1.nz()};
-  // if constexpr (std::same_as<T, Array1D<typename T::value_t>>) {
-  //   return {0, depth, 0, 0, 0, 0};
-  // } else if constexpr (std::same_as<T, Array2D<typename T::value_t>>) {
-  //   return {0, depth, 0, f1.ny, 0, 0};
-  // } else if constexpr (std::same_as<T, Array3D<typename T::value_t>>) {
-  //   return {0, depth, 0, f1.ny, 0, f1.nz};
-  // } else {
-  //   return {0, 0, 0, 0, 0, 0};
-  // }
+IntegratorOffsets Boundary<EMFace::X, EMSide::Lo>::get_offsets(const T& f, const size_t depth) {
+  return {0, depth, 0, f.ny(), 0, f.nz()};
 }
 
-// template <>
-// template <typename T>
-// IntegratorOffsets Boundary<EMFace::X, EMSide::Hi>::get_offsets(const T& f1, const size_t depth) {
-//   if constexpr (std::same_as<T, Array1D<typename T::value_t>>) {
-//     return {0, depth, 0, 0, 0, 0}; // todo: fix this
-//   } else if constexpr (std::same_as<T, Array2D<typename T::value_t>>) {
-//     return {0, depth, 0, f1.ny, 0, 0};
-//   } else if constexpr (std::same_as<T, Array3D<typename T::value_t>>) {
-//     return {0, depth, 0, f1.ny, 0, f1.nz};
-//   } else {
-//     return {0, 0, 0, 0, 0, 0};
-//   }
-// }
-//
-// template <>
-// template <typename T>
-// IntegratorOffsets Boundary<EMFace::Y, EMSide::Lo>::get_offsets(const T& f1, const size_t depth) {
-//   if constexpr (std::same_as<T, Array1D<typename T::value_t>>) {
-//     return {0, depth, 0, 0, 0, 0}; // todo: fix this
-//   } else if constexpr (std::same_as<T, Array2D<typename T::value_t>>) {
-//     return {0, depth, 0, f1.ny, 0, 0};
-//   } else if constexpr (std::same_as<T, Array3D<typename T::value_t>>) {
-//     return {0, depth, 0, f1.ny, 0, f1.nz};
-//   } else {
-//     return {0, 0, 0, 0, 0, 0};
-//   }
-// }
-//
-// template <>
-// template <typename T>
-// IntegratorOffsets Boundary<EMFace::Y, EMSide::Hi>::get_offsets(const T& f1, const size_t depth) {
-//   if constexpr (std::same_as<T, Array1D<typename T::value_t>>) {
-//     return {0, depth, 0, 0, 0, 0}; // todo: fix this
-//   } else if constexpr (std::same_as<T, Array2D<typename T::value_t>>) {
-//     return {0, depth, 0, f1.ny, 0, 0};
-//   } else if constexpr (std::same_as<T, Array3D<typename T::value_t>>) {
-//     return {0, depth, 0, f1.ny, 0, f1.nz};
-//   } else {
-//     return {0, 0, 0, 0, 0, 0};
-//   }
-// }
-//
-// template <>
-// template <typename T>
-// IntegratorOffsets Boundary<EMFace::Z, EMSide::Lo>::get_offsets(const T& f1, const size_t depth) {
-//   if constexpr (std::same_as<T, Array1D<typename T::value_t>>) {
-//     return {0, depth, 0, 0, 0, 0}; // todo: fix this
-//   } else if constexpr (std::same_as<T, Array2D<typename T::value_t>>) {
-//     return {0, depth, 0, f1.ny, 0, 0};
-//   } else if constexpr (std::same_as<T, Array3D<typename T::value_t>>) {
-//     return {0, depth, 0, f1.ny, 0, f1.nz};
-//   } else {
-//     return {0, 0, 0, 0, 0, 0};
-//   }
-// }
-//
-// template <>
-// template <typename T>
-// IntegratorOffsets Boundary<EMFace::Z, EMSide::Hi>::get_offsets(const T& f1, const size_t depth) {
-//   if constexpr (std::same_as<T, Array1D<typename T::value_t>>) {
-//     return {0, depth, 0, 0, 0, 0}; // todo: fix this
-//   } else if constexpr (std::same_as<T, Array2D<typename T::value_t>>) {
-//     return {0, depth, 0, f1.ny, 0, 0};
-//   } else if constexpr (std::same_as<T, Array3D<typename T::value_t>>) {
-//     return {0, depth, 0, f1.ny, 0, f1.nz};
-//   } else {
-//     return {0, 0, 0, 0, 0, 0};
-//   }
-// }
+template <>
+template <typename T>
+IntegratorOffsets Boundary<EMFace::X, EMSide::Hi>::get_offsets(const T& f, const size_t depth) {
+  return {f.nx() - depth, f.nx(), 0, f.ny(), 0, f.nz()};
+}
+
+template <>
+template <typename T>
+IntegratorOffsets Boundary<EMFace::Y, EMSide::Lo>::get_offsets(const T& f, const size_t depth) {
+  return {0, f.nx(), 0, depth, 0, f.nz()};
+}
+
+template <>
+template <typename T>
+IntegratorOffsets Boundary<EMFace::Y, EMSide::Hi>::get_offsets(const T& f, const size_t depth) {
+  return {0, f.nx(), f.ny() - depth, f.ny(), 0, f.nz()};
+}
+
+template <>
+template <typename T>
+IntegratorOffsets Boundary<EMFace::Z, EMSide::Lo>::get_offsets(const T& f, const size_t depth) {
+  return {0, f.nx(), 0, f.ny(), 0, depth};
+}
+
+template <>
+template <typename T>
+IntegratorOffsets Boundary<EMFace::Z, EMSide::Hi>::get_offsets(const T& f, const size_t depth) {
+  return {0, f.nx(), 0, f.ny(), f.nz() - depth, f.nz()};
+}
 
 using XLo = Boundary<EMFace::X, EMSide::Lo>;
 using YLo = Boundary<EMFace::Y, EMSide::Lo>;
@@ -309,30 +249,39 @@ using XHi = Boundary<EMFace::X, EMSide::Hi>;
 using YHi = Boundary<EMFace::Y, EMSide::Hi>;
 using ZHi = Boundary<EMFace::Z, EMSide::Hi>;
 
+template<typename T, EMFace Face>
+using Periodic1D = PeriodicBC<T, Face, nHalo, size_t>;
+
+template<typename T, EMFace Face>
+using Periodic2D = PeriodicBC<T, Face, nHalo, size_t, size_t>;
+
+template<typename T, EMFace Face>
+using Periodic3D = PeriodicBC<T, Face, nHalo, size_t, size_t, size_t>;
+
 template<typename Boundary, typename Ex, typename Ey, typename Ez, typename Hx, typename Hy, typename Hz>
 struct BCApplicator {
-  // static constexpr size_t bc_depth = Ex::bc_depth;
+  static constexpr EMFace face = Boundary::face;
 
   static void applyE(auto& emdata, auto& bcdata) {
-    // static const auto ex_offsets = Boundary::get_offsets(emdata.Ex, Ex::bc_depth);
-    // static const auto ey_offsets = Boundary::get_offsets(emdata.Ey, Ey::bc_depth);
+    static const auto ex_offsets = Boundary::get_offsets(emdata.Ex, Ex::bc_depth);
+    static const auto ey_offsets = Boundary::get_offsets(emdata.Ey, Ey::bc_depth);
     static const auto ez_offsets = Boundary::get_offsets(emdata.Ez, Ez::bc_depth);
     // DBG(ez_offsets.x0, ez_offsets.x1, ez_offsets.y0, ez_offsets.y1, ez_offsets.z0, ez_offsets.z1);
 
-    // Ex::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Cexh, bcdata.psiEx, bcdata.bEx, bcdata.cEx, ex_offsets);
-    // Ey::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Ceyh, bcdata.psiEy, bcdata.bEy, bcdata.cEy, ey_offsets);
+    Ex::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Cexh, bcdata.psiEx, bcdata.bEx, bcdata.cEx, ex_offsets);
+    Ey::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Ceyh, bcdata.psiEy, bcdata.bEy, bcdata.cEy, ey_offsets);
     Ez::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Cezh, bcdata.psiEz, bcdata.bEz, bcdata.cEz, ez_offsets);
   }
 
   static void applyH(auto& emdata, auto& bcdata) {
-    // static const auto hx_offsets = Boundary::get_offsets(emdata.Hx, Hx::bc_depth);
+    static const auto hx_offsets = Boundary::get_offsets(emdata.Hx, Hx::bc_depth);
     static const auto hy_offsets = Boundary::get_offsets(emdata.Hy, Hy::bc_depth);
-    // static const auto hz_offsets = Boundary::get_offsets(emdata.Hz, Hz::bc_depth);
+    static const auto hz_offsets = Boundary::get_offsets(emdata.Hz, Hz::bc_depth);
     // DBG(hy_offsets.x0, hy_offsets.x1, hy_offsets.y0, hy_offsets.y1, hy_offsets.z0, hy_offsets.z1);
 
-    // Hx::apply(emdata.Hx, emdata.Ey, emdata.Ez, emdata.Chxe, bcdata.psiHx, bcdata.bHx, bcdata.cHx, hx_offsets);
+    Hx::apply(emdata.Hx, emdata.Ey, emdata.Ez, emdata.Chxe, bcdata.psiHx, bcdata.bHx, bcdata.cHx, hx_offsets);
     Hy::apply(emdata.Hy, emdata.Ez, emdata.Ex, emdata.Chye, bcdata.psiHy, bcdata.bHy, bcdata.cHy, hy_offsets);
-    // Hz::apply(emdata.Hz, emdata.Ex, emdata.Ey, emdata.Chze, bcdata.psiHz, bcdata.bHz, bcdata.cHz, hz_offsets);
+    Hz::apply(emdata.Hz, emdata.Ex, emdata.Ey, emdata.Chze, bcdata.psiHz, bcdata.bHz, bcdata.cHz, hz_offsets);
   }
 };
 

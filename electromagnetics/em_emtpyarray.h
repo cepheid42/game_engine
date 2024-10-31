@@ -18,6 +18,8 @@ struct EmptyArray {
   static constexpr size_t ny() { return 0u; }
   static constexpr size_t nz() { return 0u; }
 
+
+
   constexpr value_t operator[](std::size_t) const { return static_cast<value_t>(0.0); }
   constexpr value_t operator()(std::size_t...) const { return static_cast<value_t>(0.0); }
 };

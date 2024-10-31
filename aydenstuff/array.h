@@ -38,9 +38,9 @@ namespace tf::types
       [[nodiscard]] size_t num_bytes() const { return size() * sizeof(value_t); }
       
       explicit operator bool() const { return data != nullptr; }
-      
-      auto begin() const { return data.begin(); }
-      auto end() const { return data.end(); }
+
+      auto begin() { return data.begin(); }
+      auto end() { return data.end(); }
       
       // Basic accessors
       value_t& operator[](size_t i) { return data[i]; }

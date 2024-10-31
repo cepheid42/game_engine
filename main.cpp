@@ -4,7 +4,7 @@
 #include <chrono>
 #include <string>
 
-#define DBG_MACRO_DISABLE
+// #define DBG_MACRO_DISABLE
 
 #include "electromagnetics/electromagnetics.h"
 
@@ -83,33 +83,37 @@ fp_t ricker(fp_t q) {
 
 
 int main() {
-  constexpr size_t nx = 100u + 2 * dPML + 2 * nHalo;
-  constexpr size_t ny = 100u + 2 * dPML + 2 * nHalo;
-  constexpr size_t nt = 400u;
+  constexpr size_t nx = 10u + 2 * dPML + 2 * nHalo;
+  constexpr size_t ny = 10u + 2 * dPML + 2 * nHalo;
+  constexpr size_t nt = 10u;
+
+  // emdata_t<double> em{nx, cfl};
+  // bcdata_t<double> bc{nx};
+
+  // DBG(dbg::type<emdata_t<double>>(), dbg::type<bcdata_t<double>>(), dbg::type<EMSolver<double>>());
+
+  emdata_t<double> em{nx, ny, cfl};
+  bcdata_t<double> bc{nx, ny};
 
 
-  emdata_t<double> em{nx, cfl};
-  bcdata_t<double> bc{nx};
+  print_array(em.Ceze);
 
-  // emdata_t<double> em{nx, ny, cfl};
-  // bcdata_t<double> bc{nx, ny};
-
-  constexpr auto save_step = 4;
-  size_t filecount = 0;
-  for (size_t n = 0; n < nt; n++) {
-    std::cout << "Step " << n << std::endl;
-
-    EMSolver<fp_t>::advance(em, bc);
-
-    em.Ez[nx / 2 - 20] += ricker(static_cast<fp_t>(n));
-    // em.Ez(nx / 2, ny / 2) = ricker(static_cast<fp_t>(n));
-
-    if (n % save_step == 0) {
-      to_csv(em.Ez, filecount, "Ez");
-      // to_csv(em.Hy, filecount, "Hy");
-      filecount++;
-    }
-  }
+  // constexpr auto save_step = 4;
+  // size_t filecount = 0;
+  // for (size_t n = 0; n < nt; n++) {
+  //   std::cout << "Step " << n << std::endl;
+  //
+  //   EMSolver<fp_t>::advance(em, bc);
+  //
+  //   // em.Ez[nx / 2 - 20] += ricker(static_cast<fp_t>(n));
+  //   em.Ez(nx / 2, ny / 2) += ricker(static_cast<fp_t>(n));
+  //
+  //   if (n % save_step == 0) {
+  //     to_csv(em.Ez, filecount, "Ez");
+  //     // to_csv(em.Hy, filecount, "Hy");
+  //     filecount++;
+  //   }
+  // }
 
   // auto start = std::chrono::high_resolution_clock::now();
   // auto stop = std::chrono::high_resolution_clock::now() - start;
