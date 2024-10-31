@@ -5,10 +5,7 @@
 #ifndef EM_DEFINITIONS_H
 #define EM_DEFINITIONS_H
 
-#include <electromagnetics.h>
-#include <electromagnetics.h>
-#include <electromagnetics.h>
-
+#include "core/typelist.h"
 #include "em_data.h"
 #include "em_solver.h"
 #include "bc_data.h"
@@ -73,12 +70,12 @@ using emdataTE = EMData<
 
 template<typename T>
 using emdata3D = EMData<
-  enabled<Array2D<T>>, // Ex
-  enabled<Array2D<T>>, // Ey
-  enabled<Array2D<T>>, // Ez
-  enabled<Array2D<T>>, // Hx
-  enabled<Array2D<T>>, // Hy
-  enabled<Array2D<T>>  // Hz
+  enabled<Array3D<T>>, // Ex
+  enabled<Array3D<T>>, // Ey
+  enabled<Array3D<T>>, // Ez
+  enabled<Array3D<T>>, // Hx
+  enabled<Array3D<T>>, // Hy
+  enabled<Array3D<T>>  // Hz
 >;
 
 //=================== Electromagnetics Definitions ========================
@@ -125,12 +122,12 @@ using EMTE = TypeList<
 
 template<typename T>
 using EM3D = TypeList<
-  /* Ex */ FieldIntegrator3D<T, FieldUpdate<Derivative::DY, Derivative::DZ, false, size_t, size_t>>,
-  /* Ey */ FieldIntegrator3D<T, FieldUpdate<Derivative::DZ, Derivative::DX, false, size_t, size_t>>,
-  /* Ez */ FieldIntegrator3D<T, FieldUpdate<Derivative::DX, Derivative::DY, false, size_t, size_t>>,
-  /* Hx */ FieldIntegrator3D<T, FieldUpdate<Derivative::DY, Derivative::DZ, true, size_t, size_t>>,
-  /* Hy */ FieldIntegrator3D<T, FieldUpdate<Derivative::DZ, Derivative::DX, true, size_t, size_t>>,
-  /* Hz */ FieldIntegrator3D<T, FieldUpdate<Derivative::DX, Derivative::DY, true, size_t, size_t>>
+  /* Ex */ FieldIntegrator3D<T, FieldUpdate<Derivative::DY, Derivative::DZ, false, size_t, size_t, size_t>>,
+  /* Ey */ FieldIntegrator3D<T, FieldUpdate<Derivative::DZ, Derivative::DX, false, size_t, size_t, size_t>>,
+  /* Ez */ FieldIntegrator3D<T, FieldUpdate<Derivative::DX, Derivative::DY, false, size_t, size_t, size_t>>,
+  /* Hx */ FieldIntegrator3D<T, FieldUpdate<Derivative::DY, Derivative::DZ, true, size_t, size_t, size_t>>,
+  /* Hy */ FieldIntegrator3D<T, FieldUpdate<Derivative::DZ, Derivative::DX, true, size_t, size_t, size_t>>,
+  /* Hz */ FieldIntegrator3D<T, FieldUpdate<Derivative::DX, Derivative::DY, true, size_t, size_t, size_t>>
 >;
 
 //=================== BCData Definitions ========================

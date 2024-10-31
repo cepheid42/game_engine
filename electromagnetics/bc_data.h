@@ -41,6 +41,17 @@ struct BCData {
     // init_coefficients_2D(nx, cfl);
   }
 
+  explicit BCData(const size_t nx, const size_t ny, const size_t nz) requires (dimension_t::value == 3)
+  : psiEx{nx - 1, ny, nz}, bEx{nx - 1, ny, nz}, cEx{nx - 1, ny, nz},
+    psiEy{nx, ny - 1, nz}, bEy{nx, ny - 1, nz}, cEy{nx, ny - 1, nz},
+    psiEz{nx, ny, nz - 1}, bEz{nx, ny, nz - 1}, cEz{nx, ny, nz - 1},
+    psiHx{nx, ny - 1, nz - 1}, bHx{nx, ny - 1, nz - 1}, cHx{nx, ny - 1, nz - 1},
+    psiHy{nx - 1, ny, nz - 1}, bHy{nx - 1, ny, nz - 1}, cHy{nx - 1, ny, nz - 1},
+    psiHz{nx - 1, ny - 1, nz}, bHz{nx - 1, ny - 1, nz}, cHz{nx - 1, ny - 1, nz}
+  {
+    // init_coefficients_2D(nx, cfl);
+  }
+
   ex_t psiEx;
   ex_t bEx;
   ex_t cEx;

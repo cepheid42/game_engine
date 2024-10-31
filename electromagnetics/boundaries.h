@@ -9,7 +9,7 @@
 // #include "aydenstuff/array.h"
 // #include <electromagnetics.h>
 
-#include "bc_data.h"
+// #include "bc_data.h"
 #include "offsets.h"
 
 
@@ -31,7 +31,7 @@ struct PeriodicBC {
   static constexpr size_t bc_depth = DEPTH;
 
   static void apply1D(auto& f1, const size_t i) {
-    DBG("PeriodicBC::apply1D()");
+    // DBG("PeriodicBC::apply1D()");
     const auto numInterior = f1.nx() - (2 * bc_depth);
     const auto hi_idx = (f1.nx() - 1) - bc_depth;
     const auto pm = i % numInterior;
@@ -41,21 +41,27 @@ struct PeriodicBC {
   }
 
   static void apply2D(auto& f1, const size_t i, const size_t j) {
-    DBG("PeriodicBC::apply2D()");
     if constexpr (Face == EMFace::X) {
-      static auto numInterior = (f1.nx()) - (2 * bc_depth);
-      static auto hi_idx = (f1.nx() - 1) - bc_depth;
-
+      DBG("PeriodicBC::apply2D()::x_face");
+      const auto numInterior = f1.nx() - (2 * bc_depth);
+      const auto hi_idx = (f1.nx() - 1) - bc_depth;
       const auto pm = i % numInterior;
-      f1[bc_depth - 1 - i] = f1[hi_idx - pm];
-      f1[hi_idx + 1 + i] = f1[bc_depth + pm];
+
+      DBG(i, j, numInterior, hi_idx, pm);
+
+      f1(bc_depth - 1 - i, j) = f1(hi_idx - pm, j);
+      f1(hi_idx + 1 + i, j) = f1(bc_depth + pm, j);
 
     } else if constexpr (Face == EMFace::Y) {
-      static auto numInterior = (f1.ny()) - (2 * bc_depth);
-      static auto hi_idx = (f1.ny() - 1) - bc_depth;
+      DBG("PeriodicBC::apply2D()::y_face");
+      const auto numInterior = f1.ny() - (2 * bc_depth);
+      const auto hi_idx = (f1.ny() - 1) - bc_depth;
       const auto pm = j % numInterior;
-      f1[bc_depth - 1 - j] = f1[hi_idx - pm];
-      f1[hi_idx + 1 + j] = f1[bc_depth + pm];
+
+      DBG(i, j, numInterior, hi_idx, pm);
+
+      f1(i, bc_depth - 1 - j) = f1(i, hi_idx - pm);
+      f1(i, hi_idx + 1 + j) = f1(i, bc_depth + pm);
     }
   }
 
@@ -161,6 +167,7 @@ struct BCIntegrator2D {
   static void apply(auto& f1, const auto& d1, const auto& d2, const auto& c_d, auto& psi, const auto& b, const auto& c, const offset_t& o) {
     if constexpr (!std::same_as<UpdateFunctor, ReflectingBC<array_t>>) {
       DBG("BCIntegrator2D::apply()");
+      // DBG(o.x0, o.x1, o.y0, o.y1);
       for (size_t i = o.x0; i < o.x1; ++i) {
         for (size_t j = o.y0; j < o.y1; ++j) {
           update_func::apply(f1, d1, d2, c_d, psi, b, c, i, j);

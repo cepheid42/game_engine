@@ -6,7 +6,7 @@
 #define EM_DATA_H
 
 #include "core/debug.h"
-#include "core/typelist.h"
+// #include "core/typelist.h"
 #include "aydenstuff/array.h"
 #include "em_emtpyarray.h"
 #include "em_traits.h"
@@ -15,24 +15,6 @@
 using tf::types::Array1D;
 using tf::types::Array2D;
 using tf::types::Array3D;
-
-// template<typename T>
-// std::vector<T> linspace(T start, T stop, size_t n_points, const bool endpoint=true) {
-//   std::vector<T> result(n_points);
-//   if (endpoint) {
-//     n_points -= 1;
-//     result[result.size() - 1] = stop;
-//   }
-//   auto delta = (stop - start) / static_cast<T>(n_points);
-//   T val = start;
-//   for (size_t i = 0; i < n_points; ++i) {
-//     result[i] = val;
-//     val += delta;
-//   }
-//   return result;
-// }
-
-
 
 template<FieldComponent EXF, FieldComponent EYF, FieldComponent EZF, FieldComponent HXF, FieldComponent HYF, FieldComponent HZF>
 struct EMData {
@@ -63,7 +45,29 @@ struct EMData {
     Hx{nx, ny - 1}, Chxe{nx, ny - 1}, Chxh{nx, ny - 1},
     Hy{nx - 1, ny}, Chye{nx - 1, ny}, Chyh{nx - 1, ny}
   {
-    DBG("EMData::EMData2D()::constructor", nx, ny);
+    // TMz constructor
+    init_coefficients(cfl);
+  }
+
+  // explicit EMData(const size_t nx, const size_t ny, const value_t cfl)
+  // requires (dimension_t::value == 2 and !is_empty_field<ex_t, empty_t>)
+  // : Ez{nx, ny}, Jz{nx, ny}, Ceze{nx, ny}, Cezh{nx, ny}, Cjz{nx, ny}, // todo: wrong fields here
+  //   Hx{nx, ny - 1}, Chxe{nx, ny - 1}, Chxh{nx, ny - 1},
+  //   Hy{nx - 1, ny}, Chye{nx - 1, ny}, Chyh{nx - 1, ny}
+  // {
+  //   // TEz constructor
+  //   init_coefficients(cfl);
+  // }
+
+  explicit EMData(const size_t nx, const size_t ny, const size_t nz, const value_t cfl)
+  requires (dimension_t::value == 3)
+  : Ex{nx - 1, ny, nz}, Jx{nx - 1, ny, nz}, Cexe{nx - 1, ny, nz}, Cexh{nx - 1, ny, nz}, Cjx{nx - 1, ny, nz},
+    Ey{nx, ny - 1, nz}, Jy{nx, ny - 1, nz}, Ceye{nx, ny - 1, nz}, Ceyh{nx, ny - 1, nz}, Cjy{nx, ny - 1, nz},
+    Ez{nx, ny, nz - 1}, Jz{nx, ny, nz - 1}, Ceze{nx, ny, nz - 1}, Cezh{nx, ny, nz - 1}, Cjz{nx, ny, nz - 1},
+    Hx{nx, ny - 1, nz - 1}, Chxe{nx, ny - 1, nz - 1}, Chxh{nx, ny - 1, nz - 1},
+    Hy{nx - 1, ny, nz - 1}, Chye{nx - 1, ny, nz - 1}, Chyh{nx - 1, ny, nz - 1},
+    Hz{nx - 1, ny - 1, nz}, Chze{nx - 1, ny - 1, nz}, Chzh{nx - 1, ny - 1, nz}
+  {
     init_coefficients(cfl);
   }
 
@@ -138,32 +142,5 @@ void EMData<EXF, EYF, EZF, HXF, HYF, HZF>::init_coefficients(const value_t cfl)
   init_coeff(Chzh, 1.0);
   init_coeff(Chze, cfl / imp0);
 }
-
-// template <FieldComponent EXF, FieldComponent EYF, FieldComponent EZF, FieldComponent HXF, FieldComponent HYF, FieldComponent HZF>
-// void EMData<EXF, EYF, EZF, HXF, HYF, HZF>::init_coefficients_2D(const value_t cfl)
-// {
-//   constexpr auto imp0 = 377.0;
-//
-//   init_2d_coeff(Cexe, 1.0);
-//   init_2d_coeff(Cexh, cfl * imp0);
-//   init_2d_coeff(Cjx, 1.0);
-//   
-//   init_2d_coeff(Ceye, 1.0);
-//   init_2d_coeff(Ceyh, cfl * imp0);
-//   init_2d_coeff(Cjy, 1.0);
-//
-//   init_2d_coeff(Ceze, 1.0);
-//   init_2d_coeff(Cezh, cfl * imp0);
-//   init_2d_coeff(Cjz, 1.0);
-//
-//   init_2d_coeff(Chxh, 1.0);
-//   init_2d_coeff(Chxe, cfl / imp0);
-//   
-//   init_2d_coeff(Chyh, 1.0);
-//   init_2d_coeff(Chye, cfl / imp0);
-//   
-//   init_2d_coeff(Chzh, 1.0);
-//   init_2d_coeff(Chze, cfl / imp0);
-// }
 
 #endif //EM_DATA_H

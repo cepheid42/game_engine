@@ -7,18 +7,23 @@
 
 #include "em_definitions.h"
 
-inline constexpr size_t SELECT_EMDATA = 2; // todo: these can be combined into one value
-inline constexpr size_t SELECT_EMSOLVER = 2;
+inline constexpr size_t SELECT_EMDATA = 4; // todo: these can be combined into one value?
+inline constexpr size_t SELECT_EMSOLVER = 4;
 
-inline constexpr size_t SELECT_BCDATA = 2;
+inline constexpr size_t SELECT_BCDATA = 4;
 inline constexpr size_t SELECT_BCS[2][6] = {
-  {0, 0, 0, 2, 2, 0}, // Lo -> {Ex, Ey, Ez, Hx, Hy, Hz}
+  {0, 0, 0, 0, 0, 0}, // Lo -> {Ex, Ey, Ez, Hx, Hy, Hz}
   {0, 0, 0, 0, 0, 0}  // Hi -> {Ex, Ey, Ez, Hx, Hy, Hz}
 };
 
+/*
+ * Periodic2D in X -> Lo {0, 0, 0, 0, 2, 0}
+ * Periodic2D in Y -> Lo {0, 0, 0, 2, 0, 0}
+ */
+
 
 using fp_t = double;
-constexpr size_t DIM = 2;
+constexpr size_t DIM = 3;
 constexpr fp_t cfl = 0.95 / std::sqrt(static_cast<fp_t>(DIM));
 
 
@@ -91,8 +96,8 @@ using EMSolver = Electromagnetics<
   TypeListAt<3, EMType<T>>, // Hx
   TypeListAt<4, EMType<T>>, // Hy
   TypeListAt<5, EMType<T>>, // Hz,
-  BoundaryType<T, XLo, 0>
-  // BoundaryType<T, YLo, 1>,
+  BoundaryType<T, XLo, 0>,
+  BoundaryType<T, YLo, 0>
   // BoundaryType<T, ZLo, 2>
 >; // Auto-selects full BC's per face and EMSolver per field component based on chosen settings.
 

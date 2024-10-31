@@ -23,15 +23,12 @@ struct FieldUpdate {
   using curl2 = curl<BCURL, Forward, IDXS...>;
 
   static void apply(auto& f, const auto& d1, const auto& d2, const auto& j, const auto& c_f, const auto& c_d, const auto& c_j, IDXS... idxs) {
-    DBG("UpdateFunctor::apply()");
-    // DBG(dbg::type<curl1>(), dbg::type<curl2>());
+    // DBG("UpdateFunctor::apply()");
     const auto    self = c_f(idxs...) * f(idxs...);
     const auto   diff1 = curl1::apply(d1, idxs...);
     const auto   diff2 = curl2::apply(d2, idxs...);
     const auto    diff = c_d(idxs...) * (diff1 - diff2);
     const auto current = c_j(idxs...) * j(idxs...);
-    // DBG(self, diff1, diff2, diff, current);
-    DBG(c_f(idxs...), c_d(idxs...));
     // (..., DBG(idxs));
     f(idxs...) = self + diff - current;
   }
@@ -61,10 +58,8 @@ struct FieldIntegrator2D {
 
   static void apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
     // DBG("FI2D::apply()");
-    // DBG(f.nx(), f.ny(), o.x0, o.x1, o.y0, o.y1);
     for (size_t i = o.x0; i < f.nx() - o.x1; ++i) {
       for (size_t j = o.y0; j < f.ny() - o.y1; ++j) {
-        // DBG(i, j);
         update_func::apply(f, d1, d2, js, c_f, c_d, c_src, i, j);
       }
     }
@@ -99,7 +94,7 @@ struct FieldIntegratorNull {
 };
 
 
-template<typename EIX, typename EIY, typename EIZ, typename HIX, typename HIY, typename HIZ, typename X0BC>//, typename Y0BC, typename Z0BC>
+template<typename EIX, typename EIY, typename EIZ, typename HIX, typename HIY, typename HIZ, typename X0BC, typename Y0BC>//, typename Z0BC>
 struct Electromagnetics {
   using value_t = typename EIX::value_t;
   using dimension_t = typename EIX::dimension_t;
@@ -112,31 +107,31 @@ struct Electromagnetics {
   static void updateEBC(auto& emdata, auto& bcdata) {
     DBG("Electromagnetics::updateELoBC()");
     X0BC::applyE(emdata, bcdata);
-    // Y0BC::applyE(emdata, bcdata);
+    Y0BC::applyE(emdata, bcdata);
     // Z0BC::applyE(emdata, bcdata);
   }
 
   static void updateHBC(auto& emdata, auto& bcdata) {
     DBG("Electromagnetics::updateHLoBC()");
     X0BC::applyH(emdata, bcdata);
-    // Y0BC::applyH(emdata, bcdata);
+    Y0BC::applyH(emdata, bcdata);
     // Z0BC::applyH(emdata, bcdata);
   }
 
   static void updateE(auto& emdata, auto& bcdata) {
-    DBG("Electromagnetics::updateE()");
-    // EIX::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexh, emdata.Cjx, one_offsets);
-    // EIY::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyh, emdata.Cjy, one_offsets);
+    // DBG("Electromagnetics::updateE()");
+    EIX::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexh, emdata.Cjx, one_offsets);
+    EIY::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyh, emdata.Cjy, one_offsets);
     EIZ::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezh, emdata.Cjz, one_offsets);
 
     // updateEBC(emdata, bcdata);
   }
 
   static void updateH(auto& emdata, auto& bcdata) {
-    DBG("Electromagnetics::updateH()");
+    // DBG("Electromagnetics::updateH()");
     HIX::apply(emdata.Hx, emdata.Ey, emdata.Ez, empty, emdata.Chxh, emdata.Chxe, empty, zero_offsets);
     HIY::apply(emdata.Hy, emdata.Ez, emdata.Ex, empty, emdata.Chyh, emdata.Chye, empty, zero_offsets);
-    // HIZ::apply(emdata.Hz, emdata.Ex, emdata.Ey, empty, emdata.Chzh, emdata.Chze, empty, zero_offsets);
+    HIZ::apply(emdata.Hz, emdata.Ex, emdata.Ey, empty, emdata.Chzh, emdata.Chze, empty, zero_offsets);
 
     // updateHBC(emdata, bcdata);
   }
@@ -144,7 +139,7 @@ struct Electromagnetics {
 
   static void advance(auto& emdata, auto& bcdata) {
     // DBG("Electromagnetics::Advance()");
-    // updateH(emdata, bcdata);
+    updateH(emdata, bcdata);
     updateE(emdata, bcdata);
   }
 };
