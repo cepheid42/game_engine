@@ -3,7 +3,7 @@ project(
     'cpp',
     version : '0.0.1',
     default_options : [
-#        'buildtype=debug',
+        'buildtype=debugoptimized',
         'warning_level=3',
         'cpp_std=c++20',
         'b_sanitize=address'
@@ -24,14 +24,14 @@ sources = [
 #    'core/memory.cpp',
 ]
 
-#thread_dep = dependency('OpenMP')
+thread_dep = dependency('OpenMP')
 
 game_engine = executable(
     'game_engine',
     sources: sources,
     cpp_args: gcc_opts,
     include_directories: includes,
-#    dependencies: thread_dep
+    dependencies: thread_dep
 )
 
 #test('test', game_engine)

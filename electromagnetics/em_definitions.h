@@ -125,9 +125,9 @@ using EM3D = TypeList<
   /* Ex */ FieldIntegrator3D<T, FieldUpdate<Derivative::DY, Derivative::DZ, false, size_t, size_t, size_t>>,
   /* Ey */ FieldIntegrator3D<T, FieldUpdate<Derivative::DZ, Derivative::DX, false, size_t, size_t, size_t>>,
   /* Ez */ FieldIntegrator3D<T, FieldUpdate<Derivative::DX, Derivative::DY, false, size_t, size_t, size_t>>,
-  /* Hx */ FieldIntegrator3D<T, FieldUpdate<Derivative::DY, Derivative::DZ, true, size_t, size_t, size_t>>,
-  /* Hy */ FieldIntegrator3D<T, FieldUpdate<Derivative::DZ, Derivative::DX, true, size_t, size_t, size_t>>,
-  /* Hz */ FieldIntegrator3D<T, FieldUpdate<Derivative::DX, Derivative::DY, true, size_t, size_t, size_t>>
+  /* Hx */ FieldIntegrator3D<T, FieldUpdate<Derivative::DZ, Derivative::DY, true, size_t, size_t, size_t>>,
+  /* Hy */ FieldIntegrator3D<T, FieldUpdate<Derivative::DX, Derivative::DZ, true, size_t, size_t, size_t>>,
+  /* Hz */ FieldIntegrator3D<T, FieldUpdate<Derivative::DY, Derivative::DX, true, size_t, size_t, size_t>>
 >;
 
 //=================== BCData Definitions ========================
@@ -190,14 +190,46 @@ using bcdata3D = BCData<
 //=================== Boundary Conditions Definitions ========================
 //============================================================================
 
+// template<EMFace Face, EMComponent Comp, typename... IDXS>
+// struct PML_Params {};
+//
+// template<EMComponent Comp, typename... IDXS>
+// struct PML_Params<EMFace::X, Comp> {
+//   using curlA = curl<Derivative::DX, Comp, IDXS...>;
+// };
 
-// enum class EMFace { X, Y, Z};
-// enum class EMSide { Lo, Hi};
 
 template<EMFace Face, EMSide Side>
 struct Boundary {
-  static constexpr EMFace face = Face;
-  static constexpr EMSide side = Side;
+  static constexpr auto face = Face;
+  static constexpr auto side = Side;
+
+  // template<typename T>
+  // static IntegratorOffsets get_offsets(const T&, size_t);
+};
+
+template<EMSide Side>
+struct Boundary<EMFace::X, Side>{
+  static constexpr auto face = EMFace::X;
+  static constexpr auto side = Side;
+
+  template<typename T>
+  static IntegratorOffsets get_offsets(const T&, size_t);
+};
+
+template<EMSide Side>
+struct Boundary<EMFace::Y, Side>{
+  static constexpr auto face = EMFace::Y;
+  static constexpr auto side = Side;
+
+  template<typename T>
+  static IntegratorOffsets get_offsets(const T&, size_t);
+};
+
+template<EMSide Side>
+struct Boundary<EMFace::Z, Side>{
+  static constexpr auto face = EMFace::Z;
+  static constexpr auto side = Side;
 
   template<typename T>
   static IntegratorOffsets get_offsets(const T&, size_t);
@@ -239,6 +271,48 @@ IntegratorOffsets Boundary<EMFace::Z, EMSide::Hi>::get_offsets(const T& f, const
   return {0, f.nx(), 0, f.ny(), f.nz() - depth, f.nz()};
 }
 
+template<EMFace Face, EMField Field, bool Forward>
+struct PML_Curls {
+  using curl1 = curl<Derivative::NoOp, Forward>;
+  using curl2 = curl<Derivative::NoOp, Forward>;
+};
+
+template<bool Forward>
+struct PML_Curls<EMFace::X, EMField::Y, Forward> {
+  using curl1 = curl<Derivative::DZ, Forward>;
+  using curl2 = curl<Derivative::NoOp, Forward>;
+};
+
+template<bool Forward>
+struct PML_Curls<EMFace::X, EMField::Z, Forward> {
+  using curl1 = curl<Derivative::NoOp, Forward>;
+  using curl2 = curl<Derivative::DY, Forward>;
+};
+
+template<bool Forward>
+struct PML_Curls<EMFace::Y, EMField::X, Forward> {
+  using curl1 = curl<Derivative::NoOp, Forward>;
+  using curl2 = curl<Derivative::DZ, Forward>;
+};
+
+template<bool Forward>
+struct PML_Curls<EMFace::Y, EMField::Z, Forward> {
+  using curl1 = curl<Derivative::DX, Forward>;
+  using curl2 = curl<Derivative::NoOp, Forward>;
+};
+
+template<bool Forward>
+struct PML_Curls<EMFace::Z, EMField::X, Forward> {
+  using curl1 = curl<Derivative::DY, Forward>;
+  using curl2 = curl<Derivative::NoOp, Forward>;
+};
+
+template<bool Forward>
+struct PML_Curls<EMFace::Z, EMField::Y, Forward> {
+  using curl1 = curl<Derivative::NoOp, Forward>;
+  using curl2 = curl<Derivative::DX, Forward>;
+};
+
 using XLo = Boundary<EMFace::X, EMSide::Lo>;
 using YLo = Boundary<EMFace::Y, EMSide::Lo>;
 using ZLo = Boundary<EMFace::Z, EMSide::Lo>;
@@ -255,15 +329,25 @@ using Periodic2D = PeriodicBC<T, Face, nHalo, size_t, size_t>;
 template<typename T, EMFace Face>
 using Periodic3D = PeriodicBC<T, Face, nHalo, size_t, size_t, size_t>;
 
+template<typename T, EMFace Face, EMSide Side, EMField Field, bool Forward>
+using Pml1D = PmlBC<T, Side, PML_Curls<Face, Field, Forward>, dPML, size_t>;
+
+template<typename T, EMFace Face, EMSide Side, EMField Field, bool Forward>
+using Pml2D = PmlBC<T, Side, PML_Curls<Face, Field, Forward>, dPML, size_t, size_t>;
+
+template<typename T, EMFace Face, EMSide Side, EMField Field, bool Forward>
+using Pml3D = PmlBC<T, Side, PML_Curls<Face, Field, Forward>, dPML, size_t, size_t, size_t>;
+
 template<typename Boundary, typename Ex, typename Ey, typename Ez, typename Hx, typename Hy, typename Hz>
 struct BCApplicator {
+  using dimension_t = typename Ex::dimension_t;
+
   static constexpr EMFace face = Boundary::face;
 
   static void applyE(auto& emdata, auto& bcdata) {
     static const auto ex_offsets = Boundary::get_offsets(emdata.Ex, Ex::bc_depth);
     static const auto ey_offsets = Boundary::get_offsets(emdata.Ey, Ey::bc_depth);
     static const auto ez_offsets = Boundary::get_offsets(emdata.Ez, Ez::bc_depth);
-    // DBG(ez_offsets.x0, ez_offsets.x1, ez_offsets.y0, ez_offsets.y1, ez_offsets.z0, ez_offsets.z1);
 
     Ex::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Cexh, bcdata.psiEx, bcdata.bEx, bcdata.cEx, ex_offsets);
     Ey::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Ceyh, bcdata.psiEy, bcdata.bEy, bcdata.cEy, ey_offsets);
@@ -274,20 +358,11 @@ struct BCApplicator {
     static const auto hx_offsets = Boundary::get_offsets(emdata.Hx, Hx::bc_depth);
     static const auto hy_offsets = Boundary::get_offsets(emdata.Hy, Hy::bc_depth);
     static const auto hz_offsets = Boundary::get_offsets(emdata.Hz, Hz::bc_depth);
-    // DBG(hy_offsets.x0, hy_offsets.x1, hy_offsets.y0, hy_offsets.y1, hy_offsets.z0, hy_offsets.z1);
 
     Hx::apply(emdata.Hx, emdata.Ey, emdata.Ez, emdata.Chxe, bcdata.psiHx, bcdata.bHx, bcdata.cHx, hx_offsets);
     Hy::apply(emdata.Hy, emdata.Ez, emdata.Ex, emdata.Chye, bcdata.psiHy, bcdata.bHy, bcdata.cHy, hy_offsets);
     Hz::apply(emdata.Hz, emdata.Ex, emdata.Ey, emdata.Chze, bcdata.psiHz, bcdata.bHz, bcdata.cHz, hz_offsets);
   }
 };
-
-// template<typename BC>
-// requires std::same_as<BC, YLo>
-// struct BCApplicator {};
-//
-// template<typename BC>
-// requires std::same_as<BC, ZLo>
-// struct BCApplicator {};
 
 #endif //EM_DEFINITIONS_H

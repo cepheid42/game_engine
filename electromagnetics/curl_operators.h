@@ -5,6 +5,8 @@
 #ifndef CURL_OPERATORS_H
 #define CURL_OPERATORS_H
 
+#include "offsets.h"
+
 enum class Derivative { DX, DY, DZ, NoOp };
 
 //====== Curl Operators =======
@@ -34,6 +36,7 @@ struct curl<Derivative::DY, Forward, IDXS...> {
   static auto apply(const auto& f, IDXS... idxs) {
     // DBG("curl<DY>::apply()");
     if constexpr (Forward) {
+      // (..., DBG(idxs));
       return f.forward_diff_y(idxs...);
     } else {
       return f.backward_diff_y(idxs...);

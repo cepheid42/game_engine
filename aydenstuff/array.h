@@ -251,8 +251,8 @@ namespace tf::types
     value_t forward_diff_x(const size_t i, const size_t j, const size_t k) const { return (*this)[get_scid(i + 1, j, k)] - (*this)[get_scid(i, j, k)]; }
     value_t backward_diff_x(const size_t i, const size_t j, const size_t k) const { return (*this)[get_scid(i, j, k)] - (*this)[get_scid(i - 1, j, k)]; }
 
-    value_t forward_diff_y(const size_t i, const size_t j, const size_t k) const { DBG((*this).size(), get_scid(i, j + 1, k)); return (*this)[get_scid(i, j + 1, k)] - (*this)[get_scid(i, j, k)]; }
-    value_t backward_diff_y(const size_t i, const size_t j, const size_t k) const { DBG((*this).size(), get_scid(i, j - 1, k)); return (*this)[get_scid(i, j, k)] - (*this)[get_scid(i, j - 1, k)]; }
+    value_t forward_diff_y(const size_t i, const size_t j, const size_t k) const { return (*this)[get_scid(i, j + 1, k)] - (*this)[get_scid(i, j, k)]; }
+    value_t backward_diff_y(const size_t i, const size_t j, const size_t k) const { return (*this)[get_scid(i, j, k)] - (*this)[get_scid(i, j - 1, k)]; }
 
     value_t forward_diff_z(const size_t i, const size_t j, const size_t k) const { return (*this)[get_scid(i, j, k + 1)] - (*this)[get_scid(i, j, k)]; }
     value_t backward_diff_z(const size_t i, const size_t j, const size_t k) const { return (*this)[get_scid(i, j, k)] - (*this)[get_scid(i, j, k - 1)]; }

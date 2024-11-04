@@ -14,5 +14,8 @@ struct IntegratorOffsets {
 
 enum class EMFace { X, Y, Z};
 enum class EMSide { Lo, Hi};
+enum class EMComponent { E, H };
+
+using EMField = EMFace;
 
 #endif //OFFSETS_H

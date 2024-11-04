@@ -24,12 +24,13 @@ struct FieldUpdate {
 
   static void apply(auto& f, const auto& d1, const auto& d2, const auto& j, const auto& c_f, const auto& c_d, const auto& c_j, IDXS... idxs) {
     // DBG("UpdateFunctor::apply()");
+    // DBG(d1.nx(), d1.ny(), d1.nz());
+    // (..., DBG(idxs));
     const auto    self = c_f(idxs...) * f(idxs...);
     const auto   diff1 = curl1::apply(d1, idxs...);
     const auto   diff2 = curl2::apply(d2, idxs...);
     const auto    diff = c_d(idxs...) * (diff1 - diff2);
     const auto current = c_j(idxs...) * j(idxs...);
-    // (..., DBG(idxs));
     f(idxs...) = self + diff - current;
   }
 };
@@ -74,6 +75,8 @@ struct FieldIntegrator3D {
   using update_func = UpdateFunctor;
 
   static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
+    // DBG("FI3D::apply()");
+#pragma omp parallel for collapse(3)
     for (size_t i = o.x0; i < f.nx() - o.x1; ++i) {
       for (size_t j = o.y0; j < f.ny() - o.y1; ++j) {
         for (size_t k = o.z0; k < f.nz() - o.z1; ++k) {
@@ -94,28 +97,40 @@ struct FieldIntegratorNull {
 };
 
 
-template<typename EIX, typename EIY, typename EIZ, typename HIX, typename HIY, typename HIZ, typename X0BC, typename Y0BC>//, typename Z0BC>
+template<typename EIX, typename EIY, typename EIZ,
+         typename HIX, typename HIY, typename HIZ,
+         typename X0BC, typename Y0BC, typename Z0BC,
+         typename X1BC, typename Y1BC, typename Z1BC
+>
 struct Electromagnetics {
   using value_t = typename EIX::value_t;
   using dimension_t = typename EIX::dimension_t;
   using empty_t = EmptyArray<value_t, dimension_t::value>;
 
+  // using EIX = Ts...[0];
+
   static constexpr empty_t empty{};
   static constexpr IntegratorOffsets one_offsets{1, 1, 1, 1, 1, 1};
   static constexpr IntegratorOffsets zero_offsets{0, 0, 0, 0, 0, 0};
 
-  static void updateEBC(auto& emdata, auto& bcdata) {
+  static void updateEbcs(auto& emdata, auto& bcdata) {
     DBG("Electromagnetics::updateELoBC()");
     X0BC::applyE(emdata, bcdata);
     Y0BC::applyE(emdata, bcdata);
-    // Z0BC::applyE(emdata, bcdata);
+    Z0BC::applyE(emdata, bcdata);
+    X1BC::applyE(emdata, bcdata);
+    Y1BC::applyE(emdata, bcdata);
+    Z1BC::applyE(emdata, bcdata);
   }
 
-  static void updateHBC(auto& emdata, auto& bcdata) {
+  static void updateHbcs(auto& emdata, auto& bcdata) {
     DBG("Electromagnetics::updateHLoBC()");
     X0BC::applyH(emdata, bcdata);
     Y0BC::applyH(emdata, bcdata);
-    // Z0BC::applyH(emdata, bcdata);
+    Z0BC::applyH(emdata, bcdata);
+    X1BC::applyH(emdata, bcdata);
+    Y1BC::applyH(emdata, bcdata);
+    Z1BC::applyH(emdata, bcdata);
   }
 
   static void updateE(auto& emdata, auto& bcdata) {
@@ -124,7 +139,7 @@ struct Electromagnetics {
     EIY::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyh, emdata.Cjy, one_offsets);
     EIZ::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezh, emdata.Cjz, one_offsets);
 
-    // updateEBC(emdata, bcdata);
+    updateEbcs(emdata, bcdata);
   }
 
   static void updateH(auto& emdata, auto& bcdata) {
@@ -133,7 +148,7 @@ struct Electromagnetics {
     HIY::apply(emdata.Hy, emdata.Ez, emdata.Ex, empty, emdata.Chyh, emdata.Chye, empty, zero_offsets);
     HIZ::apply(emdata.Hz, emdata.Ex, emdata.Ey, empty, emdata.Chzh, emdata.Chze, empty, zero_offsets);
 
-    // updateHBC(emdata, bcdata);
+    updateHbcs(emdata, bcdata);
   }
 
 
