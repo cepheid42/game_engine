@@ -16,19 +16,19 @@ using tf::types::Array1D;
 using tf::types::Array2D;
 using tf::types::Array3D;
 
-template<FieldComponent EXF, FieldComponent EYF, FieldComponent EZF, FieldComponent HXF, FieldComponent HYF, FieldComponent HZF>
+template<FieldComponent ex_t, FieldComponent ey_t, FieldComponent ez_t, FieldComponent hx_t, FieldComponent hy_t, FieldComponent hz_t>
 struct EMData {
-  using value_t = typename EXF::array_t::value_t;
-  using dimension_t = typename EXF::array_t::dimension_t;
+  using value_t = typename ex_t::value_t;
+  using dimension_t = typename ex_t::dimension_t;
   using empty_t = EmptyArray<value_t, dimension_t::value>;
   
-  using ex_t = typename EXF::array_t;
-  using ey_t = typename EYF::array_t;
-  using ez_t = typename EZF::array_t;
-  using hx_t = typename HXF::array_t;
-  using hy_t = typename HYF::array_t;
-  using hz_t = typename HZF::array_t;
-  
+  // using ex_t = EXF::array_t;
+  // using ey_t = EYF::array_t;
+  // using ez_t = EZF::array_t;
+  // using hx_t = HXF::array_t;
+  // using hy_t = HYF::array_t;
+  // using hz_t = HZF::array_t;
+  //
   EMData() = default;
   
   explicit EMData(const size_t nx, const value_t cfl)

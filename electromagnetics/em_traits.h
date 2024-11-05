@@ -10,7 +10,7 @@ concept FieldComponent = requires
 {
   typename T::value_t;
   typename T::dimension_t;
-  typename T::array_t;
+  // typename T::array_t;
 };
 
 

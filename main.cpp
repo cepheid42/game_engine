@@ -4,7 +4,7 @@
 #include <chrono>
 #include <string>
 
-#define DBG_MACRO_DISABLE
+// #define DBG_MACRO_DISABLE
 
 #include "electromagnetics/electromagnetics.h"
 
@@ -94,46 +94,53 @@ fp_t ricker(fp_t q) {
   // return std::exp(-sqr((q - 30.0) / 10.0));
 }
 
-
-
-
 int main() {
-  // constexpr size_t nx = 100u + 2 * dPML + 2 * nHalo;
-  // constexpr size_t ny = 100u + 2 * dPML + 2 * nHalo;
-  // constexpr size_t nz = 100u + 2 * dPML + 2 * nHalo;
-  // constexpr size_t nt = 400u;
+  constexpr size_t nx = 10u + 2 * dPML;// + 2 * nHalo;
+  constexpr size_t ny = 10u + 2 * dPML + 2 * nHalo;
+  constexpr size_t nz = 10u + 2 * dPML + 2 * nHalo;
+  constexpr size_t nt = 1u;
 
-
+  // using array_t = Array1D<double>;
   //
-  // DBG(dbg::type<temp::CurlA>());
-  // DBG(dbg::type<temp::CurlB>());
+  // array_t Ez{nx};
+  //
+  // bcdata_t<array_t> bcdata{Ez};
+  //
+  // DBG(bcdata.ez_x0.offsets);
+  // DBG(dbg::type<bcdata_t<array_t>>());
+  //
+  // // using EzX0BC = EzHy_XFace_PML<array_t, false, size_t>;
+  // // using EzX0 = EzBC_X<BCIntegrator1D<EzX0BC>>;
+  // // BCData<EzX0> bc_data{Ez};
+  // // using EzX0Int = EzX0::integrator_t;
+  // // EzX0Int::apply(bc_data.ez_x0);
 
-  // emdata_t<double> em{nx, cfl};
-  // bcdata_t<double> bc{nx};
+
+  emdata_t<double> em{nx, cfl};
+  bcdata_t<double> bc{em.Ez};
 
   // emdata_t<double> em{nx, ny, cfl};
-  // bcdata_t<double> bc{nx, ny};
+  //
+  // // emdata_t<double> em{nx, ny, nz, cfl};
+  // // bcdata_t<double> bc{nx, ny, nz};
+  //
+  constexpr auto save_step = 4;
+  size_t filecount = 0;
+  for (size_t n = 0; n < nt; n++) {
+    std::cout << "Step " << n << std::endl;
 
-  // emdata_t<double> em{nx, ny, nz, cfl};
-  // bcdata_t<double> bc{nx, ny, nz};
-  //
-  // constexpr auto save_step = 4;
-  // size_t filecount = 0;
-  // for (size_t n = 0; n < nt; n++) {
-  //   std::cout << "Step " << n << std::endl;
-  //
-  //   EMSolver<fp_t>::advance(em, bc);
-  //
-  //   // em.Ez[nx / 2 - 20] += ricker(static_cast<fp_t>(n));
-  //   // em.Ez(nx / 2 - 30, ny / 2 - 30) = ricker(static_cast<fp_t>(n));
-  //   em.Ez(nx / 2 - 30, ny / 2 - 30, nz / 2) = ricker(static_cast<fp_t>(n));
-  //
-  //   if (n % save_step == 0) {
-  //     to_csv(em.Ez, filecount, "Ez");
-  //     // to_csv(em.Hy, filecount, "Hy");
-  //     filecount++;
-  //   }
-  // }
+    EMSolver<fp_t>::advance(em);
+
+    em.Ez[nx / 2 - 20] += ricker(static_cast<fp_t>(n));
+    // em.Ez(nx / 2 - 30, ny / 2 - 30) = ricker(static_cast<fp_t>(n));
+    // em.Ez(nx / 2 - 30, ny / 2 - 30, nz / 2) = ricker(static_cast<fp_t>(n));
+
+    if (n % save_step == 0) {
+      to_csv(em.Ez, filecount, "Ez");
+      // to_csv(em.Hy, filecount, "Hy");
+      filecount++;
+    }
+  }
 
   // auto start = std::chrono::high_resolution_clock::now();
   // auto stop = std::chrono::high_resolution_clock::now() - start;

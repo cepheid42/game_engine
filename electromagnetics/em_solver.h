@@ -5,11 +5,7 @@
 #ifndef EM_SOLVER_H
 #define EM_SOLVER_H
 
-// #include <cassert>
-// #include <array>
-
 #include "../aydenstuff/array.h"
-// #include "../core/typelist.h"
 #include "../core/debug.h"
 #include "em_data.h"
 #include "curl_operators.h"
@@ -23,9 +19,6 @@ struct FieldUpdate {
   using curl2 = curl<BCURL, Forward, IDXS...>;
 
   static void apply(auto& f, const auto& d1, const auto& d2, const auto& j, const auto& c_f, const auto& c_d, const auto& c_j, IDXS... idxs) {
-    // DBG("UpdateFunctor::apply()");
-    // DBG(d1.nx(), d1.ny(), d1.nz());
-    // (..., DBG(idxs));
     const auto    self = c_f(idxs...) * f(idxs...);
     const auto   diff1 = curl1::apply(d1, idxs...);
     const auto   diff2 = curl2::apply(d2, idxs...);
@@ -43,7 +36,6 @@ struct FieldIntegrator1D {
   using update_func = UpdateFunctor;
 
   static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
-    // DBG("FI1D::apply()", o.x0, o.x1, f.nx() - o.x1);
     for (size_t i = o.x0; i < f.nx() - o.x1; ++i) {
       update_func::apply(f, d1, d2, js, c_f, c_d, c_src, i);
     }
@@ -58,7 +50,6 @@ struct FieldIntegrator2D {
   using update_func = UpdateFunctor;
 
   static void apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
-    // DBG("FI2D::apply()");
     for (size_t i = o.x0; i < f.nx() - o.x1; ++i) {
       for (size_t j = o.y0; j < f.ny() - o.y1; ++j) {
         update_func::apply(f, d1, d2, js, c_f, c_d, c_src, i, j);
@@ -75,7 +66,6 @@ struct FieldIntegrator3D {
   using update_func = UpdateFunctor;
 
   static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
-    // DBG("FI3D::apply()");
 #pragma omp parallel for collapse(3)
     for (size_t i = o.x0; i < f.nx() - o.x1; ++i) {
       for (size_t j = o.y0; j < f.ny() - o.y1; ++j) {
@@ -98,63 +88,37 @@ struct FieldIntegratorNull {
 
 
 template<typename EIX, typename EIY, typename EIZ,
-         typename HIX, typename HIY, typename HIZ,
-         typename X0BC, typename Y0BC, typename Z0BC,
-         typename X1BC, typename Y1BC, typename Z1BC
->
+         typename HIX, typename HIY, typename HIZ, typename BCTL>
 struct Electromagnetics {
   using value_t = typename EIX::value_t;
   using dimension_t = typename EIX::dimension_t;
   using empty_t = EmptyArray<value_t, dimension_t::value>;
 
-  // using EIX = Ts...[0];
-
   static constexpr empty_t empty{};
   static constexpr IntegratorOffsets one_offsets{1, 1, 1, 1, 1, 1};
   static constexpr IntegratorOffsets zero_offsets{0, 0, 0, 0, 0, 0};
 
-  static void updateEbcs(auto& emdata, auto& bcdata) {
-    DBG("Electromagnetics::updateELoBC()");
-    X0BC::applyE(emdata, bcdata);
-    Y0BC::applyE(emdata, bcdata);
-    Z0BC::applyE(emdata, bcdata);
-    X1BC::applyE(emdata, bcdata);
-    Y1BC::applyE(emdata, bcdata);
-    Z1BC::applyE(emdata, bcdata);
-  }
-
-  static void updateHbcs(auto& emdata, auto& bcdata) {
-    DBG("Electromagnetics::updateHLoBC()");
-    X0BC::applyH(emdata, bcdata);
-    Y0BC::applyH(emdata, bcdata);
-    Z0BC::applyH(emdata, bcdata);
-    X1BC::applyH(emdata, bcdata);
-    Y1BC::applyH(emdata, bcdata);
-    Z1BC::applyH(emdata, bcdata);
-  }
+  using EZX0 = TypeListAt<0, BCTL>;
+  using EZX1 = TypeListAt<1, BCTL>;
 
   static void updateE(auto& emdata, auto& bcdata) {
-    // DBG("Electromagnetics::updateE()");
     EIX::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexh, emdata.Cjx, one_offsets);
     EIY::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyh, emdata.Cjy, one_offsets);
     EIZ::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezh, emdata.Cjz, one_offsets);
 
-    updateEbcs(emdata, bcdata);
+    EZX0::apply(emdata.Ez);
+    EZX1::apply(emdata.Ez);
   }
 
-  static void updateH(auto& emdata, auto& bcdata) {
-    // DBG("Electromagnetics::updateH()");
+  static void updateH(auto& emdata) {
     HIX::apply(emdata.Hx, emdata.Ey, emdata.Ez, empty, emdata.Chxh, emdata.Chxe, empty, zero_offsets);
     HIY::apply(emdata.Hy, emdata.Ez, emdata.Ex, empty, emdata.Chyh, emdata.Chye, empty, zero_offsets);
     HIZ::apply(emdata.Hz, emdata.Ex, emdata.Ey, empty, emdata.Chzh, emdata.Chze, empty, zero_offsets);
-
-    updateHbcs(emdata, bcdata);
   }
 
 
   static void advance(auto& emdata, auto& bcdata) {
-    // DBG("Electromagnetics::Advance()");
-    updateH(emdata, bcdata);
+    updateH(emdata);
     updateE(emdata, bcdata);
   }
 };

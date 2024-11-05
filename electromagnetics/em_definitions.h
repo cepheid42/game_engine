@@ -14,68 +14,54 @@
 
 //=================== EMData Definitions ========================
 //===============================================================
-template<typename Array>
-struct enabled {
-  using value_t = typename Array::value_t;
-  using dimension_t = typename Array::dimension_t;
-  using array_t = Array;
-};
-
-template<typename Array>
-struct disabled {
-  using value_t = typename Array::value_t;
-  using dimension_t = typename Array::dimension_t;
-  using array_t = Array;
-};
-
 template<typename T>
 using emdataNone = EMData<
-  disabled<EmptyArray1D<T>>, // Ex
-  disabled<EmptyArray1D<T>>, // Ey
-  disabled<EmptyArray1D<T>>, // Ez
-  disabled<EmptyArray1D<T>>, // Hx
-  disabled<EmptyArray1D<T>>, // Hy
-  disabled<EmptyArray1D<T>>  // Hz
+  EmptyArray1D<T>, // Ex
+  EmptyArray1D<T>, // Ey
+  EmptyArray1D<T>, // Ez
+  EmptyArray1D<T>, // Hx
+  EmptyArray1D<T>, // Hy
+  EmptyArray1D<T>  // Hz
 >;
 
 template<typename T>
 using emdata1D = EMData<
-  disabled<EmptyArray1D<T>>, // Ex
-  disabled<EmptyArray1D<T>>, // Ey
-  enabled<Array1D<T>>,       // Ez
-  disabled<EmptyArray1D<T>>, // Hx
-  enabled<Array1D<T>>,       // Hy
-  disabled<EmptyArray1D<T>>  // Hz
+  EmptyArray1D<T>, // Ex
+  EmptyArray1D<T>, // Ey
+  Array1D<T>,       // Ez
+  EmptyArray1D<T>, // Hx
+  Array1D<T>,       // Hy
+  EmptyArray1D<T>  // Hz
 >;
 
 template<typename T>
 using emdataTM = EMData<
-  disabled<EmptyArray2D<T>>, // Ex
-  disabled<EmptyArray2D<T>>, // Ey
-  enabled<Array2D<T>>,       // Ez
-  enabled<Array2D<T>>,       // Hx
-  enabled<Array2D<T>>,       // Hy
-  disabled<EmptyArray2D<T>>  // Hz
+  EmptyArray2D<T>, // Ex
+  EmptyArray2D<T>, // Ey
+  Array2D<T>,       // Ez
+  Array2D<T>,       // Hx
+  Array2D<T>,       // Hy
+  EmptyArray2D<T>  // Hz
 >;
 
 template<typename T>
 using emdataTE = EMData<
-  enabled<Array2D<T>>,       // Ex
-  enabled<Array2D<T>>,       // Ey
-  disabled<EmptyArray2D<T>>, // Ez
-  disabled<EmptyArray2D<T>>, // Hx
-  disabled<EmptyArray2D<T>>, // Hy
-  enabled<Array2D<T>>        // Hz
+  Array2D<T>,       // Ex
+  Array2D<T>,       // Ey
+  EmptyArray2D<T>, // Ez
+  EmptyArray2D<T>, // Hx
+  EmptyArray2D<T>, // Hy
+  Array2D<T>        // Hz
 >;
 
 template<typename T>
 using emdata3D = EMData<
-  enabled<Array3D<T>>, // Ex
-  enabled<Array3D<T>>, // Ey
-  enabled<Array3D<T>>, // Ez
-  enabled<Array3D<T>>, // Hx
-  enabled<Array3D<T>>, // Hy
-  enabled<Array3D<T>>  // Hz
+  Array3D<T>, // Ex
+  Array3D<T>, // Ey
+  Array3D<T>, // Ez
+  Array3D<T>, // Hx
+  Array3D<T>, // Hy
+  Array3D<T>  // Hz
 >;
 
 //=================== Electromagnetics Definitions ========================
@@ -130,239 +116,98 @@ using EM3D = TypeList<
   /* Hz */ FieldIntegrator3D<T, FieldUpdate<Derivative::DY, Derivative::DX, true, size_t, size_t, size_t>>
 >;
 
-//=================== BCData Definitions ========================
-//===============================================================
-template<typename T>
-using bcdataNone = BCData<
-  EmptyArray1D<T>,
-  disabled<EmptyArray1D<T>>, // Ex
-  disabled<EmptyArray1D<T>>, // Ey
-  disabled<EmptyArray1D<T>>, // Ez
-  disabled<EmptyArray1D<T>>, // Hx
-  disabled<EmptyArray1D<T>>, // Hy
-  disabled<EmptyArray1D<T>>  // Hz
+//=================== Boundary Condition Definitions ========================
+//===========================================================================
+
+template<typename Array, bool Forward, typename... IDXS>
+using EyHy_XFace_PML = PmlBC<
+  Array,
+  curl<Derivative::DZ, Forward, IDXS...>,
+  curl<Derivative::NoOp, Forward, IDXS...>,
+  dPML,
+  IDXS...
 >;
 
-template<typename T>
-using bcdata1d = BCData<
-  Array1D<T>,
-  disabled<EmptyArray1D<T>>, // Ex
-  disabled<EmptyArray1D<T>>, // Ey
-  enabled<Array1D<T>>,       // Ez
-  disabled<EmptyArray1D<T>>, // Hx
-  enabled<Array1D<T>>,       // Hy
-  disabled<EmptyArray1D<T>>  // Hz
+template<typename Array, bool Forward, typename... IDXS>
+using EzHz_XFace_PML = PmlBC<
+  Array,
+  curl<Derivative::NoOp, Forward, IDXS...>,
+  curl<Derivative::DY, Forward, IDXS...>,
+  dPML,
+  IDXS...
 >;
 
-template<typename T>
-using bcdataTM = BCData<
-  Array2D<T>,
-  disabled<EmptyArray2D<T>>, // Ex
-  disabled<EmptyArray2D<T>>, // Ey
-  enabled<Array2D<T>>,       // Ez
-  enabled<Array2D<T>>,       // Hx
-  enabled<Array2D<T>>,       // Hy
-  disabled<EmptyArray2D<T>>  // Hz
+template<typename Array, bool Forward, typename... IDXS>
+using ExHx_YFace_PML = PmlBC<
+  Array,
+  curl<Derivative::NoOp, Forward, IDXS...>,
+  curl<Derivative::DZ, Forward, IDXS...>,
+  dPML,
+  IDXS...
 >;
 
-template<typename T>
-using bcdataTE = BCData<
-  Array2D<T>,
-  enabled<Array2D<T>>,       // Ex
-  enabled<Array2D<T>>,       // Ey
-  disabled<EmptyArray2D<T>>, // Ez
-  disabled<EmptyArray2D<T>>, // Hx
-  disabled<EmptyArray2D<T>>, // Hy
-  enabled<Array2D<T>>        // Hz
+template<typename Array, bool Forward, typename... IDXS>
+using EzHz_YFace_PML = PmlBC<
+  Array,
+  curl<Derivative::DX, Forward, IDXS...>,
+  curl<Derivative::NoOp, Forward, IDXS...>,
+  dPML,
+  IDXS...
 >;
 
-template<typename T>
-using bcdata3D = BCData<
-  Array3D<T>,
-  enabled<Array3D<T>>, // Ex
-  enabled<Array3D<T>>, // Ey
-  enabled<Array3D<T>>, // Ez
-  enabled<Array3D<T>>, // Hx
-  enabled<Array3D<T>>, // Hy
-  enabled<Array3D<T>>  // Hz
+template<typename Array, bool Forward, typename... IDXS>
+using ExHx_ZFace_PML = PmlBC<
+  Array,
+  curl<Derivative::DY, Forward, IDXS...>,
+  curl<Derivative::NoOp, Forward, IDXS...>,
+  dPML,
+  IDXS...
 >;
 
-//=================== Boundary Conditions Definitions ========================
-//============================================================================
+template<typename Array, bool Forward, typename... IDXS>
+using EyHy_ZFace_PML = PmlBC<
+  Array,
+  curl<Derivative::NoOp, Forward, IDXS...>,
+  curl<Derivative::DX, Forward, IDXS...>,
+  dPML,
+  IDXS...
+>;
 
-// template<EMFace Face, EMComponent Comp, typename... IDXS>
-// struct PML_Params {};
-//
-// template<EMComponent Comp, typename... IDXS>
-// struct PML_Params<EMFace::X, Comp> {
-//   using curlA = curl<Derivative::DX, Comp, IDXS...>;
-// };
+template<typename Array, bool Forward, typename... IDXS>
+using XFaceTL = TypeList<
+  EyHy_XFace_PML<Array, Forward, IDXS...>,
+  EzHz_XFace_PML<Array, Forward, IDXS...>,
+  PeriodicBC<Array, EMFace::X, nHalo, IDXS...>,
+  ReflectingBC<Array>
+>;
+
+template<typename Array, bool Forward, typename... IDXS>
+using YFaceTL = TypeList<
+  ExHx_YFace_PML<Array, Forward, IDXS...>,
+  EzHz_YFace_PML<Array, Forward, IDXS...>,
+  PeriodicBC<Array, EMFace::Y, nHalo, IDXS...>,
+  ReflectingBC<Array>
+>;
+
+template<typename Array, bool Forward, typename... IDXS>
+using ZFaceTL = TypeList<
+  ExHx_ZFace_PML<Array, Forward, IDXS...>,
+  EyHy_ZFace_PML<Array, Forward, IDXS...>,
+  PeriodicBC<Array, EMFace::Z, nHalo, IDXS...>,
+  ReflectingBC<Array>
+>;
 
 
-template<EMFace Face, EMSide Side>
-struct Boundary {
-  static constexpr auto face = Face;
-  static constexpr auto side = Side;
+template<size_t I, typename T>
+using X0Face_1D = BCIntegrator1D<TypeListAt<I, XFaceTL<Array1D<T>, false, size_t>>>;
 
-  // template<typename T>
-  // static IntegratorOffsets get_offsets(const T&, size_t);
-};
+template<size_t I, typename T>
+using X1Face_1D = BCIntegrator1D<TypeListAt<I, XFaceTL<Array1D<T>, false, size_t>>>;
 
-template<EMSide Side>
-struct Boundary<EMFace::X, Side>{
-  static constexpr auto face = EMFace::X;
-  static constexpr auto side = Side;
-
-  template<typename T>
-  static IntegratorOffsets get_offsets(const T&, size_t);
-};
-
-template<EMSide Side>
-struct Boundary<EMFace::Y, Side>{
-  static constexpr auto face = EMFace::Y;
-  static constexpr auto side = Side;
-
-  template<typename T>
-  static IntegratorOffsets get_offsets(const T&, size_t);
-};
-
-template<EMSide Side>
-struct Boundary<EMFace::Z, Side>{
-  static constexpr auto face = EMFace::Z;
-  static constexpr auto side = Side;
-
-  template<typename T>
-  static IntegratorOffsets get_offsets(const T&, size_t);
-};
-
-template <>
-template <typename T>
-IntegratorOffsets Boundary<EMFace::X, EMSide::Lo>::get_offsets(const T& f, const size_t depth) {
-  return {0, depth, 0, f.ny(), 0, f.nz()};
-}
-
-template <>
-template <typename T>
-IntegratorOffsets Boundary<EMFace::X, EMSide::Hi>::get_offsets(const T& f, const size_t depth) {
-  return {f.nx() - depth, f.nx(), 0, f.ny(), 0, f.nz()};
-}
-
-template <>
-template <typename T>
-IntegratorOffsets Boundary<EMFace::Y, EMSide::Lo>::get_offsets(const T& f, const size_t depth) {
-  return {0, f.nx(), 0, depth, 0, f.nz()};
-}
-
-template <>
-template <typename T>
-IntegratorOffsets Boundary<EMFace::Y, EMSide::Hi>::get_offsets(const T& f, const size_t depth) {
-  return {0, f.nx(), f.ny() - depth, f.ny(), 0, f.nz()};
-}
-
-template <>
-template <typename T>
-IntegratorOffsets Boundary<EMFace::Z, EMSide::Lo>::get_offsets(const T& f, const size_t depth) {
-  return {0, f.nx(), 0, f.ny(), 0, depth};
-}
-
-template <>
-template <typename T>
-IntegratorOffsets Boundary<EMFace::Z, EMSide::Hi>::get_offsets(const T& f, const size_t depth) {
-  return {0, f.nx(), 0, f.ny(), f.nz() - depth, f.nz()};
-}
-
-template<EMFace Face, EMField Field, bool Forward>
-struct PML_Curls {
-  using curl1 = curl<Derivative::NoOp, Forward>;
-  using curl2 = curl<Derivative::NoOp, Forward>;
-};
-
-template<bool Forward>
-struct PML_Curls<EMFace::X, EMField::Y, Forward> {
-  using curl1 = curl<Derivative::DZ, Forward>;
-  using curl2 = curl<Derivative::NoOp, Forward>;
-};
-
-template<bool Forward>
-struct PML_Curls<EMFace::X, EMField::Z, Forward> {
-  using curl1 = curl<Derivative::NoOp, Forward>;
-  using curl2 = curl<Derivative::DY, Forward>;
-};
-
-template<bool Forward>
-struct PML_Curls<EMFace::Y, EMField::X, Forward> {
-  using curl1 = curl<Derivative::NoOp, Forward>;
-  using curl2 = curl<Derivative::DZ, Forward>;
-};
-
-template<bool Forward>
-struct PML_Curls<EMFace::Y, EMField::Z, Forward> {
-  using curl1 = curl<Derivative::DX, Forward>;
-  using curl2 = curl<Derivative::NoOp, Forward>;
-};
-
-template<bool Forward>
-struct PML_Curls<EMFace::Z, EMField::X, Forward> {
-  using curl1 = curl<Derivative::DY, Forward>;
-  using curl2 = curl<Derivative::NoOp, Forward>;
-};
-
-template<bool Forward>
-struct PML_Curls<EMFace::Z, EMField::Y, Forward> {
-  using curl1 = curl<Derivative::NoOp, Forward>;
-  using curl2 = curl<Derivative::DX, Forward>;
-};
-
-using XLo = Boundary<EMFace::X, EMSide::Lo>;
-using YLo = Boundary<EMFace::Y, EMSide::Lo>;
-using ZLo = Boundary<EMFace::Z, EMSide::Lo>;
-using XHi = Boundary<EMFace::X, EMSide::Hi>;
-using YHi = Boundary<EMFace::Y, EMSide::Hi>;
-using ZHi = Boundary<EMFace::Z, EMSide::Hi>;
-
-template<typename T, EMFace Face>
-using Periodic1D = PeriodicBC<T, Face, nHalo, size_t>;
-
-template<typename T, EMFace Face>
-using Periodic2D = PeriodicBC<T, Face, nHalo, size_t, size_t>;
-
-template<typename T, EMFace Face>
-using Periodic3D = PeriodicBC<T, Face, nHalo, size_t, size_t, size_t>;
-
-template<typename T, EMFace Face, EMSide Side, EMField Field, bool Forward>
-using Pml1D = PmlBC<T, Side, PML_Curls<Face, Field, Forward>, dPML, size_t>;
-
-template<typename T, EMFace Face, EMSide Side, EMField Field, bool Forward>
-using Pml2D = PmlBC<T, Side, PML_Curls<Face, Field, Forward>, dPML, size_t, size_t>;
-
-template<typename T, EMFace Face, EMSide Side, EMField Field, bool Forward>
-using Pml3D = PmlBC<T, Side, PML_Curls<Face, Field, Forward>, dPML, size_t, size_t, size_t>;
-
-template<typename Boundary, typename Ex, typename Ey, typename Ez, typename Hx, typename Hy, typename Hz>
-struct BCApplicator {
-  using dimension_t = typename Ex::dimension_t;
-
-  static constexpr EMFace face = Boundary::face;
-
-  static void applyE(auto& emdata, auto& bcdata) {
-    static const auto ex_offsets = Boundary::get_offsets(emdata.Ex, Ex::bc_depth);
-    static const auto ey_offsets = Boundary::get_offsets(emdata.Ey, Ey::bc_depth);
-    static const auto ez_offsets = Boundary::get_offsets(emdata.Ez, Ez::bc_depth);
-
-    Ex::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Cexh, bcdata.psiEx, bcdata.bEx, bcdata.cEx, ex_offsets);
-    Ey::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Ceyh, bcdata.psiEy, bcdata.bEy, bcdata.cEy, ey_offsets);
-    Ez::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Cezh, bcdata.psiEz, bcdata.bEz, bcdata.cEz, ez_offsets);
-  }
-
-  static void applyH(auto& emdata, auto& bcdata) {
-    static const auto hx_offsets = Boundary::get_offsets(emdata.Hx, Hx::bc_depth);
-    static const auto hy_offsets = Boundary::get_offsets(emdata.Hy, Hy::bc_depth);
-    static const auto hz_offsets = Boundary::get_offsets(emdata.Hz, Hz::bc_depth);
-
-    Hx::apply(emdata.Hx, emdata.Ey, emdata.Ez, emdata.Chxe, bcdata.psiHx, bcdata.bHx, bcdata.cHx, hx_offsets);
-    Hy::apply(emdata.Hy, emdata.Ez, emdata.Ex, emdata.Chye, bcdata.psiHy, bcdata.bHy, bcdata.cHy, hy_offsets);
-    Hz::apply(emdata.Hz, emdata.Ex, emdata.Ey, emdata.Chze, bcdata.psiHz, bcdata.bHz, bcdata.cHz, hz_offsets);
-  }
-};
+template<typename T>
+using BoundariesTL = TypeList<
+  X0Face_1D<1, T>, // Ez X0
+  X1Face_1D<1, T>  // Ez X1
+>;
 
 #endif //EM_DEFINITIONS_H

@@ -7,28 +7,11 @@
 
 #include "em_definitions.h"
 
-inline constexpr size_t SELECT_EMDATA = 4; // todo: these can be combined into one value?
-inline constexpr size_t SELECT_EMSOLVER = 4;
-
-inline constexpr size_t SELECT_BCDATA = 4;
-inline constexpr size_t SELECT_BCS[6][6] = {
-  // {Ex, Ey, Ez, Hx, Hy, Hz}
-     {0,  0,  4,  0,  4,  0}, // XLo
-     {0,  0,  0,  0,  0,  0}, // YLo
-     {0,  0,  0,  0,  0,  0}, // ZLo
-     {0,  0,  0,  0,  0,  0}, // XHi
-     {0,  0,  0,  0,  0,  0}, // YHi
-     {0,  0,  0,  0,  0,  0}  // ZHi
-};
-
-/*
- * Periodic2D in X -> Lo {0, 0, 0, 0, 2, 0}
- * Periodic2D in Y -> Lo {0, 0, 0, 2, 0, 0}
- */
-
+inline constexpr size_t SELECT_EMDATA = 1; // todo: these can be combined into one value?
+inline constexpr size_t SELECT_EMSOLVER = 1;
 
 using fp_t = double;
-constexpr size_t DIM = 3;
+constexpr size_t DIM = 1;
 constexpr fp_t cfl = 0.95 / std::sqrt(static_cast<fp_t>(DIM));
 
 
@@ -56,48 +39,6 @@ using EMTypeTL = TypeList<
 template<typename T>
 using EMType = TypeListAt<SELECT_EMSOLVER, EMTypeTL<emdata_t<T>>>; // Selects desired typelist of integrators
 
-template<typename T>
-using BCDataTL = TypeList<
-  bcdataNone<T>, // 0
-  bcdata1d<T>,   // 1
-  bcdataTM<T>,   // 2
-  bcdataTE<T>,   // 3
-  bcdata3D<T>    // 4
->; // Typelist for choosing type of BCData
-
-template<typename T>
-using bcdata_t = TypeListAt<SELECT_BCDATA, BCDataTL<T>>;
-
-template<typename T, typename Func>
-using BCIntegratorTL = TypeList<BCIntegrator1D<T, Func>, BCIntegrator2D<T, Func>, BCIntegrator3D<T, Func>>;
-
-template<size_t I, typename T, typename Func>
-using BCIntegratorType = TypeListAt<I, BCIntegratorTL<bcdata_t<T>, Func>>;
-
-template<typename T, EMFace Face, EMSide Side, EMField Field, bool Forward>
-using BCTypeTL = TypeList<
-  ReflectingBC<typename bcdata_t<T>::array_t>, // 0
-  Periodic1D<bcdata_t<T>, Face>,               // 1
-  Periodic2D<bcdata_t<T>, Face>,               // 2
-  Periodic3D<bcdata_t<T>, Face>,            // 3
-  Pml1D<bcdata_t<T>, Face, Side, Field, Forward>,              // 4
-  Pml2D<bcdata_t<T>, Face, Side, Field, Forward>,              // 5
-  Pml3D<bcdata_t<T>, Face, Side, Field, Forward>               // 6
->; // Typelist of different Boundary Conditions (per field per face)
-
-template<size_t I, typename T, EMFace Face, EMSide Side, EMField Field, bool Forward>
-using BCType = TypeListAt<I, BCTypeTL<bcdata_t<T>, Face, Side, Field, Forward>>;
-
-template<typename T, typename B, size_t I>
-using BoundaryType = BCApplicator<
-  B,
-  BCIntegratorType<DIM - 1, T, BCType<SELECT_BCS[I][0], T, B::face, B::side, EMField::X, false>>,
-  BCIntegratorType<DIM - 1, T, BCType<SELECT_BCS[I][1], T, B::face, B::side, EMField::Y, false>>,
-  BCIntegratorType<DIM - 1, T, BCType<SELECT_BCS[I][2], T, B::face, B::side, EMField::Z, false>>,
-  BCIntegratorType<DIM - 1, T, BCType<SELECT_BCS[I][3], T, B::face, B::side, EMField::X, true>>,
-  BCIntegratorType<DIM - 1, T, BCType<SELECT_BCS[I][4], T, B::face, B::side, EMField::Y, true>>,
-  BCIntegratorType<DIM - 1, T, BCType<SELECT_BCS[I][5], T, B::face, B::side, EMField::Z, true>>
->; // Auto-selects Boundaries based on face and SELECT_BCS settings, Forward
 
 template<typename T>
 using EMSolver = Electromagnetics<
@@ -107,12 +48,7 @@ using EMSolver = Electromagnetics<
   TypeListAt<3, EMType<T>>, // Hx
   TypeListAt<4, EMType<T>>, // Hy
   TypeListAt<5, EMType<T>>, // Hz,
-  BoundaryType<T, XLo, 0>,
-  BoundaryType<T, YLo, 1>,
-  BoundaryType<T, ZLo, 2>,
-  BoundaryType<T, XHi, 3>,
-  BoundaryType<T, YHi, 4>,
-  BoundaryType<T, ZHi, 5>
+  BoundariesTL<T>
 >; // Auto-selects full BC's per face and EMSolver per field component based on chosen settings.
 
 #endif //ELECTROMAGNETICS_H

@@ -14,7 +14,6 @@ enum class Derivative { DX, DY, DZ, NoOp };
 template<Derivative D, bool Forward, typename... IDXS>
 struct curl {
   static constexpr auto apply(const auto&, IDXS...) {
-    // DBG("curl<NoOp>::apply()");
     return 0.0;
   }
 };
@@ -22,7 +21,6 @@ struct curl {
 template<bool Forward, typename... IDXS>
 struct curl<Derivative::DX, Forward, IDXS...> {
   static auto apply(const auto& f, IDXS... idxs) {
-    // DBG("curl<DX>::apply()");
     if constexpr (Forward) {
       return f.forward_diff_x(idxs...);
     } else {
@@ -34,9 +32,7 @@ struct curl<Derivative::DX, Forward, IDXS...> {
 template<bool Forward, typename... IDXS>
 struct curl<Derivative::DY, Forward, IDXS...> {
   static auto apply(const auto& f, IDXS... idxs) {
-    // DBG("curl<DY>::apply()");
     if constexpr (Forward) {
-      // (..., DBG(idxs));
       return f.forward_diff_y(idxs...);
     } else {
       return f.backward_diff_y(idxs...);
@@ -47,7 +43,6 @@ struct curl<Derivative::DY, Forward, IDXS...> {
 template<bool Forward, typename... IDXS>
 struct curl<Derivative::DZ, Forward, IDXS...> {
   static auto apply(const auto& f, IDXS... idxs) {
-    // DBG("curl<DZ>::apply()");
     if constexpr (Forward) {
       return f.forward_diff_z(idxs...);
     } else {

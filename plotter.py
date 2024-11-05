@@ -51,8 +51,8 @@ def main():
         file = data_path + f'/Ez_{n:04d}.csv'
 
         # plot1d(file, n)
-        # plot2d(file, n)
-        plot3d(file, n)
+        plot2d(file, n)
+        # plot3d(file, n)
 
 
 if __name__ == '__main__':
