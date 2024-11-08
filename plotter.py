@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -14,7 +16,7 @@ def plot1d(file, n):
     fig, ax = plt.subplots()
 
     ax.plot(data, label='data')
-    # ax.set_ylim([-1, 1])
+    ax.set_ylim([-1, 1])
 
     plt.savefig(data_path + f'/pngs/ez_{n:04d}.png')
     plt.clf()
@@ -50,8 +52,8 @@ def main():
         print(f'Step {n}')
         file = data_path + f'/Ez_{n:04d}.csv'
 
-        # plot1d(file, n)
-        plot2d(file, n)
+        plot1d(file, n)
+        # plot2d(file, n)
         # plot3d(file, n)
 
 

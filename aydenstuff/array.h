@@ -63,6 +63,7 @@ namespace tf::types
     explicit Array1D() = default;
     Array1D(size_t nx_) : detail::ArrayBase<T, 1>(nx_), nx_(nx_) {}
     Array1D(size_t nx_, value_t fill) : detail::ArrayBase<T, 1>(nx_, fill), nx_(nx_) {}
+    Array1D(size_t nx_, size_t, size_t) : detail::ArrayBase<T, 1>(nx_), nx_(nx_) {} // Extra for BC fun stuff
     Array1D(const Array1D& other) : detail::ArrayBase<T, 1>(other), nx_(other.nx_) {}
     
     Array1D& operator=(const Array1D& other);
@@ -139,6 +140,7 @@ namespace tf::types
     // Constructors & Destructor
     explicit Array2D() = default;
     Array2D(size_t nx_, size_t ny_, value_t fill=0.0) : detail::ArrayBase<T, 2>(nx_ * ny_, fill), nx_(nx_), ny_(ny_) {}
+    Array2D(size_t nx_, size_t ny_, size_t) : detail::ArrayBase<T, 2>(nx_ * ny_, 0.0), nx_(nx_), ny_(ny_) {} // BC fun times
     Array2D(vec2<size_t> dims_, value_t fill=0.0) : Array2D(dims_[0], dims_[1], fill) {}
     Array2D(const Array2D& other) : detail::ArrayBase<T, 2>(other), nx_(other.nx_), ny_(other.ny_) {}
     

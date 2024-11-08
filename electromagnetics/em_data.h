@@ -5,12 +5,11 @@
 #ifndef EM_DATA_H
 #define EM_DATA_H
 
-#include "core/debug.h"
-// #include "core/typelist.h"
+// #include "electromagnetics.param"
 #include "aydenstuff/array.h"
 #include "em_emtpyarray.h"
 #include "em_traits.h"
-// #include "bc_data.h"
+
 
 using tf::types::Array1D;
 using tf::types::Array2D;
@@ -21,16 +20,10 @@ struct EMData {
   using value_t = typename ex_t::value_t;
   using dimension_t = typename ex_t::dimension_t;
   using empty_t = EmptyArray<value_t, dimension_t::value>;
-  
-  // using ex_t = EXF::array_t;
-  // using ey_t = EYF::array_t;
-  // using ez_t = EZF::array_t;
-  // using hx_t = HXF::array_t;
-  // using hy_t = HYF::array_t;
-  // using hz_t = HZF::array_t;
-  //
+
+
   EMData() = default;
-  
+
   explicit EMData(const size_t nx, const value_t cfl)
   requires (dimension_t::value == 1)
   : Ez{nx}, Jz{nx}, Ceze{nx}, Cezh{nx}, Cjz{nx},
@@ -38,7 +31,7 @@ struct EMData {
   {
     init_coefficients(cfl);
   }
-  
+
   explicit EMData(const size_t nx, const size_t ny, const value_t cfl)
   requires (dimension_t::value == 2 and !is_empty_field<hx_t, empty_t>)
   : Ez{nx, ny}, Jz{nx, ny}, Ceze{nx, ny}, Cezh{nx, ny}, Cjz{nx, ny},
@@ -79,27 +72,27 @@ struct EMData {
   ex_t Cexe;
   ex_t Cexh;
   ex_t Cjx;
-  
+
   ey_t Ey;
   ey_t Jy;
   ey_t Ceye;
   ey_t Ceyh;
   ey_t Cjy;
-  
+
   ez_t Ez;
   ez_t Jz;
   ez_t Ceze;
   ez_t Cezh;
   ez_t Cjz;
-  
+
   hx_t Hx;
   hx_t Chxe;
   hx_t Chxh;
-  
+
   hy_t Hy;
   hy_t Chye;
   hy_t Chyh;
-  
+
   hz_t Hz;
   hz_t Chze;
   hz_t Chzh;

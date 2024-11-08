@@ -5,9 +5,10 @@
 #ifndef EM_SOLVER_H
 #define EM_SOLVER_H
 
-#include "../aydenstuff/array.h"
-#include "../core/debug.h"
-#include "em_data.h"
+#include "electromagnetics.param"
+// #include "../aydenstuff/array.h"
+// #include "../core/debug.h"
+// #include "em_data.h"
 #include "curl_operators.h"
 #include "offsets.h"
 
@@ -88,7 +89,8 @@ struct FieldIntegratorNull {
 
 
 template<typename EIX, typename EIY, typename EIZ,
-         typename HIX, typename HIY, typename HIZ, typename BCTL>
+         typename HIX, typename HIY, typename HIZ,
+         typename X0BC>
 struct Electromagnetics {
   using value_t = typename EIX::value_t;
   using dimension_t = typename EIX::dimension_t;
@@ -98,28 +100,31 @@ struct Electromagnetics {
   static constexpr IntegratorOffsets one_offsets{1, 1, 1, 1, 1, 1};
   static constexpr IntegratorOffsets zero_offsets{0, 0, 0, 0, 0, 0};
 
-  using EZX0 = TypeListAt<0, BCTL>;
-  using EZX1 = TypeListAt<1, BCTL>;
-
   static void updateE(auto& emdata, auto& bcdata) {
     EIX::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexh, emdata.Cjx, one_offsets);
     EIY::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyh, emdata.Cjy, one_offsets);
     EIZ::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezh, emdata.Cjz, one_offsets);
-
-    EZX0::apply(emdata.Ez);
-    EZX1::apply(emdata.Ez);
   }
 
-  static void updateH(auto& emdata) {
+  static void updateH(auto& emdata, auto& bcdata) {
     HIX::apply(emdata.Hx, emdata.Ey, emdata.Ez, empty, emdata.Chxh, emdata.Chxe, empty, zero_offsets);
     HIY::apply(emdata.Hy, emdata.Ez, emdata.Ex, empty, emdata.Chyh, emdata.Chye, empty, zero_offsets);
     HIZ::apply(emdata.Hz, emdata.Ex, emdata.Ey, empty, emdata.Chzh, emdata.Chze, empty, zero_offsets);
   }
 
+  static void updateE_bcs(auto& emdata, auto& bcdata) {}
+
+  static void updateH_bcs(auto& emdata, auto& bcdata) {
+    X0BC::apply(emdata.Hy, bcdata.x0.Hy.offsets);
+  }
+
 
   static void advance(auto& emdata, auto& bcdata) {
-    updateH(emdata);
+    updateH(emdata, bcdata);
+    updateH_bcs(emdata, bcdata);
+
     updateE(emdata, bcdata);
+    updateE_bcs(emdata, bcdata);
   }
 };
 

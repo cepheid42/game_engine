@@ -95,41 +95,26 @@ fp_t ricker(fp_t q) {
 }
 
 int main() {
-  constexpr size_t nx = 10u + 2 * dPML;// + 2 * nHalo;
-  constexpr size_t ny = 10u + 2 * dPML + 2 * nHalo;
-  constexpr size_t nz = 10u + 2 * dPML + 2 * nHalo;
-  constexpr size_t nt = 1u;
-
-  // using array_t = Array1D<double>;
-  //
-  // array_t Ez{nx};
-  //
-  // bcdata_t<array_t> bcdata{Ez};
-  //
-  // DBG(bcdata.ez_x0.offsets);
-  // DBG(dbg::type<bcdata_t<array_t>>());
-  //
-  // // using EzX0BC = EzHy_XFace_PML<array_t, false, size_t>;
-  // // using EzX0 = EzBC_X<BCIntegrator1D<EzX0BC>>;
-  // // BCData<EzX0> bc_data{Ez};
-  // // using EzX0Int = EzX0::integrator_t;
-  // // EzX0Int::apply(bc_data.ez_x0);
+  constexpr size_t nx = 100u + 2 * dPML + 2 * nHalo;
+  // constexpr size_t ny = 10u + 2 * dPML + 2 * nHalo;
+  // constexpr size_t nz = 10u + 2 * dPML + 2 * nHalo;
+  constexpr size_t nt = 400u;
 
 
   emdata_t<double> em{nx, cfl};
-  bcdata_t<double> bc{em.Ez};
+  bcdata_t<double> bc{em};
 
   // emdata_t<double> em{nx, ny, cfl};
   //
   // // emdata_t<double> em{nx, ny, nz, cfl};
-  // // bcdata_t<double> bc{nx, ny, nz};
-  //
+
+
   constexpr auto save_step = 4;
   size_t filecount = 0;
   for (size_t n = 0; n < nt; n++) {
     std::cout << "Step " << n << std::endl;
 
-    EMSolver<fp_t>::advance(em);
+    EMSolver<fp_t>::advance(em, bc);
 
     em.Ez[nx / 2 - 20] += ricker(static_cast<fp_t>(n));
     // em.Ez(nx / 2 - 30, ny / 2 - 30) = ricker(static_cast<fp_t>(n));

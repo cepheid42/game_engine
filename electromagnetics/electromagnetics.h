@@ -10,9 +10,39 @@
 inline constexpr size_t SELECT_EMDATA = 1; // todo: these can be combined into one value?
 inline constexpr size_t SELECT_EMSOLVER = 1;
 
-using fp_t = double;
-constexpr size_t DIM = 1;
-constexpr fp_t cfl = 0.95 / std::sqrt(static_cast<fp_t>(DIM));
+static constexpr size_t SELECT_BCS[6] = {8, 12, 12, 12, 12, 12}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+
+// using fp_t = double;
+// constexpr size_t DIM = 1;
+// constexpr fp_t cfl = 0.95 / std::sqrt(static_cast<fp_t>(DIM));
+
+
+template<typename T, EMFace F, EMSide S>
+using BCFaceTL = TypeList<
+  PML_XFace1D<T, S>,        // 0
+  PML_XFaceTM<T, S>,        // 1
+  PML_XFaceTE<T, S>,        // 2
+  PML_XFace3D<T, S>,        // 3
+  PML_YFaceTM<T, S>,        // 4
+  PML_YFaceTE<T, S>,        // 5
+  PML_YFace3D<T, S>,        // 6
+  PML_ZFace3D<T, S>,        // 7
+  Periodic_Face1D<T, F, S>, // 8
+  Periodic_FaceTM<T, F, S>, // 9
+  Periodic_FaceTE<T, F, S>, // 10
+  Periodic_Face3D<T, F, S>, // 11
+  Reflecting_Face<T, S>     // 12
+>;
+
+template<typename T>
+using bcdata_t = BCData<
+  TypeListAt<SELECT_BCS[0], BCFaceTL<T, EMFace::X, EMSide::Lo>>,
+  TypeListAt<SELECT_BCS[1], BCFaceTL<T, EMFace::X, EMSide::Hi>>,
+  TypeListAt<SELECT_BCS[2], BCFaceTL<T, EMFace::Y, EMSide::Lo>>,
+  TypeListAt<SELECT_BCS[3], BCFaceTL<T, EMFace::Y, EMSide::Hi>>,
+  TypeListAt<SELECT_BCS[4], BCFaceTL<T, EMFace::Z, EMSide::Lo>>,
+  TypeListAt<SELECT_BCS[5], BCFaceTL<T, EMFace::Z, EMSide::Hi>>
+>;
 
 
 template<typename T>
@@ -48,7 +78,7 @@ using EMSolver = Electromagnetics<
   TypeListAt<3, EMType<T>>, // Hx
   TypeListAt<4, EMType<T>>, // Hy
   TypeListAt<5, EMType<T>>, // Hz,
-  BoundariesTL<T>
+  BCIntegrator1D<PeriodicBC<Array1D<T>>>
 >; // Auto-selects full BC's per face and EMSolver per field component based on chosen settings.
 
 #endif //ELECTROMAGNETICS_H

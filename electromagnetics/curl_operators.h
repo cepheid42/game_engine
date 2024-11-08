@@ -5,9 +5,8 @@
 #ifndef CURL_OPERATORS_H
 #define CURL_OPERATORS_H
 
-#include "offsets.h"
+#include "electromagnetics.param"
 
-enum class Derivative { DX, DY, DZ, NoOp };
 
 //====== Curl Operators =======
 //=============================

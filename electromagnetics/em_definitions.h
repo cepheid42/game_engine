@@ -10,7 +10,7 @@
 #include "em_solver.h"
 #include "bc_data.h"
 #include "boundaries.h"
-#include "offsets.h"
+
 
 //=================== EMData Definitions ========================
 //===============================================================
@@ -28,9 +28,9 @@ template<typename T>
 using emdata1D = EMData<
   EmptyArray1D<T>, // Ex
   EmptyArray1D<T>, // Ey
-  Array1D<T>,       // Ez
+  Array1D<T>,      // Ez
   EmptyArray1D<T>, // Hx
-  Array1D<T>,       // Hy
+  Array1D<T>,      // Hy
   EmptyArray1D<T>  // Hz
 >;
 
@@ -38,20 +38,20 @@ template<typename T>
 using emdataTM = EMData<
   EmptyArray2D<T>, // Ex
   EmptyArray2D<T>, // Ey
-  Array2D<T>,       // Ez
-  Array2D<T>,       // Hx
-  Array2D<T>,       // Hy
+  Array2D<T>,      // Ez
+  Array2D<T>,      // Hx
+  Array2D<T>,      // Hy
   EmptyArray2D<T>  // Hz
 >;
 
 template<typename T>
 using emdataTE = EMData<
-  Array2D<T>,       // Ex
-  Array2D<T>,       // Ey
+  Array2D<T>,      // Ex
+  Array2D<T>,      // Ey
   EmptyArray2D<T>, // Ez
   EmptyArray2D<T>, // Hx
   EmptyArray2D<T>, // Hy
-  Array2D<T>        // Hz
+  Array2D<T>       // Hz
 >;
 
 template<typename T>
@@ -119,95 +119,140 @@ using EM3D = TypeList<
 //=================== Boundary Condition Definitions ========================
 //===========================================================================
 
-template<typename Array, bool Forward, typename... IDXS>
-using EyHy_XFace_PML = PmlBC<
-  Array,
-  curl<Derivative::DZ, Forward, IDXS...>,
-  curl<Derivative::NoOp, Forward, IDXS...>,
-  dPML,
-  IDXS...
+template<typename, EMSide>
+using Reflecting_Face = FaceBCs<
+  /* Ex */ NullData,
+  /* Ey */ NullData,
+  /* Ez */ NullData,
+  /* Hx */ NullData,
+  /* Hy */ NullData,
+  /* Hz */ NullData
 >;
 
-template<typename Array, bool Forward, typename... IDXS>
-using EzHz_XFace_PML = PmlBC<
-  Array,
-  curl<Derivative::NoOp, Forward, IDXS...>,
-  curl<Derivative::DY, Forward, IDXS...>,
-  dPML,
-  IDXS...
+template<typename T, EMSide S>
+using PML_XFace1D = FaceBCs<
+  /* Ex */ NullData,
+  /* Ey */ NullData,
+  /* Ez */ PMLData<Array1D<T>, EMFace::X, S>,
+  /* Hx */ NullData,
+  /* Hy */ PMLData<Array1D<T>, EMFace::X, S>,
+  /* Hz */ NullData
 >;
 
-template<typename Array, bool Forward, typename... IDXS>
-using ExHx_YFace_PML = PmlBC<
-  Array,
-  curl<Derivative::NoOp, Forward, IDXS...>,
-  curl<Derivative::DZ, Forward, IDXS...>,
-  dPML,
-  IDXS...
+template<typename T, EMSide S>
+using PML_XFaceTM = FaceBCs<
+  /* Ex */ NullData,
+  /* Ey */ NullData,
+  /* Ez */ PMLData<Array2D<T>, EMFace::X, S>,
+  /* Hx */ NullData,
+  /* Hy */ PMLData<Array2D<T>, EMFace::X, S>,
+  /* Hz */ NullData
+>;
+template<typename T, EMSide S>
+using PML_XFaceTE = FaceBCs<
+  /* Ex */ NullData,
+  /* Ey */ PMLData<Array2D<T>, EMFace::X, S>,
+  /* Ez */ NullData,
+  /* Hx */ NullData,
+  /* Hy */ NullData,
+  /* Hz */ PMLData<Array2D<T>, EMFace::X, S>
 >;
 
-template<typename Array, bool Forward, typename... IDXS>
-using EzHz_YFace_PML = PmlBC<
-  Array,
-  curl<Derivative::DX, Forward, IDXS...>,
-  curl<Derivative::NoOp, Forward, IDXS...>,
-  dPML,
-  IDXS...
->;
-
-template<typename Array, bool Forward, typename... IDXS>
-using ExHx_ZFace_PML = PmlBC<
-  Array,
-  curl<Derivative::DY, Forward, IDXS...>,
-  curl<Derivative::NoOp, Forward, IDXS...>,
-  dPML,
-  IDXS...
->;
-
-template<typename Array, bool Forward, typename... IDXS>
-using EyHy_ZFace_PML = PmlBC<
-  Array,
-  curl<Derivative::NoOp, Forward, IDXS...>,
-  curl<Derivative::DX, Forward, IDXS...>,
-  dPML,
-  IDXS...
->;
-
-template<typename Array, bool Forward, typename... IDXS>
-using XFaceTL = TypeList<
-  EyHy_XFace_PML<Array, Forward, IDXS...>,
-  EzHz_XFace_PML<Array, Forward, IDXS...>,
-  PeriodicBC<Array, EMFace::X, nHalo, IDXS...>,
-  ReflectingBC<Array>
->;
-
-template<typename Array, bool Forward, typename... IDXS>
-using YFaceTL = TypeList<
-  ExHx_YFace_PML<Array, Forward, IDXS...>,
-  EzHz_YFace_PML<Array, Forward, IDXS...>,
-  PeriodicBC<Array, EMFace::Y, nHalo, IDXS...>,
-  ReflectingBC<Array>
->;
-
-template<typename Array, bool Forward, typename... IDXS>
-using ZFaceTL = TypeList<
-  ExHx_ZFace_PML<Array, Forward, IDXS...>,
-  EyHy_ZFace_PML<Array, Forward, IDXS...>,
-  PeriodicBC<Array, EMFace::Z, nHalo, IDXS...>,
-  ReflectingBC<Array>
+template<typename T, EMSide S>
+using PML_XFace3D = FaceBCs<
+  /* Ex */ NullData,
+  /* Ey */ PMLData<Array3D<T>, EMFace::X, S>,
+  /* Ez */ PMLData<Array3D<T>, EMFace::X, S>,
+  /* Hx */ NullData,
+  /* Hy */ PMLData<Array3D<T>, EMFace::X, S>,
+  /* Hz */ PMLData<Array3D<T>, EMFace::X, S>
 >;
 
 
-template<size_t I, typename T>
-using X0Face_1D = BCIntegrator1D<TypeListAt<I, XFaceTL<Array1D<T>, false, size_t>>>;
-
-template<size_t I, typename T>
-using X1Face_1D = BCIntegrator1D<TypeListAt<I, XFaceTL<Array1D<T>, false, size_t>>>;
-
-template<typename T>
-using BoundariesTL = TypeList<
-  X0Face_1D<1, T>, // Ez X0
-  X1Face_1D<1, T>  // Ez X1
+template<typename T, EMSide S>
+using PML_YFaceTM = FaceBCs<
+  /* Ex */ NullData,
+  /* Ey */ NullData,
+  /* Ez */ PMLData<Array2D<T>, EMFace::Y, S>,
+  /* Hx */ PMLData<Array2D<T>, EMFace::Y, S>,
+  /* Hy */ NullData,
+  /* Hz */ NullData
 >;
+
+template<typename T, EMSide S>
+using PML_YFaceTE = FaceBCs<
+  /* Ex */ PMLData<Array2D<T>, EMFace::Y, S>,
+  /* Ey */ NullData,
+  /* Ez */ NullData,
+  /* Hx */ NullData,
+  /* Hy */ NullData,
+  /* Hz */ PMLData<Array2D<T>, EMFace::Y, S>
+>;
+
+template<typename T, EMSide S>
+using PML_YFace3D = FaceBCs<
+  /* Ex */ PMLData<Array3D<T>, EMFace::Y, S>,
+  /* Ey */ NullData,
+  /* Ez */ PMLData<Array3D<T>, EMFace::Y, S>,
+  /* Hx */ PMLData<Array3D<T>, EMFace::Y, S>,
+  /* Hy */ NullData,
+  /* Hz */ PMLData<Array3D<T>, EMFace::Y, S>
+>;
+
+template<typename T, EMSide S>
+using PML_ZFace3D = FaceBCs<
+  /* Ex */ PMLData<Array3D<T>, EMFace::Y, S>,
+  /* Ey */ PMLData<Array3D<T>, EMFace::Y, S>,
+  /* Ez */ NullData,
+  /* Hx */ PMLData<Array3D<T>, EMFace::Y, S>,
+  /* Hy */ PMLData<Array3D<T>, EMFace::Y, S>,
+  /* Hz */ NullData
+>;
+
+template<typename T, EMFace F, EMSide S>
+using Periodic_Face1D = FaceBCs<
+  /* Ex */ NullData,
+  /* Ey */ NullData,
+  /* Ez */ PeriodicData<Array1D<T>, F, S>,
+  /* Hx */ NullData,
+  /* Hy */ PeriodicData<Array1D<T>, F, S>,
+  /* Hz */ NullData
+>;
+
+template<typename T, EMFace F, EMSide S>
+using Periodic_FaceTM = FaceBCs<
+  /* Ex */ NullData,
+  /* Ey */ NullData,
+  /* Ez */ NullData,
+  /* Hx */ PeriodicData<Array2D<T>, F, S>,
+  /* Hy */ PeriodicData<Array2D<T>, F, S>,
+  /* Hz */ NullData
+>;
+
+template<typename T, EMFace F, EMSide S>
+using Periodic_FaceTE = FaceBCs<
+  /* Ex */ NullData,
+  /* Ey */ NullData,
+  /* Ez */ NullData,
+  /* Hx */ NullData,
+  /* Hy */ NullData,
+  /* Hz */ PeriodicData<Array2D<T>, F, S>
+>;
+
+template<typename T, EMFace F, EMSide S>
+using Periodic_Face3D = FaceBCs<
+  /* Ex */ NullData,
+  /* Ey */ NullData,
+  /* Ez */ NullData,
+  /* Hx */ PeriodicData<Array3D<T>, F, S>,
+  /* Hy */ PeriodicData<Array3D<T>, F, S>,
+  /* Hz */ PeriodicData<Array3D<T>, F, S>
+>;
+
+
+
+
+
+
 
 #endif //EM_DEFINITIONS_H
