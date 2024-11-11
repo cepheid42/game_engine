@@ -16,14 +16,33 @@ using tf::types::Array1D;
 using tf::types::Array2D;
 using tf::types::Array3D;
 
+template<typename Array>
 struct NullData {
+  using array_t = Array;
+  using value_t = typename Array::value_t;
+  using dimension_t = typename Array::dimension_t;
+
   explicit NullData(const auto&) {}
+};
+
+template<typename Array, EMFace F, EMSide S>
+struct PeriodicData {
+  using array_t = Array;
+  using value_t = typename Array::value_t;
+  using dimension_t = typename Array::dimension_t;
+
+  explicit PeriodicData(const Array& f)
+  : offsets{get_offsets<F, S, nHalo>(f)}
+  {}
+
+  IntegratorOffsets offsets;
 };
 
 template<typename Array, EMFace F, EMSide S>
 struct PMLData {
   using array_t = Array;
   using value_t = typename Array::value_t;
+  using dimension_t = typename Array::dimension_t;
 
   explicit PMLData(const Array& f) requires (F == EMFace::X)
   : offsets{get_offsets<F, S, dPML>(f)},
@@ -52,17 +71,12 @@ struct PMLData {
   std::vector<value_t> c;
 };
 
-template<typename Array, EMFace F, EMSide S>
-struct PeriodicData {
-  explicit PeriodicData(const Array& f)
-  : offsets{get_offsets<F, S, nHalo>(f)}
-  {}
-
-  IntegratorOffsets offsets;
-};
 
 template<typename ex_t, typename ey_t, typename ez_t, typename hx_t, typename hy_t, typename hz_t>
 struct FaceBCs {
+  using value_t = typename ex_t::value_t;
+  using dimension_t = typename ex_t::dimension_t;
+
   explicit FaceBCs(const auto& emdata)
   : Ex{emdata.Ex},
     Ey{emdata.Ey},
@@ -82,6 +96,8 @@ struct FaceBCs {
 
 template<typename X0BC, typename X1BC, typename Y0BC, typename Y1BC, typename Z0BC, typename Z1BC>
 struct BCData {
+  using value_t = typename X0BC::value_t;
+  using dimension_t = typename X0BC::dimension_t;
 
   explicit BCData(const auto& emdata)
   : x0{emdata},

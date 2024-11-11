@@ -14,21 +14,25 @@
 
 //=================== Field Functors ========================
 //===========================================================
-template<Derivative ACURL, Derivative BCURL, bool Forward, typename... IDXS>
+template<Derivative CURL1, Derivative CURL2, bool Forward, typename... IDXS>
 struct FieldUpdate {
-  using curl1 = curl<ACURL, Forward, IDXS...>;
-  using curl2 = curl<BCURL, Forward, IDXS...>;
+  using CurlA = curl<CURL1, Forward, IDXS...>;
+  using CurlB = curl<CURL2, Forward, IDXS...>;
 
   static void apply(auto& f, const auto& d1, const auto& d2, const auto& j, const auto& c_f, const auto& c_d, const auto& c_j, IDXS... idxs) {
     const auto    self = c_f(idxs...) * f(idxs...);
-    const auto   diff1 = curl1::apply(d1, idxs...);
-    const auto   diff2 = curl2::apply(d2, idxs...);
+    const auto   diff1 = CurlA::apply(d1, idxs...);
+    const auto   diff2 = CurlB::apply(d2, idxs...);
     const auto    diff = c_d(idxs...) * (diff1 - diff2);
     const auto current = c_j(idxs...) * j(idxs...);
     f(idxs...) = self + diff - current;
   }
 };
 
+
+/*
+ * todo: could these be merged into one Integrator? Make y1/z1 be 1 so the loops all run at least once?
+ */
 template<typename T, typename UpdateFunctor>
 struct FieldIntegrator1D {
   using value_t = typename T::value_t;
