@@ -113,6 +113,40 @@ struct Electromagnetics {
   using HyX0BC = TypeListAt<4, X0BC>;
   using HzX0BC = TypeListAt<5, X0BC>;
 
+  using ExX1BC = TypeListAt<0, X1BC>;
+  using EyX1BC = TypeListAt<1, X1BC>;
+  using EzX1BC = TypeListAt<2, X1BC>;
+  using HxX1BC = TypeListAt<3, X1BC>;
+  using HyX1BC = TypeListAt<4, X1BC>;
+  using HzX1BC = TypeListAt<5, X1BC>;
+
+  using ExY0BC = TypeListAt<0, Y0BC>;
+  using EyY0BC = TypeListAt<1, Y0BC>;
+  using EzY0BC = TypeListAt<2, Y0BC>;
+  using HxY0BC = TypeListAt<3, Y0BC>;
+  using HyY0BC = TypeListAt<4, Y0BC>;
+  using HzY0BC = TypeListAt<5, Y0BC>;
+
+  using ExY1BC = TypeListAt<0, Y1BC>;
+  using EyY1BC = TypeListAt<1, Y1BC>;
+  using EzY1BC = TypeListAt<2, Y1BC>;
+  using HxY1BC = TypeListAt<3, Y1BC>;
+  using HyY1BC = TypeListAt<4, Y1BC>;
+  using HzY1BC = TypeListAt<5, Y1BC>;
+
+  using ExZ0BC = TypeListAt<0, Z0BC>;
+  using EyZ0BC = TypeListAt<1, Z0BC>;
+  using EzZ0BC = TypeListAt<2, Z0BC>;
+  using HxZ0BC = TypeListAt<3, Z0BC>;
+  using HyZ0BC = TypeListAt<4, Z0BC>;
+  using HzZ0BC = TypeListAt<5, Z0BC>;
+
+  using ExZ1BC = TypeListAt<0, Z1BC>;
+  using EyZ1BC = TypeListAt<1, Z1BC>;
+  using EzZ1BC = TypeListAt<2, Z1BC>;
+  using HxZ1BC = TypeListAt<3, Z1BC>;
+  using HyZ1BC = TypeListAt<4, Z1BC>;
+  using HzZ1BC = TypeListAt<5, Z1BC>;
 
   static void updateE(auto& emdata) {
     EXI::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexh, emdata.Cjx, one_offsets);
@@ -131,6 +165,26 @@ struct Electromagnetics {
     ExX0BC::apply();
     EyX0BC::apply();
     EzX0BC::apply();
+
+    ExX1BC::apply();
+    EyX1BC::apply();
+    EzX1BC::apply();
+
+    ExY0BC::apply();
+    EyY0BC::apply();
+    EzY0BC::apply();
+
+    ExY1BC::apply();
+    EyY1BC::apply();
+    EzY1BC::apply();
+
+    ExZ0BC::apply();
+    EyZ0BC::apply();
+    EzZ0BC::apply();
+
+    ExZ1BC::apply();
+    EyZ1BC::apply();
+    EzZ1BC::apply();
   }
 
   static void updateH_bcs(auto& emdata, auto& bcdata) {
@@ -138,6 +192,26 @@ struct Electromagnetics {
     HxX0BC::apply();
     HyX0BC::apply();
     HzX0BC::apply();
+
+    HxX1BC::apply();
+    HyX1BC::apply();
+    HzX1BC::apply();
+
+    HxY0BC::apply();
+    HyY0BC::apply();
+    HzY0BC::apply();
+
+    HxY1BC::apply();
+    HyY1BC::apply();
+    HzY1BC::apply();
+
+    HxZ0BC::apply();
+    HyZ0BC::apply();
+    HzZ0BC::apply();
+
+    HxZ1BC::apply();
+    HyZ1BC::apply();
+    HzZ1BC::apply();
   }
 
 

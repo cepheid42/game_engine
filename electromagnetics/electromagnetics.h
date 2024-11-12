@@ -8,11 +8,11 @@
 #include "em_definitions.h"
 #include "bc_definitions.h"
 
-inline constexpr size_t SELECT_EMDATA = 1; // todo: these can be combined into one value?
-inline constexpr size_t SELECT_EMSOLVER = 1;
+inline constexpr size_t SELECT_EMDATA = 2; // todo: these can be combined into one value?
+inline constexpr size_t SELECT_EMSOLVER = 2;
 
-static constexpr size_t SELECT_BCDATA[6] = {1, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
-static constexpr size_t SELECT_BCSOLVER[6] = {2, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+static constexpr size_t SELECT_BCDATA[6] = {2, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+static constexpr size_t SELECT_BCSOLVER[6] = {2, 0, 2, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
 
 // using fp_t = double;
 // constexpr size_t DIM = 1;
@@ -94,7 +94,6 @@ using EMTypeTL = TypeList<
 
 template<typename T>
 using EMType = TypeListAt<SELECT_EMSOLVER, EMTypeTL<emdata_t<T>>>; // Selects desired typelist of integrators
-
 
 template<typename T>
 using EMSolver = Electromagnetics<

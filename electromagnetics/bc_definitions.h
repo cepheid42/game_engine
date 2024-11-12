@@ -114,7 +114,6 @@ using Periodic_Face1D = FaceBCs<
 >;
 
 template<typename T, EMFace F, EMSide S>
-// requires (F == EMFace::X or F == EMFace::Y)
 using Periodic_FaceTM = FaceBCs<
   /* Ex */ NullData<EmptyArray2D<T>>,
   /* Ey */ NullData<EmptyArray2D<T>>,
@@ -125,7 +124,6 @@ using Periodic_FaceTM = FaceBCs<
 >;
 
 template<typename T, EMFace F, EMSide S>
-// requires (F == EMFace::X or F == EMFace::Y)
 using Periodic_FaceTE = FaceBCs<
   /* Ex */ NullData<EmptyArray2D<T>>,
   /* Ey */ NullData<EmptyArray2D<T>>,

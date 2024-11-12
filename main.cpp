@@ -8,14 +8,6 @@
 
 #include "electromagnetics/electromagnetics.h"
 
-template<typename T>
-T sqr(T x) { return x * x; }
-
-template<typename T>
-void print_type() {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
-}
-
 template<typename Array>
 void to_csv(const Array& arr, const size_t step, const std::string& name) {
   std::string count_padded = std::to_string(step);
@@ -88,7 +80,7 @@ fp_t ricker(fp_t q) {
   constexpr auto Np = 20.0;
   constexpr auto Md = 1.0;
 
-  const auto alpha = sqr(M_PI * (cfl * q / Np - Md));
+  const auto alpha = (M_PI * (cfl * q / Np - Md)) * (M_PI * (cfl * q / Np - Md));
 
   return (1.0 - 2.0 * alpha) * std::exp(-alpha);
   // return std::exp(-sqr((q - 30.0) / 10.0));
@@ -96,12 +88,15 @@ fp_t ricker(fp_t q) {
 
 int main() {
   constexpr size_t nx = 100u + 2 * dPML + 2 * nHalo;
-  // constexpr size_t ny = 10u + 2 * dPML + 2 * nHalo;
+  constexpr size_t ny = 100u + 2 * dPML + 2 * nHalo;
   // constexpr size_t nz = 10u + 2 * dPML + 2 * nHalo;
-  constexpr size_t nt = 400u;
+  // constexpr size_t nt = 400u;
 
 
-  emdata_t<double> em{nx, cfl};
+  // emdata_t<double> em{nx, cfl};
+  // bcdata_t<double> bc{em};
+
+  emdata_t<double> em{nx, ny, cfl};
   bcdata_t<double> bc{em};
 
   EMSolver<fp_t>::advance(em, bc);

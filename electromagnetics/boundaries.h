@@ -5,8 +5,10 @@
 #ifndef BOUNDARIES_H
 #define BOUNDARIES_H
 
+#include <string>
+
 #include "electromagnetics.param"
-#include "em_traits.h"
+// #include "em_traits.h"
 
 
 //====== 1D Boundaries ========
@@ -21,15 +23,14 @@
 template<typename... IDXS>
 struct PeriodicBC {
 
-  template<typename ARR>
-  static void apply(ARR& f1, const size_t i) {
-    DBG("PeriodicBC::apply()");
-    const auto numInterior = f1.nx() - (2 * nHalo);
-    const auto hi_idx = (f1.nx() - 1) - nHalo;
-    const auto pm = i % numInterior;
-
-    f1[nHalo - 1 - i] = f1[hi_idx - pm];
-    f1[hi_idx + 1 + i] = f1[nHalo + pm];
+  static void apply(const std::string& msg) {
+    DBG("PeriodicBC::apply(" + msg + ")");
+    // const auto numInterior = f1.nx() - (2 * nHalo);
+    // const auto hi_idx = (f1.nx() - 1) - nHalo;
+    // const auto pm = i % numInterior;
+    //
+    // f1[nHalo - 1 - i] = f1[hi_idx - pm];
+    // f1[hi_idx + 1 + i] = f1[nHalo + pm];
   }
 
 };
@@ -39,8 +40,8 @@ struct PmlBC {
   using CurlA = curl<CURL1, Forward, IDXS...>;
   using CurlB = curl<CURL2, Forward, IDXS...>;
 
-  static void apply(auto& f1, size_t i) {
-    DBG("PMLBC::apply()");
+  static void apply() requires (sizeof...(IDXS) == 2) {
+    DBG("PMLBC_2D::apply()");
   }
 
 };
@@ -52,7 +53,7 @@ struct BCIntegratorNull {
   using dimension_t = typename T::dimension_t;
   using array_t = EmptyArray<value_t, dimension_t::value>;
 
-  static constexpr void apply() { DBG("BCIntegratorNull::apply()"); }
+  static constexpr void apply(const std::string& msg) { DBG("BCIntegratorNull::apply(" + msg + ")"); }
 };
 
 template<typename T, typename UpdateFunctor>
@@ -62,8 +63,8 @@ struct BCIntegrator1D {
   using dimension_t = typename T::dimension_t;
   using array_t = Array1D<value_t>;
 
-  static void apply() {
-    DBG("BCIntegrator1D::apply()");
+  static void apply(const std::string& msg) {
+    DBG("BCIntegrator1D::apply(" + msg + ")");
     // for (size_t i = o.x0; i < o.x1; ++i) {
     //   update_t::apply(f1, i);
     // }
@@ -77,10 +78,9 @@ struct BCIntegrator2D {
   using dimension_t = typename T::dimension_t;
   using array_t = Array2D<value_t>;
 
-  static constexpr size_t bc_depth = UpdateFunctor::bc_depth;
-
-  static void apply() {
-    DBG("BCIntegrator2D::apply()");
+  static void apply(const std::string& msg) {
+    DBG("BCIntegrator2D::apply(" + msg + ")" );
+    update_t::apply(msg);
     // for (size_t i = f1.offsets.x0; i < f1.offsets.x1; ++i) {
     //   for (size_t j = f1.offsets.y0; j < f1.offsets.y1; ++j) {
     //     update_t::apply(f1, i, j);
@@ -95,8 +95,6 @@ struct BCIntegrator3D {
   using value_t = typename update_t::value_t;
   using dimension_t = typename update_t::dimension_t;
   using array_t = Array3D<value_t>;
-
-  static constexpr size_t bc_depth = UpdateFunctor::bc_depth;
 
   static void apply() {
     DBG("BCIntegrator3D::apply()");
