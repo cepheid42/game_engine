@@ -12,7 +12,7 @@
 #include "boundaries.h"
 
 //=================== BCData Definitions ===================
-//===========================================================================
+//==========================================================
 template<typename T, EMSide>
 using Reflecting_Face = FaceBCs<
   /* Ex */ NullData<EmptyArray1D<T>>,
@@ -158,7 +158,7 @@ using BCReflecting = TypeList<
 >;
 
 template<typename T>
-using BC1DPeriodic = TypeList<
+using BCPeriodic1D = TypeList<
   /* Ex */ BCIntegratorNull<T>,
   /* Ey */ BCIntegratorNull<T>,
   /* Ez */ BCIntegratorNull<T>,
@@ -168,7 +168,37 @@ using BC1DPeriodic = TypeList<
 >;
 
 template<typename T>
-using BC1DPml = TypeList<
+using BCPeriodicTM = TypeList<
+  /* Ex */ BCIntegratorNull<T>,
+  /* Ey */ BCIntegratorNull<T>,
+  /* Ez */ BCIntegrator2D<T, PeriodicBC<size_t, size_t>>,
+  /* Hx */ BCIntegrator2D<T, PeriodicBC<size_t, size_t>>,
+  /* Hy */ BCIntegrator2D<T, PeriodicBC<size_t, size_t>>,
+  /* Hz */ BCIntegratorNull<T>
+>;
+
+template<typename T>
+using BCPeriodicTE = TypeList<
+  /* Ex */ BCIntegrator2D<T, PeriodicBC<size_t, size_t>>,
+  /* Ey */ BCIntegrator2D<T, PeriodicBC<size_t, size_t>>,
+  /* Ez */ BCIntegratorNull<T>,
+  /* Hx */ BCIntegratorNull<T>,
+  /* Hy */ BCIntegratorNull<T>,
+  /* Hz */ BCIntegrator2D<T, PeriodicBC<size_t, size_t>>
+>;
+
+template<typename T>
+using BCPeriodic3D = TypeList<
+  /* Ex */ BCIntegrator3D<T, PeriodicBC<size_t, size_t, size_t>>,
+  /* Ey */ BCIntegrator3D<T, PeriodicBC<size_t, size_t, size_t>>,
+  /* Ez */ BCIntegrator3D<T, PeriodicBC<size_t, size_t, size_t>>,
+  /* Hx */ BCIntegrator3D<T, PeriodicBC<size_t, size_t, size_t>>,
+  /* Hy */ BCIntegrator3D<T, PeriodicBC<size_t, size_t, size_t>>,
+  /* Hz */ BCIntegrator3D<T, PeriodicBC<size_t, size_t, size_t>>
+>;
+
+template<typename T>
+using BCPml1D = TypeList<
   /* Ex */ BCIntegratorNull<T>,
   /* Ey */ BCIntegratorNull<T>,
   /* Ez */ BCIntegrator1D<T, PmlBC<Derivative::DX, Derivative::NoOp, false, size_t>>,
@@ -176,5 +206,76 @@ using BC1DPml = TypeList<
   /* Hy */ BCIntegrator1D<T, PmlBC<Derivative::NoOp, Derivative::DX, true, size_t>>,
   /* Hz */ BCIntegratorNull<T>
 >;
+
+template<typename T>
+using BCPmlTM_XFace = TypeList<
+  /* Ex */ BCIntegratorNull<T>,
+  /* Ey */ BCIntegratorNull<T>,
+  /* Ez */ BCIntegrator2D<T, PmlBC<Derivative::DX, Derivative::NoOp, false, size_t, size_t>>,
+  /* Hx */ BCIntegratorNull<T>,
+  /* Hy */ BCIntegrator2D<T, PmlBC<Derivative::NoOp, Derivative::DX, true, size_t, size_t>>,
+  /* Hz */ BCIntegratorNull<T>
+>;
+
+template<typename T>
+using BCPmlTM_YFace = TypeList<
+  /* Ex */ BCIntegratorNull<T>,
+  /* Ey */ BCIntegratorNull<T>,
+  /* Ez */ BCIntegrator2D<T, PmlBC<Derivative::NoOp, Derivative::DY, false, size_t, size_t>>,
+  /* Hx */ BCIntegrator2D<T, PmlBC<Derivative::DY, Derivative::NoOp, true, size_t, size_t>>,
+  /* Hy */ BCIntegratorNull<T>,
+  /* Hz */ BCIntegratorNull<T>
+>;
+
+template<typename T>
+using BCPmlTE_XFace = TypeList<
+  /* Ex */ BCIntegratorNull<T>,
+  /* Ey */ BCIntegrator2D<T, PmlBC<Derivative::NoOp, Derivative::DX, false, size_t, size_t>>,
+  /* Ez */ BCIntegratorNull<T>,
+  /* Hx */ BCIntegratorNull<T>,
+  /* Hy */ BCIntegratorNull<T>,
+  /* Hz */ BCIntegrator2D<T, PmlBC<Derivative::DX, Derivative::NoOp, true, size_t, size_t>>
+>;
+
+template<typename T>
+using BCPmlTE_YFace = TypeList<
+  /* Ex */ BCIntegrator2D<T, PmlBC<Derivative::DY, Derivative::NoOp, false, size_t, size_t>>,
+  /* Ey */ BCIntegratorNull<T>,
+  /* Ez */ BCIntegratorNull<T>,
+  /* Hx */ BCIntegratorNull<T>,
+  /* Hy */ BCIntegratorNull<T>,
+  /* Hz */ BCIntegrator2D<T, PmlBC<Derivative::NoOp, Derivative::DY, true, size_t, size_t>>
+>;
+
+template<typename T>
+using BCPml3D_XFace = TypeList<
+  /* Ex */ BCIntegratorNull<T>,
+  /* Ey */ BCIntegrator3D<T, PmlBC<Derivative::NoOp, Derivative::DX, false, size_t, size_t, size_t>>,
+  /* Ez */ BCIntegrator3D<T, PmlBC<Derivative::DX, Derivative::NoOp, false, size_t, size_t, size_t>>,
+  /* Hx */ BCIntegratorNull<T>,
+  /* Hy */ BCIntegrator3D<T, PmlBC<Derivative::NoOp, Derivative::DX, true, size_t, size_t, size_t>>,
+  /* Hz */ BCIntegrator3D<T, PmlBC<Derivative::DX, Derivative::NoOp, true, size_t, size_t, size_t>>
+>;
+
+template<typename T>
+using BCPml3D_YFace = TypeList<
+  /* Ex */ BCIntegrator3D<T, PmlBC<Derivative::DY, Derivative::NoOp, false, size_t, size_t, size_t>>,
+  /* Ey */ BCIntegratorNull<T>,
+  /* Ez */ BCIntegrator3D<T, PmlBC<Derivative::NoOp, Derivative::DY, false, size_t, size_t, size_t>>,
+  /* Hx */ BCIntegrator3D<T, PmlBC<Derivative::DY, Derivative::NoOp, true, size_t, size_t, size_t>>,
+  /* Hy */ BCIntegratorNull<T>,
+  /* Hz */ BCIntegrator3D<T, PmlBC<Derivative::NoOp, Derivative::DY, true, size_t, size_t, size_t>>
+>;
+
+template<typename T>
+using BCPml3D_ZFace = TypeList<
+  /* Ex */ BCIntegrator3D<T, PmlBC<Derivative::NoOp, Derivative::DZ, false, size_t, size_t, size_t>>,
+  /* Ey */ BCIntegrator3D<T, PmlBC<Derivative::DZ, Derivative::NoOp, false, size_t, size_t, size_t>>,
+  /* Ez */ BCIntegratorNull<T>,
+  /* Hx */ BCIntegrator3D<T, PmlBC<Derivative::NoOp, Derivative::DZ, true, size_t, size_t, size_t>>,
+  /* Hy */ BCIntegrator3D<T, PmlBC<Derivative::DZ, Derivative::NoOp, true, size_t, size_t, size_t>>,
+  /* Hz */ BCIntegratorNull<T>
+>;
+
 
 #endif //BC_DEFINITIONS_H

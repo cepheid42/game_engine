@@ -92,42 +92,60 @@ struct FieldIntegratorNull {
 };
 
 
-template<typename EIX, typename EIY, typename EIZ,
-         typename HIX, typename HIY, typename HIZ,
-         typename X0BC>
+template<typename EXI, typename EYI, typename EZI,
+         typename HXI, typename HYI, typename HZI,
+         typename X0BC, typename X1BC,
+         typename Y0BC, typename Y1BC,
+         typename Z0BC, typename Z1BC>
 struct Electromagnetics {
-  using value_t = typename EIX::value_t;
-  using dimension_t = typename EIX::dimension_t;
+  using value_t = typename EXI::value_t;
+  using dimension_t = typename EXI::dimension_t;
   using empty_t = EmptyArray<value_t, dimension_t::value>;
 
   static constexpr empty_t empty{};
   static constexpr IntegratorOffsets one_offsets{1, 1, 1, 1, 1, 1};
   static constexpr IntegratorOffsets zero_offsets{0, 0, 0, 0, 0, 0};
 
-  static void updateE(auto& emdata, auto& bcdata) {
-    EIX::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexh, emdata.Cjx, one_offsets);
-    EIY::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyh, emdata.Cjy, one_offsets);
-    EIZ::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezh, emdata.Cjz, one_offsets);
+  using ExX0BC = TypeListAt<0, X0BC>;
+  using EyX0BC = TypeListAt<1, X0BC>;
+  using EzX0BC = TypeListAt<2, X0BC>;
+  using HxX0BC = TypeListAt<3, X0BC>;
+  using HyX0BC = TypeListAt<4, X0BC>;
+  using HzX0BC = TypeListAt<5, X0BC>;
+
+
+  static void updateE(auto& emdata) {
+    EXI::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexh, emdata.Cjx, one_offsets);
+    EYI::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyh, emdata.Cjy, one_offsets);
+    EZI::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezh, emdata.Cjz, one_offsets);
   }
 
-  static void updateH(auto& emdata, auto& bcdata) {
-    HIX::apply(emdata.Hx, emdata.Ey, emdata.Ez, empty, emdata.Chxh, emdata.Chxe, empty, zero_offsets);
-    HIY::apply(emdata.Hy, emdata.Ez, emdata.Ex, empty, emdata.Chyh, emdata.Chye, empty, zero_offsets);
-    HIZ::apply(emdata.Hz, emdata.Ex, emdata.Ey, empty, emdata.Chzh, emdata.Chze, empty, zero_offsets);
+  static void updateH(auto& emdata) {
+    HXI::apply(emdata.Hx, emdata.Ey, emdata.Ez, empty, emdata.Chxh, emdata.Chxe, empty, zero_offsets);
+    HYI::apply(emdata.Hy, emdata.Ez, emdata.Ex, empty, emdata.Chyh, emdata.Chye, empty, zero_offsets);
+    HZI::apply(emdata.Hz, emdata.Ex, emdata.Ey, empty, emdata.Chzh, emdata.Chze, empty, zero_offsets);
   }
 
-  static void updateE_bcs(auto& emdata, auto& bcdata) {}
+  static void updateE_bcs(auto& emdata, auto& bcdata) {
+    DBG("updateE_bcs()");
+    ExX0BC::apply();
+    EyX0BC::apply();
+    EzX0BC::apply();
+  }
 
   static void updateH_bcs(auto& emdata, auto& bcdata) {
-    X0BC::apply(emdata.Hy, bcdata.x0.Hy.offsets);
+    DBG("updateH_bcs()");
+    HxX0BC::apply();
+    HyX0BC::apply();
+    HzX0BC::apply();
   }
 
 
   static void advance(auto& emdata, auto& bcdata) {
-    updateH(emdata, bcdata);
+    updateH(emdata);
     updateH_bcs(emdata, bcdata);
 
-    updateE(emdata, bcdata);
+    updateE(emdata);
     updateE_bcs(emdata, bcdata);
   }
 };

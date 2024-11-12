@@ -11,8 +11,8 @@
 inline constexpr size_t SELECT_EMDATA = 1; // todo: these can be combined into one value?
 inline constexpr size_t SELECT_EMSOLVER = 1;
 
-static constexpr size_t SELECT_BCDATA[6] = {8, 12, 12, 12, 12, 12}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
-static constexpr size_t SELECT_BCSOLVER[6] = {1, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+static constexpr size_t SELECT_BCDATA[6] = {1, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+static constexpr size_t SELECT_BCSOLVER[6] = {2, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
 
 // using fp_t = double;
 // constexpr size_t DIM = 1;
@@ -22,19 +22,19 @@ static constexpr size_t SELECT_BCSOLVER[6] = {1, 0, 0, 0, 0, 0}; // Xlo, Xhi, Yl
 //====================================================================
 template<typename T, EMFace F, EMSide S>
 using BCFaceTL = TypeList<
-  PML_XFace1D<T, S>,        // 0
-  PML_XFaceTM<T, S>,        // 1
-  PML_XFaceTE<T, S>,        // 2
-  PML_XFace3D<T, S>,        // 3
-  PML_YFaceTM<T, S>,        // 4
-  PML_YFaceTE<T, S>,        // 5
-  PML_YFace3D<T, S>,        // 6
-  PML_ZFace3D<T, S>,        // 7
-  Periodic_Face1D<T, F, S>, // 8
-  Periodic_FaceTM<T, F, S>, // 9
-  Periodic_FaceTE<T, F, S>, // 10
-  Periodic_Face3D<T, F, S>, // 11
-  Reflecting_Face<T, S>     // 12
+  Reflecting_Face<T, S>,    // 0
+  Periodic_Face1D<T, F, S>, // 1
+  Periodic_FaceTM<T, F, S>, // 2
+  Periodic_FaceTE<T, F, S>, // 3
+  Periodic_Face3D<T, F, S>, // 4
+  PML_XFace1D<T, S>,        // 5
+  PML_XFaceTM<T, S>,        // 6
+  PML_XFaceTE<T, S>,        // 7
+  PML_XFace3D<T, S>,        // 8
+  PML_YFaceTM<T, S>,        // 9
+  PML_YFaceTE<T, S>,        // 10
+  PML_YFace3D<T, S>,        // 11
+  PML_ZFace3D<T, S>         // 12
 >;
 
 template<typename T>
@@ -50,9 +50,19 @@ using bcdata_t = BCData<
 
 template<typename T>
 using BCTypeTL = TypeList<
-  BCReflecting<T>,
-  BC1DPeriodic<T>,
-  BC1DPml<T>
+  BCReflecting<T>,  // 0
+  BCPeriodic1D<T>,  // 1
+  BCPeriodicTM<T>,  // 2
+  BCPeriodicTE<T>,  // 3
+  BCPeriodic3D<T>,  // 4
+  BCPml1D<T>,       // 5
+  BCPmlTM_XFace<T>, // 6
+  BCPmlTM_YFace<T>, // 7
+  BCPmlTE_XFace<T>, // 8
+  BCPmlTE_YFace<T>, // 9
+  BCPml3D_XFace<T>, // 10
+  BCPml3D_YFace<T>, // 11
+  BCPml3D_ZFace<T>  // 12
 >;
 
 template<size_t I, typename T>
@@ -94,7 +104,12 @@ using EMSolver = Electromagnetics<
   TypeListAt<3, EMType<T>>, // Hx
   TypeListAt<4, EMType<T>>, // Hy
   TypeListAt<5, EMType<T>>, // Hz,
-  TypeListAt<4, BCType<SELECT_BCSOLVER[0], T>> // X0 Face
+  BCType<SELECT_BCSOLVER[0], T>, // X0 Face
+  BCType<SELECT_BCSOLVER[1], T>, // X1 Face
+  BCType<SELECT_BCSOLVER[2], T>, // Y0 Face
+  BCType<SELECT_BCSOLVER[3], T>, // Y1 Face
+  BCType<SELECT_BCSOLVER[4], T>, // Z0 Face
+  BCType<SELECT_BCSOLVER[5], T>  // Z1 Face
 >; // Auto-selects full BC's per face and EMSolver per field component based on chosen settings.
 
 #endif //ELECTROMAGNETICS_H

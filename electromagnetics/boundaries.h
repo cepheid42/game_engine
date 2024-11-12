@@ -52,7 +52,7 @@ struct BCIntegratorNull {
   using dimension_t = typename T::dimension_t;
   using array_t = EmptyArray<value_t, dimension_t::value>;
 
-  static constexpr void apply() {}
+  static constexpr void apply() { DBG("BCIntegratorNull::apply()"); }
 };
 
 template<typename T, typename UpdateFunctor>
@@ -62,58 +62,52 @@ struct BCIntegrator1D {
   using dimension_t = typename T::dimension_t;
   using array_t = Array1D<value_t>;
 
-  // static constexpr size_t bc_depth = update_t::bc_depth;
-
-  static void apply(auto& f1, const auto& o) {
+  static void apply() {
     DBG("BCIntegrator1D::apply()");
-    for (size_t i = o.x0; i < o.x1; ++i) {
-      update_t::apply(f1, i);
-    }
+    // for (size_t i = o.x0; i < o.x1; ++i) {
+    //   update_t::apply(f1, i);
+    // }
   }
 };
 
-template<typename UpdateFunctor>
+template<typename T, typename UpdateFunctor>
 struct BCIntegrator2D {
   using update_t = UpdateFunctor;
-  using value_t = typename update_t::value_t;
-  using dimension_t = typename update_t::dimension_t;
+  using value_t = typename T::value_t;
+  using dimension_t = typename T::dimension_t;
   using array_t = Array2D<value_t>;
 
   static constexpr size_t bc_depth = UpdateFunctor::bc_depth;
 
-  static void apply(auto& f1) {//, const auto& d1, const auto& d2, const auto& c_d, auto& psi, const auto& b, const auto& c, const offset_t& o) {
+  static void apply() {
     DBG("BCIntegrator2D::apply()");
-    for (size_t i = f1.offsets.x0; i < f1.offsets.x1; ++i) {
-      for (size_t j = f1.offsets.y0; j < f1.offsets.y1; ++j) {
-        update_t::apply(f1, i, j);
-      }
-    }
+    // for (size_t i = f1.offsets.x0; i < f1.offsets.x1; ++i) {
+    //   for (size_t j = f1.offsets.y0; j < f1.offsets.y1; ++j) {
+    //     update_t::apply(f1, i, j);
+    //   }
+    // }
   }
 };
 
-//template<typename UpdateFunctor>
-//struct BCIntegrator3D {
-//  using update_t = UpdateFunctor;
-//  using value_t = typename update_t::value_t;
-//  using dimension_t = typename update_t::dimension_t;
-//  using array_t = Array3D<value_t>;
-//
-//  static constexpr size_t bc_depth = UpdateFunctor::bc_depth;
-//
-//  static void apply(auto& f1) { //, const auto& d1, const auto& d2, const auto& c_d, auto& psi, const auto& b, const auto& c, const offset_t& o) {
-//    if constexpr (!std::same_as<UpdateFunctor, ReflectingBC<array_t>>) {
-//      DBG("BCIntegrator3D::apply()");
-//      for (size_t i = f1.offsets.x0; i < f1.offsets.x1; ++i) {
-//        for (size_t j = f1.offsets.y0; j < f1.offsets.y1; ++j) {
-//          for (size_t k = f1.offsets.z0; k < f1.offsets.z1; ++k) {
-//            update_t::apply(f1, i, j, k);
-//          }
-//        }
-//      }
-//    } else {
-//      DBG("BCIntegrator3D::apply()::empty");
-//    }
-//  }
-//};
+template<typename T, typename UpdateFunctor>
+struct BCIntegrator3D {
+  using update_t = UpdateFunctor;
+  using value_t = typename update_t::value_t;
+  using dimension_t = typename update_t::dimension_t;
+  using array_t = Array3D<value_t>;
+
+  static constexpr size_t bc_depth = UpdateFunctor::bc_depth;
+
+  static void apply() {
+    DBG("BCIntegrator3D::apply()");
+    // for (size_t i = f1.offsets.x0; i < f1.offsets.x1; ++i) {
+    //   for (size_t j = f1.offsets.y0; j < f1.offsets.y1; ++j) {
+    //     for (size_t k = f1.offsets.z0; k < f1.offsets.z1; ++k) {
+    //       update_t::apply(f1, i, j, k);
+    //     }
+    //   }
+    // }
+  }
+};
 
 #endif //BOUNDARIES_H

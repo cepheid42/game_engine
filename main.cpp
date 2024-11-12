@@ -104,23 +104,25 @@ int main() {
   emdata_t<double> em{nx, cfl};
   bcdata_t<double> bc{em};
 
-  constexpr auto save_step = 4;
-  size_t filecount = 0;
-  for (size_t n = 0; n < nt; n++) {
-    std::cout << "Step " << n << std::endl;
+  EMSolver<fp_t>::advance(em, bc);
 
-    EMSolver<fp_t>::advance(em, bc);
-
-    em.Ez[nx / 2 + 20] += ricker(static_cast<fp_t>(n));
-    // em.Ez(nx / 2 - 30, ny / 2 - 30) = ricker(static_cast<fp_t>(n));
-    // em.Ez(nx / 2 - 30, ny / 2 - 30, nz / 2) = ricker(static_cast<fp_t>(n));
-
-    if (n % save_step == 0) {
-      to_csv(em.Ez, filecount, "Ez");
-      // to_csv(em.Hy, filecount, "Hy");
-      filecount++;
-    }
-  }
+  // constexpr auto save_step = 4;
+  // size_t filecount = 0;
+  // for (size_t n = 0; n < nt; n++) {
+  //   std::cout << "Step " << n << std::endl;
+  //
+  //   EMSolver<fp_t>::advance(em, bc);
+  //
+  //   em.Ez[nx / 2 + 20] += ricker(static_cast<fp_t>(n));
+  //   // em.Ez(nx / 2 - 30, ny / 2 - 30) = ricker(static_cast<fp_t>(n));
+  //   // em.Ez(nx / 2 - 30, ny / 2 - 30, nz / 2) = ricker(static_cast<fp_t>(n));
+  //
+  //   if (n % save_step == 0) {
+  //     to_csv(em.Ez, filecount, "Ez");
+  //     // to_csv(em.Hy, filecount, "Hy");
+  //     filecount++;
+  //   }
+  // }
 
   // auto start = std::chrono::high_resolution_clock::now();
   // auto stop = std::chrono::high_resolution_clock::now() - start;
