@@ -11,8 +11,8 @@
 inline constexpr size_t SELECT_EMDATA = 2; // todo: these can be combined into one value?
 inline constexpr size_t SELECT_EMSOLVER = 2;
 
-static constexpr size_t SELECT_BCDATA[6] = {2, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
-static constexpr size_t SELECT_BCSOLVER[6] = {2, 0, 2, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+static constexpr size_t SELECT_BCDATA[6] = {6, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+static constexpr size_t SELECT_BCSOLVER[6] = {6, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
 
 //=================== Boundary Condition Selectors ===================
 //====================================================================
@@ -43,26 +43,6 @@ using bcdata_t = BCData<
   TypeListAt<SELECT_BCDATA[5], BCFaceTL<T, EMFace::Z, EMSide::Hi>>
 >;
 
-
-template<typename T>
-using BCTypeTL = TypeList<
-  BCReflecting<T>,  // 0
-  BCPeriodic1D<T>,  // 1
-  BCPeriodicTM<T>,  // 2
-  BCPeriodicTE<T>,  // 3
-  BCPeriodic3D<T>,  // 4
-  BCPml1D<T>,       // 5
-  BCPmlTM_XFace<T, EMFace::X>, // 6
-  BCPmlTM_YFace<T, EMFace::Y>, // 7
-  BCPmlTE_XFace<T, EMFace::X>, // 8
-  BCPmlTE_YFace<T, EMFace::Y>, // 9
-  BCPml3D_XFace<T, EMFace::X>, // 10
-  BCPml3D_YFace<T, EMFace::Y>, // 11
-  BCPml3D_ZFace<T, EMFace::Z>  // 12
->;
-
-template<size_t I, typename T>
-using BCType = TypeListAt<I, BCTypeTL<bcdata_t<T>>>;
 
 
 //=================== Electromagnetics Selectors ===================
@@ -98,13 +78,7 @@ using EMSolver = Electromagnetics<
   TypeListAt<2, EMType<T>>, // Ez
   TypeListAt<3, EMType<T>>, // Hx
   TypeListAt<4, EMType<T>>, // Hy
-  TypeListAt<5, EMType<T>>, // Hz,
-  BCType<SELECT_BCSOLVER[0], T>, // X0 Face
-  BCType<SELECT_BCSOLVER[1], T>, // X1 Face
-  BCType<SELECT_BCSOLVER[2], T>, // Y0 Face
-  BCType<SELECT_BCSOLVER[3], T>, // Y1 Face
-  BCType<SELECT_BCSOLVER[4], T>, // Z0 Face
-  BCType<SELECT_BCSOLVER[5], T>  // Z1 Face
+  TypeListAt<5, EMType<T>>  // Hz
 >; // Auto-selects full BC's per face and EMSolver per field component based on chosen settings.
 
 #endif //ELECTROMAGNETICS_H

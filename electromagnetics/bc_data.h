@@ -10,11 +10,29 @@
 // #include <electromagnetics.h>
 // #include "boundaries.h"
 
+#include <array>
+
 #include "electromagnetics.param"
 
 using tf::types::Array1D;
 using tf::types::Array2D;
 using tf::types::Array3D;
+
+template<typename T>
+std::vector<T> linspace(T start, T stop, size_t n_points, const bool endpoint=true) {
+  std::vector<T> result(n_points);
+  if (endpoint) {
+    n_points -= 1;
+    result[result.size() - 1] = stop;
+  }
+  auto delta = (stop - start) / static_cast<T>(n_points);
+  T val = start;
+  for (size_t i = 0; i < n_points; ++i) {
+    result[i] = val;
+    val += delta;
+  }
+  return result;
+}
 
 template<typename Array>
 struct NullData {
@@ -25,6 +43,29 @@ struct NullData {
   explicit NullData(const auto&) {}
 };
 
+
+template<EMFace F>
+size_t get_num_interior(const auto& f) {
+  if constexpr (F == EMFace::X) {
+    return f.nx() - (2 * nHalo);
+  } else if constexpr (F == EMFace::Y) {
+    return f.ny() - (2 * nHalo);
+  } else {
+    return f.nz() - (2 * nHalo);
+  }
+}
+
+template<EMFace F>
+size_t get_hi_index(const auto& f) {
+  if constexpr (F == EMFace::X) {
+    return f.nx() - 1 - nHalo;
+  } else if constexpr (F == EMFace::Y) {
+    return f.ny() - 1 - nHalo;
+  } else {
+    return f.nz() - 1 - nHalo;
+  }
+}
+
 template<typename Array, EMFace F, EMSide S>
 struct PeriodicData {
   using array_t = Array;
@@ -32,43 +73,97 @@ struct PeriodicData {
   using dimension_t = typename Array::dimension_t;
 
   explicit PeriodicData(const Array& f)
-  : offsets{get_offsets<F, S, nHalo>(f)}
+  : numInterior{get_num_interior<F>(f)},
+    hi_idx{get_hi_index<F>(f)},
+    offsets{get_offsets<F, S, nHalo>(f)}
   {}
 
+  static constexpr size_t depth = nHalo;
+  size_t numInterior;
+  size_t hi_idx;
   IntegratorOffsets offsets;
 };
 
-template<typename Array, EMFace F, EMSide S>
+
+
+
+template<typename Array, EMFace F, EMSide S, bool HF>
 struct PMLData {
   using array_t = Array;
   using value_t = typename Array::value_t;
   using dimension_t = typename Array::dimension_t;
 
   explicit PMLData(const Array& f) requires (F == EMFace::X)
-  : offsets{get_offsets<F, S, dPML>(f)},
-    psi{dPML, f.ny(), f.nz()},
-    b{dPML},
-    c{dPML}
-  {}
+  : offsets{get_offsets<F, S, nPml>(f)},
+    psi{nPml, f.ny(), f.nz()},
+    b{nPml},
+    c{nPml}
+  {
+    auto d = linspace(1.0, 0.0, nPml);
+    constexpr value_t hstep = 1.0 / (2.0 * static_cast<value_t>(nPml));
+
+    if constexpr (HF) {
+      for (auto& x: d) {
+        x -= hstep;
+      }
+    }
+
+    if constexpr (S == EMSide::Hi) {
+      std::ranges::reverse(d);
+    }
+
+    constexpr auto c0 = 299792458.0;
+    constexpr auto eps0 = 8.854187812813e-12;
+    constexpr auto grade = 3.0;
+    constexpr auto dx = 1.0 / 99.0;
+    constexpr auto sigma_max = (0.8 * (grade + 1)) / (dx * 376.73031366686992);
+    constexpr auto alpha_max = 0.2;
+
+    constexpr auto dt = cfl * dx / c0;
+
+    std::vector<value_t> sigma_bc(d);
+    std::vector<value_t> alpha_bc(d);
+    std::vector<value_t> kappa_bc(d.size(), 1.0);
+
+    for (auto& x: sigma_bc) {
+      x = sigma_max * std::pow(x, grade);
+    }
+
+    for (auto& x: alpha_bc) {
+      x = alpha_max * std::pow(1.0 - x, 1.0);
+    }
+
+    // DBG(sigma_bc, alpha_bc, kappa_bc);
+
+    const auto coef1 = -dt / eps0;
+
+    for (size_t i = 0; i < nPml; ++i) {
+      b[i] = std::exp(coef1 * (sigma_bc[i] / kappa_bc[i]) + alpha_bc[i]);
+      c[i] = (sigma_bc[i] * (b[i] - 1.0)) / (dx * kappa_bc[i] * (sigma_bc[i] + (kappa_bc[i] * alpha_bc[i])));
+    }
+
+    // DBG(b, c);
+  }
 
   explicit PMLData(const Array& f) requires (F == EMFace::Y)
-  : offsets{get_offsets<F, S, dPML>(f)},
-    psi{f.nx(), dPML, f.nz()},
-    b{dPML},
-    c{dPML}
+  : offsets{get_offsets<F, S, nPml>(f)},
+    psi{f.nx(), nPml, f.nz()},
+    b{nPml},
+    c{nPml}
   {}
 
   explicit PMLData(const Array& f) requires (F == EMFace::Z)
-  : offsets{get_offsets<F, S, dPML>(f)},
-    psi{f.nx(), f.ny(), dPML},
-    b{dPML},
-    c{dPML}
+  : offsets{get_offsets<F, S, nPml>(f)},
+    psi{f.nx(), f.ny(), nPml},
+    b{nPml},
+    c{nPml}
   {}
 
+  static constexpr size_t depth = nPml;
   IntegratorOffsets offsets;
   array_t psi;
-  std::vector<value_t> b;
-  std::vector<value_t> c;
+  std::array<value_t, nPml> b;
+  std::array<value_t, nPml> c;
 };
 
 

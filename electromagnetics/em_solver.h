@@ -9,6 +9,8 @@
 // #include "../aydenstuff/array.h"
 // #include "../core/debug.h"
 // #include "em_data.h"
+#include <boundaries.h>
+
 #include "curl_operators.h"
 #include "offsets.h"
 
@@ -93,10 +95,7 @@ struct FieldIntegratorNull {
 
 
 template<typename EXI, typename EYI, typename EZI,
-         typename HXI, typename HYI, typename HZI,
-         typename X0BC, typename X1BC,
-         typename Y0BC, typename Y1BC,
-         typename Z0BC, typename Z1BC>
+         typename HXI, typename HYI, typename HZI>
 struct Electromagnetics {
   using value_t = typename EXI::value_t;
   using dimension_t = typename EXI::dimension_t;
@@ -119,23 +118,23 @@ struct Electromagnetics {
   }
 
   static void updateE_bcs(auto& emdata, auto& bcdata) {
-    DBG("updateE_bcs()");
-    X0BC::updateE(bcdata.x0);
-    X1BC::updateE();
-    Y0BC::updateE();
-    Y1BC::updateE();
-    Z0BC::updateE();
-    Z1BC::updateE();
+    // DBG("updateE_bcs()");
+    // Boundary<Periodic2D<EMFace::X>>::updateE(bcdata.x0.Ez, emdata.Ez);
+    // Boundary<Periodic2D<EMFace::Y>>::updateE(bcdata.y0.Ez, emdata.Ez);
+
+    Boundary<Pml2D<EMFace::X>>::updateE(bcdata.x0.Ez, emdata.Ez, emdata.Hy, emdata.Cezh);
   }
 
   static void updateH_bcs(auto& emdata, auto& bcdata) {
-    DBG("updateH_bcs()");
-    X0BC::updateH(emdata, bcdata.x0);
-    X1BC::updateH();
-    Y0BC::updateH();
-    Y1BC::updateH();
-    Z0BC::updateH();
-    Z1BC::updateH();
+    // DBG("updateH_bcs()");
+    // Boundary<Periodic2D<EMFace::X>>::updateH(bcdata.x0.Hx, emdata.Hx);
+    // Boundary<Periodic2D<EMFace::X>>::updateH(bcdata.x0.Hy, emdata.Hy);
+    //
+    // Boundary<Periodic2D<EMFace::Y>>::updateH(bcdata.y0.Hx, emdata.Hx);
+    // Boundary<Periodic2D<EMFace::Y>>::updateH(bcdata.y0.Hy, emdata.Hy);
+
+    // Boundary<Pml2D<EMFace::X>>::updateH(bcdata.x0.Hx, emdata.Hx, emdata.Ez, emdata.Chxe);
+    Boundary<Pml2D<EMFace::X>>::updateH(bcdata.x0.Hy, emdata.Hy, emdata.Ez, emdata.Chye);
   }
 
 
