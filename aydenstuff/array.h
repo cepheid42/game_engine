@@ -74,8 +74,8 @@ namespace tf::types
     [[nodiscard]] static inline size_t get_scid(size_t i) { return i; }
 
     [[nodiscard]] size_t nx() const { return nx_; }
-    static constexpr size_t ny() { return 0u; }
-    static constexpr size_t nz() { return 0u; }
+    static constexpr size_t ny() { return 1u; }
+    static constexpr size_t nz() { return 1u; }
     
     // Specialized Accessors
     value_t& operator()(size_t i) { return (*this)[i]; }
@@ -153,7 +153,7 @@ namespace tf::types
 
     [[nodiscard]] size_t nx() const { return nx_; }
     [[nodiscard]] size_t ny() const { return ny_; }
-    static constexpr size_t nz() { return 0u; }
+    static constexpr size_t nz() { return 1u; }
     
     // Specialized accessors
     value_t& operator()(size_t i, size_t k) { return (*this)[get_scid(i, k)]; }

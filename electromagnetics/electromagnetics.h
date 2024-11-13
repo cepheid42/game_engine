@@ -14,10 +14,6 @@ inline constexpr size_t SELECT_EMSOLVER = 2;
 static constexpr size_t SELECT_BCDATA[6] = {2, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
 static constexpr size_t SELECT_BCSOLVER[6] = {2, 0, 2, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
 
-// using fp_t = double;
-// constexpr size_t DIM = 1;
-// constexpr fp_t cfl = 0.95 / std::sqrt(static_cast<fp_t>(DIM));
-
 //=================== Boundary Condition Selectors ===================
 //====================================================================
 template<typename T, EMFace F, EMSide S>
@@ -56,13 +52,13 @@ using BCTypeTL = TypeList<
   BCPeriodicTE<T>,  // 3
   BCPeriodic3D<T>,  // 4
   BCPml1D<T>,       // 5
-  BCPmlTM_XFace<T>, // 6
-  BCPmlTM_YFace<T>, // 7
-  BCPmlTE_XFace<T>, // 8
-  BCPmlTE_YFace<T>, // 9
-  BCPml3D_XFace<T>, // 10
-  BCPml3D_YFace<T>, // 11
-  BCPml3D_ZFace<T>  // 12
+  BCPmlTM_XFace<T, EMFace::X>, // 6
+  BCPmlTM_YFace<T, EMFace::Y>, // 7
+  BCPmlTE_XFace<T, EMFace::X>, // 8
+  BCPmlTE_YFace<T, EMFace::Y>, // 9
+  BCPml3D_XFace<T, EMFace::X>, // 10
+  BCPml3D_YFace<T, EMFace::Y>, // 11
+  BCPml3D_ZFace<T, EMFace::Z>  // 12
 >;
 
 template<size_t I, typename T>
