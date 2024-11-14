@@ -112,28 +112,36 @@ void init_coeff(Array& arr, auto val) {
 template <FieldComponent EXF, FieldComponent EYF, FieldComponent EZF, FieldComponent HXF, FieldComponent HYF, FieldComponent HZF>
 void EMData<EXF, EYF, EZF, HXF, HYF, HZF>::init_coefficients(const value_t cfl)
 {
-  constexpr auto imp0 = 377.0;
+  constexpr auto c0 = 299792458.0;
+  constexpr auto eps0 = 8.854187812813e-12;
+  constexpr auto mu0 = 1.2566370621219e-6;
+
+  constexpr auto dx = 1.0 / 99.0;
+  const auto dt = cfl * dx / c0;
+
+  const auto ec = dt / eps0;
+  const auto hc = dt / mu0;
 
   init_coeff(Cexe, 1.0);
-  init_coeff(Cexh, cfl * imp0);
+  init_coeff(Cexh, ec);
   init_coeff(Cjx, 1.0);
 
   init_coeff(Ceye, 1.0);
-  init_coeff(Ceyh, cfl * imp0);
+  init_coeff(Ceyh, ec);
   init_coeff(Cjy, 1.0);
 
   init_coeff(Ceze, 1.0);
-  init_coeff(Cezh, cfl * imp0);
+  init_coeff(Cezh, ec);
   init_coeff(Cjz, 1.0);
 
   init_coeff(Chxh, 1.0);
-  init_coeff(Chxe, cfl / imp0);
+  init_coeff(Chxe, hc);
 
   init_coeff(Chyh, 1.0);
-  init_coeff(Chye, cfl / imp0);
+  init_coeff(Chye, hc);
 
   init_coeff(Chzh, 1.0);
-  init_coeff(Chze, cfl / imp0);
+  init_coeff(Chze, hc);
 }
 
 #endif //EM_DATA_H

@@ -11,8 +11,8 @@
 inline constexpr size_t SELECT_EMDATA = 2; // todo: these can be combined into one value?
 inline constexpr size_t SELECT_EMSOLVER = 2;
 
-static constexpr size_t SELECT_BCDATA[6] = {6, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
-static constexpr size_t SELECT_BCSOLVER[6] = {6, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+static constexpr size_t SELECT_BCDATA[6] = {6, 6, 9, 9, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+static constexpr size_t SELECT_BCSOLVER[6] = {6, 6, 9, 9, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
 
 //=================== Boundary Condition Selectors ===================
 //====================================================================

@@ -15,8 +15,12 @@ def plot1d(file, n):
     data = np.genfromtxt(file, dtype=np.float64, delimiter=',')
     fig, ax = plt.subplots()
 
-    ax.plot(data, label='data')
-    ax.set_ylim([-1, 1])
+    nx, ny = data.shape
+    ax.plot(data[:, ny // 2], label='data')
+    ax.set_ylim([-0.01, 0.01])
+
+    # ax.plot(data, label='data')
+    # ax.set_ylim([-1, 1])
 
     plt.savefig(data_path + f'/pngs/ez_{n:04d}.png')
     plt.clf()
@@ -26,7 +30,7 @@ def plot1d(file, n):
 def plot2d(file, n):
     data = np.genfromtxt(file, dtype=np.float64, delimiter=',')
     fig, ax = plt.subplots()
-    ax.contourf(data)
+    ax.contourf(data, levels=100)
 
     plt.savefig(data_path + f'/pngs/ez_{n:04d}.png')
     plt.clf()
@@ -52,8 +56,8 @@ def main():
         print(f'Step {n}')
         file = data_path + f'/Ez_{n:04d}.csv'
 
-        # plot1d(file, n)
-        plot2d(file, n)
+        plot1d(file, n)
+        # plot2d(file, n)
         # plot3d(file, n)
 
 

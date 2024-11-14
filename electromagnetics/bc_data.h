@@ -95,11 +95,25 @@ struct PMLData {
 
   explicit PMLData(const Array& f) requires (F == EMFace::X)
   : offsets{get_offsets<F, S, nPml>(f)},
-    psi{nPml, f.ny(), f.nz()},
-    b{nPml},
-    c{nPml}
+    psi{nPml, f.ny(), f.nz()}
   {
-    auto d = linspace(1.0, 0.0, nPml);
+    set_coefficients();
+  }
+
+  explicit PMLData(const Array& f) requires (F == EMFace::Y)
+  : offsets{get_offsets<F, S, nPml>(f)},
+    psi{f.nx(), nPml, f.nz()}
+  {
+    set_coefficients();
+  }
+
+  explicit PMLData(const Array& f) requires (F == EMFace::Z)
+  : offsets{get_offsets<F, S, nPml>(f)},
+    psi{f.nx(), f.ny(), nPml}
+  {}
+
+  void set_coefficients() {
+    auto d = linspace(1.0, 0.0, nPml, false);
     constexpr value_t hstep = 1.0 / (2.0 * static_cast<value_t>(nPml));
 
     if constexpr (HF) {
@@ -114,12 +128,16 @@ struct PMLData {
 
     constexpr auto c0 = 299792458.0;
     constexpr auto eps0 = 8.854187812813e-12;
+    constexpr auto eta0 = 376.73031366686992;
     constexpr auto grade = 3.0;
     constexpr auto dx = 1.0 / 99.0;
-    constexpr auto sigma_max = (0.8 * (grade + 1)) / (dx * 376.73031366686992);
+    constexpr auto sigma_max = (0.8 * (grade + 1.0)) / (dx * eta0);
     constexpr auto alpha_max = 0.2;
 
     constexpr auto dt = cfl * dx / c0;
+
+    // DBG(dt, dx, sigma_max, alpha_max);
+    // DBG(d);
 
     std::vector<value_t> sigma_bc(d);
     std::vector<value_t> alpha_bc(d);
@@ -133,37 +151,19 @@ struct PMLData {
       x = alpha_max * std::pow(1.0 - x, 1.0);
     }
 
-    // DBG(sigma_bc, alpha_bc, kappa_bc);
-
     const auto coef1 = -dt / eps0;
 
     for (size_t i = 0; i < nPml; ++i) {
-      b[i] = std::exp(coef1 * (sigma_bc[i] / kappa_bc[i]) + alpha_bc[i]);
+      b[i] = std::exp(coef1 * ((sigma_bc[i] / kappa_bc[i]) + alpha_bc[i]));
       c[i] = (sigma_bc[i] * (b[i] - 1.0)) / (dx * kappa_bc[i] * (sigma_bc[i] + (kappa_bc[i] * alpha_bc[i])));
     }
-
-    // DBG(b, c);
   }
-
-  explicit PMLData(const Array& f) requires (F == EMFace::Y)
-  : offsets{get_offsets<F, S, nPml>(f)},
-    psi{f.nx(), nPml, f.nz()},
-    b{nPml},
-    c{nPml}
-  {}
-
-  explicit PMLData(const Array& f) requires (F == EMFace::Z)
-  : offsets{get_offsets<F, S, nPml>(f)},
-    psi{f.nx(), f.ny(), nPml},
-    b{nPml},
-    c{nPml}
-  {}
 
   static constexpr size_t depth = nPml;
   IntegratorOffsets offsets;
   array_t psi;
-  std::array<value_t, nPml> b;
-  std::array<value_t, nPml> c;
+  std::array<value_t, nPml> b{};
+  std::array<value_t, nPml> c{};
 };
 
 

@@ -21,11 +21,14 @@ struct FieldUpdate {
   using CurlA = curl<CURL1, Forward, IDXS...>;
   using CurlB = curl<CURL2, Forward, IDXS...>;
 
+  static constexpr auto dx = 1.0 / 99.0;
+
   static void apply(auto& f, const auto& d1, const auto& d2, const auto& j, const auto& c_f, const auto& c_d, const auto& c_j, IDXS... idxs) {
+
     const auto    self = c_f(idxs...) * f(idxs...);
     const auto   diff1 = CurlA::apply(d1, idxs...);
     const auto   diff2 = CurlB::apply(d2, idxs...);
-    const auto    diff = c_d(idxs...) * (diff1 - diff2);
+    const auto    diff = (c_d(idxs...) / dx) * (diff1 - diff2);
     const auto current = c_j(idxs...) * j(idxs...);
     f(idxs...) = self + diff - current;
   }
@@ -118,23 +121,28 @@ struct Electromagnetics {
   }
 
   static void updateE_bcs(auto& emdata, auto& bcdata) {
-    // DBG("updateE_bcs()");
     // Boundary<Periodic2D<EMFace::X>>::updateE(bcdata.x0.Ez, emdata.Ez);
     // Boundary<Periodic2D<EMFace::Y>>::updateE(bcdata.y0.Ez, emdata.Ez);
 
-    Boundary<Pml2D<EMFace::X>>::updateE(bcdata.x0.Ez, emdata.Ez, emdata.Hy, emdata.Cezh);
+    Boundary<Pml2D<EMFace::X, EMSide::Lo>>::updateE(bcdata.x0.Ez, emdata.Ez, emdata.Hy, emdata.Cezh);
+    Boundary<Pml2D<EMFace::X, EMSide::Hi>>::updateE(bcdata.x1.Ez, emdata.Ez, emdata.Hy, emdata.Cezh);
+
+    Boundary<Pml2D<EMFace::Y, EMSide::Lo>>::updateE(bcdata.y0.Ez, emdata.Ez, emdata.Hx, emdata.Cezh);
+    Boundary<Pml2D<EMFace::Y, EMSide::Hi>>::updateE(bcdata.y1.Ez, emdata.Ez, emdata.Hx, emdata.Cezh);
   }
 
   static void updateH_bcs(auto& emdata, auto& bcdata) {
-    // DBG("updateH_bcs()");
     // Boundary<Periodic2D<EMFace::X>>::updateH(bcdata.x0.Hx, emdata.Hx);
     // Boundary<Periodic2D<EMFace::X>>::updateH(bcdata.x0.Hy, emdata.Hy);
     //
     // Boundary<Periodic2D<EMFace::Y>>::updateH(bcdata.y0.Hx, emdata.Hx);
     // Boundary<Periodic2D<EMFace::Y>>::updateH(bcdata.y0.Hy, emdata.Hy);
 
-    // Boundary<Pml2D<EMFace::X>>::updateH(bcdata.x0.Hx, emdata.Hx, emdata.Ez, emdata.Chxe);
-    Boundary<Pml2D<EMFace::X>>::updateH(bcdata.x0.Hy, emdata.Hy, emdata.Ez, emdata.Chye);
+    Boundary<Pml2D<EMFace::X, EMSide::Lo>>::updateH(bcdata.x0.Hy, emdata.Hy, emdata.Ez, emdata.Chye);
+    Boundary<Pml2D<EMFace::X, EMSide::Hi>>::updateH(bcdata.x1.Hy, emdata.Hy, emdata.Ez, emdata.Chye);
+
+    Boundary<Pml2D<EMFace::Y, EMSide::Lo>>::updateH(bcdata.y0.Hx, emdata.Hx, emdata.Ez, emdata.Chxe);
+    Boundary<Pml2D<EMFace::Y, EMSide::Hi>>::updateH(bcdata.y1.Hx, emdata.Hx, emdata.Ez, emdata.Chxe);
   }
 
 
