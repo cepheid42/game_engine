@@ -227,7 +227,7 @@ namespace tf::types
     
     // Constructors & Destructor
     explicit Array3D() = default;
-    Array3D(size_t nx_, size_t ny_, size_t nz_, value_t fill=0.0) : detail::ArrayBase<T, 3>(nx_ * ny_ * nz_, fill), nx_(nx_), ny_(ny_), nz_(nz_) {}
+    Array3D(size_t nx, size_t ny, size_t nz, value_t fill=0.0) : detail::ArrayBase<T, 3>(nx * ny * nz, fill), nx_(nx), ny_(ny), nz_(nz) {}
     Array3D(vec3<size_t> dims_, value_t fill=0.0) : Array3D(dims_[0], dims_[1], dims_[2], fill) {}
     Array3D(const Array3D& other) : detail::ArrayBase<T, 3>(other), nx_(other.nx_), ny_(other.ny), nz_(other.nz_) {}
     

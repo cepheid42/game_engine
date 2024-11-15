@@ -43,7 +43,6 @@ void to_csv(const Array& arr, const size_t step, const std::string& name) {
         }
         file << '\n';
       }
-      file << std::endl;
     }
   }
 
@@ -89,15 +88,17 @@ fp_t ricker(fp_t q) {
 int main() {
   constexpr size_t nx = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t ny = 100u + 2 * nPml + 2 * nHalo;
-  // constexpr size_t nz = 10u + 2 * nPml + 2 * nHalo;
+  constexpr size_t nz = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t nt = 400u;
 
   // emdata_t<double> em{nx, cfl};
   // bcdata_t<double> bc{em};
 
-  emdata_t<double> em{nx, ny, cfl};
-  bcdata_t<double> bc{em};
+  // emdata_t<double> em{nx, ny, cfl};
+  // bcdata_t<double> bc{em};
 
+  emdata_t<double> em{nx, ny, nz, cfl};
+  bcdata_t<double> bc{em};
 
   constexpr auto save_step = 4;
   size_t filecount = 0;
@@ -106,9 +107,9 @@ int main() {
 
     EMSolver<fp_t>::advance(em, bc);
 
-    // em.Ez[nx / 2 + 20] += ricker(static_cast<fp_t>(n));
-    em.Ez(nx / 2, ny / 2) += ricker(static_cast<fp_t>(n));
-    // em.Ez(nx / 2 - 30, ny / 2 - 30, nz / 2) = ricker(static_cast<fp_t>(n));
+    // em.Ez[nx / 2] += ricker(static_cast<fp_t>(n));
+    // em.Ez(nx / 2, ny / 2) += ricker(static_cast<fp_t>(n));
+    em.Ez(nx / 2, ny / 2, nz / 2) += ricker(static_cast<fp_t>(n));
 
     if (n % save_step == 0) {
       to_csv(em.Ez, filecount, "Ez");
