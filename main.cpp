@@ -109,7 +109,7 @@ int main() {
 
     // em.Ez[nx / 2] += ricker(static_cast<fp_t>(n));
     // em.Ez(nx / 2, ny / 2) += ricker(static_cast<fp_t>(n));
-    em.Ez(nx / 2, ny / 2, nz / 2) += ricker(static_cast<fp_t>(n));
+    em.Ez(nx / 2, ny / 2, nz / 2) = ricker(static_cast<fp_t>(n));
 
     if (n % save_step == 0) {
       to_csv(em.Ez, filecount, "Ez");

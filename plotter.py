@@ -38,13 +38,14 @@ def plot2d(file, n):
 
 
 def plot3d(file, n):
-    nx = ny = nz = 120
+    nx = 120
+    ny = nz = 120
     data = np.genfromtxt(file, dtype=np.float64, delimiter=',').reshape((nx, ny, nz - 1)) # Ez
     fig, ax = plt.subplots()
 
     # ax.contourf(data[nx // 2, :, :], levels=100)
-    ax.contourf(data[:, ny // 2, :], levels=100)
-    # ax.contourf(data[:, :, nz // 2], levels=100)
+    # ax.contourf(data[:, ny // 2, :], levels=100)
+    ax.contourf(data[:, :, nz // 2], levels=100)
 
     plt.savefig(data_path + f'/pngs/ez_{n:04d}.png')
     plt.clf()

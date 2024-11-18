@@ -11,8 +11,8 @@
 inline constexpr size_t SELECT_EMDATA = 4; // todo: these can be combined into one value?
 inline constexpr size_t SELECT_EMSOLVER = 4;
 
-inline constexpr size_t SELECT_BCDATA[6] = {8, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
-inline constexpr size_t SELECT_BCSOLVER[6] = {6, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+inline constexpr size_t SELECT_BCDATA[6] = {8, 0, 11, 0, 12, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+inline constexpr size_t SELECT_BCSOLVER[6] = {6, 0, 6, 0, 6, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
 
 //=================== Boundary Condition Selectors ===================
 //====================================================================
@@ -43,19 +43,19 @@ using bcdata_t = BCData<
   TypeListAt<SELECT_BCDATA[5], BCDataTL<T, EMFace::Z, EMSide::Hi>>
 >;
 
-template<EMFace F, EMSide S>
+template<EMFace F, EMSide S, bool Negate>
 using BCTypeTL = TypeList<
   ReflectingBC,
   Periodic1D,
   Periodic2D<F, S>,
   Periodic3D<F, S>,
   Pml1D<S>,
-  Pml2D<F, S>,
-  Pml3D<F, S>
+  Pml2D<F, S, Negate>,
+  Pml3D<F, S, Negate>
 >;
 
-template<size_t I, EMFace F, EMSide S>
-using BCType = TypeListAt<I, BCTypeTL<F, S>>;
+template<size_t I, EMFace F, EMSide S, bool Negate>
+using BCType = TypeListAt<I, BCTypeTL<F, S, Negate>>;
 
 /*
  *

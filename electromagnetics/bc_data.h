@@ -157,6 +157,8 @@ struct PMLData {
       b[i] = std::exp(coef1 * ((sigma_bc[i] / kappa_bc[i]) + alpha_bc[i]));
       c[i] = (sigma_bc[i] * (b[i] - 1.0)) / (dx * kappa_bc[i] * (sigma_bc[i] + (kappa_bc[i] * alpha_bc[i])));
     }
+
+    DBG(b, c);
   }
 
   static constexpr size_t depth = nPml;

@@ -160,7 +160,7 @@ struct Pml1D : pml_t<EMFace::X, S> {
   }
 };
 
-template<EMFace F, EMSide S>
+template<EMFace F, EMSide S, bool Negate>
 struct Pml2D : pml_t<F, S> {
   static void updateE(auto& bc, auto& f1, const auto& f2, const auto& c1)
   requires (F == EMFace::X)
@@ -177,14 +177,22 @@ struct Pml2D : pml_t<F, S> {
       x1 = bc.offsets.x1 - 1;
     }
 
+    // DBG(x0, x1, y0, y1);
+
     for (size_t i = x0; i < x1; ++i) {
       size_t ipml;
       if constexpr (S == EMSide::Lo) { ipml = i; }
       else { ipml = i - x0; }
 
+      // std::cout << i << " -> " << ipml << std::endl;
+
       for (size_t j = y0; j < y1; ++j) {
         bc.psi(ipml, j) = bc.b[ipml] * bc.psi(ipml, j) + bc.c[ipml] * (f2(i, j) - f2(i - 1, j));
-        f1(i, j) += c1(i, j) * bc.psi(ipml, j);
+        if constexpr (Negate) {
+          f1(i, j) -= c1(i, j) * bc.psi(ipml, j);
+        } else {
+          f1(i, j) += c1(i, j) * bc.psi(ipml, j);
+        }
       }
     }
   }
@@ -204,10 +212,14 @@ struct Pml2D : pml_t<F, S> {
       x1 = bc.offsets.x1;
     }
 
+    // DBG(x0, x1, y0, y1);
+
     for (size_t i = x0; i < x1; ++i) {
       size_t ipml;
       if constexpr (S == EMSide::Lo) { ipml = i; }
       else { ipml = i - x0 + 1; }
+
+      // std::cout << i << " -> " << ipml << std::endl;
 
       for (size_t j = y0; j < y1; ++j) {
         bc.psi(ipml, j) = bc.b[ipml] * bc.psi(ipml, j) + bc.c[ipml] * (f2(i + 1, j) - f2(i, j));
@@ -275,7 +287,7 @@ struct Pml2D : pml_t<F, S> {
   }
 };
 
-template<EMFace F, EMSide S>
+template<EMFace F, EMSide S, bool Negate>
 struct Pml3D : pml_t<F, S> {
   static void updateE(auto& bc, auto& f1, const auto& f2, const auto& c1)
   requires (F == EMFace::X)
@@ -301,8 +313,13 @@ struct Pml3D : pml_t<F, S> {
 
       for (size_t j = y0; j < y1; ++j) {
         for (size_t k = z0; k < z1; ++k) {
+
           bc.psi(ipml, j, k) = bc.b[ipml] * bc.psi(ipml, j, k) + bc.c[ipml] * (f2(i, j, k) - f2(i - 1, j, k));
-          f1(i, j, k) += c1(i, j, k) * bc.psi(ipml, j, k);
+          if constexpr (Negate) {
+            f1(i, j, k) -= c1(i, j, k) * bc.psi(ipml, j, k);
+          } else {
+            f1(i, j, k) += c1(i, j, k) * bc.psi(ipml, j, k);
+          }
         }
       }
     }
@@ -333,27 +350,155 @@ struct Pml3D : pml_t<F, S> {
       for (size_t j = y0; j < y1; ++j) {
         for (size_t k = z0; k < z1; ++k) {
           bc.psi(ipml, j, k) = bc.b[ipml] * bc.psi(ipml, j, k) + bc.c[ipml] * (f2(i + 1, j, k) - f2(i, j, k));
-          f1(i, j, k) += c1(i, j, k) * bc.psi(ipml, j, k);
+          if constexpr (Negate) {
+            f1(i, j, k) -= c1(i, j, k) * bc.psi(ipml, j, k);
+          } else {
+            f1(i, j, k) += c1(i, j, k) * bc.psi(ipml, j, k);
+          }
         }
       }
     }
   }
 
-  // static void updateE(auto& bc, auto& f1, const auto& f2, const auto& c1)
-  // requires (F == EMFace::Y)
-  // {}
-  //
-  // static void updateH(auto& bc, auto& f1, const auto& f2, const auto& c1)
-  // requires (F == EMFace::Y)
-  // {}
-  //
-  // static void updateE(auto& bc, auto& f1, const auto& f2, const auto& c1)
-  // requires (F == EMFace::Z)
-  // {}
-  //
-  // static void updateH(auto& bc, auto& f1, const auto& f2, const auto& c1)
-  // requires (F == EMFace::Z)
-  // {}
+  static void updateE(auto& bc, auto& f1, const auto& f2, const auto& c1)
+  requires (F == EMFace::Y)
+  {
+    const auto& x0 = bc.offsets.x0;
+    const auto& x1 = bc.offsets.x1;
+    const auto& z0 = bc.offsets.z0;
+    const auto& z1 = bc.offsets.z1;
+
+    size_t y0, y1;
+    if constexpr (S == EMSide::Lo) {
+      y0 = bc.offsets.y0 + 1;
+      y1 = bc.offsets.y1;
+    } else {
+      y0 = bc.offsets.y0;
+      y1 = bc.offsets.y1 - 1;
+    }
+
+    for (size_t i = x0; i < x1; ++i) {
+      for (size_t j = y0; j < y1; ++j) {
+        size_t jpml;
+        if constexpr (S == EMSide::Lo) { jpml = j; }
+        else { jpml = j - y0; }
+
+        for (size_t k = z0; k < z1; ++k) {
+          bc.psi(i, jpml, k) = bc.b[jpml] * bc.psi(i, jpml, k) + bc.c[jpml] * (f2(i, j, k) - f2(i, j - 1, k));
+          if constexpr (Negate) {
+            f1(i, j, k) -= c1(i, j, k) * bc.psi(i, jpml, k);
+          } else {
+            f1(i, j, k) += c1(i, j, k) * bc.psi(i, jpml, k);
+          }
+        }
+      }
+    }
+  }
+
+  static void updateH(auto& bc, auto& f1, const auto& f2, const auto& c1)
+  requires (F == EMFace::Y)
+  {
+    const auto& x0 = bc.offsets.x0;
+    const auto& x1 = bc.offsets.x1;
+    const auto& z0 = bc.offsets.z0;
+    const auto& z1 = bc.offsets.z1;
+
+    size_t y0, y1;
+    if constexpr (S == EMSide::Lo) {
+      y0 = bc.offsets.y0;
+      y1 = bc.offsets.y1 - 1;
+    } else {
+      y0 = bc.offsets.y0 + 1;
+      y1 = bc.offsets.y1;
+    }
+
+    for (size_t i = x0; i < x1; ++i) {
+      for (size_t j = y0; j < y1; ++j) {
+        size_t jpml;
+        if constexpr (S == EMSide::Lo) { jpml = j; }
+        else { jpml = j - y0 + 1; }
+
+        for (size_t k = z0; k < z1; ++k) {
+          bc.psi(i, jpml, k) = bc.b[jpml] * bc.psi(i, jpml, k) + bc.c[jpml] * (f2(i, j + 1, k) - f2(i, j, k));
+          if constexpr (Negate) {
+            f1(i, j, k) -= c1(i, j, k) * bc.psi(i, jpml, k);
+          } else {
+            f1(i, j, k) += c1(i, j, k) * bc.psi(i, jpml, k);
+          }
+        }
+      }
+    }
+  }
+
+  static void updateE(auto& bc, auto& f1, const auto& f2, const auto& c1)
+  requires (F == EMFace::Z)
+  {
+    // const auto& x0 = bc.offsets.x0;
+    // const auto& x1 = bc.offsets.x1;
+    // const auto& y0 = bc.offsets.y0;
+    // const auto& y1 = bc.offsets.y1;
+    //
+    // size_t z0, z1;
+    // if constexpr (S == EMSide::Lo) {
+    //   z0 = bc.offsets.z0;
+    //   z1 = bc.offsets.z1 - 1;
+    // } else {
+    //   z0 = bc.offsets.z0 + 1;
+    //   z1 = bc.offsets.z1;
+    // }
+    //
+    // for (size_t i = x0; i < x1; ++i) {
+    //   for (size_t j = y0; j < y1; ++j) {
+    //     for (size_t k = z0; k < z1; ++k) {
+    //       size_t kpml;
+    //       if constexpr (S == EMSide::Lo) { kpml = k; }
+    //       else { kpml = k - z0 + 1; }
+    //
+    //       bc.psi(i, j, kpml) = bc.b[kpml] * bc.psi(i, kpml) + bc.c[kpml] * (f2(i, j, k + 1) - f2(i, j, k));
+    //       if constexpr (Negate) {
+    //         f1(i, j, k) -= c1(i, j, k) * bc.psi(i, j, kpml);
+    //       } else {
+    //         f1(i, j, k) += c1(i, j, k) * bc.psi(i, j, kpml);
+    //       }
+    //     }
+    //   }
+    // }
+  }
+  
+  static void updateH(auto& bc, auto& f1, const auto& f2, const auto& c1)
+  requires (F == EMFace::Z)
+  {
+    // const auto& x0 = bc.offsets.x0;
+    // const auto& x1 = bc.offsets.x1;
+    // const auto& y0 = bc.offsets.y0;
+    // const auto& y1 = bc.offsets.y1;
+    //
+    // size_t z0, z1;
+    // if constexpr (S == EMSide::Lo) {
+    //   z0 = bc.offsets.z0;
+    //   z1 = bc.offsets.z1 - 1;
+    // } else {
+    //   z0 = bc.offsets.z0 + 1;
+    //   z1 = bc.offsets.z1;
+    // }
+    //
+    // for (size_t i = x0; i < x1; ++i) {
+    //   for (size_t j = y0; j < y1; ++j) {
+    //     for (size_t k = z0; k < z1; ++k) {
+    //       size_t kpml;
+    //       if constexpr (S == EMSide::Lo) { kpml = k; }
+    //       else { kpml = k - z0 + 1; }
+    //
+    //       bc.psi(i, j, kpml) = bc.b[kpml] * bc.psi(i, kpml) + bc.c[kpml] * (f2(i, j, k + 1) - f2(i, j, k));
+    //       if constexpr (Negate) {
+    //         f1(i, j, k) -= c1(i, j, k) * bc.psi(i, j, kpml);
+    //       } else {
+    //         f1(i, j, k) += c1(i, j, k) * bc.psi(i, j, kpml);
+    //       }
+    //     }
+    //   }
+    // }
+  }
 };
 
 
