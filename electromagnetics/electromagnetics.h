@@ -8,11 +8,11 @@
 #include "em_definitions.h"
 #include "bc_definitions.h"
 
-inline constexpr size_t SELECT_EMDATA = 4; // todo: these can be combined into one value?
-inline constexpr size_t SELECT_EMSOLVER = 4;
+inline constexpr size_t SELECT_EMDATA = 3; // todo: these can be combined into one value?
+inline constexpr size_t SELECT_EMSOLVER = 3;
 
-inline constexpr size_t SELECT_BCDATA[6] = {8, 0, 11, 0, 12, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
-inline constexpr size_t SELECT_BCSOLVER[6] = {6, 0, 6, 0, 6, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+inline constexpr size_t SELECT_BCDATA[6] = {7, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+inline constexpr size_t SELECT_BCSOLVER[6] = {5, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
 
 //=================== Boundary Condition Selectors ===================
 //====================================================================

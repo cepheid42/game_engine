@@ -45,7 +45,7 @@ def plot3d(file, n):
 
     # ax.contourf(data[nx // 2, :, :], levels=100)
     # ax.contourf(data[:, ny // 2, :], levels=100)
-    ax.contourf(data[:, :, nz // 2], levels=100)
+    ax.contourf(data[:, :, nz // 2], levels=25)
 
     plt.savefig(data_path + f'/pngs/ez_{n:04d}.png')
     plt.clf()
@@ -58,8 +58,8 @@ def main():
         file = data_path + f'/Ez_{n:04d}.csv'
 
         # plot1d(file, n)
-        # plot2d(file, n)
-        plot3d(file, n)
+        plot2d(file, n)
+        # plot3d(file, n)
 
 
 if __name__ == '__main__':

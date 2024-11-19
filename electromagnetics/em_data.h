@@ -42,15 +42,15 @@ struct EMData {
     init_coefficients(cfl);
   }
 
-  // explicit EMData(const size_t nx, const size_t ny, const value_t cfl)
-  // requires (dimension_t::value == 2 and !is_empty_field<ex_t, empty_t>)
-  // : Ez{nx, ny}, Jz{nx, ny}, Ceze{nx, ny}, Cezh{nx, ny}, Cjz{nx, ny}, // todo: wrong fields here
-  //   Hx{nx, ny - 1}, Chxe{nx, ny - 1}, Chxh{nx, ny - 1},
-  //   Hy{nx - 1, ny}, Chye{nx - 1, ny}, Chyh{nx - 1, ny}
-  // {
-  //   // TEz constructor
-  //   init_coefficients(cfl);
-  // }
+  explicit EMData(const size_t nx, const size_t ny, const value_t cfl)
+  requires (dimension_t::value == 2 and !is_empty_field<ex_t, empty_t>)
+  : Ex{nx - 1, ny}, Jx{nx - 1, ny}, Cexe{nx - 1, ny}, Cexh{nx - 1, ny}, Cjx{nx - 1, ny},
+    Ey{nx, ny - 1}, Jy{nx, ny - 1}, Ceye{nx, ny - 1}, Ceyh{nx, ny - 1}, Cjy{nx, ny - 1},
+    Hz{nx - 1, ny - 1}, Chze{nx - 1, ny - 1}, Chzh{nx - 1, ny - 1}
+  {
+    // TEz constructor
+    init_coefficients(cfl);
+  }
 
   explicit EMData(const size_t nx, const size_t ny, const size_t nz, const value_t cfl)
   requires (dimension_t::value == 3)
