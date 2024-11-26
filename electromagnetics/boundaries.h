@@ -176,12 +176,14 @@ struct Pml2D : pml_t<F, S> {
       x0 = bc.offsets.x0;
       x1 = bc.offsets.x1 - 1;
     }
+    // DBG(f1.nx(), f1.ny());
+    // DBG(x0, x1, y0, y1);
 
     for (size_t i = x0; i < x1; ++i) {
       size_t ipml;
       if constexpr (S == EMSide::Lo) { ipml = i; }
       else { ipml = i - x0; }
-
+      // DBG(i, ipml);
       for (size_t j = y0; j < y1; ++j) {
         bc.psi(ipml, j) = bc.b[ipml] * bc.psi(ipml, j) + bc.c[ipml] * (f2(i, j) - f2(i - 1, j));
         if constexpr (Negate) {
@@ -208,10 +210,16 @@ struct Pml2D : pml_t<F, S> {
       x1 = bc.offsets.x1;
     }
 
+    // DBG("H field");
+    // DBG(f1.nx(), f1.ny());
+    // DBG(x0, x1, y0, y1);
+
     for (size_t i = x0; i < x1; ++i) {
       size_t ipml;
       if constexpr (S == EMSide::Lo) { ipml = i; }
       else { ipml = i - x0 + 1; }
+
+      // DBG(i, ipml);
 
       for (size_t j = y0; j < y1; ++j) {
         bc.psi(ipml, j) = bc.b[ipml] * bc.psi(ipml, j) + bc.c[ipml] * (f2(i + 1, j) - f2(i, j));

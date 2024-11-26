@@ -8,7 +8,7 @@
 #include "em_definitions.h"
 #include "bc_definitions.h"
 
-inline constexpr size_t SELECT_EMDATA = 3; // todo: these can be combined into one value?
+// inline constexpr size_t SELECT_EMDATA = 2; // todo: these can be combined into one value?
 inline constexpr size_t SELECT_EMSOLVER = 3;
 
 inline constexpr size_t SELECT_BCDATA[6] = {7, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
@@ -45,13 +45,13 @@ using bcdata_t = BCData<
 
 template<EMFace F, EMSide S, bool Negate>
 using BCTypeTL = TypeList<
-  ReflectingBC,
-  Periodic1D,
-  Periodic2D<F, S>,
-  Periodic3D<F, S>,
-  Pml1D<S>,
-  Pml2D<F, S, Negate>,
-  Pml3D<F, S, Negate>
+  ReflectingBC,        // 0
+  Periodic1D,          // 1
+  Periodic2D<F, S>,    // 2
+  Periodic3D<F, S>,    // 3
+  Pml1D<S>,            // 4
+  Pml2D<F, S, Negate>, // 5
+  Pml3D<F, S, Negate>  // 6
 >;
 
 template<size_t I, EMFace F, EMSide S, bool Negate>
@@ -74,7 +74,7 @@ using EMDataTL = TypeList<
 >; // Typelist for choosing type of EMData
 
 template<typename T>
-using emdata_t = TypeListAt<SELECT_EMDATA, EMDataTL<T>>;
+using emdata_t = TypeListAt<SELECT_EMSOLVER, EMDataTL<T>>;
 
 template<typename T>
 using EMTypeTL = TypeList<

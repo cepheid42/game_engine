@@ -8,46 +8,46 @@
 
 #include "electromagnetics/electromagnetics.h"
 
-template<typename Array>
-void to_csv(const Array& arr, const size_t step, const std::string& name) {
-  std::string count_padded = std::to_string(step);
-  count_padded.insert(count_padded.begin(), 4 - count_padded.length(), '0');
-
-  std::string filename{"../data/" + name + "_" + count_padded + ".csv"};
-  std::ofstream file;
-  file.open(filename.c_str());
-
-  if constexpr (Array::dimension_t::value == 1) {
-    for (size_t i = 0; i < arr.nx(); i++) {
-        file << arr[i] << ", ";
-    }
-    file << std::endl;
-  } else if constexpr (Array::dimension_t::value == 2) {
-    for (size_t i = 0; i < arr.nx(); i++) {
-      for (size_t j = 0; j < arr.ny(); j++) {
-        file << arr(i, j);
-        if (j < arr.ny() - 1) {
-          file << ", ";
-        }
-      }
-      file << std::endl;
-    }
-  } else {
-    for (size_t i = 0; i < arr.nx(); i++) {
-      for (size_t j = 0; j < arr.ny(); j++) {
-        for (size_t k = 0; k < arr.nz(); k++) {
-          file << arr(i, j, k);
-          if (k < arr.nz() - 1) {
-            file << ", ";
-          }
-        }
-        file << '\n';
-      }
-    }
-  }
-
-  file.close();
-}
+// template<typename Array>
+// void to_csv(const Array& arr, const size_t step, const std::string& name) {
+//   std::string count_padded = std::to_string(step);
+//   count_padded.insert(count_padded.begin(), 4 - count_padded.length(), '0');
+//
+//   std::string filename{"../data/" + name + "_" + count_padded + ".csv"};
+//   std::ofstream file;
+//   file.open(filename.c_str());
+//
+//   if constexpr (Array::dimension_t::value == 1) {
+//     for (size_t i = 0; i < arr.nx(); i++) {
+//         file << arr[i] << ", ";
+//     }
+//     file << std::endl;
+//   } else if constexpr (Array::dimension_t::value == 2) {
+//     for (size_t i = 0; i < arr.nx(); i++) {
+//       for (size_t j = 0; j < arr.ny(); j++) {
+//         file << arr(i, j);
+//         if (j < arr.ny() - 1) {
+//           file << ", ";
+//         }
+//       }
+//       file << std::endl;
+//     }
+//   } else {
+//     for (size_t i = 0; i < arr.nx(); i++) {
+//       for (size_t j = 0; j < arr.ny(); j++) {
+//         for (size_t k = 0; k < arr.nz(); k++) {
+//           file << arr(i, j, k);
+//           if (k < arr.nz() - 1) {
+//             file << ", ";
+//           }
+//         }
+//         file << '\n';
+//       }
+//     }
+//   }
+//
+//   file.close();
+// }
 
 template<typename Array>
 requires is_empty_field<Array, EmptyArray<typename Array::value_t, Array::dimension_t::value>>
@@ -97,6 +97,18 @@ int main() {
   emdata_t<double> em{nx, ny, cfl};
   bcdata_t<double> bc{em};
 
+  // DBG(bc.x0.Ey.offsets, bc.x0.Hz.offsets);
+
+  // to_csv(bc.x0.Ez.b, 0, "bc_x0_Ez_b");
+  // to_csv(bc.x0.Ez.c, 0, "bc_x0_Ez_c");
+  // to_csv(bc.x0.Hy.b, 0, "bc_x0_Hy_b");
+  // to_csv(bc.x0.Hy.c, 0, "bc_x0_Hy_c");
+
+  // to_csv(bc.x0.Ey.b, 0, "bc_x0_Ey_b");
+  // to_csv(bc.x0.Ey.c, 0, "bc_x0_Ey_c");
+  // to_csv(bc.x0.Hz.b, 0, "bc_x0_Hz_b");
+  // to_csv(bc.x0.Hz.c, 0, "bc_x0_Hz_c");
+
   // emdata_t<double> em{nx, ny, nz, cfl};
   // bcdata_t<double> bc{em};
 
@@ -113,8 +125,8 @@ int main() {
     // em.Ez(nx / 2, ny / 2, nz / 2) += ricker(static_cast<fp_t>(n));
 
     if (n % save_step == 0) {
+      // to_csv(em.Ez, filecount, "Ez");
       to_csv(em.Ex, filecount, "Ez");
-      // to_csv(em.Hy, filecount, "Hy");
       filecount++;
     }
   }

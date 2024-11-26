@@ -21,7 +21,6 @@ struct EMData {
   using dimension_t = typename ex_t::dimension_t;
   using empty_t = EmptyArray<value_t, dimension_t::value>;
 
-
   EMData() = default;
 
   explicit EMData(const size_t nx, const value_t cfl)

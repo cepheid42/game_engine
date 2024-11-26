@@ -44,8 +44,9 @@ struct FieldIntegrator1D {
   using dimension_t = typename T::dimension_t;
   using array_t = Array1D<value_t>;
   using update_func = UpdateFunctor;
+  using offset_t = IntegratorOffsets;
 
-  static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
+  static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const offset_t& o) {
     for (size_t i = o.x0; i < f.nx() - o.x1; ++i) {
       update_func::apply(f, d1, d2, js, c_f, c_d, c_src, i);
     }
@@ -58,8 +59,9 @@ struct FieldIntegrator2D {
   using dimension_t = typename T::dimension_t;
   using array_t = Array2D<value_t>;
   using update_func = UpdateFunctor;
+  using offset_t = IntegratorOffsets;
 
-  static void apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
+  static void apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const offset_t& o) {
     for (size_t i = o.x0; i < f.nx() - o.x1; ++i) {
       for (size_t j = o.y0; j < f.ny() - o.y1; ++j) {
         update_func::apply(f, d1, d2, js, c_f, c_d, c_src, i, j);
@@ -74,8 +76,9 @@ struct FieldIntegrator3D {
   using dimension_t = typename T::dimension_t;
   using array_t = Array3D<value_t>;
   using update_func = UpdateFunctor;
+  using offset_t = IntegratorOffsets;
 
-  static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const auto& o) {
+  static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const offset_t& o) {
 #pragma omp parallel for collapse(3) num_threads(8)
     for (size_t i = o.x0; i < f.nx() - o.x1; ++i) {
       for (size_t j = o.y0; j < f.ny() - o.y1; ++j) {
@@ -92,9 +95,55 @@ struct FieldIntegratorNull {
   using value_t = typename T::value_t;
   using dimension_t = typename T::dimension_t;
   using array_t = EmptyArray<value_t, dimension_t::value>;
+  using offset_t = IntegratorOffsets;
 
-  static constexpr void apply(const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const auto&) {}
+  static constexpr void apply(const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const offset_t&) {}
 };
+
+template<typename Array>
+void to_csv(const Array& arr, const size_t step, const std::string& name) {
+  std::string count_padded = std::to_string(step);
+  count_padded.insert(count_padded.begin(), 4 - count_padded.length(), '0');
+
+  std::string filename{"../data/" + name + "_" + count_padded + ".csv"};
+  std::ofstream file;
+  file.open(filename.c_str());
+
+  if constexpr (std::is_same_v<Array, std::array<double, nPml>>) {
+    for (const auto& e: arr) {
+      file << e << ", ";
+    }
+  } else if constexpr (Array::dimension_t::value == 1) {
+    for (size_t i = 0; i < arr.nx(); i++) {
+      file << arr[i] << ", ";
+    }
+    file << std::endl;
+  } else if constexpr (Array::dimension_t::value == 2) {
+    for (size_t i = 0; i < arr.nx(); i++) {
+      for (size_t j = 0; j < arr.ny(); j++) {
+        file << arr(i, j);
+        if (j < arr.ny() - 1) {
+          file << ", ";
+        }
+      }
+      file << std::endl;
+    }
+  } else {
+    for (size_t i = 0; i < arr.nx(); i++) {
+      for (size_t j = 0; j < arr.ny(); j++) {
+        for (size_t k = 0; k < arr.nz(); k++) {
+          file << arr(i, j, k);
+          if (k < arr.nz() - 1) {
+            file << ", ";
+          }
+        }
+        file << '\n';
+      }
+    }
+  }
+
+  file.close();
+}
 
 template<typename EXI, typename EYI, typename EZI,
          typename HXI, typename HYI, typename HZI>
@@ -104,13 +153,13 @@ struct Electromagnetics {
   using empty_t = EmptyArray<value_t, dimension_t::value>;
 
   static constexpr empty_t empty{};
-  static constexpr IntegratorOffsets one_offsets{1, 1, 1, 1, 1, 1};
+  // static constexpr IntegratorOffsets one_offsets{1, 1, 1, 1, 1, 1};
   static constexpr IntegratorOffsets zero_offsets{0, 0, 0, 0, 0, 0};
 
   static void updateE(auto& emdata) {
-    EXI::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexh, emdata.Cjx, one_offsets);
-    EYI::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyh, emdata.Cjy, one_offsets);
-    EZI::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezh, emdata.Cjz, one_offsets);
+    EXI::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexh, emdata.Cjx, {0, 0, 1, 1, 1, 1});
+    EYI::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyh, emdata.Cjy, {1, 1, 0, 0, 1, 1});
+    EZI::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezh, emdata.Cjz, {1, 1, 1, 1, 0, 0});
   }
 
   static void updateH(auto& emdata) {
@@ -144,7 +193,7 @@ struct Electromagnetics {
     // Boundary<Pml2D<EMFace::Y, EMSide::Lo, true>>::updateE(bcdata.y0.Ez, emdata.Ez, emdata.Hx, emdata.Cezh);
 
     // TEz
-    Boundary<Pml2D<EMFace::X, EMSide::Lo, false>>::updateE(bcdata.x0.Ey, emdata.Ey, emdata.Hz, emdata.Ceyh);
+    Boundary<Pml2D<EMFace::X, EMSide::Lo, true>>::updateE(bcdata.x0.Ey, emdata.Ey, emdata.Hz, emdata.Ceyh);
 
     // Boundary<Pml3D<EMFace::X, EMSide::Lo, true>>::updateE(bcdata.x0.Ey, emdata.Ey, emdata.Hz, emdata.Ceyh);
     // Boundary<Pml3D<EMFace::X, EMSide::Lo, false>>::updateE(bcdata.x0.Ez, emdata.Ez, emdata.Hy, emdata.Cezh);
@@ -175,13 +224,13 @@ struct Electromagnetics {
     // Boundary<Pml1D<EMFace::Y, EMSide::Lo>>::updateH(bcdata.y0.Hx, emdata.Hx, emdata.Ez, emdata.Chxe);
     // Boundary<Pml1D<EMFace::Y, EMSide::Hi>>::updateH(bcdata.y1.Hx, emdata.Hx, emdata.Ez, emdata.Chxe);
 
-
     // TMz
     // Boundary<Pml2D<EMFace::X, EMSide::Lo, false>>::updateH(bcdata.x0.Hy, emdata.Hy, emdata.Ez, emdata.Chye);
     // Boundary<Pml2D<EMFace::Y, EMSide::Lo, true>>::updateH(bcdata.y0.Hx, emdata.Hx, emdata.Ez, emdata.Chxe);
 
     // TEz
-    Boundary<Pml2D<EMFace::X, EMSide::Lo, false>>::updateH(bcdata.x0.Hz, emdata.Hz, emdata.Ey, emdata.Chze);
+    Boundary<Pml2D<EMFace::X, EMSide::Lo, true>>::updateH(bcdata.x0.Hz, emdata.Hz, emdata.Ey, emdata.Chze);
+
 
     // Boundary<Pml3D<EMFace::X, EMSide::Lo, false>>::updateH(bcdata.x0.Hy, emdata.Hy, emdata.Ez, emdata.Chye);
     // Boundary<Pml3D<EMFace::X, EMSide::Lo, true>>::updateH(bcdata.x0.Hz, emdata.Hz, emdata.Ey, emdata.Chze);
@@ -192,11 +241,23 @@ struct Electromagnetics {
 
 
   static void advance(auto& emdata, auto& bcdata) {
+    static int c = 0;
+
+    // to_csv(bcdata.x0.Ez.psi, c, "tmz_psi/ezpsi");
+    // to_csv(bcdata.x0.Hy.psi, c, "tmz_psi/hypsi");
+
+    // to_csv(bcdata.x0.Ey.psi, c, "tez_psi/eypsi");
+    // to_csv(bcdata.x0.Hz.psi, c, "tez_psi/hzpsi");
+
+    c++;
+
     updateH(emdata);
     updateH_bcs(emdata, bcdata);
 
     updateE(emdata);
     updateE_bcs(emdata, bcdata);
+
+
   }
 };
 
