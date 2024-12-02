@@ -176,14 +176,11 @@ struct Pml2D : pml_t<F, S> {
       x0 = bc.offsets.x0;
       x1 = bc.offsets.x1 - 1;
     }
-    // DBG(f1.nx(), f1.ny());
-    // DBG(x0, x1, y0, y1);
 
     for (size_t i = x0; i < x1; ++i) {
       size_t ipml;
       if constexpr (S == EMSide::Lo) { ipml = i; }
       else { ipml = i - x0; }
-      // DBG(i, ipml);
       for (size_t j = y0; j < y1; ++j) {
         bc.psi(ipml, j) = bc.b[ipml] * bc.psi(ipml, j) + bc.c[ipml] * (f2(i, j) - f2(i - 1, j));
         if constexpr (Negate) {
@@ -210,17 +207,10 @@ struct Pml2D : pml_t<F, S> {
       x1 = bc.offsets.x1;
     }
 
-    // DBG("H field");
-    // DBG(f1.nx(), f1.ny());
-    // DBG(x0, x1, y0, y1);
-
     for (size_t i = x0; i < x1; ++i) {
       size_t ipml;
       if constexpr (S == EMSide::Lo) { ipml = i; }
       else { ipml = i - x0 + 1; }
-
-      // DBG(i, ipml);
-
       for (size_t j = y0; j < y1; ++j) {
         bc.psi(ipml, j) = bc.b[ipml] * bc.psi(ipml, j) + bc.c[ipml] * (f2(i + 1, j) - f2(i, j));
         if constexpr (Negate) {
@@ -252,9 +242,12 @@ struct Pml2D : pml_t<F, S> {
         size_t jpml;
         if constexpr (S == EMSide::Lo) { jpml = j; }
         else { jpml = j - y0; }
-
         bc.psi(i, jpml) = bc.b[jpml] * bc.psi(i, jpml) + bc.c[jpml] * (f2(i, j) - f2(i, j - 1));
-        f1(i, j) -= c1(i, j) * bc.psi(i, jpml);
+        if constexpr (Negate) {
+          f1(i, j) -= c1(i, j) * bc.psi(i, jpml);
+        } else {
+          f1(i, j) += c1(i, j) * bc.psi(i, jpml);
+        }
       }
     }
   }
@@ -274,18 +267,17 @@ struct Pml2D : pml_t<F, S> {
       y1 = bc.offsets.y1;
     }
 
-    // DBG(f1.nx(), f1.ny(), x0, x1, y0, y1);
-
     for (size_t i = x0; i < x1; ++i) {
       for (size_t j = y0; j < y1; ++j) {
         size_t jpml;
         if constexpr (S == EMSide::Lo) { jpml = j; }
         else { jpml = j - y0 + 1; }
-
-        // DBG(j, jpml);
-
         bc.psi(i, jpml) = bc.b[jpml] * bc.psi(i, jpml) + bc.c[jpml] * (f2(i, j + 1) - f2(i, j));
-        f1(i, j) -= c1(i, j) * bc.psi(i, jpml);
+        if constexpr (Negate) {
+          f1(i, j) -= c1(i, j) * bc.psi(i, jpml);
+        } else {
+          f1(i, j) += c1(i, j) * bc.psi(i, jpml);
+        }
       }
     }
   }
@@ -293,76 +285,76 @@ struct Pml2D : pml_t<F, S> {
 
 template<EMFace F, EMSide S, bool Negate>
 struct Pml3D : pml_t<F, S> {
-  // static void updateE(auto& bc, auto& f1, const auto& f2, const auto& c1)
-  // requires (F == EMFace::X)
-  // {
-  //   const auto& y0 = bc.offsets.y0;
-  //   const auto& y1 = bc.offsets.y1;
-  //   const auto& z0 = bc.offsets.z0;
-  //   const auto& z1 = bc.offsets.z1;
-  //
-  //   size_t x0, x1;
-  //   if constexpr (S == EMSide::Lo) {
-  //     x0 = bc.offsets.x0 + 1;
-  //     x1 = bc.offsets.x1;
-  //   } else {
-  //     x0 = bc.offsets.x0;
-  //     x1 = bc.offsets.x1 - 1;
-  //   }
-  //
-  //   for (size_t i = x0; i < x1; ++i) {
-  //     size_t ipml;
-  //     if constexpr (S == EMSide::Lo) { ipml = i; }
-  //     else { ipml = i - x0; }
-  //
-  //     for (size_t j = y0; j < y1; ++j) {
-  //       for (size_t k = z0; k < z1; ++k) {
-  //
-  //         bc.psi(ipml, j, k) = bc.b[ipml] * bc.psi(ipml, j, k) + bc.c[ipml] * (f2(i, j, k) - f2(i - 1, j, k));
-  //         if constexpr (Negate) {
-  //           f1(i, j, k) -= c1(i, j, k) * bc.psi(ipml, j, k);
-  //         } else {
-  //           f1(i, j, k) += c1(i, j, k) * bc.psi(ipml, j, k);
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
+  static void updateE(auto& bc, auto& f1, const auto& f2, const auto& c1)
+  requires (F == EMFace::X)
+  {
+    const auto& y0 = bc.offsets.y0;
+    const auto& y1 = bc.offsets.y1;
+    const auto& z0 = bc.offsets.z0;
+    const auto& z1 = bc.offsets.z1;
 
-  // static void updateH(auto& bc, auto& f1, const auto& f2, const auto& c1)
-  // requires (F == EMFace::X)
-  // {
-  //   const auto& y0 = bc.offsets.y0;
-  //   const auto& y1 = bc.offsets.y1;
-  //   const auto& z0 = bc.offsets.z0;
-  //   const auto& z1 = bc.offsets.z1;
-  //
-  //   size_t x0, x1;
-  //   if constexpr (S == EMSide::Lo) {
-  //     x0 = bc.offsets.x0;
-  //     x1 = bc.offsets.x1 - 1;
-  //   } else {
-  //     x0 = bc.offsets.x0 + 1;
-  //     x1 = bc.offsets.x1;
-  //   }
-  //
-  //   for (size_t i = x0; i < x1; ++i) {
-  //     size_t ipml;
-  //     if constexpr (S == EMSide::Lo) { ipml = i; }
-  //     else { ipml = i - x0 + 1; }
-  //
-  //     for (size_t j = y0; j < y1; ++j) {
-  //       for (size_t k = z0; k < z1; ++k) {
-  //         bc.psi(ipml, j, k) = bc.b[ipml] * bc.psi(ipml, j, k) + bc.c[ipml] * (f2(i + 1, j, k) - f2(i, j, k));
-  //         if constexpr (Negate) {
-  //           f1(i, j, k) -= c1(i, j, k) * bc.psi(ipml, j, k);
-  //         } else {
-  //           f1(i, j, k) += c1(i, j, k) * bc.psi(ipml, j, k);
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
+    size_t x0, x1;
+    if constexpr (S == EMSide::Lo) {
+      x0 = bc.offsets.x0 + 1;
+      x1 = bc.offsets.x1;
+    } else {
+      x0 = bc.offsets.x0;
+      x1 = bc.offsets.x1 - 1;
+    }
+
+    size_t ipml;
+#pragma omp parallel for collapse(3) num_threads(16) default(shared) private(ipml)
+    for (size_t i = x0; i < x1; ++i) {
+      for (size_t j = y0; j < y1; ++j) {
+        for (size_t k = z0; k < z1; ++k) {
+          if constexpr (S == EMSide::Lo) { ipml = i; }
+          else { ipml = i - x0; }
+          bc.psi(ipml, j, k) = bc.b[ipml] * bc.psi(ipml, j, k) + bc.c[ipml] * (f2(i, j, k) - f2(i - 1, j, k));
+          if constexpr (Negate) {
+            f1(i, j, k) -= c1(i, j, k) * bc.psi(ipml, j, k);
+          } else {
+            f1(i, j, k) += c1(i, j, k) * bc.psi(ipml, j, k);
+          }
+        }
+      }
+    }
+  }
+
+  static void updateH(auto& bc, auto& f1, const auto& f2, const auto& c1)
+  requires (F == EMFace::X)
+  {
+    const auto& y0 = bc.offsets.y0;
+    const auto& y1 = bc.offsets.y1;
+    const auto& z0 = bc.offsets.z0;
+    const auto& z1 = bc.offsets.z1;
+
+    size_t x0, x1;
+    if constexpr (S == EMSide::Lo) {
+      x0 = bc.offsets.x0;
+      x1 = bc.offsets.x1 - 1;
+    } else {
+      x0 = bc.offsets.x0 + 1;
+      x1 = bc.offsets.x1;
+    }
+
+    size_t ipml;
+#pragma omp parallel for collapse(3) num_threads(16) default(shared) private(ipml)
+    for (size_t i = x0; i < x1; ++i) {
+      for (size_t j = y0; j < y1; ++j) {
+        for (size_t k = z0; k < z1; ++k) {
+          if constexpr (S == EMSide::Lo) { ipml = i; }
+          else { ipml = i - x0 + 1; }
+
+          bc.psi(ipml, j, k) = bc.b[ipml] * bc.psi(ipml, j, k) + bc.c[ipml] * (f2(i + 1, j, k) - f2(i, j, k));
+          if constexpr (Negate) {
+            f1(i, j, k) -= c1(i, j, k) * bc.psi(ipml, j, k);
+          } else {
+            f1(i, j, k) += c1(i, j, k) * bc.psi(ipml, j, k);
+          }
+        }
+      }
+    }
+  }
 
   static void updateE(auto& bc, auto& f1, const auto& f2, const auto& c1)
   requires (F == EMFace::Y)
@@ -381,15 +373,13 @@ struct Pml3D : pml_t<F, S> {
       y1 = bc.offsets.y1 - 1;
     }
 
-    DBG(x0, x1, y0, y1, z0, z1);
-
+    size_t jpml;
+#pragma omp parallel for collapse(3) num_threads(16) default(shared) private(jpml)
     for (size_t i = x0; i < x1; ++i) {
       for (size_t j = y0; j < y1; ++j) {
-        size_t jpml;
-        if constexpr (S == EMSide::Lo) { jpml = j; }
-        else { jpml = j - y0; }
-
         for (size_t k = z0; k < z1; ++k) {
+          if constexpr (S == EMSide::Lo) { jpml = j; }
+          else { jpml = j - y0; }
           bc.psi(i, jpml, k) = bc.b[jpml] * bc.psi(i, jpml, k) + bc.c[jpml] * (f2(i, j, k) - f2(i, j - 1, k));
           if constexpr (Negate) {
             f1(i, j, k) -= c1(i, j, k) * bc.psi(i, jpml, k);
@@ -418,15 +408,13 @@ struct Pml3D : pml_t<F, S> {
       y1 = bc.offsets.y1;
     }
 
-    DBG(x0, x1, y0, y1, z0, z1);
-
+    size_t jpml;
+#pragma omp parallel for collapse(3) num_threads(16) default(shared) private(jpml)
     for (size_t i = x0; i < x1; ++i) {
       for (size_t j = y0; j < y1; ++j) {
-        size_t jpml;
-        if constexpr (S == EMSide::Lo) { jpml = j; }
-        else { jpml = j - y0 + 1; }
-
         for (size_t k = z0; k < z1; ++k) {
+          if constexpr (S == EMSide::Lo) { jpml = j; }
+          else { jpml = j - y0 + 1; }
           bc.psi(i, jpml, k) = bc.b[jpml] * bc.psi(i, jpml, k) + bc.c[jpml] * (f2(i, j + 1, k) - f2(i, j, k));
           if constexpr (Negate) {
             f1(i, j, k) -= c1(i, j, k) * bc.psi(i, jpml, k);
@@ -441,71 +429,71 @@ struct Pml3D : pml_t<F, S> {
   static void updateE(auto& bc, auto& f1, const auto& f2, const auto& c1)
   requires (F == EMFace::Z)
   {
-    // const auto& x0 = bc.offsets.x0;
-    // const auto& x1 = bc.offsets.x1;
-    // const auto& y0 = bc.offsets.y0;
-    // const auto& y1 = bc.offsets.y1;
-    //
-    // size_t z0, z1;
-    // if constexpr (S == EMSide::Lo) {
-    //   z0 = bc.offsets.z0;
-    //   z1 = bc.offsets.z1 - 1;
-    // } else {
-    //   z0 = bc.offsets.z0 + 1;
-    //   z1 = bc.offsets.z1;
-    // }
-    //
-    // for (size_t i = x0; i < x1; ++i) {
-    //   for (size_t j = y0; j < y1; ++j) {
-    //     for (size_t k = z0; k < z1; ++k) {
-    //       size_t kpml;
-    //       if constexpr (S == EMSide::Lo) { kpml = k; }
-    //       else { kpml = k - z0 + 1; }
-    //
-    //       bc.psi(i, j, kpml) = bc.b[kpml] * bc.psi(i, kpml) + bc.c[kpml] * (f2(i, j, k + 1) - f2(i, j, k));
-    //       if constexpr (Negate) {
-    //         f1(i, j, k) -= c1(i, j, k) * bc.psi(i, j, kpml);
-    //       } else {
-    //         f1(i, j, k) += c1(i, j, k) * bc.psi(i, j, kpml);
-    //       }
-    //     }
-    //   }
-    // }
+    const auto& x0 = bc.offsets.x0;
+    const auto& x1 = bc.offsets.x1;
+    const auto& y0 = bc.offsets.y0;
+    const auto& y1 = bc.offsets.y1;
+
+    size_t z0, z1;
+    if constexpr (S == EMSide::Lo) {
+      z0 = bc.offsets.z0 + 1;
+      z1 = bc.offsets.z1;
+    } else {
+      z0 = bc.offsets.z0;
+      z1 = bc.offsets.z1 - 1;
+    }
+
+    size_t kpml;
+#pragma omp parallel for collapse(3) num_threads(16) default(shared) private(kpml)
+    for (size_t i = x0; i < x1; ++i) {
+      for (size_t j = y0; j < y1; ++j) {
+        for (size_t k = z0; k < z1; ++k) {
+          if constexpr (S == EMSide::Lo) { kpml = k; }
+          else { kpml = k - z0 + 1; }
+          bc.psi(i, j, kpml) = bc.b[kpml] * bc.psi(i, j, kpml) + bc.c[kpml] * (f2(i, j, k) - f2(i, j, k - 1));
+          if constexpr (Negate) {
+            f1(i, j, k) -= c1(i, j, k) * bc.psi(i, j, kpml);
+          } else {
+            f1(i, j, k) += c1(i, j, k) * bc.psi(i, j, kpml);
+          }
+        }
+      }
+    }
   }
   
   static void updateH(auto& bc, auto& f1, const auto& f2, const auto& c1)
   requires (F == EMFace::Z)
   {
-    // const auto& x0 = bc.offsets.x0;
-    // const auto& x1 = bc.offsets.x1;
-    // const auto& y0 = bc.offsets.y0;
-    // const auto& y1 = bc.offsets.y1;
-    //
-    // size_t z0, z1;
-    // if constexpr (S == EMSide::Lo) {
-    //   z0 = bc.offsets.z0;
-    //   z1 = bc.offsets.z1 - 1;
-    // } else {
-    //   z0 = bc.offsets.z0 + 1;
-    //   z1 = bc.offsets.z1;
-    // }
-    //
-    // for (size_t i = x0; i < x1; ++i) {
-    //   for (size_t j = y0; j < y1; ++j) {
-    //     for (size_t k = z0; k < z1; ++k) {
-    //       size_t kpml;
-    //       if constexpr (S == EMSide::Lo) { kpml = k; }
-    //       else { kpml = k - z0 + 1; }
-    //
-    //       bc.psi(i, j, kpml) = bc.b[kpml] * bc.psi(i, kpml) + bc.c[kpml] * (f2(i, j, k + 1) - f2(i, j, k));
-    //       if constexpr (Negate) {
-    //         f1(i, j, k) -= c1(i, j, k) * bc.psi(i, j, kpml);
-    //       } else {
-    //         f1(i, j, k) += c1(i, j, k) * bc.psi(i, j, kpml);
-    //       }
-    //     }
-    //   }
-    // }
+    const auto& x0 = bc.offsets.x0;
+    const auto& x1 = bc.offsets.x1;
+    const auto& y0 = bc.offsets.y0;
+    const auto& y1 = bc.offsets.y1;
+
+    size_t z0, z1;
+    if constexpr (S == EMSide::Lo) {
+      z0 = bc.offsets.z0;
+      z1 = bc.offsets.z1 - 1;
+    } else {
+      z0 = bc.offsets.z0 + 1;
+      z1 = bc.offsets.z1;
+    }
+
+    size_t kpml;
+#pragma omp parallel for collapse(3) num_threads(16) default(shared) private(kpml)
+    for (size_t i = x0; i < x1; ++i) {
+      for (size_t j = y0; j < y1; ++j) {
+        for (size_t k = z0; k < z1; ++k) {
+          if constexpr (S == EMSide::Lo) { kpml = k; }
+          else { kpml = k - z0 + 1; }
+          bc.psi(i, j, kpml) = bc.b[kpml] * bc.psi(i, j, kpml) + bc.c[kpml] * (f2(i, j, k + 1) - f2(i, j, k));
+          if constexpr (Negate) {
+            f1(i, j, k) -= c1(i, j, k) * bc.psi(i, j, kpml);
+          } else {
+            f1(i, j, k) += c1(i, j, k) * bc.psi(i, j, kpml);
+          }
+        }
+      }
+    }
   }
 };
 

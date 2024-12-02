@@ -24,7 +24,6 @@ struct FieldUpdate {
   static constexpr auto dx = 1.0 / 99.0;
 
   static void apply(auto& f, const auto& d1, const auto& d2, const auto& j, const auto& c_f, const auto& c_d, const auto& c_j, IDXS... idxs) {
-
     const auto    self = c_f(idxs...) * f(idxs...);
     const auto   diff1 = CurlA::apply(d1, idxs...);
     const auto   diff2 = CurlB::apply(d2, idxs...);
@@ -79,7 +78,7 @@ struct FieldIntegrator3D {
   using offset_t = IntegratorOffsets;
 
   static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d, const auto& c_src, const offset_t& o) {
-#pragma omp parallel for collapse(3) num_threads(8)
+#pragma omp parallel for collapse(3) num_threads(16)
     for (size_t i = o.x0; i < f.nx() - o.x1; ++i) {
       for (size_t j = o.y0; j < f.ny() - o.y1; ++j) {
         for (size_t k = o.z0; k < f.nz() - o.z1; ++k) {
@@ -181,25 +180,37 @@ struct Electromagnetics {
     // Boundary<Periodic3D<EMFace::Z, EMSide::Lo>>::updateE(bcdata.z0.Ey, emdata.Ey);
     // Boundary<Periodic3D<EMFace::Z, EMSide::Lo>>::updateE(bcdata.z0.Ez, emdata.Ez);
 
+    // // 1D
     // Boundary<Pml1D<EMSide::Lo>>::updateE(bcdata.x0.Ez, emdata.Ez, emdata.Hy, emdata.Cezh);
     // Boundary<Pml1D<EMSide::Hi>>::updateE(bcdata.x1.Ez, emdata.Ez, emdata.Hy, emdata.Cezh);
 
-    // Boundary<Pml2D<EMFace::Y, EMSide::Lo>>::updateE(bcdata.y0.Ez, emdata.Ez, emdata.Hx, emdata.Cezh);
-    // Boundary<Pml2D<EMFace::Y, EMSide::Hi>>::updateE(bcdata.y1.Ez, emdata.Ez, emdata.Hx, emdata.Cezh);
-
-
-    // TMz
+    // // TMz
     // Boundary<Pml2D<EMFace::X, EMSide::Lo, false>>::updateE(bcdata.x0.Ez, emdata.Ez, emdata.Hy, emdata.Cezh);
+    // Boundary<Pml2D<EMFace::X, EMSide::Hi, false>>::updateE(bcdata.x1.Ez, emdata.Ez, emdata.Hy, emdata.Cezh);
     // Boundary<Pml2D<EMFace::Y, EMSide::Lo, true>>::updateE(bcdata.y0.Ez, emdata.Ez, emdata.Hx, emdata.Cezh);
+    // Boundary<Pml2D<EMFace::Y, EMSide::Hi, true>>::updateE(bcdata.y1.Ez, emdata.Ez, emdata.Hx, emdata.Cezh);
 
-    // TEz
-    Boundary<Pml2D<EMFace::X, EMSide::Lo, true>>::updateE(bcdata.x0.Ey, emdata.Ey, emdata.Hz, emdata.Ceyh);
+    // // TEz
+    // Boundary<Pml2D<EMFace::X, EMSide::Lo, true>>::updateE(bcdata.x0.Ey, emdata.Ey, emdata.Hz, emdata.Ceyh);
+    // Boundary<Pml2D<EMFace::X, EMSide::Hi, true>>::updateE(bcdata.x1.Ey, emdata.Ey, emdata.Hz, emdata.Ceyh);
+    // Boundary<Pml2D<EMFace::Y, EMSide::Lo, false>>::updateE(bcdata.y0.Ex, emdata.Ex, emdata.Hz, emdata.Cexh);
+    // Boundary<Pml2D<EMFace::Y, EMSide::Hi, false>>::updateE(bcdata.y1.Ex, emdata.Ex, emdata.Hz, emdata.Cexh);
 
+    // 3D
     // Boundary<Pml3D<EMFace::X, EMSide::Lo, true>>::updateE(bcdata.x0.Ey, emdata.Ey, emdata.Hz, emdata.Ceyh);
     // Boundary<Pml3D<EMFace::X, EMSide::Lo, false>>::updateE(bcdata.x0.Ez, emdata.Ez, emdata.Hy, emdata.Cezh);
-
+    // Boundary<Pml3D<EMFace::X, EMSide::Hi, true>>::updateE(bcdata.x1.Ey, emdata.Ey, emdata.Hz, emdata.Ceyh);
+    // Boundary<Pml3D<EMFace::X, EMSide::Hi, false>>::updateE(bcdata.x1.Ez, emdata.Ez, emdata.Hy, emdata.Cezh);
+    //
     // Boundary<Pml3D<EMFace::Y, EMSide::Lo, false>>::updateE(bcdata.y0.Ex, emdata.Ex, emdata.Hz, emdata.Cexh);
     // Boundary<Pml3D<EMFace::Y, EMSide::Lo, true>>::updateE(bcdata.y0.Ez, emdata.Ez, emdata.Hx, emdata.Cezh);
+    // Boundary<Pml3D<EMFace::Y, EMSide::Hi, false>>::updateE(bcdata.y1.Ex, emdata.Ex, emdata.Hz, emdata.Cexh);
+    // Boundary<Pml3D<EMFace::Y, EMSide::Hi, true>>::updateE(bcdata.y1.Ez, emdata.Ez, emdata.Hx, emdata.Cezh);
+
+    Boundary<Pml3D<EMFace::Z, EMSide::Lo, true>>::updateE(bcdata.z0.Ex, emdata.Ex, emdata.Hy, emdata.Cexh);
+    Boundary<Pml3D<EMFace::Z, EMSide::Lo, false>>::updateE(bcdata.z0.Ey, emdata.Ey, emdata.Hx, emdata.Ceyh);
+    // Boundary<Pml3D<EMFace::Z, EMSide::Hi, true>>::updateE(bcdata.z1.Ex, emdata.Ex, emdata.Hy, emdata.Cexh);
+    // Boundary<Pml3D<EMFace::Z, EMSide::Hi, false>>::updateE(bcdata.z1.Ey, emdata.Ey, emdata.Hx, emdata.Ceyh);
   }
 
   static void updateH_bcs(auto& emdata, auto& bcdata) {
@@ -218,46 +229,46 @@ struct Electromagnetics {
     // Boundary<Periodic2D<EMFace::Y>>::updateH(bcdata.y0.Hx, emdata.Hx);
     // Boundary<Periodic2D<EMFace::Y>>::updateH(bcdata.y0.Hy, emdata.Hy);
 
+    // // 1D
     // Boundary<Pml1D<EMSide::Lo>>::updateH(bcdata.x0.Hy, emdata.Hy, emdata.Ez, emdata.Chye);
     // Boundary<Pml1D<EMSide::Hi>>::updateH(bcdata.x1.Hy, emdata.Hy, emdata.Ez, emdata.Chye);
 
-    // Boundary<Pml1D<EMFace::Y, EMSide::Lo>>::updateH(bcdata.y0.Hx, emdata.Hx, emdata.Ez, emdata.Chxe);
-    // Boundary<Pml1D<EMFace::Y, EMSide::Hi>>::updateH(bcdata.y1.Hx, emdata.Hx, emdata.Ez, emdata.Chxe);
-
-    // TMz
+    // // TMz
     // Boundary<Pml2D<EMFace::X, EMSide::Lo, false>>::updateH(bcdata.x0.Hy, emdata.Hy, emdata.Ez, emdata.Chye);
+    // Boundary<Pml2D<EMFace::X, EMSide::Hi, false>>::updateH(bcdata.x1.Hy, emdata.Hy, emdata.Ez, emdata.Chye);
     // Boundary<Pml2D<EMFace::Y, EMSide::Lo, true>>::updateH(bcdata.y0.Hx, emdata.Hx, emdata.Ez, emdata.Chxe);
+    // Boundary<Pml2D<EMFace::Y, EMSide::Hi, true>>::updateH(bcdata.y1.Hx, emdata.Hx, emdata.Ez, emdata.Chxe);
 
-    // TEz
-    Boundary<Pml2D<EMFace::X, EMSide::Lo, true>>::updateH(bcdata.x0.Hz, emdata.Hz, emdata.Ey, emdata.Chze);
+    // // TEz
+    // Boundary<Pml2D<EMFace::X, EMSide::Lo, true>>::updateH(bcdata.x0.Hz, emdata.Hz, emdata.Ey, emdata.Chze);
+    // Boundary<Pml2D<EMFace::X, EMSide::Hi, true>>::updateH(bcdata.x1.Hz, emdata.Hz, emdata.Ey, emdata.Chze);
+    // Boundary<Pml2D<EMFace::Y, EMSide::Lo, false>>::updateH(bcdata.y0.Hz, emdata.Hz, emdata.Ex, emdata.Chze);
+    // Boundary<Pml2D<EMFace::Y, EMSide::Hi, false>>::updateH(bcdata.y1.Hz, emdata.Hz, emdata.Ex, emdata.Chze);
 
-
+    // 3D
     // Boundary<Pml3D<EMFace::X, EMSide::Lo, false>>::updateH(bcdata.x0.Hy, emdata.Hy, emdata.Ez, emdata.Chye);
     // Boundary<Pml3D<EMFace::X, EMSide::Lo, true>>::updateH(bcdata.x0.Hz, emdata.Hz, emdata.Ey, emdata.Chze);
-
+    // Boundary<Pml3D<EMFace::X, EMSide::Hi, false>>::updateH(bcdata.x1.Hy, emdata.Hy, emdata.Ez, emdata.Chye);
+    // Boundary<Pml3D<EMFace::X, EMSide::Hi, true>>::updateH(bcdata.x1.Hz, emdata.Hz, emdata.Ey, emdata.Chze);
+    //
     // Boundary<Pml3D<EMFace::Y, EMSide::Lo, true>>::updateH(bcdata.y0.Hx, emdata.Hx, emdata.Ez, emdata.Chxe);
     // Boundary<Pml3D<EMFace::Y, EMSide::Lo, false>>::updateH(bcdata.y0.Hz, emdata.Hz, emdata.Ex, emdata.Chze);
+    // Boundary<Pml3D<EMFace::Y, EMSide::Hi, true>>::updateH(bcdata.y1.Hx, emdata.Hx, emdata.Ez, emdata.Chxe);
+    // Boundary<Pml3D<EMFace::Y, EMSide::Hi, false>>::updateH(bcdata.y1.Hz, emdata.Hz, emdata.Ex, emdata.Chze);
+
+    Boundary<Pml3D<EMFace::Z, EMSide::Lo, false>>::updateH(bcdata.z0.Hx, emdata.Hx, emdata.Ey, emdata.Chxe);
+    Boundary<Pml3D<EMFace::Z, EMSide::Lo, true>>::updateH(bcdata.z0.Hy, emdata.Hy, emdata.Ex, emdata.Chye);
+    // Boundary<Pml3D<EMFace::Z, EMSide::Hi, false>>::updateH(bcdata.z1.Hx, emdata.Hx, emdata.Ey, emdata.Chxe);
+    // Boundary<Pml3D<EMFace::Z, EMSide::Hi, true>>::updateH(bcdata.z1.Hy, emdata.Hy, emdata.Ex, emdata.Chye);
   }
 
 
   static void advance(auto& emdata, auto& bcdata) {
-    static int c = 0;
-
-    // to_csv(bcdata.x0.Ez.psi, c, "tmz_psi/ezpsi");
-    // to_csv(bcdata.x0.Hy.psi, c, "tmz_psi/hypsi");
-
-    // to_csv(bcdata.x0.Ey.psi, c, "tez_psi/eypsi");
-    // to_csv(bcdata.x0.Hz.psi, c, "tez_psi/hzpsi");
-
-    c++;
-
     updateH(emdata);
     updateH_bcs(emdata, bcdata);
 
     updateE(emdata);
     updateE_bcs(emdata, bcdata);
-
-
   }
 };
 

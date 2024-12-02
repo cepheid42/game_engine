@@ -95,11 +95,11 @@ using PML_YFace3D = FaceBCs<
 
 template<typename T, EMSide S>
 using PML_ZFace3D = FaceBCs<
-  /* Ex */ PMLData<Array3D<T>, EMFace::Y, S, false>,
-  /* Ey */ PMLData<Array3D<T>, EMFace::Y, S, false>,
+  /* Ex */ PMLData<Array3D<T>, EMFace::Z, S, false>,
+  /* Ey */ PMLData<Array3D<T>, EMFace::Z, S, false>,
   /* Ez */ NullData<EmptyArray3D<T>>,
-  /* Hx */ PMLData<Array3D<T>, EMFace::Y, S, true>,
-  /* Hy */ PMLData<Array3D<T>, EMFace::Y, S, true>,
+  /* Hx */ PMLData<Array3D<T>, EMFace::Z, S, true>,
+  /* Hy */ PMLData<Array3D<T>, EMFace::Z, S, true>,
   /* Hz */ NullData<EmptyArray3D<T>>
 >;
 
