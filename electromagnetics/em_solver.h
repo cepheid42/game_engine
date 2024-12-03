@@ -110,21 +110,37 @@ struct Electromagnetics {
   static constexpr empty_t empty{};
   static constexpr IntegratorOffsets zero_offsets{0, 0, 0, 0, 0, 0};
 
-  using ex_x0_lo = Periodic3D<EMFace::X, EMSide::Lo>;
-  using ey_x0_lo = Periodic3D<EMFace::X, EMSide::Lo>;
-  using ez_x0_lo = Periodic3D<EMFace::X, EMSide::Lo>;
+  // using ex_x0_lo = Periodic3D<EMFace::X, EMSide::Lo>;
+  // using ey_x0_lo = Periodic3D<EMFace::X, EMSide::Lo>;
+  // using ez_x0_lo = Periodic3D<EMFace::X, EMSide::Lo>;
+  //
+  // using hx_x0_lo = Periodic3D<EMFace::X, EMSide::Lo>;
+  // using hy_x0_lo = Periodic3D<EMFace::X, EMSide::Lo>;
+  // using hz_x0_lo = Periodic3D<EMFace::X, EMSide::Lo>;
+  //
+  // using ex_x1_lo = Periodic3D<EMFace::X, EMSide::Hi>;
+  // using ey_x1_lo = Periodic3D<EMFace::X, EMSide::Hi>;
+  // using ez_x1_lo = Periodic3D<EMFace::X, EMSide::Hi>;
+  //
+  // using hx_x1_lo = Periodic3D<EMFace::X, EMSide::Hi>;
+  // using hy_x1_lo = Periodic3D<EMFace::X, EMSide::Hi>;
+  // using hz_x1_lo = Periodic3D<EMFace::X, EMSide::Hi>;
 
-  using hx_x0_lo = Periodic3D<EMFace::X, EMSide::Lo>;
-  using hy_x0_lo = Periodic3D<EMFace::X, EMSide::Lo>;
-  using hz_x0_lo = Periodic3D<EMFace::X, EMSide::Lo>;
-
-  using ex_x1_lo = Periodic3D<EMFace::X, EMSide::Hi>;
-  using ey_x1_lo = Periodic3D<EMFace::X, EMSide::Hi>;
-  using ez_x1_lo = Periodic3D<EMFace::X, EMSide::Hi>;
-
-  using hx_x1_lo = Periodic3D<EMFace::X, EMSide::Hi>;
-  using hy_x1_lo = Periodic3D<EMFace::X, EMSide::Hi>;
-  using hz_x1_lo = Periodic3D<EMFace::X, EMSide::Hi>;
+  // using ex_x0_lo = ReflectingBC;
+  // using ey_x0_lo = Pml3D<EMFace::X, EMSide::Lo, true>;
+  // using ez_x0_lo = Pml3D<EMFace::X, EMSide::Lo, false>;
+  //
+  // using hx_x0_lo = ReflectingBC;
+  // using hy_x0_lo = Pml3D<EMFace::X, EMSide::Lo, false>;
+  // using hz_x0_lo = Pml3D<EMFace::X, EMSide::Lo, true>;
+  //
+  // using ex_x1_lo = ReflectingBC;
+  // using ey_x1_lo = Pml3D<EMFace::X, EMSide::Hi, true>;
+  // using ez_x1_lo = Pml3D<EMFace::X, EMSide::Hi, false>;
+  //
+  // using hx_x1_lo = ReflectingBC;
+  // using hy_x1_lo = Pml3D<EMFace::X, EMSide::Hi, false>;
+  // using hz_x1_lo = Pml3D<EMFace::X, EMSide::Hi, true>;
 
   static void updateE(auto& emdata) {
     EXI::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexh, emdata.Cjx, {0, 0, 1, 1, 1, 1});

@@ -8,61 +8,66 @@
 #include "em_definitions.h"
 #include "bc_definitions.h"
 
-// inline constexpr size_t SELECT_EMDATA = 2; // todo: these can be combined into one value?
 inline constexpr size_t SELECT_EMSOLVER = 4;
-
-// todo: Did running the problem in 1D with 2D pml solvers actually work correctly?
-inline constexpr size_t SELECT_BCDATA[6] = {8, 0, 4, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
-inline constexpr size_t SELECT_BCSOLVER[6] = {4, 4, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+inline constexpr size_t SELECT_BCSOLVER[6] = {8, 8, 8, 8, 8, 8}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
 
 //=================== Boundary Condition Selectors ===================
 //====================================================================
 template<typename T, EMFace F, EMSide S>
 using BCDataTL = TypeList<
-  Reflecting_Face<T, S>,    // 0
-  Periodic_Face1D<T, F, S>, // 1
-  Periodic_FaceTM<T, F, S>, // 2
-  Periodic_FaceTE<T, F, S>, // 3
-  Periodic_Face3D<T, F, S>, // 4
-  PML_XFace1D<T, S>,        // 5
-  PML_XFaceTM<T, S>,        // 6
-  PML_XFaceTE<T, S>,        // 7
-  PML_XFace3D<T, S>,        // 8
-  PML_YFaceTM<T, S>,        // 9
-  PML_YFaceTE<T, S>,        // 10
-  PML_YFace3D<T, S>,        // 11
-  PML_ZFace3D<T, S>         // 12
+  ReflectingFace<T, S>,     // 0
+  PeriodicFace1D<T, F, S>,  // 1
+  PeriodicFaceTM<T, F, S>,  // 2
+  PeriodicFaceTE<T, F, S>,  // 3
+  PeriodicFace3D<T, F, S>,  // 4
+  PmlFace1D<T, F, S>,       // 5
+  PmlFaceTM<T, F, S>,       // 6
+  PmlFaceTE<T, F, S>,       // 7
+  PmlFace3D<T, F, S>        // 8
 >;
 
 template<typename T>
 using bcdata_t = BCData<
-  TypeListAt<SELECT_BCDATA[0], BCDataTL<T, EMFace::X, EMSide::Lo>>,
-  TypeListAt<SELECT_BCDATA[1], BCDataTL<T, EMFace::X, EMSide::Hi>>,
-  TypeListAt<SELECT_BCDATA[2], BCDataTL<T, EMFace::Y, EMSide::Lo>>,
-  TypeListAt<SELECT_BCDATA[3], BCDataTL<T, EMFace::Y, EMSide::Hi>>,
-  TypeListAt<SELECT_BCDATA[4], BCDataTL<T, EMFace::Z, EMSide::Lo>>,
-  TypeListAt<SELECT_BCDATA[5], BCDataTL<T, EMFace::Z, EMSide::Hi>>
+  TypeListAt<SELECT_BCSOLVER[0], BCDataTL<T, EMFace::X, EMSide::Lo>>,
+  TypeListAt<SELECT_BCSOLVER[1], BCDataTL<T, EMFace::X, EMSide::Hi>>,
+  TypeListAt<SELECT_BCSOLVER[2], BCDataTL<T, EMFace::Y, EMSide::Lo>>,
+  TypeListAt<SELECT_BCSOLVER[3], BCDataTL<T, EMFace::Y, EMSide::Hi>>,
+  TypeListAt<SELECT_BCSOLVER[4], BCDataTL<T, EMFace::Z, EMSide::Lo>>,
+  TypeListAt<SELECT_BCSOLVER[5], BCDataTL<T, EMFace::Z, EMSide::Hi>>
 >;
 
-template<EMFace F, EMSide S, bool Negate>
+// template<EMFace F, EMSide S, bool Negate>
+// using BCTypeTL = TypeList<
+//   ReflectingBC,        // 0
+//   Periodic1D,          // 1
+//   Periodic2D<F, S>,    // 2
+//   Periodic2D<F, S>,    // 3 (doubled for TM/TE so the numbers match)
+//   Periodic3D<F, S>,    // 4
+//   Pml1D<S>,            // 5
+//   Pml2D<F, S, Negate>, // 6
+//   Pml2D<F, S, Negate>, // 7 (doubled for TM/TE so the numbers match)
+//   Pml3D<F, S, Negate>  // 8
+// >;
+
+template<EMFace F, EMSide S>
 using BCTypeTL = TypeList<
-  ReflectingBC,        // 0
-  Periodic1D,          // 1
-  Periodic2D<F, S>,    // 2
-  Periodic3D<F, S>,    // 3
-  Pml1D<S>,            // 4
-  Pml2D<F, S, Negate>, // 5
-  Pml3D<F, S, Negate>  // 6
+  BCNull,           // 0
+  Periodic1D,       // 1
+  Periodic2D<F, S>, // 2
+  Periodic3D<F, S>, // 3
+  PmlX1D<S>,        // 4
+  PmlXTM<S>,        // 5
+  PmlYTM<S>,        // 6
+  PmlXTE<S>,        // 7
+  PmlYTE<S>,        // 8
+  PmlX3D<S>,        // 9
+  PmlY3D<S>,        // 10
+  PmlZ3D<S>         // 11
 >;
 
-template<size_t I, EMFace F, EMSide S, bool Negate>
-using BCType = TypeListAt<I, BCTypeTL<F, S, Negate>>;
+template<size_t I, EMFace F, EMSide S>
+using BCType = TypeListAt<I, BCTypeTL<F, S>>;
 
-/*
- *
- * todo: figure out how to group the functions for the faces together
- *
- */
 //=================== Electromagnetics Selectors ===================
 //==================================================================
 template<typename T>
@@ -96,7 +101,7 @@ using EMSolver = Electromagnetics<
   TypeListAt<2, EMType<T>>, // Ez
   TypeListAt<3, EMType<T>>, // Hx
   TypeListAt<4, EMType<T>>, // Hy
-  TypeListAt<5, EMType<T>>  // Hz
+  TypeListAt<5, EMType<T>>  // Hz,
 >; // Auto-selects full BC's per face and EMSolver per field component based on chosen settings.
 
 #endif //ELECTROMAGNETICS_H

@@ -41,17 +41,11 @@ struct Boundary {
     }
     // Reflecting does not update H field components
   }
-
-  // static void updateE(auto&, auto&)      requires is_periodic<Derived> { Derived::updateE(); }
-  // static void updateH(auto& bc, auto& f) requires is_periodic<Derived> { Derived::updateH(bc, f); }
-  //
-  // static void updateE(auto& bc, auto& f1, auto& f2, const auto& c1) requires is_pml<Derived> { Derived::updateE(bc, f1, f2, c1); }
-  // static void updateH(auto& bc, auto& f1, auto& f2, const auto& c1) requires is_pml<Derived> { Derived::updateH(bc, f1, f2, c1); }
 };
 
-struct ReflectingBC {};
+struct ReflectingBCUpdate {};
 
-struct Periodic1D : periodic_t<EMFace::X> {
+struct Periodic1DUpdate : periodic_t<EMFace::X> {
   // static void updateE() {}
   static void updateH(auto& bc, auto& f) {
     const auto& os = bc.offsets;
@@ -68,7 +62,7 @@ struct Periodic1D : periodic_t<EMFace::X> {
 };
 
 template<EMFace F, EMSide S>
-struct Periodic2D : periodic_t<F> {
+struct Periodic2DUpdate : periodic_t<F> {
   // static void updateE() {}
   static void updateH(auto&, auto&) {} // Only lo-side periodic is used
   static void updateH(auto& bc, auto& f) requires (S == EMSide::Lo) {
@@ -95,7 +89,7 @@ struct Periodic2D : periodic_t<F> {
 };
 
 template<EMFace F, EMSide S>
-struct Periodic3D : periodic_t<F> {
+struct Periodic3DUpdate : periodic_t<F> {
   // static void updateE() { DBG("Periodic3D::updateE()"); }
   static void updateH(auto&, auto&) {} // Only lo-side periodic is used
   static void updateH(auto& bc, auto& f) requires (S == EMSide::Lo) {
@@ -129,7 +123,7 @@ struct Periodic3D : periodic_t<F> {
 };
 
 template<EMSide S>
-struct Pml1D : pml_t<EMFace::X, S> {
+struct Pml1DUpdate : pml_t<EMFace::X, S> {
   static void updateE(auto& bc, auto& f1, const auto& f2, const auto& c1) {
     size_t x0, x1;
     if constexpr (S == EMSide::Lo) {
@@ -172,7 +166,7 @@ struct Pml1D : pml_t<EMFace::X, S> {
 };
 
 template<EMFace F, EMSide S, bool Negate>
-struct Pml2D : pml_t<F, S> {
+struct Pml2DUpdate : pml_t<F, S> {
   static void updateE(auto& bc, auto& f1, const auto& f2, const auto& c1)
   requires (F == EMFace::X)
   {
@@ -252,7 +246,7 @@ struct Pml2D : pml_t<F, S> {
     }
 
     size_t jpml;
-#pragma omp parallel for collapse(2) num_threads(8) default(shared) private(ipml)
+#pragma omp parallel for collapse(2) num_threads(8) default(shared) private(jpml)
     for (size_t i = x0; i < x1; ++i) {
       for (size_t j = y0; j < y1; ++j) {
         if constexpr (S == EMSide::Lo) { jpml = j; }
@@ -284,7 +278,7 @@ struct Pml2D : pml_t<F, S> {
     }
 
     size_t jpml;
-#pragma omp parallel for collapse(2) num_threads(8) default(shared) private(ipml)
+#pragma omp parallel for collapse(2) num_threads(8) default(shared) private(jpml)
     for (size_t i = x0; i < x1; ++i) {
       for (size_t j = y0; j < y1; ++j) {
         if constexpr (S == EMSide::Lo) { jpml = j; }
@@ -302,7 +296,7 @@ struct Pml2D : pml_t<F, S> {
 };
 
 template<EMFace F, EMSide S, bool Negate>
-struct Pml3D : pml_t<F, S> {
+struct Pml3DUpdate : pml_t<F, S> {
   static void updateE(auto& bc, auto& f1, const auto& f2, const auto& c1)
   requires (F == EMFace::X)
   {
@@ -327,7 +321,7 @@ struct Pml3D : pml_t<F, S> {
         for (size_t k = z0; k < z1; ++k) {
           if constexpr (S == EMSide::Lo) { ipml = i; }
           else { ipml = i - x0; }
-          
+
           bc.psi(ipml, j, k) = bc.b[ipml] * bc.psi(ipml, j, k) + bc.c[ipml] * (f2(i, j, k) - f2(i - 1, j, k));
           if constexpr (Negate) {
             f1(i, j, k) -= c1(i, j, k) * bc.psi(ipml, j, k);
@@ -519,6 +513,5 @@ struct Pml3D : pml_t<F, S> {
     } // end i-loop
   } // end updateH (Z-Face)
 };
-
 
 #endif //BOUNDARIES_H
