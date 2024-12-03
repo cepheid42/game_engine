@@ -8,47 +8,50 @@
 
 #include "electromagnetics/electromagnetics.h"
 
-// template<typename Array>
-// void to_csv(const Array& arr, const size_t step, const std::string& name) {
-//   std::string count_padded = std::to_string(step);
-//   count_padded.insert(count_padded.begin(), 4 - count_padded.length(), '0');
-//
-//   std::string filename{"../data/" + name + "_" + count_padded + ".csv"};
-//   std::ofstream file;
-//   file.open(filename.c_str());
-//
-//   if constexpr (Array::dimension_t::value == 1) {
-//     for (size_t i = 0; i < arr.nx(); i++) {
-//         file << arr[i] << ", ";
-//     }
-//     file << std::endl;
-//   } else if constexpr (Array::dimension_t::value == 2) {
-//     for (size_t i = 0; i < arr.nx(); i++) {
-//       for (size_t j = 0; j < arr.ny(); j++) {
-//         file << arr(i, j);
-//         if (j < arr.ny() - 1) {
-//           file << ", ";
-//         }
-//       }
-//       file << std::endl;
-//     }
-//   } else {
-//     for (size_t i = 0; i < arr.nx(); i++) {
-//       for (size_t j = 0; j < arr.ny(); j++) {
-//         for (size_t k = 0; k < arr.nz(); k++) {
-//           file << arr(i, j, k);
-//           if (k < arr.nz() - 1) {
-//             file << ", ";
-//           }
-//         }
-//         file << '\n';
-//       }
-//     }
-//   }
-//
-//   file.close();
-// }
+template<typename Array>
+void to_csv(const Array& arr, const size_t step, const std::string& name) {
+  std::string count_padded = std::to_string(step);
+  count_padded.insert(count_padded.begin(), 4 - count_padded.length(), '0');
 
+  std::string filename{"../data/" + name + "_" + count_padded + ".csv"};
+  std::ofstream file;
+  file.open(filename.c_str());
+
+  if constexpr (std::is_same_v<Array, std::array<double, nPml>>) {
+    for (const auto& e: arr) {
+      file << e << ", ";
+    }
+  } else if constexpr (Array::dimension_t::value == 1) {
+    for (size_t i = 0; i < arr.nx(); i++) {
+      file << arr[i] << ", ";
+    }
+    file << std::endl;
+  } else if constexpr (Array::dimension_t::value == 2) {
+    for (size_t i = 0; i < arr.nx(); i++) {
+      for (size_t j = 0; j < arr.ny(); j++) {
+        file << arr(i, j);
+        if (j < arr.ny() - 1) {
+          file << ", ";
+        }
+      }
+      file << std::endl;
+    }
+  } else {
+    for (size_t i = 0; i < arr.nx(); i++) {
+      for (size_t j = 0; j < arr.ny(); j++) {
+        for (size_t k = 0; k < arr.nz(); k++) {
+          file << arr(i, j, k);
+          if (k < arr.nz() - 1) {
+            file << ", ";
+          }
+        }
+        file << '\n';
+      }
+    }
+  }
+
+  file.close();
+}
 template<typename Array>
 requires is_empty_field<Array, EmptyArray<typename Array::value_t, Array::dimension_t::value>>
 void print_array(const Array&) {
@@ -89,7 +92,7 @@ int main() {
   constexpr size_t nx = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t ny = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t nz = 100u + 2 * nPml + 2 * nHalo;
-  constexpr size_t nt = 400u;
+  constexpr size_t nt = 1u;
 
   // emdata_t<double> em{nx, cfl};
   // bcdata_t<double> bc{em};
@@ -110,8 +113,9 @@ int main() {
     // em.Ez[nx / 2] += ricker(static_cast<fp_t>(n));
     // em.Ex(nx / 2, ny / 2) += ricker(static_cast<fp_t>(n));
     // em.Ez(nx / 2, ny / 2) += ricker(static_cast<fp_t>(n));
-    // em.Ex(nx / 2, ny / 2, nz / 2) += ricker(static_cast<fp_t>(n));
-    em.Ez(nx / 2, ny / 2, nz / 2) += ricker(static_cast<fp_t>(n));
+    em.Ex(nx / 2, ny / 2, nz / 2) += ricker(static_cast<fp_t>(n));
+    em.Ey(nx / 2, ny / 2, nz / 2) += ricker(static_cast<fp_t>(n));
+    // em.Ez(nx / 2, ny / 2, nz / 2) += ricker(static_cast<fp_t>(n));
 
     if (n % save_step == 0) {
       // to_csv(em.Ex, filecount, "Ez");

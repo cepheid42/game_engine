@@ -110,7 +110,9 @@ struct PMLData {
   explicit PMLData(const Array& f) requires (F == EMFace::Z)
   : offsets{get_offsets<F, S, nPml>(f)},
     psi{f.nx(), f.ny(), nPml}
-  {}
+  {
+    set_coefficients();
+  }
 
   void set_coefficients() {
     auto d = linspace(1.0, 0.0, nPml, false);
