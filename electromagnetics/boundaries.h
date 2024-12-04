@@ -183,7 +183,7 @@ struct Pml2DUpdate : pml_t<F, S> {
     }
 
     size_t ipml;
-#pragma omp parallel for collapse(2) num_threads(8) default(shared) private(ipml)
+#pragma omp parallel for collapse(2) num_threads(NTHREADS_BC) default(shared) private(ipml)
     for (size_t i = x0; i < x1; ++i) {
       for (size_t j = y0; j < y1; ++j) {
         if constexpr (S == EMSide::Lo) { ipml = i; }
@@ -214,7 +214,7 @@ struct Pml2DUpdate : pml_t<F, S> {
       x1 = bc.offsets.x1;
     }
     size_t ipml;
-#pragma omp parallel for collapse(2) num_threads(8) default(shared) private(ipml)
+#pragma omp parallel for collapse(2) num_threads(NTHREADS_BC) default(shared) private(ipml)
     for (size_t i = x0; i < x1; ++i) {
       for (size_t j = y0; j < y1; ++j) {
         if constexpr (S == EMSide::Lo) { ipml = i; }
@@ -246,7 +246,7 @@ struct Pml2DUpdate : pml_t<F, S> {
     }
 
     size_t jpml;
-#pragma omp parallel for collapse(2) num_threads(8) default(shared) private(jpml)
+#pragma omp parallel for collapse(2) num_threads(NTHREADS_BC) default(shared) private(jpml)
     for (size_t i = x0; i < x1; ++i) {
       for (size_t j = y0; j < y1; ++j) {
         if constexpr (S == EMSide::Lo) { jpml = j; }
@@ -278,7 +278,7 @@ struct Pml2DUpdate : pml_t<F, S> {
     }
 
     size_t jpml;
-#pragma omp parallel for collapse(2) num_threads(8) default(shared) private(jpml)
+#pragma omp parallel for collapse(2) num_threads(NTHREADS_BC) default(shared) private(jpml)
     for (size_t i = x0; i < x1; ++i) {
       for (size_t j = y0; j < y1; ++j) {
         if constexpr (S == EMSide::Lo) { jpml = j; }
@@ -315,7 +315,7 @@ struct Pml3DUpdate : pml_t<F, S> {
     }
 
     size_t ipml;
-#pragma omp parallel for collapse(3) num_threads(8) default(shared) private(ipml)
+#pragma omp parallel for collapse(3) num_threads(NTHREADS_BC) default(shared) private(ipml)
     for (size_t i = x0; i < x1; ++i) {
       for (size_t j = y0; j < y1; ++j) {
         for (size_t k = z0; k < z1; ++k) {
@@ -351,7 +351,7 @@ struct Pml3DUpdate : pml_t<F, S> {
     }
 
     size_t ipml;
-#pragma omp parallel for collapse(3) num_threads(8) default(shared) private(ipml)
+#pragma omp parallel for collapse(3) num_threads(NTHREADS_BC) default(shared) private(ipml)
     for (size_t i = x0; i < x1; ++i) {
       for (size_t j = y0; j < y1; ++j) {
         for (size_t k = z0; k < z1; ++k) {
@@ -387,7 +387,7 @@ struct Pml3DUpdate : pml_t<F, S> {
     }
 
     size_t jpml;
-#pragma omp parallel for collapse(3) num_threads(8) default(shared) private(jpml)
+#pragma omp parallel for collapse(3) num_threads(NTHREADS_BC) default(shared) private(jpml)
     for (size_t i = x0; i < x1; ++i) {
       for (size_t j = y0; j < y1; ++j) {
         for (size_t k = z0; k < z1; ++k) {
@@ -423,7 +423,7 @@ struct Pml3DUpdate : pml_t<F, S> {
     }
 
     size_t jpml;
-#pragma omp parallel for collapse(3) num_threads(8) default(shared) private(jpml)
+#pragma omp parallel for collapse(3) num_threads(NTHREADS_BC) default(shared) private(jpml)
     for (size_t i = x0; i < x1; ++i) {
       for (size_t j = y0; j < y1; ++j) {
         for (size_t k = z0; k < z1; ++k) {

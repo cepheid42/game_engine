@@ -73,7 +73,6 @@ using PeriodicFace3D = FaceBCs<
 // -------------------------------------------
 // 1D PML Boundary
 template<typename T, EMFace F, EMSide S>
-requires (F == EMFace::X)
 using PmlFace1D = FaceBCs<
   /* Ex */ NullData<EmptyArray1D<T>>,
   /* Ey */ NullData<EmptyArray1D<T>>,
@@ -86,7 +85,16 @@ using PmlFace1D = FaceBCs<
 // -------------------------------------------
 // TM PML
 template<typename T, EMFace F, EMSide S>
-struct PmlFaceTMImpl;
+struct PmlFaceTMImpl {
+  using type = FaceBCs<
+  /* Ex */ NullData<EmptyArray2D<T>>,
+  /* Ey */ NullData<EmptyArray2D<T>>,
+  /* Ez */ NullData<EmptyArray2D<T>>,
+  /* Hx */ NullData<EmptyArray2D<T>>,
+  /* Hy */ NullData<EmptyArray2D<T>>,
+  /* Hz */ NullData<EmptyArray2D<T>>
+>;
+};
 
 // TM X-Face
 template<typename T, EMFace F, EMSide S>

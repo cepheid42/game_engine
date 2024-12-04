@@ -9,7 +9,8 @@
 #include "bc_definitions.h"
 
 inline constexpr size_t SELECT_EMSOLVER = 4;
-inline constexpr size_t SELECT_BCSOLVER[6] = {8, 8, 8, 8, 8, 8}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+inline constexpr size_t SELECT_BCDATA[6] = {8, 8, 8, 8, 8, 8}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+inline constexpr size_t SELECT_BCSOLVER[6] = {9, 9, 10, 10, 11, 11}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
 
 //=================== Boundary Condition Selectors ===================
 //====================================================================
@@ -28,26 +29,13 @@ using BCDataTL = TypeList<
 
 template<typename T>
 using bcdata_t = BCData<
-  TypeListAt<SELECT_BCSOLVER[0], BCDataTL<T, EMFace::X, EMSide::Lo>>,
-  TypeListAt<SELECT_BCSOLVER[1], BCDataTL<T, EMFace::X, EMSide::Hi>>,
-  TypeListAt<SELECT_BCSOLVER[2], BCDataTL<T, EMFace::Y, EMSide::Lo>>,
-  TypeListAt<SELECT_BCSOLVER[3], BCDataTL<T, EMFace::Y, EMSide::Hi>>,
-  TypeListAt<SELECT_BCSOLVER[4], BCDataTL<T, EMFace::Z, EMSide::Lo>>,
-  TypeListAt<SELECT_BCSOLVER[5], BCDataTL<T, EMFace::Z, EMSide::Hi>>
+  TypeListAt<SELECT_BCDATA[0], BCDataTL<T, EMFace::X, EMSide::Lo>>,
+  TypeListAt<SELECT_BCDATA[1], BCDataTL<T, EMFace::X, EMSide::Hi>>,
+  TypeListAt<SELECT_BCDATA[2], BCDataTL<T, EMFace::Y, EMSide::Lo>>,
+  TypeListAt<SELECT_BCDATA[3], BCDataTL<T, EMFace::Y, EMSide::Hi>>,
+  TypeListAt<SELECT_BCDATA[4], BCDataTL<T, EMFace::Z, EMSide::Lo>>,
+  TypeListAt<SELECT_BCDATA[5], BCDataTL<T, EMFace::Z, EMSide::Hi>>
 >;
-
-// template<EMFace F, EMSide S, bool Negate>
-// using BCTypeTL = TypeList<
-//   ReflectingBC,        // 0
-//   Periodic1D,          // 1
-//   Periodic2D<F, S>,    // 2
-//   Periodic2D<F, S>,    // 3 (doubled for TM/TE so the numbers match)
-//   Periodic3D<F, S>,    // 4
-//   Pml1D<S>,            // 5
-//   Pml2D<F, S, Negate>, // 6
-//   Pml2D<F, S, Negate>, // 7 (doubled for TM/TE so the numbers match)
-//   Pml3D<F, S, Negate>  // 8
-// >;
 
 template<EMFace F, EMSide S>
 using BCTypeTL = TypeList<
@@ -67,6 +55,23 @@ using BCTypeTL = TypeList<
 
 template<size_t I, EMFace F, EMSide S>
 using BCType = TypeListAt<I, BCTypeTL<F, S>>;
+
+template<typename TL>
+struct boundary_t {
+  using Ex = Boundary<TypeListAt<0, TL>>;
+  using Ey = Boundary<TypeListAt<1, TL>>;
+  using Ez = Boundary<TypeListAt<2, TL>>;
+  using Hx = Boundary<TypeListAt<3, TL>>;
+  using Hy = Boundary<TypeListAt<4, TL>>;
+  using Hz = Boundary<TypeListAt<5, TL>>;
+};
+
+using bcx0_t = boundary_t<BCType<SELECT_BCSOLVER[0], EMFace::X, EMSide::Lo>>;
+using bcx1_t = boundary_t<BCType<SELECT_BCSOLVER[1], EMFace::X, EMSide::Hi>>;
+using bcy0_t = boundary_t<BCType<SELECT_BCSOLVER[2], EMFace::Y, EMSide::Lo>>;
+using bcy1_t = boundary_t<BCType<SELECT_BCSOLVER[3], EMFace::Y, EMSide::Hi>>;
+using bcz0_t = boundary_t<BCType<SELECT_BCSOLVER[4], EMFace::Z, EMSide::Lo>>;
+using bcz1_t = boundary_t<BCType<SELECT_BCSOLVER[5], EMFace::Z, EMSide::Hi>>;
 
 //=================== Electromagnetics Selectors ===================
 //==================================================================
@@ -95,13 +100,30 @@ template<typename T>
 using EMType = TypeListAt<SELECT_EMSOLVER, EMTypeTL<emdata_t<T>>>; // Selects desired typelist of integrators
 
 template<typename T>
+using EXI = TypeListAt<0, EMType<T>>;
+
+template<typename T>
+using EYI = TypeListAt<1, EMType<T>>;
+
+template<typename T>
+using EZI = TypeListAt<2, EMType<T>>;
+
+template<typename T>
+using HXI = TypeListAt<3, EMType<T>>;
+
+template<typename T>
+using HYI = TypeListAt<4, EMType<T>>;
+
+template<typename T>
+using HZI = TypeListAt<5, EMType<T>>;
+
+template<typename T>
 using EMSolver = Electromagnetics<
-  TypeListAt<0, EMType<T>>, // Ex
-  TypeListAt<1, EMType<T>>, // Ey
-  TypeListAt<2, EMType<T>>, // Ez
-  TypeListAt<3, EMType<T>>, // Hx
-  TypeListAt<4, EMType<T>>, // Hy
-  TypeListAt<5, EMType<T>>  // Hz,
+  EXI<T>, EYI<T>, EZI<T>,
+  HXI<T>, HYI<T>, HZI<T>,
+  bcx0_t, bcx1_t,
+  bcy0_t, bcy1_t,
+  bcz0_t, bcz1_t
 >; // Auto-selects full BC's per face and EMSolver per field component based on chosen settings.
 
 #endif //ELECTROMAGNETICS_H

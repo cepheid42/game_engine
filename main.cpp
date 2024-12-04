@@ -5,13 +5,15 @@
 #include <string>
 
 // #define DBG_MACRO_DISABLE
+#define NTHREADS 32
+#define NTHREADS_BC 16
 
 #include "electromagnetics/electromagnetics.h"
 
 template<typename Array>
 void to_csv(const Array& arr, const size_t step, const std::string& name) {
   std::string count_padded = std::to_string(step);
-  count_padded.insert(count_padded.begin(), 4 - count_padded.length(), '0');
+  count_padded.insert(count_padded.begin(), 6 - count_padded.length(), '0');
 
   std::string filename{"../data/" + name + "_" + count_padded + ".csv"};
   std::ofstream file;
@@ -89,10 +91,12 @@ fp_t ricker(fp_t q) {
 }
 
 int main() {
+  const auto start = std::chrono::high_resolution_clock::now();
+
   constexpr size_t nx = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t ny = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t nz = 100u + 2 * nPml + 2 * nHalo;
-  constexpr size_t nt = 1u;
+  constexpr size_t nt = 1000u;
 
   // emdata_t<double> em{nx, cfl};
   // bcdata_t<double> bc{em};
@@ -103,30 +107,42 @@ int main() {
   emdata_t<double> em{nx, ny, nz, cfl};
   bcdata_t<double> bc{em};
 
-  constexpr auto save_step = 4;
+  // constexpr auto eps0 = 8.854187812813e-12;
+  // constexpr auto mu0 = 1.0 / 1.2566370621219e-6;
+
+  constexpr auto save_step = 10;
   size_t filecount = 0;
   for (size_t n = 0; n < nt; n++) {
-    std::cout << "Step " << n << std::endl;
 
     EMSolver<fp_t>::advance(em, bc);
 
     // em.Ez[nx / 2] += ricker(static_cast<fp_t>(n));
     // em.Ex(nx / 2, ny / 2) += ricker(static_cast<fp_t>(n));
     // em.Ez(nx / 2, ny / 2) += ricker(static_cast<fp_t>(n));
-    em.Ex(nx / 2, ny / 2, nz / 2) += ricker(static_cast<fp_t>(n));
-    em.Ey(nx / 2, ny / 2, nz / 2) += ricker(static_cast<fp_t>(n));
-    // em.Ez(nx / 2, ny / 2, nz / 2) += ricker(static_cast<fp_t>(n));
+
+    const auto rsrc = ricker(static_cast<fp_t>(n));
+    // em.Ex(nx / 2, ny / 2, nz / 2) = rsrc;
+    // em.Ey(nx / 2, ny / 2, nz / 2) = rsrc;
+    em.Ez(nx / 2, ny / 2, nz / 2) = 1.0E4 * rsrc;
+
+    // em.Hx(nx / 2, ny / 2, nz / 2) = rsrc / 1000.0;
+    // em.Hy(nx / 2, ny / 2, nz / 2) = rsrc / 1000.0;
+    // em.Hz(nx / 2, ny / 2, nz / 2) = rsrc / 1000.0;
 
     if (n % save_step == 0) {
-      // to_csv(em.Ex, filecount, "Ez");
+      std::cout << "Step " << n << std::endl;
+      to_csv(em.Ex, filecount, "Ex");
+      to_csv(em.Ey, filecount, "Ey");
       to_csv(em.Ez, filecount, "Ez");
+      to_csv(em.Hx, filecount, "Hx");
+      to_csv(em.Hy, filecount, "Hy");
+      to_csv(em.Hz, filecount, "Hz");
       filecount++;
     }
   }
 
-  // auto start = std::chrono::high_resolution_clock::now();
-  // auto stop = std::chrono::high_resolution_clock::now() - start;
-  // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop);
-  // std::cout << "Execution time: " << duration.count() << " microseconds" << std::endl;
+  const auto stop = std::chrono::high_resolution_clock::now() - start;
+  const auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop);
+  std::cout << "Execution time: " << duration.count() << " seconds" << std::endl;
   return 0;
 }
