@@ -8,9 +8,9 @@
 #include "em_definitions.h"
 #include "bc_definitions.h"
 
-inline constexpr size_t SELECT_EMSOLVER = 4;
-inline constexpr size_t SELECT_BCDATA[6] = {8, 8, 8, 8, 8, 8}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
-inline constexpr size_t SELECT_BCSOLVER[6] = {9, 9, 10, 10, 11, 11}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+inline constexpr size_t SELECT_EMSOLVER = 1;
+inline constexpr size_t SELECT_BCDATA[6] = {5,5,0,0,0,0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+inline constexpr size_t SELECT_BCSOLVER[6] = {4,4,0,0,0,0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
 
 //=================== Boundary Condition Selectors ===================
 //====================================================================

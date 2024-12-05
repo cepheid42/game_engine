@@ -132,7 +132,16 @@ using PmlFaceTM = typename PmlFaceTMImpl<T, F, S>::type;
 // -------------------------------------------
 // TE PML
 template<typename T, EMFace F, EMSide S>
-struct PmlFaceTEImpl;
+struct PmlFaceTEImpl{
+  using type = FaceBCs<
+    /* Ex */ NullData<EmptyArray2D<T>>,
+    /* Ey */ NullData<EmptyArray2D<T>>,
+    /* Ez */ NullData<EmptyArray2D<T>>,
+    /* Hx */ NullData<EmptyArray2D<T>>,
+    /* Hy */ NullData<EmptyArray2D<T>>,
+    /* Hz */ NullData<EmptyArray2D<T>>
+  >;
+};
 
 // TE X-Face
 template<typename T, EMFace F, EMSide S>
@@ -164,7 +173,7 @@ struct PmlFaceTEImpl<T, F, S> {
 
 // Top-level alias
 template<typename T, EMFace F, EMSide S>
-using PmlFaceTE = typename PmlFaceTMImpl<T, F, S>::type;
+using PmlFaceTE = typename PmlFaceTEImpl<T, F, S>::type;
 
 // -------------------------------------------
 // 3D Pml
@@ -272,9 +281,9 @@ template<EMSide S>
 using PmlXTM = TypeList<
   /* Ex */ ReflectingBCUpdate,
   /* Ey */ ReflectingBCUpdate,
-  /* Ez */ Pml3DUpdate<EMFace::X, S, false>,
+  /* Ez */ Pml2DUpdate<EMFace::X, S, false>,
   /* Hx */ ReflectingBCUpdate,
-  /* Hy */ Pml3DUpdate<EMFace::X, S, false>,
+  /* Hy */ Pml2DUpdate<EMFace::X, S, false>,
   /* Hz */ ReflectingBCUpdate
 >;
 
@@ -282,8 +291,8 @@ template<EMSide S>
 using PmlYTM = TypeList<
   /* Ex */ ReflectingBCUpdate,
   /* Ey */ ReflectingBCUpdate,
-  /* Ez */ Pml3DUpdate<EMFace::Y, S, true>,
-  /* Hx */ Pml3DUpdate<EMFace::Y, S, true>,
+  /* Ez */ Pml2DUpdate<EMFace::Y, S, true>,
+  /* Hx */ Pml2DUpdate<EMFace::Y, S, true>,
   /* Hy */ ReflectingBCUpdate,
   /* Hz */ ReflectingBCUpdate
 >;
@@ -291,21 +300,21 @@ using PmlYTM = TypeList<
 template<EMSide S>
 using PmlXTE = TypeList<
   /* Ex */ ReflectingBCUpdate,
-  /* Ey */ Pml3DUpdate<EMFace::X, S, true>,
+  /* Ey */ Pml2DUpdate<EMFace::X, S, true>,
   /* Ez */ ReflectingBCUpdate,
   /* Hx */ ReflectingBCUpdate,
   /* Hy */ ReflectingBCUpdate,
-  /* Hz */ Pml3DUpdate<EMFace::X, S, true>
+  /* Hz */ Pml2DUpdate<EMFace::X, S, true>
 >;
 
 template<EMSide S>
 using PmlYTE = TypeList<
-  /* Ex */ Pml3DUpdate<EMFace::X, S, true>,
+  /* Ex */ Pml2DUpdate<EMFace::Y, S, false>,
   /* Ey */ ReflectingBCUpdate,
   /* Ez */ ReflectingBCUpdate,
   /* Hx */ ReflectingBCUpdate,
   /* Hy */ ReflectingBCUpdate,
-  /* Hz */ Pml3DUpdate<EMFace::X, S, true>
+  /* Hz */ Pml2DUpdate<EMFace::Y, S, false>
 >;
 
 template<EMSide S>

@@ -5,8 +5,8 @@
 #include <string>
 
 // #define DBG_MACRO_DISABLE
-#define NTHREADS 32
-#define NTHREADS_BC 16
+#define NTHREADS 1
+#define NTHREADS_BC 1
 
 #include "electromagnetics/electromagnetics.h"
 
@@ -25,7 +25,10 @@ void to_csv(const Array& arr, const size_t step, const std::string& name) {
     }
   } else if constexpr (Array::dimension_t::value == 1) {
     for (size_t i = 0; i < arr.nx(); i++) {
-      file << arr[i] << ", ";
+      file << arr[i];
+      if (i < arr.nx() - 1) {
+        file << ", ";
+      }
     }
     file << std::endl;
   } else if constexpr (Array::dimension_t::value == 2) {
@@ -80,7 +83,7 @@ void print_array(const Array& arr) {
   }
 }
 
-fp_t ricker(fp_t q) {
+fp_t ricker(const fp_t q) {
   constexpr auto Np = 20.0;
   constexpr auto Md = 1.0;
 
@@ -98,17 +101,14 @@ int main() {
   constexpr size_t nz = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t nt = 1000u;
 
-  // emdata_t<double> em{nx, cfl};
-  // bcdata_t<double> bc{em};
+  emdata_t<double> em{nx, cfl};
+  bcdata_t<double> bc{em};
 
   // emdata_t<double> em{nx, ny, cfl};
   // bcdata_t<double> bc{em};
 
-  emdata_t<double> em{nx, ny, nz, cfl};
-  bcdata_t<double> bc{em};
-
-  // constexpr auto eps0 = 8.854187812813e-12;
-  // constexpr auto mu0 = 1.0 / 1.2566370621219e-6;
+  // emdata_t<double> em{nx, ny, nz, cfl};
+  // bcdata_t<double> bc{em};
 
   constexpr auto save_step = 10;
   size_t filecount = 0;
@@ -116,27 +116,38 @@ int main() {
 
     EMSolver<fp_t>::advance(em, bc);
 
-    // em.Ez[nx / 2] += ricker(static_cast<fp_t>(n));
-    // em.Ex(nx / 2, ny / 2) += ricker(static_cast<fp_t>(n));
-    // em.Ez(nx / 2, ny / 2) += ricker(static_cast<fp_t>(n));
-
     const auto rsrc = ricker(static_cast<fp_t>(n));
-    // em.Ex(nx / 2, ny / 2, nz / 2) = rsrc;
-    // em.Ey(nx / 2, ny / 2, nz / 2) = rsrc;
-    em.Ez(nx / 2, ny / 2, nz / 2) = 1.0E4 * rsrc;
 
-    // em.Hx(nx / 2, ny / 2, nz / 2) = rsrc / 1000.0;
-    // em.Hy(nx / 2, ny / 2, nz / 2) = rsrc / 1000.0;
-    // em.Hz(nx / 2, ny / 2, nz / 2) = rsrc / 1000.0;
+    em.Ez[nx / 2] += 1.0E4 * rsrc;
+
+    // em.Ex(nx / 2, ny / 2) += 1.0E4 * rsrc;
+    // em.Ey(nx / 2, ny / 2) += 1.0E4 * rsrc;
+    // em.Ez(nx / 2, ny / 2) += 1.0E4 * rsrc;
+
+    // em.Ex(nx / 2, ny / 2, nz / 2) = 1.0E4 * rsrc;
+    // em.Ey(nx / 2, ny / 2, nz / 2) = 1.0E4 * rsrc;
+    // em.Ez(nx / 2, ny / 2, nz / 2) = 1.0E4 * rsrc;
 
     if (n % save_step == 0) {
       std::cout << "Step " << n << std::endl;
-      to_csv(em.Ex, filecount, "Ex");
-      to_csv(em.Ey, filecount, "Ey");
-      to_csv(em.Ez, filecount, "Ez");
-      to_csv(em.Hx, filecount, "Hx");
-      to_csv(em.Hy, filecount, "Hy");
-      to_csv(em.Hz, filecount, "Hz");
+#pragma omp parallel num_threads(2)
+      {
+#pragma omp single
+        {
+// #pragma omp task
+//           to_csv(em.Ex, filecount, "Ex");
+// #pragma omp task
+//           to_csv(em.Ey, filecount, "Ey");
+#pragma omp task
+          to_csv(em.Ez, filecount, "Ez");
+// #pragma omp task
+//           to_csv(em.Hx, filecount, "Hx");
+#pragma omp task
+          to_csv(em.Hy, filecount, "Hy");
+// #pragma omp task
+//           to_csv(em.Hz, filecount, "Hz");
+        }
+      }
       filecount++;
     }
   }
