@@ -5,8 +5,8 @@
 #include <string>
 
 // #define DBG_MACRO_DISABLE
-#define NTHREADS 1
-#define NTHREADS_BC 1
+#define NTHREADS 32
+#define NTHREADS_BC 16
 
 #include "electromagnetics/electromagnetics.h"
 
@@ -85,7 +85,7 @@ void print_array(const Array& arr) {
 
 fp_t ricker(const fp_t q) {
   constexpr auto Np = 20.0;
-  constexpr auto Md = 1.0;
+  constexpr auto Md = 2.5;
 
   const auto alpha = (M_PI * (cfl * q / Np - Md)) * (M_PI * (cfl * q / Np - Md));
 
@@ -98,19 +98,19 @@ int main() {
 
   constexpr size_t nx = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t ny = 100u + 2 * nPml + 2 * nHalo;
-  constexpr size_t nz = 100u + 2 * nPml + 2 * nHalo;
-  constexpr size_t nt = 1000u;
+  // constexpr size_t nz = 100u + 2 * nPml + 2 * nHalo;
+  constexpr size_t nt = 1u;
 
-  emdata_t<double> em{nx, cfl};
-  bcdata_t<double> bc{em};
-
-  // emdata_t<double> em{nx, ny, cfl};
+  // emdata_t<double> em{nx, cfl};
   // bcdata_t<double> bc{em};
+
+  emdata_t<double> em{nx, ny, cfl};
+  bcdata_t<double> bc{em};
 
   // emdata_t<double> em{nx, ny, nz, cfl};
   // bcdata_t<double> bc{em};
 
-  constexpr auto save_step = 10;
+  constexpr auto save_step = 4;
   size_t filecount = 0;
   for (size_t n = 0; n < nt; n++) {
 
@@ -118,36 +118,38 @@ int main() {
 
     const auto rsrc = ricker(static_cast<fp_t>(n));
 
-    em.Ez[nx / 2] += 1.0E4 * rsrc;
+    // std::cout << rsrc << std::endl;
 
-    // em.Ex(nx / 2, ny / 2) += 1.0E4 * rsrc;
-    // em.Ey(nx / 2, ny / 2) += 1.0E4 * rsrc;
-    // em.Ez(nx / 2, ny / 2) += 1.0E4 * rsrc;
+    // em.Ez[nx / 2 - 20] += rsrc;
 
-    // em.Ex(nx / 2, ny / 2, nz / 2) = 1.0E4 * rsrc;
-    // em.Ey(nx / 2, ny / 2, nz / 2) = 1.0E4 * rsrc;
-    // em.Ez(nx / 2, ny / 2, nz / 2) = 1.0E4 * rsrc;
+    // em.Ex(nx / 2 - 20, ny / 2 - 20) += rsrc;
+    // em.Ey(nx / 2 - 20, ny / 2 - 20) += 3.0 * rsrc;
+    em.Ez(nx / 2 - 20, ny / 2 - 20) += rsrc;
+
+    // em.Ex(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
+    // em.Ey(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
+    // em.Ez(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
 
     if (n % save_step == 0) {
       std::cout << "Step " << n << std::endl;
-#pragma omp parallel num_threads(2)
-      {
-#pragma omp single
-        {
+// #pragma omp parallel num_threads(3)
+//       {
+// #pragma omp single
+//         {
 // #pragma omp task
 //           to_csv(em.Ex, filecount, "Ex");
 // #pragma omp task
 //           to_csv(em.Ey, filecount, "Ey");
-#pragma omp task
+// #pragma omp task
           to_csv(em.Ez, filecount, "Ez");
 // #pragma omp task
 //           to_csv(em.Hx, filecount, "Hx");
-#pragma omp task
-          to_csv(em.Hy, filecount, "Hy");
+// #pragma omp task
+//           to_csv(em.Hy, filecount, "Hy");
 // #pragma omp task
 //           to_csv(em.Hz, filecount, "Hz");
-        }
-      }
+//         }
+//       }
       filecount++;
     }
   }

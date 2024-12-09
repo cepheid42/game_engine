@@ -12,8 +12,8 @@
 //==========================================================
 // -------------------------------------------
 // Reflecting Boundary
-template<typename T, EMSide>
-using ReflectingFace = FaceBCs<
+template<typename T>
+using ReflectingData = FaceBCs<
   /* Ex */ NullData<EmptyArray1D<T>>,
   /* Ey */ NullData<EmptyArray1D<T>>,
   /* Ez */ NullData<EmptyArray1D<T>>,
@@ -25,7 +25,7 @@ using ReflectingFace = FaceBCs<
 // -------------------------------------------
 // 1D Boundary
 template<typename T, EMFace F, EMSide S>
-using PeriodicFace1D = FaceBCs<
+using PeriodicData1D = FaceBCs<
   /* Ex */ NullData<EmptyArray1D<T>>,
   /* Ey */ NullData<EmptyArray1D<T>>,
   /* Ez */ NullData<EmptyArray1D<T>>,
@@ -37,7 +37,7 @@ using PeriodicFace1D = FaceBCs<
 // -------------------------------------------
 // TM Boundary
 template<typename T, EMFace F, EMSide S>
-using PeriodicFaceTM = FaceBCs<
+using PeriodicDataTM = FaceBCs<
   /* Ex */ NullData<EmptyArray2D<T>>,
   /* Ey */ NullData<EmptyArray2D<T>>,
   /* Ez */ NullData<EmptyArray2D<T>>,
@@ -49,7 +49,7 @@ using PeriodicFaceTM = FaceBCs<
 // -------------------------------------------
 // TE Boundary
 template<typename T, EMFace F, EMSide S>
-using PeriodicFaceTE = FaceBCs<
+using PeriodicDataTE = FaceBCs<
   /* Ex */ NullData<EmptyArray2D<T>>,
   /* Ey */ NullData<EmptyArray2D<T>>,
   /* Ez */ NullData<EmptyArray2D<T>>,
@@ -61,7 +61,7 @@ using PeriodicFaceTE = FaceBCs<
 // -------------------------------------------
 // 3D Periodic Boundary
 template<typename T, EMFace F, EMSide S>
-using PeriodicFace3D = FaceBCs<
+using PeriodicData3D = FaceBCs<
   /* Ex */ NullData<EmptyArray3D<T>>,
   /* Ey */ NullData<EmptyArray3D<T>>,
   /* Ez */ NullData<EmptyArray3D<T>>,
@@ -73,7 +73,7 @@ using PeriodicFace3D = FaceBCs<
 // -------------------------------------------
 // 1D PML Boundary
 template<typename T, EMFace F, EMSide S>
-using PmlFace1D = FaceBCs<
+using PmlData1D = FaceBCs<
   /* Ex */ NullData<EmptyArray1D<T>>,
   /* Ey */ NullData<EmptyArray1D<T>>,
   /* Ez */ PMLData<Array1D<T>, F, S, false>,
@@ -85,7 +85,7 @@ using PmlFace1D = FaceBCs<
 // -------------------------------------------
 // TM PML
 template<typename T, EMFace F, EMSide S>
-struct PmlFaceTMImpl {
+struct PmlDataTMImpl {
   using type = FaceBCs<
   /* Ex */ NullData<EmptyArray2D<T>>,
   /* Ey */ NullData<EmptyArray2D<T>>,
@@ -99,7 +99,7 @@ struct PmlFaceTMImpl {
 // TM X-Face
 template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::X)
-struct PmlFaceTMImpl<T, F, S> {
+struct PmlDataTMImpl<T, F, S> {
   using type = FaceBCs<
     /* Ex */ NullData<EmptyArray2D<T>>,
     /* Ey */ NullData<EmptyArray2D<T>>,
@@ -113,7 +113,7 @@ struct PmlFaceTMImpl<T, F, S> {
 // TM Y-Face
 template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::Y)
-struct PmlFaceTMImpl<T, F, S> {
+struct PmlDataTMImpl<T, F, S> {
   using type = FaceBCs<
     /* Ex */ NullData<EmptyArray2D<T>>,
     /* Ey */ NullData<EmptyArray2D<T>>,
@@ -126,13 +126,13 @@ struct PmlFaceTMImpl<T, F, S> {
 
 // Top-level alias
 template<typename T, EMFace F, EMSide S>
-using PmlFaceTM = typename PmlFaceTMImpl<T, F, S>::type;
+using PmlDataTM = typename PmlDataTMImpl<T, F, S>::type;
 
 
 // -------------------------------------------
 // TE PML
 template<typename T, EMFace F, EMSide S>
-struct PmlFaceTEImpl{
+struct PmlDataTEImpl{
   using type = FaceBCs<
     /* Ex */ NullData<EmptyArray2D<T>>,
     /* Ey */ NullData<EmptyArray2D<T>>,
@@ -146,7 +146,7 @@ struct PmlFaceTEImpl{
 // TE X-Face
 template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::X)
-struct PmlFaceTEImpl<T, F, S> {
+struct PmlDataTEImpl<T, F, S> {
   using type = FaceBCs<
     /* Ex */ NullData<EmptyArray2D<T>>,
     /* Ey */ PMLData<Array2D<T>, F, S, false>,
@@ -160,7 +160,7 @@ struct PmlFaceTEImpl<T, F, S> {
 // TE Y-Face
 template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::Y)
-struct PmlFaceTEImpl<T, F, S> {
+struct PmlDataTEImpl<T, F, S> {
   using type = FaceBCs<
     /* Ex */ PMLData<Array2D<T>, F, S, false>,
     /* Ey */ NullData<EmptyArray2D<T>>,
@@ -173,17 +173,17 @@ struct PmlFaceTEImpl<T, F, S> {
 
 // Top-level alias
 template<typename T, EMFace F, EMSide S>
-using PmlFaceTE = typename PmlFaceTEImpl<T, F, S>::type;
+using PmlDataTE = typename PmlDataTEImpl<T, F, S>::type;
 
 // -------------------------------------------
 // 3D Pml
 template<typename T, EMFace F, EMSide S>
-struct PmlFace3DImpl;
+struct PmlData3DImpl;
 
 // 3D X-Face
 template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::X)
-struct PmlFace3DImpl<T, F, S> {
+struct PmlData3DImpl<T, F, S> {
   using type = FaceBCs<
     /* Ex */ NullData<EmptyArray3D<T>>,
     /* Ey */ PMLData<Array3D<T>, F, S, false>,
@@ -197,7 +197,7 @@ struct PmlFace3DImpl<T, F, S> {
 // 3D Y-Face
 template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::Y)
-struct PmlFace3DImpl<T, F, S> {
+struct PmlData3DImpl<T, F, S> {
   using type = FaceBCs<
     /* Ex */ PMLData<Array3D<T>, F, S, false>,
     /* Ey */ NullData<EmptyArray3D<T>>,
@@ -211,7 +211,7 @@ struct PmlFace3DImpl<T, F, S> {
 // 3D Z-Face
 template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::Z)
-struct PmlFace3DImpl<T, F, S> {
+struct PmlData3DImpl<T, F, S> {
   using type = FaceBCs<
     /* Ex */ PMLData<Array3D<T>, F, S, false>,
     /* Ey */ PMLData<Array3D<T>, F, S, false>,
@@ -224,11 +224,11 @@ struct PmlFace3DImpl<T, F, S> {
 
 // Top-level alias
 template<typename T, EMFace F, EMSide S>
-using PmlFace3D = typename PmlFace3DImpl<T, F, S>::type;
+using PmlData3D = typename PmlData3DImpl<T, F, S>::type;
 
 //=================== Boundary Condition Definitions ===================
 //======================================================================
-using BCNull = TypeList<
+using ReflectingBC = TypeList<
   /* Ex */ ReflectingBCUpdate,
   /* Ey */ ReflectingBCUpdate,
   /* Ez */ ReflectingBCUpdate,
@@ -237,25 +237,35 @@ using BCNull = TypeList<
   /* Hz */ ReflectingBCUpdate
 >;
 
+template<EMFace F, EMSide S>
 using Periodic1D = TypeList<
-  /* Ex */ Periodic1DUpdate,
-  /* Ey */ Periodic1DUpdate,
-  /* Ez */ Periodic1DUpdate,
-  /* Hx */ Periodic1DUpdate,
-  /* Hy */ Periodic1DUpdate,
-  /* Hz */ Periodic1DUpdate
+  /* Ex */ ReflectingBCUpdate,
+  /* Ey */ ReflectingBCUpdate,
+  /* Ez */ Periodic1DUpdate<F, S>,
+  /* Hx */ ReflectingBCUpdate,
+  /* Hy */ Periodic1DUpdate<F, S>,
+  /* Hz */ ReflectingBCUpdate
 >;
 
 template<EMFace F, EMSide S>
-using Periodic2D = TypeList<
-  /* Ex */ Periodic2DUpdate<F, S>,
-  /* Ey */ Periodic2DUpdate<F, S>,
+using PeriodicTM = TypeList<
+  /* Ex */ ReflectingBCUpdate,
+  /* Ey */ ReflectingBCUpdate,
   /* Ez */ Periodic2DUpdate<F, S>,
   /* Hx */ Periodic2DUpdate<F, S>,
   /* Hy */ Periodic2DUpdate<F, S>,
-  /* Hz */ Periodic2DUpdate<F, S>
+  /* Hz */ ReflectingBCUpdate
 >;
 
+template<EMFace F, EMSide S>
+using PeriodicTE = TypeList<
+  /* Ex */ Periodic2DUpdate<F, S>,
+  /* Ey */ Periodic2DUpdate<F, S>,
+  /* Ez */ ReflectingBCUpdate,
+  /* Hx */ ReflectingBCUpdate,
+  /* Hy */ ReflectingBCUpdate,
+  /* Hz */ Periodic2DUpdate<F, S>
+>;
 
 template<EMFace F, EMSide S>
 using Periodic3D = TypeList<
@@ -267,84 +277,146 @@ using Periodic3D = TypeList<
   /* Hz */ Periodic3DUpdate<F, S>
 >;
 
-template<EMSide S>
-using PmlX1D = TypeList<
+template<EMFace F, EMSide S>
+using Pml1D = TypeList<
   /* Ex */ ReflectingBCUpdate,
   /* Ey */ ReflectingBCUpdate,
-  /* Ez */ Pml1DUpdate<S>,
+  /* Ez */ Pml1DUpdate<F, S>,
   /* Hx */ ReflectingBCUpdate,
-  /* Hy */ Pml1DUpdate<S>,
+  /* Hy */ Pml1DUpdate<F, S>,
   /* Hz */ ReflectingBCUpdate
 >;
 
-template<EMSide S>
-using PmlXTM = TypeList<
+
+template<EMFace F, EMSide S>
+struct PmlTMImpl {
+    using type = TypeList<
+    /* Ex */ ReflectingBCUpdate,
+    /* Ey */ ReflectingBCUpdate,
+    /* Ez */ ReflectingBCUpdate,
+    /* Hx */ ReflectingBCUpdate,
+    /* Hy */ ReflectingBCUpdate,
+    /* Hz */ ReflectingBCUpdate
+  >;
+};
+
+template<EMFace F, EMSide S>
+requires (F == EMFace::X)
+struct PmlTMImpl<F, S> {
+  using type = TypeList<
+    /* Ex */ ReflectingBCUpdate,
+    /* Ey */ ReflectingBCUpdate,
+    /* Ez */ Pml2DUpdate<EMFace::X, S, false>,
+    /* Hx */ ReflectingBCUpdate,
+    /* Hy */ Pml2DUpdate<EMFace::X, S, false>,
+    /* Hz */ ReflectingBCUpdate
+  >;
+};
+
+template<EMFace F, EMSide S>
+requires (F == EMFace::Y)
+struct PmlTMImpl<F, S> {
+  using type = TypeList<
+    /* Ex */ ReflectingBCUpdate,
+    /* Ey */ ReflectingBCUpdate,
+    /* Ez */ Pml2DUpdate<EMFace::Y, S, true>,
+    /* Hx */ Pml2DUpdate<EMFace::Y, S, true>,
+    /* Hy */ ReflectingBCUpdate,
+    /* Hz */ ReflectingBCUpdate
+  >;
+};
+
+// Top-level alias
+template<EMFace F, EMSide S>
+using PmlTM = typename PmlTMImpl<F, S>::type;
+
+template<EMFace F, EMSide S>
+struct PmlTEImpl {
+  using type = TypeList<
   /* Ex */ ReflectingBCUpdate,
   /* Ey */ ReflectingBCUpdate,
-  /* Ez */ Pml2DUpdate<EMFace::X, S, false>,
-  /* Hx */ ReflectingBCUpdate,
-  /* Hy */ Pml2DUpdate<EMFace::X, S, false>,
-  /* Hz */ ReflectingBCUpdate
->;
-
-template<EMSide S>
-using PmlYTM = TypeList<
-  /* Ex */ ReflectingBCUpdate,
-  /* Ey */ ReflectingBCUpdate,
-  /* Ez */ Pml2DUpdate<EMFace::Y, S, true>,
-  /* Hx */ Pml2DUpdate<EMFace::Y, S, true>,
-  /* Hy */ ReflectingBCUpdate,
-  /* Hz */ ReflectingBCUpdate
->;
-
-template<EMSide S>
-using PmlXTE = TypeList<
-  /* Ex */ ReflectingBCUpdate,
-  /* Ey */ Pml2DUpdate<EMFace::X, S, true>,
   /* Ez */ ReflectingBCUpdate,
   /* Hx */ ReflectingBCUpdate,
   /* Hy */ ReflectingBCUpdate,
-  /* Hz */ Pml2DUpdate<EMFace::X, S, true>
->;
-
-template<EMSide S>
-using PmlYTE = TypeList<
-  /* Ex */ Pml2DUpdate<EMFace::Y, S, false>,
-  /* Ey */ ReflectingBCUpdate,
-  /* Ez */ ReflectingBCUpdate,
-  /* Hx */ ReflectingBCUpdate,
-  /* Hy */ ReflectingBCUpdate,
-  /* Hz */ Pml2DUpdate<EMFace::Y, S, false>
->;
-
-template<EMSide S>
-using PmlX3D = TypeList<
-  /* Ex */ ReflectingBCUpdate,
-  /* Ey */ Pml3DUpdate<EMFace::X, S, true>,
-  /* Ez */ Pml3DUpdate<EMFace::X, S, false>,
-  /* Hx */ ReflectingBCUpdate,
-  /* Hy */ Pml3DUpdate<EMFace::X, S, false>,
-  /* Hz */ Pml3DUpdate<EMFace::X, S, true>
->;
-
-template<EMSide S>
-using PmlY3D = TypeList<
-  /* Ex */ Pml3DUpdate<EMFace::Y, S, false>,
-  /* Ey */ ReflectingBCUpdate,
-  /* Ez */ Pml3DUpdate<EMFace::Y, S, true>,
-  /* Hx */ Pml3DUpdate<EMFace::Y, S, true>,
-  /* Hy */ ReflectingBCUpdate,
-  /* Hz */ Pml3DUpdate<EMFace::Y, S, false>
->;
-
-template<EMSide S>
-using PmlZ3D = TypeList<
-  /* Ex */ Pml3DUpdate<EMFace::Z, S, true>,
-  /* Ey */ Pml3DUpdate<EMFace::Z, S, false>,
-  /* Ez */ ReflectingBCUpdate,
-  /* Hx */ Pml3DUpdate<EMFace::Z, S, false>,
-  /* Hy */ Pml3DUpdate<EMFace::Z, S, true>,
   /* Hz */ ReflectingBCUpdate
 >;
+};
+
+template<EMFace F, EMSide S>
+requires (F == EMFace::X)
+struct PmlTEImpl<F, S> {
+  using type = TypeList<
+    /* Ex */ ReflectingBCUpdate,
+    /* Ey */ Pml2DUpdate<EMFace::X, S, true>,
+    /* Ez */ ReflectingBCUpdate,
+    /* Hx */ ReflectingBCUpdate,
+    /* Hy */ ReflectingBCUpdate,
+    /* Hz */ Pml2DUpdate<EMFace::X, S, true>
+  >;
+};
+
+template<EMFace F, EMSide S>
+requires (F == EMFace::Y)
+struct PmlTEImpl<F, S> {
+  using type = TypeList<
+    /* Ex */ Pml2DUpdate<EMFace::Y, S, false>,
+    /* Ey */ ReflectingBCUpdate,
+    /* Ez */ ReflectingBCUpdate,
+    /* Hx */ ReflectingBCUpdate,
+    /* Hy */ ReflectingBCUpdate,
+    /* Hz */ Pml2DUpdate<EMFace::Y, S, false>
+  >;
+};
+
+// Top-level alias
+template<EMFace F, EMSide S>
+using PmlTE = typename PmlTEImpl<F, S>::type;
+
+
+template<EMFace F, EMSide S>
+struct Pml3DImpl;
+
+template<EMFace F, EMSide S>
+requires (F == EMFace::X)
+struct Pml3DImpl<F, S> {
+  using type = TypeList<
+    /* Ex */ ReflectingBCUpdate,
+    /* Ey */ Pml3DUpdate<EMFace::X, S, true>,
+    /* Ez */ Pml3DUpdate<EMFace::X, S, false>,
+    /* Hx */ ReflectingBCUpdate,
+    /* Hy */ Pml3DUpdate<EMFace::X, S, false>,
+    /* Hz */ Pml3DUpdate<EMFace::X, S, true>
+  >;
+};
+
+template<EMFace F, EMSide S>
+requires (F == EMFace::Y)
+struct Pml3DImpl<F, S> {
+  using type = TypeList<
+    /* Ex */ Pml3DUpdate<EMFace::Y, S, false>,
+    /* Ey */ ReflectingBCUpdate,
+    /* Ez */ Pml3DUpdate<EMFace::Y, S, true>,
+    /* Hx */ Pml3DUpdate<EMFace::Y, S, true>,
+    /* Hy */ ReflectingBCUpdate,
+    /* Hz */ Pml3DUpdate<EMFace::Y, S, false>
+  >;
+};
+
+template<EMFace F, EMSide S>
+requires (F == EMFace::Z)
+struct Pml3DImpl<F, S> {
+  using type = TypeList<
+    /* Ex */ Pml3DUpdate<EMFace::Z, S, true>,
+    /* Ey */ Pml3DUpdate<EMFace::Z, S, false>,
+    /* Ez */ ReflectingBCUpdate,
+    /* Hx */ Pml3DUpdate<EMFace::Z, S, false>,
+    /* Hy */ Pml3DUpdate<EMFace::Z, S, true>,
+    /* Hz */ ReflectingBCUpdate
+  >;
+};
+
+// Top-level alias
+template<EMFace F, EMSide S>
+using Pml3D = typename Pml3DImpl<F, S>::type;
 
 #endif //BC_DEFINITIONS_H

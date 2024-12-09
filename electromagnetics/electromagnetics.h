@@ -8,49 +8,53 @@
 #include "em_definitions.h"
 #include "bc_definitions.h"
 
-inline constexpr size_t SELECT_EMSOLVER = 1;
-inline constexpr size_t SELECT_BCDATA[6] = {5,5,0,0,0,0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
-inline constexpr size_t SELECT_BCSOLVER[6] = {4,4,0,0,0,0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+inline constexpr size_t SELECT_EMSOLVER = 2;
+inline constexpr size_t SELECT_BCSOLVER[6] = {2,2,6,6,0,0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+
+// todo: This checks for invalid BC combos that will compile & run but eventually blow up.
+//        Probably can be made more comprehensive later with concepts or something.
+static constexpr bool valid_x_combo = SELECT_BCSOLVER[0] + 4 != SELECT_BCSOLVER[1];
+static constexpr bool valid_y_combo = SELECT_BCSOLVER[2] + 4 != SELECT_BCSOLVER[3];
+static constexpr bool valid_z_combo = SELECT_BCSOLVER[4] + 4 != SELECT_BCSOLVER[5];
+static_assert(valid_x_combo and valid_y_combo and valid_z_combo,
+  "Periodic lower boundary and PML upper boundary is an invalid combination.");
 
 //=================== Boundary Condition Selectors ===================
 //====================================================================
 template<typename T, EMFace F, EMSide S>
 using BCDataTL = TypeList<
-  ReflectingFace<T, S>,     // 0
-  PeriodicFace1D<T, F, S>,  // 1
-  PeriodicFaceTM<T, F, S>,  // 2
-  PeriodicFaceTE<T, F, S>,  // 3
-  PeriodicFace3D<T, F, S>,  // 4
-  PmlFace1D<T, F, S>,       // 5
-  PmlFaceTM<T, F, S>,       // 6
-  PmlFaceTE<T, F, S>,       // 7
-  PmlFace3D<T, F, S>        // 8
+  ReflectingData<T>,        // 0
+  PeriodicData1D<T, F, S>,  // 1
+  PeriodicDataTM<T, F, S>,  // 2
+  PeriodicDataTE<T, F, S>,  // 3
+  PeriodicData3D<T, F, S>,  // 4
+  PmlData1D<T, F, S>,       // 5
+  PmlDataTM<T, F, S>,       // 6
+  PmlDataTE<T, F, S>,       // 7
+  PmlData3D<T, F, S>        // 8
 >;
 
 template<typename T>
 using bcdata_t = BCData<
-  TypeListAt<SELECT_BCDATA[0], BCDataTL<T, EMFace::X, EMSide::Lo>>,
-  TypeListAt<SELECT_BCDATA[1], BCDataTL<T, EMFace::X, EMSide::Hi>>,
-  TypeListAt<SELECT_BCDATA[2], BCDataTL<T, EMFace::Y, EMSide::Lo>>,
-  TypeListAt<SELECT_BCDATA[3], BCDataTL<T, EMFace::Y, EMSide::Hi>>,
-  TypeListAt<SELECT_BCDATA[4], BCDataTL<T, EMFace::Z, EMSide::Lo>>,
-  TypeListAt<SELECT_BCDATA[5], BCDataTL<T, EMFace::Z, EMSide::Hi>>
+  TypeListAt<SELECT_BCSOLVER[0], BCDataTL<T, EMFace::X, EMSide::Lo>>,
+  TypeListAt<SELECT_BCSOLVER[1], BCDataTL<T, EMFace::X, EMSide::Hi>>,
+  TypeListAt<SELECT_BCSOLVER[2], BCDataTL<T, EMFace::Y, EMSide::Lo>>,
+  TypeListAt<SELECT_BCSOLVER[3], BCDataTL<T, EMFace::Y, EMSide::Hi>>,
+  TypeListAt<SELECT_BCSOLVER[4], BCDataTL<T, EMFace::Z, EMSide::Lo>>,
+  TypeListAt<SELECT_BCSOLVER[5], BCDataTL<T, EMFace::Z, EMSide::Hi>>
 >;
 
 template<EMFace F, EMSide S>
 using BCTypeTL = TypeList<
-  BCNull,           // 0
-  Periodic1D,       // 1
-  Periodic2D<F, S>, // 2
-  Periodic3D<F, S>, // 3
-  PmlX1D<S>,        // 4
-  PmlXTM<S>,        // 5
-  PmlYTM<S>,        // 6
-  PmlXTE<S>,        // 7
-  PmlYTE<S>,        // 8
-  PmlX3D<S>,        // 9
-  PmlY3D<S>,        // 10
-  PmlZ3D<S>         // 11
+  ReflectingBC,     // 0
+  Periodic1D<F, S>, // 1
+  PeriodicTM<F, S>, // 2
+  PeriodicTE<F, S>, // 3
+  Periodic3D<F, S>, // 4
+  Pml1D<F, S>,      // 5
+  PmlTM<F, S>,      // 6
+  PmlTE<F, S>,      // 7
+  Pml3D<F, S>       // 8
 >;
 
 template<size_t I, EMFace F, EMSide S>

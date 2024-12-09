@@ -9,7 +9,7 @@ inline constexpr size_t nPml = 10u;
 inline constexpr size_t nHalo = 2u;
 
 using fp_t = double;
-inline constexpr size_t DIM = 1;
+inline constexpr size_t DIM = 2;
 inline constexpr fp_t cfl = 1.0 / std::sqrt(static_cast<fp_t>(DIM));
 
 enum class EMFace { X, Y, Z };

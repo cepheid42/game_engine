@@ -7,9 +7,10 @@
 
 #include "electromagnetics.param"
 
-template<EMFace F>
+template<EMFace F, EMSide S>
 struct periodic_t {
   static constexpr EMFace face = F;
+  static constexpr EMSide side = S;
 };
 
 template<EMFace F, EMSide S>
@@ -19,25 +20,33 @@ struct pml_t {
 };
 
 template<typename T>
-concept is_periodic = std::derived_from<T, periodic_t<T::face>>;
+concept is_periodic = std::derived_from<T, periodic_t<T::face, T::side>>;
 
 template<typename T>
 concept is_pml = std::derived_from<T, pml_t<T::face, T::side>>;
 
-template<typename Derived>
+template<typename UpdateFunc>
 struct Boundary {
   static void updateE(auto& bc, auto& f1, auto& f2, const auto& c1) {
-    if constexpr (is_pml<Derived>) {
-      Derived::updateE(bc, f1, f2, c1);
+    if constexpr (is_pml<UpdateFunc>) {
+      // DBG("PmlE()");
+      UpdateFunc::updateE(bc, f1, f2, c1);
     }
+
+    if constexpr (is_periodic<UpdateFunc>) {
+      // DBG("PeriodicE()");
+    }
+
     // Periodic & Reflecting do not update the E-field components
   }
 
   static void updateH(auto& bc, auto& f1, auto& f2, const auto& c1) {
-    if constexpr (is_periodic<Derived>) {
-      Derived::updateH(bc, f1);
-    } else if constexpr (is_pml<Derived>) {
-      Derived::updateH(bc, f1, f2, c1);
+    if constexpr (is_periodic<UpdateFunc>) {
+      // DBG("PeriodicH()");
+      UpdateFunc::updateH(bc, f1);
+    } else if constexpr (is_pml<UpdateFunc>) {
+      // DBG("PmlH()");
+      UpdateFunc::updateH(bc, f1, f2, c1);
     }
     // Reflecting does not update H field components
   }
@@ -45,9 +54,12 @@ struct Boundary {
 
 struct ReflectingBCUpdate {};
 
-struct Periodic1DUpdate : periodic_t<EMFace::X> {
+template<EMFace F, EMSide S>
+struct Periodic1DUpdate : periodic_t<F, S> {
   // static void updateE() {}
-  static void updateH(auto& bc, auto& f) {
+  static void updateH(auto&, auto&) { DBG("Periodic::updateH(hi)"); }
+  static void updateH(auto& bc, auto& f) requires (S == EMSide::Lo) {
+    DBG("Periodic::updateH(lo)");
     const auto& os = bc.offsets;
     const auto& numInterior = bc.numInterior;
     const auto& hi_idx = bc.hi_idx;
@@ -62,14 +74,16 @@ struct Periodic1DUpdate : periodic_t<EMFace::X> {
 };
 
 template<EMFace F, EMSide S>
-struct Periodic2DUpdate : periodic_t<F> {
+struct Periodic2DUpdate : periodic_t<F, S> {
   // static void updateE() {}
   static void updateH(auto&, auto&) {} // Only lo-side periodic is used
   static void updateH(auto& bc, auto& f) requires (S == EMSide::Lo) {
     const auto& os = bc.offsets;
     const auto& numInterior = bc.numInterior;
     const auto& hi_idx = bc.hi_idx;
-    
+
+    DBG("Periodic2D::updateH");
+
     for (size_t i = os.x0; i < os.x1; ++i) {
       for (size_t j = os.y0; j < os.y1; ++j) {
         if constexpr (F == EMFace::X) {
@@ -89,7 +103,7 @@ struct Periodic2DUpdate : periodic_t<F> {
 };
 
 template<EMFace F, EMSide S>
-struct Periodic3DUpdate : periodic_t<F> {
+struct Periodic3DUpdate : periodic_t<F, S> {
   // static void updateE() { DBG("Periodic3D::updateE()"); }
   static void updateH(auto&, auto&) {} // Only lo-side periodic is used
   static void updateH(auto& bc, auto& f) requires (S == EMSide::Lo) {
@@ -122,8 +136,8 @@ struct Periodic3DUpdate : periodic_t<F> {
   } // end updateH
 };
 
-template<EMSide S>
-struct Pml1DUpdate : pml_t<EMFace::X, S> {
+template<EMFace F, EMSide S>
+struct Pml1DUpdate : pml_t<F, S> {
   static void updateE(auto& bc, auto& f1, const auto& f2, const auto& c1) {
     size_t x0, x1;
     if constexpr (S == EMSide::Lo) {
@@ -175,9 +189,11 @@ struct Pml2DUpdate : pml_t<F, S> {
 
     size_t x0, x1;
     if constexpr (S == EMSide::Lo) {
+      DBG("Pml2DX::updateE(lo)");
       x0 = bc.offsets.x0 + 1;
       x1 = bc.offsets.x1;
     } else {
+      DBG("Pml2DX::updateE(hi)");
       x0 = bc.offsets.x0;
       x1 = bc.offsets.x1 - 1;
     }
@@ -207,9 +223,11 @@ struct Pml2DUpdate : pml_t<F, S> {
 
     size_t x0, x1;
     if constexpr (S == EMSide::Lo) {
+      DBG("Pml2DX::updateH(lo)");
       x0 = bc.offsets.x0;
       x1 = bc.offsets.x1 - 1;
     } else {
+      DBG("Pml2DX::updateH(hi)");
       x0 = bc.offsets.x0 + 1;
       x1 = bc.offsets.x1;
     }
@@ -238,9 +256,11 @@ struct Pml2DUpdate : pml_t<F, S> {
 
     size_t y0, y1;
     if constexpr (S == EMSide::Lo) {
+      DBG("Pml2DY::updateE(lo)");
       y0 = bc.offsets.y0 + 1;
       y1 = bc.offsets.y1;
     } else {
+      DBG("Pml2DY::updateH(hi)");
       y0 = bc.offsets.y0;
       y1 = bc.offsets.y1 - 1;
     }
@@ -270,9 +290,11 @@ struct Pml2DUpdate : pml_t<F, S> {
 
     size_t y0, y1;
     if constexpr (S == EMSide::Lo) {
+      DBG("Pml2DY::updateH(lo)");
       y0 = bc.offsets.y0;
       y1 = bc.offsets.y1 - 1;
     } else {
+      DBG("Pml2DY::updateH(hi)");
       y0 = bc.offsets.y0 + 1;
       y1 = bc.offsets.y1;
     }
