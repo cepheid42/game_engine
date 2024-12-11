@@ -8,16 +8,16 @@
 #include "em_definitions.h"
 #include "bc_definitions.h"
 
-inline constexpr size_t SELECT_EMSOLVER = 2;
-inline constexpr size_t SELECT_BCSOLVER[6] = {2,2,6,6,0,0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+inline constexpr size_t SELECT_EMSOLVER = 4;
+inline constexpr size_t SELECT_BCSOLVER[6] = {0,0,0,0,8,4}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
 
 // todo: This checks for invalid BC combos that will compile & run but eventually blow up.
 //        Probably can be made more comprehensive later with concepts or something.
-static constexpr bool valid_x_combo = SELECT_BCSOLVER[0] + 4 != SELECT_BCSOLVER[1];
-static constexpr bool valid_y_combo = SELECT_BCSOLVER[2] + 4 != SELECT_BCSOLVER[3];
-static constexpr bool valid_z_combo = SELECT_BCSOLVER[4] + 4 != SELECT_BCSOLVER[5];
-static_assert(valid_x_combo and valid_y_combo and valid_z_combo,
-  "Periodic lower boundary and PML upper boundary is an invalid combination.");
+// static constexpr bool valid_x_combo = SELECT_BCSOLVER[0] + 4 != SELECT_BCSOLVER[1];
+// static constexpr bool valid_y_combo = SELECT_BCSOLVER[2] + 4 != SELECT_BCSOLVER[3];
+// static constexpr bool valid_z_combo = SELECT_BCSOLVER[4] + 4 != SELECT_BCSOLVER[5];
+// static_assert(valid_x_combo and valid_y_combo and valid_z_combo,
+//   "Periodic lower boundary and PML upper boundary is an invalid combination.");
 
 //=================== Boundary Condition Selectors ===================
 //====================================================================

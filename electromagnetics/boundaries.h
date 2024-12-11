@@ -28,19 +28,19 @@ concept is_pml = std::derived_from<T, pml_t<T::face, T::side>>;
 template<typename UpdateFunc>
 struct Boundary {
   static void updateE(auto& bc, auto& f1, auto& f2, const auto& c1) {
-    if constexpr (is_pml<UpdateFunc>) {
-      // DBG("PmlE()");
+    if constexpr (is_periodic<UpdateFunc>) {
+      UpdateFunc::updateE(bc, f1);
+    } else if constexpr (is_pml<UpdateFunc>) {
       UpdateFunc::updateE(bc, f1, f2, c1);
     }
-    // Periodic & Reflecting do not update the E-field components
+    // Reflecting do not update the E-field components
   }
 
   static void updateH(auto& bc, auto& f1, auto& f2, const auto& c1) {
-    if constexpr (is_periodic<UpdateFunc>) {
-      // DBG("PeriodicH()");
-      UpdateFunc::updateH(bc, f1);
-    } else if constexpr (is_pml<UpdateFunc>) {
-      // DBG("PmlH()");
+    // if constexpr (is_periodic<UpdateFunc>) {
+    //   UpdateFunc::updateH(bc, f1);
+    // } else
+    if constexpr (is_pml<UpdateFunc>) {
       UpdateFunc::updateH(bc, f1, f2, c1);
     }
     // Reflecting does not update H field components
@@ -51,10 +51,9 @@ struct ReflectingBCUpdate {};
 
 template<EMFace F, EMSide S>
 struct Periodic1DUpdate : periodic_t<F, S> {
-  // static void updateE() {}
-  static void updateH(auto&, auto&) { DBG("Periodic::updateH(hi)"); }
-  static void updateH(auto& bc, auto& f) requires (S == EMSide::Lo) {
-    DBG("Periodic::updateH(lo)");
+  // static void updateH() {}
+  static void updateE(auto&, auto&) {}
+  static void updateE(auto& bc, auto& f) requires (S == EMSide::Lo) {
     const auto& os = bc.offsets;
     const auto& numInterior = bc.numInterior;
     const auto& hi_idx = bc.hi_idx;
@@ -70,14 +69,11 @@ struct Periodic1DUpdate : periodic_t<F, S> {
 
 template<EMFace F, EMSide S>
 struct Periodic2DUpdate : periodic_t<F, S> {
-  // static void updateE() {}
-  static void updateH(auto&, auto&) {} // Only lo-side periodic is used
-  static void updateH(auto& bc, auto& f) requires (S == EMSide::Lo) {
+  static void updateE(auto&, auto&) {}
+  static void updateE(auto& bc, auto& f) requires (S == EMSide::Lo) {
     const auto& os = bc.offsets;
     const auto& numInterior = bc.numInterior;
     const auto& hi_idx = bc.hi_idx;
-
-    // DBG("Periodic2D::updateH");
 
     for (size_t i = os.x0; i < os.x1; ++i) {
       for (size_t j = os.y0; j < os.y1; ++j) {
@@ -95,13 +91,38 @@ struct Periodic2DUpdate : periodic_t<F, S> {
       } // end j-loop
     } // end i-loop
   } // end updateH
+
+  // static void updateH(auto&, auto&) {} // Only lo-side periodic is used
+  // static void updateH(auto& bc, auto& f) requires (S == EMSide::Lo) {
+  //   const auto& os = bc.offsets;
+  //   const auto& numInterior = bc.numInterior;
+  //   const auto& hi_idx = bc.hi_idx;
+  //
+  //   // DBG("Periodic2D::updateH");
+  //
+  //   for (size_t i = os.x0; i < os.x1; ++i) {
+  //     for (size_t j = os.y0; j < os.y1; ++j) {
+  //       if constexpr (F == EMFace::X) {
+  //         const auto pm = i % numInterior;
+  //
+  //         f(bc.depth - 1 - i, j) = f(hi_idx - pm, j);
+  //         f(hi_idx + 1 + i, j) = f(bc.depth + pm, j);
+  //       } else {
+  //         const auto pm = j % numInterior;
+  //
+  //         f(i, bc.depth - 1 - j) = f(i, hi_idx - pm);
+  //         f(i, hi_idx + 1 + j) = f(i, bc.depth + pm);
+  //       }
+  //     } // end j-loop
+  //   } // end i-loop
+  // } // end updateH
 };
 
 template<EMFace F, EMSide S>
 struct Periodic3DUpdate : periodic_t<F, S> {
-  // static void updateE() { DBG("Periodic3D::updateE()"); }
-  static void updateH(auto&, auto&) {} // Only lo-side periodic is used
-  static void updateH(auto& bc, auto& f) requires (S == EMSide::Lo) {
+  // static void updateH() { DBG("Periodic3D::updateE()"); }
+  static void updateE(auto&, auto&) {} // Only lo-side periodic is used
+  static void updateE(auto& bc, auto& f) requires (S == EMSide::Lo) {
     const auto& os = bc.offsets;
     const auto& numInterior = bc.numInterior;
     const auto& hi_idx = bc.hi_idx;

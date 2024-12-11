@@ -104,11 +104,11 @@ int main() {
   // emdata_t<double> em{nx, cfl};
   // bcdata_t<double> bc{em};
 
-  emdata_t<double> em{nx, ny, cfl};
-  bcdata_t<double> bc{em};
-
-  // emdata_t<double> em{nx, ny, nz, cfl};
+  // emdata_t<double> em{nx, ny, cfl};
   // bcdata_t<double> bc{em};
+
+  emdata_t<double> em{nx, ny, nz, cfl};
+  bcdata_t<double> bc{em};
 
   constexpr auto save_step = 4;
   size_t filecount = 0;
@@ -124,11 +124,11 @@ int main() {
 
     // em.Ex(nx / 2 - 20, ny / 2 - 20) += rsrc;
     // em.Ey(nx / 2 - 20, ny / 2 - 20) += 3.0 * rsrc;
-    em.Ez(nx / 2 - 20, ny / 2 - 20) += rsrc;
+    // em.Ez(nx / 2 - 20, ny / 2 - 20) += rsrc;
 
-    // em.Ex(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
+    em.Ex(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
     // em.Ey(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
-    // em.Ez(nx / 2 - 20, ny / 2, nz / 2 - 20) += rsrc;
+    // em.Ez(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
 
     if (n % save_step == 0) {
       std::cout << "Step " << n << std::endl;

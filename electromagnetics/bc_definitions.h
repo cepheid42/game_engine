@@ -28,9 +28,9 @@ template<typename T, EMFace F, EMSide S>
 using PeriodicData1D = FaceBCs<
   /* Ex */ NullData<EmptyArray1D<T>>,
   /* Ey */ NullData<EmptyArray1D<T>>,
-  /* Ez */ NullData<EmptyArray1D<T>>,
+  /* Ez */ PeriodicData<Array1D<T>, F, S>,
   /* Hx */ NullData<EmptyArray1D<T>>,
-  /* Hy */ PeriodicData<Array1D<T>, F, S>,
+  /* Hy */ NullData<EmptyArray1D<T>>,
   /* Hz */ NullData<EmptyArray1D<T>>
 >;
 
@@ -40,35 +40,105 @@ template<typename T, EMFace F, EMSide S>
 using PeriodicDataTM = FaceBCs<
   /* Ex */ NullData<EmptyArray2D<T>>,
   /* Ey */ NullData<EmptyArray2D<T>>,
-  /* Ez */ NullData<EmptyArray2D<T>>,
-  /* Hx */ PeriodicData<Array2D<T>, F, S>,
-  /* Hy */ PeriodicData<Array2D<T>, F, S>,
+  /* Ez */ PeriodicData<Array2D<T>, F, S>,
+  /* Hx */ NullData<EmptyArray2D<T>>,
+  /* Hy */ NullData<EmptyArray2D<T>>,
   /* Hz */ NullData<EmptyArray2D<T>>
 >;
 
 // -------------------------------------------
 // TE Boundary
+
 template<typename T, EMFace F, EMSide S>
-using PeriodicDataTE = FaceBCs<
-  /* Ex */ NullData<EmptyArray2D<T>>,
-  /* Ey */ NullData<EmptyArray2D<T>>,
-  /* Ez */ NullData<EmptyArray2D<T>>,
-  /* Hx */ NullData<EmptyArray2D<T>>,
-  /* Hy */ NullData<EmptyArray2D<T>>,
-  /* Hz */ PeriodicData<Array2D<T>, F, S>
->;
+struct PeriodicDataTEImpl {
+  using type = FaceBCs<
+    /* Ex */ NullData<EmptyArray2D<T>>,
+    /* Ey */ NullData<EmptyArray2D<T>>,
+    /* Ez */ NullData<EmptyArray2D<T>>,
+    /* Hx */ NullData<EmptyArray2D<T>>,
+    /* Hy */ NullData<EmptyArray2D<T>>,
+    /* Hz */ NullData<EmptyArray2D<T>>
+  >;
+};
+
+template<typename T, EMFace F, EMSide S>
+requires (F == EMFace::X)
+struct PeriodicDataTEImpl<T, F, S> {
+  using type = FaceBCs<
+    /* Ex */ NullData<EmptyArray2D<T>>,
+    /* Ey */ PeriodicData<Array2D<T>, F, S>,
+    /* Ez */ NullData<EmptyArray2D<T>>,
+    /* Hx */ NullData<EmptyArray2D<T>>,
+    /* Hy */ NullData<EmptyArray2D<T>>,
+    /* Hz */ NullData<EmptyArray2D<T>>
+  >;
+};
+
+template<typename T, EMFace F, EMSide S>
+requires (F == EMFace::Y)
+struct PeriodicDataTEImpl<T, F, S> {
+  using type = FaceBCs<
+    /* Ex */ PeriodicData<Array2D<T>, F, S>,
+    /* Ey */ NullData<EmptyArray2D<T>>,
+    /* Ez */ NullData<EmptyArray2D<T>>,
+    /* Hx */ NullData<EmptyArray2D<T>>,
+    /* Hy */ NullData<EmptyArray2D<T>>,
+    /* Hz */ NullData<EmptyArray2D<T>>
+  >;
+};
+
+// Top-level alias
+template<typename T, EMFace F, EMSide S>
+using PeriodicDataTE = typename PeriodicDataTEImpl<T, F, S>::type;
+
 
 // -------------------------------------------
 // 3D Periodic Boundary
 template<typename T, EMFace F, EMSide S>
-using PeriodicData3D = FaceBCs<
-  /* Ex */ NullData<EmptyArray3D<T>>,
-  /* Ey */ NullData<EmptyArray3D<T>>,
-  /* Ez */ NullData<EmptyArray3D<T>>,
-  /* Hx */ PeriodicData<Array3D<T>, F, S>,
-  /* Hy */ PeriodicData<Array3D<T>, F, S>,
-  /* Hz */ PeriodicData<Array3D<T>, F, S>
->;
+struct PeriodicData3DImpl;
+
+template<typename T, EMFace F, EMSide S>
+requires (F == EMFace::X)
+struct PeriodicData3DImpl<T, F, S> {
+  using type = FaceBCs<
+    /* Ex */ NullData<EmptyArray3D<T>>,
+    /* Ey */ PeriodicData<Array3D<T>, F, S>,
+    /* Ez */ PeriodicData<Array3D<T>, F, S>,
+    /* Hx */ NullData<EmptyArray3D<T>>,
+    /* Hy */ NullData<EmptyArray3D<T>>,
+    /* Hz */ NullData<EmptyArray3D<T>>
+  >;
+};
+
+template<typename T, EMFace F, EMSide S>
+requires (F == EMFace::Y)
+struct PeriodicData3DImpl<T, F, S> {
+  using type = FaceBCs<
+    /* Ex */ PeriodicData<Array3D<T>, F, S>,
+    /* Ey */ NullData<EmptyArray3D<T>>,
+    /* Ez */ PeriodicData<Array3D<T>, F, S>,
+    /* Hx */ NullData<EmptyArray3D<T>>,
+    /* Hy */ NullData<EmptyArray3D<T>>,
+    /* Hz */ NullData<EmptyArray3D<T>>
+  >;
+};
+
+template<typename T, EMFace F, EMSide S>
+requires (F == EMFace::Z)
+struct PeriodicData3DImpl<T, F, S> {
+  using type = FaceBCs<
+    /* Ex */ PeriodicData<Array3D<T>, F, S>,
+    /* Ey */ PeriodicData<Array3D<T>, F, S>,
+    /* Ez */ NullData<EmptyArray3D<T>>,
+    /* Hx */ NullData<EmptyArray3D<T>>,
+    /* Hy */ NullData<EmptyArray3D<T>>,
+    /* Hz */ NullData<EmptyArray3D<T>>
+  >;
+};
+
+// Top-level alias
+template<typename T, EMFace F, EMSide S>
+using PeriodicData3D = typename PeriodicData3DImpl<T, F, S>::type;
 
 // -------------------------------------------
 // 1D PML Boundary
@@ -252,31 +322,102 @@ using PeriodicTM = TypeList<
   /* Ex */ ReflectingBCUpdate,
   /* Ey */ ReflectingBCUpdate,
   /* Ez */ Periodic2DUpdate<F, S>,
-  /* Hx */ Periodic2DUpdate<F, S>,
-  /* Hy */ Periodic2DUpdate<F, S>,
+  /* Hx */ ReflectingBCUpdate,
+  /* Hy */ ReflectingBCUpdate,
   /* Hz */ ReflectingBCUpdate
 >;
 
+// ===============================================
 template<EMFace F, EMSide S>
-using PeriodicTE = TypeList<
-  /* Ex */ Periodic2DUpdate<F, S>,
-  /* Ey */ Periodic2DUpdate<F, S>,
-  /* Ez */ ReflectingBCUpdate,
-  /* Hx */ ReflectingBCUpdate,
-  /* Hy */ ReflectingBCUpdate,
-  /* Hz */ Periodic2DUpdate<F, S>
->;
+struct PeriodicTEImpl {
+  using type = TypeList<
+    /* Ex */ ReflectingBCUpdate,
+    /* Ey */ ReflectingBCUpdate,
+    /* Ez */ ReflectingBCUpdate,
+    /* Hx */ ReflectingBCUpdate,
+    /* Hy */ ReflectingBCUpdate,
+    /* Hz */ ReflectingBCUpdate
+  >;
+};
 
 template<EMFace F, EMSide S>
-using Periodic3D = TypeList<
-  /* Ex */ Periodic3DUpdate<F, S>,
-  /* Ey */ Periodic3DUpdate<F, S>,
-  /* Ez */ Periodic3DUpdate<F, S>,
-  /* Hx */ Periodic3DUpdate<F, S>,
-  /* Hy */ Periodic3DUpdate<F, S>,
-  /* Hz */ Periodic3DUpdate<F, S>
->;
+requires (F == EMFace::X)
+struct PeriodicTEImpl<F, S> {
+  using type = TypeList<
+    /* Ex */ ReflectingBCUpdate,
+    /* Ey */ Periodic2DUpdate<F, S>,
+    /* Ez */ ReflectingBCUpdate,
+    /* Hx */ ReflectingBCUpdate,
+    /* Hy */ ReflectingBCUpdate,
+    /* Hz */ ReflectingBCUpdate
+  >;
+};
 
+template<EMFace F, EMSide S>
+requires (F == EMFace::Y)
+struct PeriodicTEImpl<F, S> {
+  using type = TypeList<
+    /* Ex */ Periodic2DUpdate<F, S>,
+    /* Ey */ ReflectingBCUpdate,
+    /* Ez */ ReflectingBCUpdate,
+    /* Hx */ ReflectingBCUpdate,
+    /* Hy */ ReflectingBCUpdate,
+    /* Hz */ ReflectingBCUpdate
+  >;
+};
+
+// Top-level alias
+template<EMFace F, EMSide S>
+using PeriodicTE = typename PeriodicTEImpl<F, S>::type;
+
+// ===============================================
+template<EMFace F, EMSide S>
+struct Periodic3DImpl;
+
+template<EMFace F, EMSide S>
+requires (F == EMFace::X)
+struct Periodic3DImpl<F, S> {
+  using type = TypeList<
+    /* Ex */ ReflectingBCUpdate,
+    /* Ey */ Periodic3DUpdate<F, S>,
+    /* Ez */ Periodic3DUpdate<F, S>,
+    /* Hx */ ReflectingBCUpdate,
+    /* Hy */ ReflectingBCUpdate,
+    /* Hz */ ReflectingBCUpdate
+  >;
+};
+
+template<EMFace F, EMSide S>
+requires (F == EMFace::Y)
+struct Periodic3DImpl<F, S> {
+  using type = TypeList<
+    /* Ex */ Periodic3DUpdate<F, S>,
+    /* Ey */ ReflectingBCUpdate,
+    /* Ez */ Periodic3DUpdate<F, S>,
+    /* Hx */ ReflectingBCUpdate,
+    /* Hy */ ReflectingBCUpdate,
+    /* Hz */ ReflectingBCUpdate
+  >;
+};
+
+template<EMFace F, EMSide S>
+requires (F == EMFace::Z)
+struct Periodic3DImpl<F, S> {
+  using type = TypeList<
+    /* Ex */ Periodic3DUpdate<F, S>,
+    /* Ey */ Periodic3DUpdate<F, S>,
+    /* Ez */ ReflectingBCUpdate,
+    /* Hx */ ReflectingBCUpdate,
+    /* Hy */ ReflectingBCUpdate,
+    /* Hz */ ReflectingBCUpdate
+  >;
+};
+
+// Top-level alias
+template<EMFace F, EMSide S>
+using Periodic3D = typename Periodic3DImpl<F, S>::type;
+
+// ===============================================
 template<EMFace F, EMSide S>
 using Pml1D = TypeList<
   /* Ex */ ReflectingBCUpdate,
@@ -287,7 +428,7 @@ using Pml1D = TypeList<
   /* Hz */ ReflectingBCUpdate
 >;
 
-
+// ===============================================
 template<EMFace F, EMSide S>
 struct PmlTMImpl {
     using type = TypeList<
@@ -330,6 +471,7 @@ struct PmlTMImpl<F, S> {
 template<EMFace F, EMSide S>
 using PmlTM = typename PmlTMImpl<F, S>::type;
 
+// ===============================================
 template<EMFace F, EMSide S>
 struct PmlTEImpl {
   using type = TypeList<
@@ -372,7 +514,7 @@ struct PmlTEImpl<F, S> {
 template<EMFace F, EMSide S>
 using PmlTE = typename PmlTEImpl<F, S>::type;
 
-
+// ===============================================
 template<EMFace F, EMSide S>
 struct Pml3DImpl;
 

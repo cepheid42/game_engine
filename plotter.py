@@ -42,10 +42,17 @@ def plot1d(n):
 def plot2d(n):
     print(f'Plotting file {n:06d}')
     file = data_path + f'/Ez_{n:06d}.csv'
+    # file1 = '/home/cepheid/TriForce/game_engine/periodic_y_data' + f'/Ez_{n:06d}.csv'
+    # file2 = '/home/cepheid/TriForce/game_engine/py_nohy_data' + f'/Ez_{n:06d}.csv'
+
+    # prime = np.genfromtxt(file1, dtype=np.float64, delimiter=',')
+    # test = np.genfromtxt(file2, dtype=np.float64, delimiter=',')
+
+    # data = prime - test
 
     data = np.genfromtxt(file, dtype=np.float64, delimiter=',')
     fig, ax = plt.subplots()
-    im = ax.contourf(data, levels=100, vmin=-0.05, vmax=0.05)
+    im = ax.contourf(data, levels=100)#, vmin=-0.05, vmax=0.05)
     plt.colorbar(im)
 
     plt.savefig(data_path + f'/pngs/Ez_{n:06d}.png')
@@ -176,8 +183,8 @@ def main():
 
     with mp.Pool(16) as p:
         # p.map(plot1d, targs)
-        p.map(plot2d, targs)
-        # p.map(plot3d, targs)
+        # p.map(plot2d, targs)
+        p.map(plot3d, targs)
 
 
 if __name__ == '__main__':
