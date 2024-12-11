@@ -46,28 +46,21 @@ struct TypeListAtImpl<0, TypeList<Type, Types...>> // implementation for I = 0
 template<size_t I, typename Types>
 using TypeListAt = typename TypeListAtImpl<I, Types>::type; // implementation tied to interface
 
-//===== Conditional Type Check =====
-template<bool COND, typename TrueType, typename FalseType>
-struct IfThenElseImpl {
-  using type = TrueType;
-};
+// //===== Conditional Type Check =====
+// template<bool COND, typename TrueType, typename FalseType>
+// struct IfThenElseImpl {
+//   using type = TrueType;
+// };
+//
+// template<typename TrueType, typename FalseType>
+// struct IfThenElseImpl<false, TrueType, FalseType> {
+//   using type = FalseType;
+// };
+//
+// template<bool COND, typename TrueType, typename FalseType>
+// using IfThenElse = typename IfThenElseImpl<COND, TrueType, FalseType>::type;
 
-template<typename TrueType, typename FalseType>
-struct IfThenElseImpl<false, TrueType, FalseType> {
-  using type = FalseType;
-};
 
-template<bool COND, typename TrueType, typename FalseType>
-using IfThenElse = typename IfThenElseImpl<COND, TrueType, FalseType>::type;
-
-//===== FindLargestDim =====
-template<typename List>
-class LargestDimImpl;
-
-template<typename List>
-class LargestDimImpl {
-  using First = TypeListAt<0, List>;
-};
 
 // //===== Scattered Heirarchy =====
 // class EmptyType {};

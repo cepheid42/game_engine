@@ -128,29 +128,33 @@ struct Electromagnetics {
   }
 
   static void updateE_bcs(auto& emdata, auto& bcdata) {
-    BCX0::Ex::updateE(bcdata.x0.Ex, emdata.Ex, empty, empty);
-    BCX0::Ey::updateE(bcdata.x0.Ey, emdata.Ey, emdata.Hz, emdata.Ceyh);
+
+
+
+
+    // BCX0::Ex::updateE(bcdata.x0.Ex, emdata.Ex, empty, empty);
+    // BCX0::Ey::updateE(bcdata.x0.Ey, emdata.Ey, emdata.Hz, emdata.Ceyh);
     BCX0::Ez::updateE(bcdata.x0.Ez, emdata.Ez, emdata.Hy, emdata.Cezh);
 
-    BCX1::Ex::updateE(bcdata.x1.Ex, emdata.Ex, empty, empty);
-    BCX1::Ey::updateE(bcdata.x1.Ey, emdata.Ey, emdata.Hz, emdata.Ceyh);
+    // BCX1::Ex::updateE(bcdata.x1.Ex, emdata.Ex, empty, empty);
+    // BCX1::Ey::updateE(bcdata.x1.Ey, emdata.Ey, emdata.Hz, emdata.Ceyh);
     BCX1::Ez::updateE(bcdata.x1.Ez, emdata.Ez, emdata.Hy, emdata.Cezh);
 
-    BCY0::Ex::updateE(bcdata.y0.Ex, emdata.Ex, emdata.Hz, emdata.Cexh);
-    BCY0::Ey::updateE(bcdata.y0.Ey, emdata.Ey, empty, empty);
+    // BCY0::Ex::updateE(bcdata.y0.Ex, emdata.Ex, emdata.Hz, emdata.Cexh);
+    // BCY0::Ey::updateE(bcdata.y0.Ey, emdata.Ey, empty, empty);
     BCY0::Ez::updateE(bcdata.y0.Ez, emdata.Ez, emdata.Hx, emdata.Cezh);
 
-    BCY1::Ex::updateE(bcdata.y1.Ex, emdata.Ex, emdata.Hz, emdata.Cexh);
-    BCY1::Ey::updateE(bcdata.y1.Ey, emdata.Ey, empty, empty);
+    // BCY1::Ex::updateE(bcdata.y1.Ex, emdata.Ex, emdata.Hz, emdata.Cexh);
+    // BCY1::Ey::updateE(bcdata.y1.Ey, emdata.Ey, empty, empty);
     BCY1::Ez::updateE(bcdata.y1.Ez, emdata.Ez, emdata.Hx, emdata.Cezh);
 
-    BCZ0::Ex::updateE(bcdata.z0.Ex, emdata.Ex, emdata.Hy, emdata.Cexh);
-    BCZ0::Ey::updateE(bcdata.z0.Ey, emdata.Ey, emdata.Hx, emdata.Ceyh);
-    BCZ0::Ez::updateE(bcdata.z0.Ez, emdata.Ez, empty, empty);
-
-    BCZ1::Ex::updateE(bcdata.z1.Ex, emdata.Ex, emdata.Hy, emdata.Cexh);
-    BCZ1::Ey::updateE(bcdata.z1.Ey, emdata.Ey, emdata.Hx, emdata.Ceyh);
-    BCZ1::Ez::updateE(bcdata.z1.Ez, emdata.Ez, empty, empty);
+    // BCZ0::Ex::updateE(bcdata.z0.Ex, emdata.Ex, emdata.Hy, emdata.Cexh);
+    // BCZ0::Ey::updateE(bcdata.z0.Ey, emdata.Ey, emdata.Hx, emdata.Ceyh);
+    // BCZ0::Ez::updateE(bcdata.z0.Ez, emdata.Ez, empty, empty);
+    //
+    // BCZ1::Ex::updateE(bcdata.z1.Ex, emdata.Ex, emdata.Hy, emdata.Cexh);
+    // BCZ1::Ey::updateE(bcdata.z1.Ey, emdata.Ey, emdata.Hx, emdata.Ceyh);
+    // BCZ1::Ez::updateE(bcdata.z1.Ez, emdata.Ez, empty, empty);
   }
 
   static void updateH_bcs(auto& emdata, auto& bcdata) {

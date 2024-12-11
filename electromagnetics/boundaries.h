@@ -32,11 +32,6 @@ struct Boundary {
       // DBG("PmlE()");
       UpdateFunc::updateE(bc, f1, f2, c1);
     }
-
-    if constexpr (is_periodic<UpdateFunc>) {
-      // DBG("PeriodicE()");
-    }
-
     // Periodic & Reflecting do not update the E-field components
   }
 
@@ -82,7 +77,7 @@ struct Periodic2DUpdate : periodic_t<F, S> {
     const auto& numInterior = bc.numInterior;
     const auto& hi_idx = bc.hi_idx;
 
-    DBG("Periodic2D::updateH");
+    // DBG("Periodic2D::updateH");
 
     for (size_t i = os.x0; i < os.x1; ++i) {
       for (size_t j = os.y0; j < os.y1; ++j) {
@@ -189,11 +184,11 @@ struct Pml2DUpdate : pml_t<F, S> {
 
     size_t x0, x1;
     if constexpr (S == EMSide::Lo) {
-      DBG("Pml2DX::updateE(lo)");
+      // DBG("Pml2DX::updateE(lo)");
       x0 = bc.offsets.x0 + 1;
       x1 = bc.offsets.x1;
     } else {
-      DBG("Pml2DX::updateE(hi)");
+      // DBG("Pml2DX::updateE(hi)");
       x0 = bc.offsets.x0;
       x1 = bc.offsets.x1 - 1;
     }
@@ -223,11 +218,11 @@ struct Pml2DUpdate : pml_t<F, S> {
 
     size_t x0, x1;
     if constexpr (S == EMSide::Lo) {
-      DBG("Pml2DX::updateH(lo)");
+      // DBG("Pml2DX::updateH(lo)");
       x0 = bc.offsets.x0;
       x1 = bc.offsets.x1 - 1;
     } else {
-      DBG("Pml2DX::updateH(hi)");
+      // DBG("Pml2DX::updateH(hi)");
       x0 = bc.offsets.x0 + 1;
       x1 = bc.offsets.x1;
     }
@@ -256,11 +251,11 @@ struct Pml2DUpdate : pml_t<F, S> {
 
     size_t y0, y1;
     if constexpr (S == EMSide::Lo) {
-      DBG("Pml2DY::updateE(lo)");
+      // DBG("Pml2DY::updateE(lo)");
       y0 = bc.offsets.y0 + 1;
       y1 = bc.offsets.y1;
     } else {
-      DBG("Pml2DY::updateH(hi)");
+      // DBG("Pml2DY::updateE(hi)");
       y0 = bc.offsets.y0;
       y1 = bc.offsets.y1 - 1;
     }
@@ -290,11 +285,11 @@ struct Pml2DUpdate : pml_t<F, S> {
 
     size_t y0, y1;
     if constexpr (S == EMSide::Lo) {
-      DBG("Pml2DY::updateH(lo)");
+      // DBG("Pml2DY::updateH(lo)");
       y0 = bc.offsets.y0;
       y1 = bc.offsets.y1 - 1;
     } else {
-      DBG("Pml2DY::updateH(hi)");
+      // DBG("Pml2DY::updateH(hi)");
       y0 = bc.offsets.y0 + 1;
       y1 = bc.offsets.y1;
     }

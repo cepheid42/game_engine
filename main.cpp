@@ -98,8 +98,8 @@ int main() {
 
   constexpr size_t nx = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t ny = 100u + 2 * nPml + 2 * nHalo;
-  // constexpr size_t nz = 100u + 2 * nPml + 2 * nHalo;
-  constexpr size_t nt = 1u;
+  constexpr size_t nz = 100u + 2 * nPml + 2 * nHalo;
+  constexpr size_t nt = 400u;
 
   // emdata_t<double> em{nx, cfl};
   // bcdata_t<double> bc{em};
@@ -128,7 +128,7 @@ int main() {
 
     // em.Ex(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
     // em.Ey(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
-    // em.Ez(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
+    // em.Ez(nx / 2 - 20, ny / 2, nz / 2 - 20) += rsrc;
 
     if (n % save_step == 0) {
       std::cout << "Step " << n << std::endl;
@@ -139,7 +139,7 @@ int main() {
 // #pragma omp task
 //           to_csv(em.Ex, filecount, "Ex");
 // #pragma omp task
-//           to_csv(em.Ey, filecount, "Ey");
+           // to_csv(em.Ey, filecount, "Ey");
 // #pragma omp task
           to_csv(em.Ez, filecount, "Ez");
 // #pragma omp task
@@ -150,6 +150,9 @@ int main() {
 //           to_csv(em.Hz, filecount, "Hz");
 //         }
 //       }
+
+      // to_csv(bc.y0.Ez.psi, filecount, "Ez_psi");
+      // to_csv(bc.y0.Hx.psi, filecount, "Hx_psi");
       filecount++;
     }
   }
