@@ -5,40 +5,42 @@
 #ifndef EM_TRAITS_H
 #define EM_TRAITS_H
 
+enum class EMFace { X, Y, Z };
+enum class EMSide { Lo, Hi };
+enum class EMComponent { E, H };
+enum class Derivative { DX, DY, DZ, NoOp };
+
 template<typename T>
-concept FieldComponent = requires
+concept FieldComponent = requires (T t)
 {
   typename T::value_t;
   typename T::dimension_t;
-  // typename T::array_t;
+
+  { t.nx() }-> std::same_as<size_t>;
+  { t.ny() }-> std::same_as<size_t>;
+  { t.nz() }-> std::same_as<size_t>;
 };
 
 
 template<typename T, typename EMPTY>
 concept is_empty_field = std::same_as<EMPTY, T>;
 
-template<typename T, typename EMPTY>
-concept is_1D_fields = requires
-{
-  requires is_empty_field<typename T::ex_t, EMPTY>;
-  requires is_empty_field<typename T::ey_t, EMPTY>;
-  requires is_empty_field<typename T::hx_t, EMPTY>;
-  requires is_empty_field<typename T::hz_t, EMPTY>;
-
-  requires !is_empty_field<typename T::ez_t, EMPTY>;
-  requires !is_empty_field<typename T::hy_t, EMPTY>;
+template<EMFace F, EMSide S>
+struct periodic_t {
+  static constexpr EMFace face = F;
+  static constexpr EMSide side = S;
 };
 
-template<typename T, typename EMPTY>
-concept is_TM_fields = requires
-{
-  requires is_empty_field<typename T::ex_t, EMPTY>;
-  requires is_empty_field<typename T::ey_t, EMPTY>;
-  requires is_empty_field<typename T::hz_t, EMPTY>;
-
-  requires !is_empty_field<typename T::ez_t, EMPTY>;
-  requires !is_empty_field<typename T::hx_t, EMPTY>;
-  requires !is_empty_field<typename T::hy_t, EMPTY>;
+template<EMFace F, EMSide S>
+struct pml_t {
+  static constexpr EMFace face = F;
+  static constexpr EMSide side = S;
 };
+
+template<typename T>
+concept is_periodic = std::derived_from<T, periodic_t<T::face, T::side>>;
+
+template<typename T>
+concept is_pml = std::derived_from<T, pml_t<T::face, T::side>>;
 
 #endif //EM_TRAITS_H

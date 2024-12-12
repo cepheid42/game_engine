@@ -16,18 +16,29 @@
 
 //=================== Field Functors ========================
 //===========================================================
+
+/*
+ *
+ * todo: Big fuckshit
+ *       Probably have to split coefficient arrays into per-term arrays
+ *       so that the deltas can be included into the coefficients.
+ *       Otherwise they'd need to know which index to use for access...
+ *       Luckily, this will also make adding the Kappa term from the PML's
+ *       easier, since they can now be pulled out into the coefficients arrays.
+ */
+
+
 template<Derivative CURL1, Derivative CURL2, bool Forward, typename... IDXS>
 struct FieldUpdate {
   using CurlA = curl<CURL1, Forward, IDXS...>;
   using CurlB = curl<CURL2, Forward, IDXS...>;
 
-  static constexpr auto dx = 1.0 / 99.0;
-
   static void apply(auto& f, const auto& d1, const auto& d2, const auto& j, const auto& c_f, const auto& c_d, const auto& c_j, IDXS... idxs) {
+    // todo: remove da and db because they won't work.
     const auto    self = c_f(idxs...) * f(idxs...);
     const auto   diff1 = CurlA::apply(d1, idxs...);
     const auto   diff2 = CurlB::apply(d2, idxs...);
-    const auto    diff = (c_d(idxs...) / dx) * (diff1 - diff2);
+    const auto    diff = c_d(idxs...) * (diff1 - diff2);
     const auto current = c_j(idxs...) * j(idxs...);
     f(idxs...) = self + diff - current;
   }
@@ -36,6 +47,8 @@ struct FieldUpdate {
 
 /*
  * todo: could these be merged into one Integrator? Make y1/z1 be 1 so the loops all run at least once?
+ *       Also could this use a concept to make sure the array_t is an Array1D instead of hard coding it?
+ *       Same for all the other ones.
  */
 template<typename T, typename UpdateFunctor>
 struct FieldIntegrator1D {
@@ -181,6 +194,8 @@ struct Electromagnetics {
 
 
   static void advance(auto& emdata, auto& bcdata) {
+    // todo: split the H update in two, since that's whats needed...
+    //       also add the source update functions and such.
     updateH(emdata);
     updateH_bcs(emdata, bcdata);
 

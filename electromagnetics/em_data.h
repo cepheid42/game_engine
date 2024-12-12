@@ -5,7 +5,6 @@
 #ifndef EM_DATA_H
 #define EM_DATA_H
 
-// #include "electromagnetics.param"
 #include "aydenstuff/array.h"
 #include "em_emtpyarray.h"
 #include "em_traits.h"
@@ -23,35 +22,35 @@ struct EMData {
 
   EMData() = default;
 
-  explicit EMData(const size_t nx, const value_t cfl)
+  explicit EMData(const size_t nx, const value_t dt)
   requires (dimension_t::value == 1)
   : Ez{nx}, Jz{nx}, Ceze{nx}, Cezh{nx}, Cjz{nx},
     Hy{nx - 1}, Chye{nx - 1}, Chyh{nx - 1}
   {
-    init_coefficients(cfl);
+    init_coefficients(dt);
   }
 
-  explicit EMData(const size_t nx, const size_t ny, const value_t cfl)
-  requires (dimension_t::value == 2 and !is_empty_field<hx_t, empty_t>)
+  explicit EMData(const size_t nx, const size_t ny, const value_t dt)
+  requires (dimension_t::value == 2 and !is_empty_field<hx_t, empty_t>) // todo: make this smarter so other directions can be used.
   : Ez{nx, ny}, Jz{nx, ny}, Ceze{nx, ny}, Cezh{nx, ny}, Cjz{nx, ny},
     Hx{nx, ny - 1}, Chxe{nx, ny - 1}, Chxh{nx, ny - 1},
     Hy{nx - 1, ny}, Chye{nx - 1, ny}, Chyh{nx - 1, ny}
   {
     // TMz constructor
-    init_coefficients(cfl);
+    init_coefficients(dt);
   }
 
-  explicit EMData(const size_t nx, const size_t ny, const value_t cfl)
-  requires (dimension_t::value == 2 and !is_empty_field<ex_t, empty_t>)
+  explicit EMData(const size_t nx, const size_t ny, const value_t dt)
+  requires (dimension_t::value == 2 and !is_empty_field<ex_t, empty_t>)// todo: make this smarter so other directions can be used.
   : Ex{nx - 1, ny}, Jx{nx - 1, ny}, Cexe{nx - 1, ny}, Cexh{nx - 1, ny}, Cjx{nx - 1, ny},
     Ey{nx, ny - 1}, Jy{nx, ny - 1}, Ceye{nx, ny - 1}, Ceyh{nx, ny - 1}, Cjy{nx, ny - 1},
     Hz{nx - 1, ny - 1}, Chze{nx - 1, ny - 1}, Chzh{nx - 1, ny - 1}
   {
     // TEz constructor
-    init_coefficients(cfl);
+    init_coefficients(dt);
   }
 
-  explicit EMData(const size_t nx, const size_t ny, const size_t nz, const value_t cfl)
+  explicit EMData(const size_t nx, const size_t ny, const size_t nz, const value_t dt)
   requires (dimension_t::value == 3)
   : Ex{nx - 1, ny, nz}, Jx{nx - 1, ny, nz}, Cexe{nx - 1, ny, nz}, Cexh{nx - 1, ny, nz}, Cjx{nx - 1, ny, nz},
     Ey{nx, ny - 1, nz}, Jy{nx, ny - 1, nz}, Ceye{nx, ny - 1, nz}, Ceyh{nx, ny - 1, nz}, Cjy{nx, ny - 1, nz},
@@ -60,12 +59,14 @@ struct EMData {
     Hy{nx - 1, ny, nz - 1}, Chye{nx - 1, ny, nz - 1}, Chyh{nx - 1, ny, nz - 1},
     Hz{nx - 1, ny - 1, nz}, Chze{nx - 1, ny - 1, nz}, Chzh{nx - 1, ny - 1, nz}
   {
-    init_coefficients(cfl);
+    init_coefficients(dt);
   }
 
   void init_coefficients(value_t);
   // void init_coefficients_2D(value_t);
 
+
+  // todo: add split coefficient arrays (cexhy, cexhz, chyex, chyez...)
   ex_t Ex;
   ex_t Jx;
   ex_t Cexe;
@@ -109,14 +110,11 @@ void init_coeff(Array& arr, auto val) {
 }
 
 template <FieldComponent EXF, FieldComponent EYF, FieldComponent EZF, FieldComponent HXF, FieldComponent HYF, FieldComponent HZF>
-void EMData<EXF, EYF, EZF, HXF, HYF, HZF>::init_coefficients(const value_t cfl)
+void EMData<EXF, EYF, EZF, HXF, HYF, HZF>::init_coefficients(const value_t dt)
 {
-  constexpr auto c0 = 299792458.0;
+  // todo: This is has to include loss terms and all that
   constexpr auto eps0 = 8.854187812813e-12;
   constexpr auto mu0 = 1.2566370621219e-6;
-
-  constexpr auto dx = 1.0 / 99.0;
-  const auto dt = cfl * dx / c0;
 
   const auto ec = dt / eps0;
   const auto hc = dt / mu0;

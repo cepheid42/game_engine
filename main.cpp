@@ -99,7 +99,12 @@ int main() {
   constexpr size_t nx = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t ny = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t nz = 100u + 2 * nPml + 2 * nHalo;
-  constexpr size_t nt = 400u;
+  constexpr size_t nt = 5000u;
+
+  constexpr double dx = 1.0 / 99.0;
+
+  constexpr auto c0 = 299792458.0;
+  constexpr auto dt = cfl * dx / c0;
 
   // emdata_t<double> em{nx, cfl};
   // bcdata_t<double> bc{em};
@@ -107,10 +112,10 @@ int main() {
   // emdata_t<double> em{nx, ny, cfl};
   // bcdata_t<double> bc{em};
 
-  emdata_t<double> em{nx, ny, nz, cfl};
-  bcdata_t<double> bc{em};
+  emdata_t<double> em{nx, ny, nz, dt};
+  bcdata_t<double> bc{em, dt, dx};
 
-  constexpr auto save_step = 4;
+  constexpr auto save_step = 100;
   size_t filecount = 0;
   for (size_t n = 0; n < nt; n++) {
 
@@ -126,9 +131,9 @@ int main() {
     // em.Ey(nx / 2 - 20, ny / 2 - 20) += 3.0 * rsrc;
     // em.Ez(nx / 2 - 20, ny / 2 - 20) += rsrc;
 
-    em.Ex(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
+    // em.Ex(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
     // em.Ey(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
-    // em.Ez(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
+    em.Ez(nx / 2 - 20, ny / 2 - 20, nz / 2) += rsrc;
 
     if (n % save_step == 0) {
       std::cout << "Step " << n << std::endl;

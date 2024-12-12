@@ -5,25 +5,7 @@
 #ifndef BOUNDARIES_H
 #define BOUNDARIES_H
 
-#include "electromagnetics.param"
-
-template<EMFace F, EMSide S>
-struct periodic_t {
-  static constexpr EMFace face = F;
-  static constexpr EMSide side = S;
-};
-
-template<EMFace F, EMSide S>
-struct pml_t {
-  static constexpr EMFace face = F;
-  static constexpr EMSide side = S;
-};
-
-template<typename T>
-concept is_periodic = std::derived_from<T, periodic_t<T::face, T::side>>;
-
-template<typename T>
-concept is_pml = std::derived_from<T, pml_t<T::face, T::side>>;
+#include "em_traits.h"
 
 template<typename UpdateFunc>
 struct Boundary {
@@ -90,32 +72,7 @@ struct Periodic2DUpdate : periodic_t<F, S> {
         }
       } // end j-loop
     } // end i-loop
-  } // end updateH
-
-  // static void updateH(auto&, auto&) {} // Only lo-side periodic is used
-  // static void updateH(auto& bc, auto& f) requires (S == EMSide::Lo) {
-  //   const auto& os = bc.offsets;
-  //   const auto& numInterior = bc.numInterior;
-  //   const auto& hi_idx = bc.hi_idx;
-  //
-  //   // DBG("Periodic2D::updateH");
-  //
-  //   for (size_t i = os.x0; i < os.x1; ++i) {
-  //     for (size_t j = os.y0; j < os.y1; ++j) {
-  //       if constexpr (F == EMFace::X) {
-  //         const auto pm = i % numInterior;
-  //
-  //         f(bc.depth - 1 - i, j) = f(hi_idx - pm, j);
-  //         f(hi_idx + 1 + i, j) = f(bc.depth + pm, j);
-  //       } else {
-  //         const auto pm = j % numInterior;
-  //
-  //         f(i, bc.depth - 1 - j) = f(i, hi_idx - pm);
-  //         f(i, hi_idx + 1 + j) = f(i, bc.depth + pm);
-  //       }
-  //     } // end j-loop
-  //   } // end i-loop
-  // } // end updateH
+  } // end updateE
 };
 
 template<EMFace F, EMSide S>

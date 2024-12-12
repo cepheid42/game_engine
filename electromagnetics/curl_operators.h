@@ -7,6 +7,7 @@
 
 #include "electromagnetics.param"
 
+// todo: These can be done better, preferably in a way that removes the need for the forward/backward diff functions.
 
 //====== Curl Operators =======
 //=============================

@@ -69,8 +69,8 @@ def plot3d(n):
     fig, ax = plt.subplots()
 
     # ax.contourf(data[nx // 2, :, :], levels=100)
-    ax.contourf(data[:, ny // 2, :], levels=100)
-    # ax.contourf(data[:, :, nz // 2], levels=100)
+    # ax.contourf(data[:, ny // 2, :], levels=100)
+    ax.contourf(data[:, :, nz // 2], levels=100)
 
     plt.savefig(data_path + f'/pngs/Ez_{n:06d}.png')
     plt.close(fig)
@@ -174,8 +174,8 @@ def plot_total_field_energy(start, nsteps, step):
 
 def main():
     start = 0
-    nsteps = 400
-    step = 4
+    nsteps = 5000
+    step = 100
 
     # plot_total_field_energy(start, nsteps, step)
 

@@ -6,7 +6,7 @@ project(
         'buildtype=debugoptimized',
         'warning_level=3',
         'cpp_std=c++20',
-        'b_sanitize=address'
+#        'b_sanitize=address'
     ]
 )
 
