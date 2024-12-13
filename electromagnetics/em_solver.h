@@ -5,6 +5,7 @@
 #ifndef EM_SOLVER_H
 #define EM_SOLVER_H
 
+#include "em_sources.h"
 #include "curl_operators.h"
 #include "offsets.h"
 
