@@ -7,6 +7,9 @@
 
 #include "em_traits.h"
 
+// todo: Need to add namespaces here
+
+
 template<typename UpdateFunc>
 struct Boundary {
   static void updateE(auto& bc, auto& f1, auto& f2, const auto& c1) {

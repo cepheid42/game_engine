@@ -9,6 +9,8 @@
 #include "em_data.h"
 #include "em_solver.h"
 
+// todo: Does this need to have namespaces?
+
 
 //=================== EMData Definitions ========================
 //===============================================================

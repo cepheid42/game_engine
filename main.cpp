@@ -99,7 +99,7 @@ int main() {
   constexpr size_t nx = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t ny = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t nz = 100u + 2 * nPml + 2 * nHalo;
-  constexpr size_t nt = 5000u;
+  constexpr size_t nt = 400u;
 
   constexpr double dx = 1.0 / 99.0;
 
@@ -115,7 +115,7 @@ int main() {
   emdata_t<double> em{nx, ny, nz, dt};
   bcdata_t<double> bc{em, dt, dx};
 
-  constexpr auto save_step = 100;
+  constexpr auto save_step = 4;
   size_t filecount = 0;
   for (size_t n = 0; n < nt; n++) {
 
@@ -133,7 +133,7 @@ int main() {
 
     // em.Ex(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
     // em.Ey(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
-    em.Ez(nx / 2 - 20, ny / 2 - 20, nz / 2) += rsrc;
+    em.Ez(nx / 2, ny / 2, nz / 2) += rsrc;
 
     if (n % save_step == 0) {
       std::cout << "Step " << n << std::endl;
@@ -144,9 +144,9 @@ int main() {
 // #pragma omp task
 //           to_csv(em.Ex, filecount, "Ex");
 // #pragma omp task
-           // to_csv(em.Ey, filecount, "Ey");
+//           to_csv(em.Ey, filecount, "Ey");
 // #pragma omp task
-          to_csv(em.Ez, filecount, "Ez");
+           to_csv(em.Ez, filecount, "Ez");
 // #pragma omp task
 //           to_csv(em.Hx, filecount, "Hx");
 // #pragma omp task

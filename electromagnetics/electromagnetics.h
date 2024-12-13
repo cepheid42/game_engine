@@ -8,16 +8,18 @@
 #include "em_definitions.h"
 #include "bc_definitions.h"
 
+// todo: Does this need to have namespaces?
+
 inline constexpr size_t SELECT_EMSOLVER = 4;
 inline constexpr size_t SELECT_BCSOLVER[6] = {8,8,8,8,8,8}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
 
 // todo: This checks for invalid BC combos that will compile & run but eventually blow up.
 //        Probably can be made more comprehensive later with concepts or something.
-// static constexpr bool valid_x_combo = SELECT_BCSOLVER[0] + 4 != SELECT_BCSOLVER[1];
-// static constexpr bool valid_y_combo = SELECT_BCSOLVER[2] + 4 != SELECT_BCSOLVER[3];
-// static constexpr bool valid_z_combo = SELECT_BCSOLVER[4] + 4 != SELECT_BCSOLVER[5];
-// static_assert(valid_x_combo and valid_y_combo and valid_z_combo,
-//   "Periodic lower boundary and PML upper boundary is an invalid combination.");
+static constexpr bool valid_x_combo = SELECT_BCSOLVER[0] + 4 != SELECT_BCSOLVER[1];
+static constexpr bool valid_y_combo = SELECT_BCSOLVER[2] + 4 != SELECT_BCSOLVER[3];
+static constexpr bool valid_z_combo = SELECT_BCSOLVER[4] + 4 != SELECT_BCSOLVER[5];
+static_assert(valid_x_combo and valid_y_combo and valid_z_combo,
+  "Periodic lower boundary and PML upper boundary is an invalid combination.");
 
 //=================== Boundary Condition Selectors ===================
 //====================================================================
@@ -103,23 +105,12 @@ using EMTypeTL = TypeList<
 template<typename T>
 using EMType = TypeListAt<SELECT_EMSOLVER, EMTypeTL<emdata_t<T>>>; // Selects desired typelist of integrators
 
-template<typename T>
-using EXI = TypeListAt<0, EMType<T>>;
-
-template<typename T>
-using EYI = TypeListAt<1, EMType<T>>;
-
-template<typename T>
-using EZI = TypeListAt<2, EMType<T>>;
-
-template<typename T>
-using HXI = TypeListAt<3, EMType<T>>;
-
-template<typename T>
-using HYI = TypeListAt<4, EMType<T>>;
-
-template<typename T>
-using HZI = TypeListAt<5, EMType<T>>;
+template<typename T> using EXI = TypeListAt<0, EMType<T>>;
+template<typename T> using EYI = TypeListAt<1, EMType<T>>;
+template<typename T> using EZI = TypeListAt<2, EMType<T>>;
+template<typename T> using HXI = TypeListAt<3, EMType<T>>;
+template<typename T> using HYI = TypeListAt<4, EMType<T>>;
+template<typename T> using HZI = TypeListAt<5, EMType<T>>;
 
 template<typename T>
 using EMSolver = Electromagnetics<

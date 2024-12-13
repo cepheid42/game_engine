@@ -81,9 +81,6 @@ namespace tf::types
     value_t& operator()(size_t i) { return (*this)[i]; }
     const value_t& operator()(size_t i) const { return (*this)[i]; }
 
-    value_t forward_diff_x(const size_t i) const { return (*this)[get_scid(i + 1)] - (*this)[get_scid(i)]; }
-    value_t backward_diff_x(const size_t i) const { return (*this)[get_scid(i)] - (*this)[get_scid(i - 1)]; }
-
     // Unary Negation
     auto operator-() const {
       Array1D result(nx_);
@@ -158,16 +155,6 @@ namespace tf::types
     // Specialized accessors
     value_t& operator()(size_t i, size_t k) { return (*this)[get_scid(i, k)]; }
     const value_t& operator()(size_t i, size_t k) const { return (*this)[get_scid(i, k)]; }
-
-    value_t forward_diff_x(const size_t i, const size_t j) const { return (*this)[get_scid(i + 1, j)] - (*this)[get_scid(i, j)]; }
-    value_t backward_diff_x(const size_t i, const size_t j) const { return (*this)[get_scid(i, j)] - (*this)[get_scid(i - 1, j)]; }
-
-    value_t forward_diff_y(const size_t i, const size_t j) const { return (*this)[get_scid(i, j + 1)] - (*this)[get_scid(i, j)]; }
-    value_t backward_diff_y(const size_t i, const size_t j) const { return (*this)[get_scid(i, j)] - (*this)[get_scid(i, j - 1)]; }
-
-    // value_t forward_diff_z(const size_t i, const size_t j) const { return (*this)[get_scid(i, j + 1)] - (*this)[get_scid(i, j)]; }
-    // value_t backward_diff_z(const size_t i, const size_t j) const { return (*this)[get_scid(i, j)] - (*this)[get_scid(i, j - 1)]; }
-
 
     // Dims
     [[nodiscard]] vec2<size_t> dims() const { return {nx_, ny_}; }
@@ -250,15 +237,6 @@ namespace tf::types
     
     void fill(value_t value) { for (auto& el : this->data) el = value; }
 
-    value_t forward_diff_x(const size_t i, const size_t j, const size_t k) const { return (*this)[get_scid(i + 1, j, k)] - (*this)[get_scid(i, j, k)]; }
-    value_t backward_diff_x(const size_t i, const size_t j, const size_t k) const { return (*this)[get_scid(i, j, k)] - (*this)[get_scid(i - 1, j, k)]; }
-
-    value_t forward_diff_y(const size_t i, const size_t j, const size_t k) const { return (*this)[get_scid(i, j + 1, k)] - (*this)[get_scid(i, j, k)]; }
-    value_t backward_diff_y(const size_t i, const size_t j, const size_t k) const { return (*this)[get_scid(i, j, k)] - (*this)[get_scid(i, j - 1, k)]; }
-
-    value_t forward_diff_z(const size_t i, const size_t j, const size_t k) const { return (*this)[get_scid(i, j, k + 1)] - (*this)[get_scid(i, j, k)]; }
-    value_t backward_diff_z(const size_t i, const size_t j, const size_t k) const { return (*this)[get_scid(i, j, k)] - (*this)[get_scid(i, j, k - 1)]; }
-
     // Unary Negation
     auto operator-() const {
       Array3D result(nx_, ny_, nz_);
@@ -326,5 +304,32 @@ tf::types::Array3D<T>& tf::types::Array3D<T>::operator=(const tf::types::Array3D
   assert(false);
   return *this;
 }
+
+// =================== Empty Array Class for Electromagnetics =======================
+// ==================================================================================
+template<typename T, std::size_t N>
+struct EmptyArray {
+  using value_t = T;
+  using dimension_t = tf::tags::Dimension<N>;
+
+  EmptyArray() = default;
+  explicit EmptyArray(std::size_t...) {}
+
+  static constexpr size_t nx() { return 0u; }
+  static constexpr size_t ny() { return 0u; }
+  static constexpr size_t nz() { return 0u; }
+
+  constexpr value_t operator[](std::size_t) const { return static_cast<value_t>(0.0); }
+  constexpr value_t operator()(std::size_t...) const { return static_cast<value_t>(0.0); }
+};
+
+template<typename T>
+using EmptyArray1D = EmptyArray<T, 1>;
+
+template<typename T>
+using EmptyArray2D = EmptyArray<T, 2>;
+
+template<typename T>
+using EmptyArray3D = EmptyArray<T, 3>;
 
 #endif //TRIFORCE_ARRAY_H

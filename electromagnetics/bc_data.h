@@ -9,6 +9,8 @@
 
 #include "electromagnetics.param"
 
+// todo: Need to add namespaces here
+
 using tf::types::Array1D;
 using tf::types::Array2D;
 using tf::types::Array3D;
@@ -106,9 +108,15 @@ struct PMLData {
   }
 
   void set_coefficients(const value_t dt, const value_t dx) {
+    // todo: These will all be in the constants header
+    constexpr auto eps0 = 8.854187812813e-12;
+    constexpr auto eta0 = 376.73031366686992;
+
     auto d = linspace(1.0, 0.0, nPml, false);
+    auto coef1 = -dt / eps0;
 
     if constexpr (HField) {
+      coef1 /= 2.0; // H field update is split into two steps, to need half dt
       constexpr value_t hstep = 1.0 / (2.0 * static_cast<value_t>(nPml));
       for (auto& x: d) {
         x -= hstep;
@@ -119,9 +127,6 @@ struct PMLData {
       std::ranges::reverse(d);
     }
 
-    // todo: These will all be in the constants header
-    constexpr auto eps0 = 8.854187812813e-12;
-    constexpr auto eta0 = 376.73031366686992;
 
     // todo: Add relative Mu and Eps to this to make it work for materials
     //       e.g. (0.8 * (grade + 1.0)) / (dx[i] * eta0 * sqrt(eps_r[i] * mu_r[i]))
@@ -145,16 +150,16 @@ struct PMLData {
       x = PMLAlphaMax * std::pow(1.0 - x, 1.0);
     }
 
-    const auto coef1 = -dt / eps0;
-
+    // todo: Pulling the dx term out of the 'c' coefficients to add it into the global coefficients (Cexhy, etc...)
+    //       should require adding the dx term to the 'b' coefficients. However, this breaks the PML's entirely,
+    //       so don't do that.
+    //       e.g. This works and I don't know why. Do not touch.
     for (size_t i = 0; i < nPml; ++i) {
       b[i] = std::exp(coef1 * ((sigma_bc[i] / kappa_bc[i]) + alpha_bc[i]));
-      // todo: make sure dx is pulled from the Mesh when integrated into Link.
-      c[i] = (sigma_bc[i] * (b[i] - 1.0)) / (dx * kappa_bc[i] * (sigma_bc[i] + (kappa_bc[i] * alpha_bc[i])));
+      c[i] = (sigma_bc[i] * (b[i] - 1.0)) / (kappa_bc[i] * (sigma_bc[i] + (kappa_bc[i] * alpha_bc[i])));
     }
   }
 
-  static constexpr size_t depth = nPml;
   IntegratorOffsets offsets;
   array_t psi;
   std::array<value_t, nPml> b{};

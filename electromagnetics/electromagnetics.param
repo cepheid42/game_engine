@@ -16,8 +16,4 @@ constexpr auto PMLGrade = 3.0;
 constexpr auto PMLAlphaMax = 0.2;
 constexpr auto PMLKappaMax = 1.0;
 
-
-
-//using EMField = EMFace;
-
 #endif //ELECTROMAGNETICS_PARAM_H
