@@ -9,9 +9,13 @@
 #include "bc_definitions.h"
 
 // todo: Does this need to have namespaces?
+using tf::electromagnetics::EMData;
+using tf::electromagnetics::Electromagnetics;
+using tf::electromagnetics::boundaries::BCData;
+using tf::electromagnetics::boundaries::Boundary;
 
-inline constexpr size_t SELECT_EMSOLVER = 4;
-inline constexpr size_t SELECT_BCSOLVER[6] = {8,8,8,8,8,8}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+inline constexpr size_t SELECT_EMSOLVER = 2;
+inline constexpr size_t SELECT_BCSOLVER[6] = {0, 0, 0, 0, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
 
 // todo: This checks for invalid BC combos that will compile & run but eventually blow up.
 //        Probably can be made more comprehensive later with concepts or something.

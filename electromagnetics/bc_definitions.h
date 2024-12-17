@@ -8,7 +8,26 @@
 #include "bc_data.h"
 #include "boundaries.h"
 
-// todo: Does this need to have namespaces?
+// todo: Does this need to have namespaces? Are these usings polluting upstream?
+using tf::electromagnetics::traits::EMFace;
+using tf::electromagnetics::traits::EMSide;
+using tf::electromagnetics::boundaries::NullData;
+using tf::electromagnetics::boundaries::FaceBCs;
+using tf::electromagnetics::boundaries::PeriodicData;
+using tf::electromagnetics::boundaries::PMLData;
+using tf::electromagnetics::boundaries::ReflectingBCUpdate;
+using tf::electromagnetics::boundaries::Periodic1DUpdate;
+using tf::electromagnetics::boundaries::Periodic2DUpdate;
+using tf::electromagnetics::boundaries::Periodic3DUpdate;
+using tf::electromagnetics::boundaries::Pml1DUpdate;
+using tf::electromagnetics::boundaries::Pml2DUpdate;
+using tf::electromagnetics::boundaries::Pml3DUpdate;
+using tf::types::Array1D;
+using tf::types::Array2D;
+using tf::types::Array3D;
+using tf::types::EmptyArray1D;
+using tf::types::EmptyArray2D;
+using tf::types::EmptyArray3D;
 
 //=================== BCData Definitions ===================
 //==========================================================

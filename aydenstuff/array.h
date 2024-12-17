@@ -283,6 +283,33 @@ namespace tf::types
     //
   };// end class Array3D
   //
+
+  // =================== Empty Array Class for Electromagnetics =======================
+  // ==================================================================================
+  template<typename T, std::size_t N>
+  struct EmptyArray {
+    using value_t = T;
+    using dimension_t = tf::tags::Dimension<N>;
+
+    EmptyArray() = default;
+    explicit EmptyArray(std::size_t...) {}
+
+    static constexpr size_t nx() { return 0u; }
+    static constexpr size_t ny() { return 0u; }
+    static constexpr size_t nz() { return 0u; }
+
+    constexpr value_t operator[](std::size_t) const { return static_cast<value_t>(0.0); }
+    constexpr value_t operator()(std::size_t...) const { return static_cast<value_t>(0.0); }
+  };
+
+  template<typename T>
+  using EmptyArray1D = EmptyArray<T, 1>;
+
+  template<typename T>
+  using EmptyArray2D = EmptyArray<T, 2>;
+
+  template<typename T>
+  using EmptyArray3D = EmptyArray<T, 3>;
 } // end namespace tf::types
 
 // ===== Copy-Assignment Implementations =====
@@ -305,31 +332,6 @@ tf::types::Array3D<T>& tf::types::Array3D<T>::operator=(const tf::types::Array3D
   return *this;
 }
 
-// =================== Empty Array Class for Electromagnetics =======================
-// ==================================================================================
-template<typename T, std::size_t N>
-struct EmptyArray {
-  using value_t = T;
-  using dimension_t = tf::tags::Dimension<N>;
 
-  EmptyArray() = default;
-  explicit EmptyArray(std::size_t...) {}
-
-  static constexpr size_t nx() { return 0u; }
-  static constexpr size_t ny() { return 0u; }
-  static constexpr size_t nz() { return 0u; }
-
-  constexpr value_t operator[](std::size_t) const { return static_cast<value_t>(0.0); }
-  constexpr value_t operator()(std::size_t...) const { return static_cast<value_t>(0.0); }
-};
-
-template<typename T>
-using EmptyArray1D = EmptyArray<T, 1>;
-
-template<typename T>
-using EmptyArray2D = EmptyArray<T, 2>;
-
-template<typename T>
-using EmptyArray3D = EmptyArray<T, 3>;
 
 #endif //TRIFORCE_ARRAY_H

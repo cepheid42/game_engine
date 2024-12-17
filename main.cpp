@@ -5,10 +5,9 @@
 #include <string>
 
 // #define DBG_MACRO_DISABLE
-#define NTHREADS 32
-#define NTHREADS_BC 16
 
 #include "electromagnetics/electromagnetics.h"
+#include "tfsf.h"
 
 template<typename Array>
 void to_csv(const Array& arr, const size_t step, const std::string& name) {
@@ -58,7 +57,7 @@ void to_csv(const Array& arr, const size_t step, const std::string& name) {
   file.close();
 }
 template<typename Array>
-requires is_empty_field<Array, EmptyArray<typename Array::value_t, Array::dimension_t::value>>
+requires tf::electromagnetics::traits::is_empty_field<Array, tf::types::EmptyArray<typename Array::value_t, Array::dimension_t::value>>
 void print_array(const Array&) {
   std::cout << "Empty Array." << std::endl;
 }
@@ -83,15 +82,15 @@ void print_array(const Array& arr) {
   }
 }
 
-fp_t ricker(const fp_t q) {
-  constexpr auto Np = 20.0;
-  constexpr auto Md = 2.5;
-
-  const auto alpha = (M_PI * (cfl * q / Np - Md)) * (M_PI * (cfl * q / Np - Md));
-
-  return (1.0 - 2.0 * alpha) * std::exp(-alpha);
-  // return std::exp(-sqr((q - 30.0) / 10.0));
-}
+// fp_t ricker(const fp_t q) {
+//   constexpr auto Np = 20.0;
+//   constexpr auto Md = 2.5;
+//
+//   const auto alpha = (M_PI * (cfl * q / Np - Md)) * (M_PI * (cfl * q / Np - Md));
+//
+//   return (1.0 - 2.0 * alpha) * std::exp(-alpha);
+//   // return std::exp(-sqr((q - 30.0) / 10.0));
+// }
 
 int main() {
   const auto start = std::chrono::high_resolution_clock::now();
@@ -109,19 +108,23 @@ int main() {
   // emdata_t<double> em{nx, cfl};
   // bcdata_t<double> bc{em};
 
-  // emdata_t<double> em{nx, ny, cfl};
-  // bcdata_t<double> bc{em};
-
-  emdata_t<double> em{nx, ny, nz, dt};
+  emdata_t<double> em{nx, ny, cfl};
   bcdata_t<double> bc{em, dt, dx};
+
+  const size_t x0 = nPml + nHalo + 5;
+  const size_t x1 = nx - nPml - nHalo - 5;
+  tf::electromagnetics::sources::TFSFSourceTM<double> tfsf{nx, dt, dx, x0, x1, x0, x1};
+
+  // emdata_t<double> em{nx, ny, nz, dt};
+  // bcdata_t<double> bc{em, dt, dx};
 
   constexpr auto save_step = 4;
   size_t filecount = 0;
   for (size_t n = 0; n < nt; n++) {
 
-    EMSolver<fp_t>::advance(em, bc);
+    EMSolver<fp_t>::advance(static_cast<fp_t>(n), em, bc, tfsf);
 
-    const auto rsrc = ricker(static_cast<fp_t>(n));
+    // const auto rsrc = ricker(static_cast<fp_t>(n));
 
     // std::cout << rsrc << std::endl;
 
@@ -133,7 +136,7 @@ int main() {
 
     // em.Ex(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
     // em.Ey(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
-    em.Ez(nx / 2, ny / 2, nz / 2) += rsrc;
+    // em.Ez(nx / 2, ny / 2, nz / 2) += rsrc;
 
     if (n % save_step == 0) {
       std::cout << "Step " << n << std::endl;

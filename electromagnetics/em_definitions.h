@@ -6,11 +6,24 @@
 #define EM_DEFINITIONS_H
 
 #include "core/typelist.h"
+#include "em_updates.h"
 #include "em_data.h"
 #include "em_solver.h"
 
-// todo: Does this need to have namespaces?
-
+// todo: Does this need to have namespaces? Are these usings polluting upstream?
+using tf::electromagnetics::traits::Derivative;
+using tf::electromagnetics::EMData;
+using tf::electromagnetics::FieldUpdate;
+using tf::electromagnetics::FieldIntegratorNull;
+using tf::electromagnetics::FieldIntegrator1D;
+using tf::electromagnetics::FieldIntegrator2D;
+using tf::electromagnetics::FieldIntegrator3D;
+using tf::types::Array1D;
+using tf::types::Array2D;
+using tf::types::Array3D;
+using tf::types::EmptyArray1D;
+using tf::types::EmptyArray2D;
+using tf::types::EmptyArray3D;
 
 //=================== EMData Definitions ========================
 //===============================================================
