@@ -85,21 +85,21 @@ namespace tf::electromagnetics::boundaries
     using offset_t = typename tf::electromagnetics::types::IntegratorOffsets;
 
     explicit PMLData(const Array& f, const value_t dt, const value_t dx) requires (F == EMFace::X)
-    : offsets{get_offsets<F, S, nPml>(f)},
+    : offsets{tf::electromagnetics::types::get_offsets<F, S, nPml>(f)},
       psi{nPml, f.ny(), f.nz()}
     {
       set_coefficients(dt, dx);
     }
 
     explicit PMLData(const Array& f, const value_t dt, const value_t dx) requires (F == EMFace::Y)
-    : offsets{get_offsets<F, S, nPml>(f)},
+    : offsets{tf::electromagnetics::types::get_offsets<F, S, nPml>(f)},
       psi{f.nx(), nPml, f.nz()}
     {
       set_coefficients(dt, dx);
     }
 
     explicit PMLData(const Array& f, const value_t dt, const value_t dx) requires (F == EMFace::Z)
-    : offsets{get_offsets<F, S, nPml>(f)},
+    : offsets{tf::electromagnetics::types::get_offsets<F, S, nPml>(f)},
       psi{f.nx(), f.ny(), nPml}
     {
       set_coefficients(dt, dx);

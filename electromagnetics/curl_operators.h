@@ -14,9 +14,9 @@ namespace tf::electromagnetics
   // NoOp/Default Diff function
   template<Derivative, bool>
   struct Diff {
-    static constexpr auto apply(const auto&, size_t...) {
-      return 0.0;
-    }
+    static constexpr auto apply(const auto&, size_t) { return 0.0; }
+    static constexpr auto apply(const auto&, size_t, size_t) { return 0.0; }
+    static constexpr auto apply(const auto&, size_t, size_t, size_t) { return 0.0; }
   };
 
   // ================= Forward Differences =================

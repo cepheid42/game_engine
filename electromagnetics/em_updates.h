@@ -98,8 +98,8 @@ namespace tf::electromagnetics
     using dimension_t = typename T::dimension_t;
     using array_t = tf::types::EmptyArray<value_t, dimension_t::value>;
     using offset_t = tf::electromagnetics::types::IntegratorOffsets;
-    static constexpr void apply(const auto&...) {}
-    // static constexpr void apply(const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const offset_t&) {}
+    // static constexpr void apply(const auto&...) {}
+    static constexpr void apply(const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const offset_t&) {}
   };
 } // end namespace tf::electromagnetics
 #endif //EM_UPDATES_H

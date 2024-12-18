@@ -29,7 +29,7 @@ namespace tf::types
       using dimension_t = tags::Dimension<N>;
       
       explicit ArrayBase() = default;
-      ArrayBase(size_t size) : data(size) {}
+      explicit ArrayBase(size_t size) : data(size) {}
       // ArrayBase(size_t size, value_t fill) : data(size, fill) {}
       ArrayBase(const ArrayBase& other) : data(other.data) {}
       
@@ -61,9 +61,9 @@ namespace tf::types
     
     // Constructors & Destructor
     explicit Array1D() = default;
-    Array1D(size_t nx_) : detail::ArrayBase<T, 1>(nx_), nx_(nx_) {}
+    explicit Array1D(size_t nx_) : detail::ArrayBase<T, 1>(nx_), nx_(nx_) {}
     // Array1D(size_t nx_, value_t fill) : detail::ArrayBase<T, 1>(nx_, fill), nx_(nx_) {}
-    Array1D(size_t nx_, size_t, size_t) : detail::ArrayBase<T, 1>(nx_), nx_(nx_) {} // Extra for BC fun stuff
+    explicit Array1D(size_t nx_, size_t, size_t) : detail::ArrayBase<T, 1>(nx_), nx_(nx_) {} // Extra for BC fun stuff
     Array1D(const Array1D& other) : detail::ArrayBase<T, 1>(other), nx_(other.nx_) {}
     
     Array1D& operator=(const Array1D& other);
@@ -136,8 +136,8 @@ namespace tf::types
     
     // Constructors & Destructor
     explicit Array2D() = default;
-    Array2D(size_t nx_, size_t ny_) : detail::ArrayBase<T, 2>(nx_ * ny_), nx_(nx_), ny_(ny_) {}
-    Array2D(size_t nx_, size_t ny_, size_t) : detail::ArrayBase<T, 2>(nx_ * ny_), nx_(nx_), ny_(ny_) {} // BC fun times
+    explicit Array2D(size_t nx_, size_t ny_) : detail::ArrayBase<T, 2>(nx_ * ny_), nx_(nx_), ny_(ny_) {}
+    explicit Array2D(size_t nx_, size_t ny_, size_t) : detail::ArrayBase<T, 2>(nx_ * ny_), nx_(nx_), ny_(ny_) {} // BC fun times
     // Array2D(vec2<size_t> dims_, value_t fill=0.0) : Array2D(dims_[0], dims_[1], fill) {}
     Array2D(const Array2D& other) : detail::ArrayBase<T, 2>(other), nx_(other.nx_), ny_(other.ny_) {}
     
@@ -214,7 +214,7 @@ namespace tf::types
     
     // Constructors & Destructor
     explicit Array3D() = default;
-    Array3D(size_t nx_, size_t ny_, size_t nz_) : detail::ArrayBase<T, 3>(nx_ * ny_ * nz_), nx_(nx_), ny_(ny_), nz_(nz_) {}
+    explicit Array3D(size_t nx_, size_t ny_, size_t nz_) : detail::ArrayBase<T, 3>(nx_ * ny_ * nz_), nx_(nx_), ny_(ny_), nz_(nz_) {}
     // Array3D(vec3<size_t> dims_, value_t fill=0.0) : Array3D(dims_[0], dims_[1], dims_[2], fill) {}
     Array3D(const Array3D& other) : detail::ArrayBase<T, 3>(other), nx_(other.nx_), ny_(other.ny_), nz_(other.nz_) {}
     

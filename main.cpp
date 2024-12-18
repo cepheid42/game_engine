@@ -105,14 +105,14 @@ int main() {
   constexpr auto c0 = 299792458.0;
   constexpr auto dt = cfl * dx / c0;
 
-  // emdata_t<double> em{nx, cfl};
+  // emdata_t<double> em{nx, dt};
   // bcdata_t<double> bc{em};
 
-  emdata_t<double> em{nx, ny, cfl};
+  emdata_t<double> em{nx, ny, dt};
   bcdata_t<double> bc{em, dt, dx};
 
-  const size_t x0 = nPml + nHalo + 5;
-  const size_t x1 = nx - nPml - nHalo - 5;
+  const size_t x0 = nPml + 5;
+  const size_t x1 = nx - nPml - 5;
   tf::electromagnetics::sources::TFSFSourceTM<double> tfsf{nx, dt, dx, x0, x1, x0, x1};
 
   // emdata_t<double> em{nx, ny, nz, dt};
@@ -126,8 +126,6 @@ int main() {
 
     // const auto rsrc = ricker(static_cast<fp_t>(n));
 
-    // std::cout << rsrc << std::endl;
-
     // em.Ez[nx / 2 - 20] += rsrc;
 
     // em.Ex(nx / 2 - 20, ny / 2 - 20) += rsrc;
@@ -140,6 +138,7 @@ int main() {
 
     if (n % save_step == 0) {
       std::cout << "Step " << n << std::endl;
+
 // #pragma omp parallel num_threads(3)
 //       {
 // #pragma omp single
@@ -159,8 +158,6 @@ int main() {
 //         }
 //       }
 
-      // to_csv(bc.y0.Ez.psi, filecount, "Ez_psi");
-      // to_csv(bc.y0.Hx.psi, filecount, "Hx_psi");
       filecount++;
     }
   }

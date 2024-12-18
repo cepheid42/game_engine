@@ -12,7 +12,7 @@ MU0 = 1.25663706127E-6 # N/A^2
 def plot1d(n):
     print(f'Plotting file {n:06d}')
     file = data_path + f'/Ez_{n:06d}.csv'
-    nx = ny = nz = 124
+    nx = ny = nz = 120
 
     fig, ax = plt.subplots()
 
@@ -198,8 +198,8 @@ def main():
 
     with mp.Pool(16) as p:
         # p.map(plot1d, targs)
-        # p.map(plot2d, targs)
-        p.map(plot3d, targs)
+        p.map(plot2d, targs)
+        # p.map(plot3d, targs)
 
 
 if __name__ == '__main__':

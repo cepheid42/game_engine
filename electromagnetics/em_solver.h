@@ -7,7 +7,7 @@
 
 #include "aydenstuff/array.h"
 // #include "em_updates.h"
-#include "em_sources.h"
+// #include "em_sources.h"
 
 
 namespace tf::electromagnetics
@@ -25,14 +25,14 @@ namespace tf::electromagnetics
     static constexpr empty_t empty{};
 
     static void updateE(auto& emdata) {
-      EXI::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexhy, emdata.Cexhz, emdata.Cjx, {0, 0, 1, 1, 1, 1});
+      EXI::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexhz, emdata.Cexhy, emdata.Cjx, {0, 0, 1, 1, 1, 1});
       EYI::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyhx, emdata.Ceyhz, emdata.Cjy, {1, 1, 0, 0, 1, 1});
-      EZI::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezhx, emdata.Cezhy, emdata.Cjz, {1, 1, 1, 1, 0, 0});
+      EZI::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezhy, emdata.Cezhx, emdata.Cjz, {1, 1, 1, 1, 0, 0});
     }
 
     static void updateH(auto& emdata) {
       HXI::apply(emdata.Hx, emdata.Ey, emdata.Ez, empty, emdata.Chxh, emdata.Chxey, emdata.Chxez, empty, {0, 0, 0, 0, 0, 0});
-      HYI::apply(emdata.Hy, emdata.Ez, emdata.Ex, empty, emdata.Chyh, emdata.Chyex, emdata.Chyez, empty, {0, 0, 0, 0, 0, 0});
+      HYI::apply(emdata.Hy, emdata.Ez, emdata.Ex, empty, emdata.Chyh, emdata.Chyez, emdata.Chyex, empty, {0, 0, 0, 0, 0, 0});
       HZI::apply(emdata.Hz, emdata.Ex, emdata.Ey, empty, emdata.Chzh, emdata.Chzex, emdata.Chzey, empty, {0, 0, 0, 0, 0, 0});
     }
 
