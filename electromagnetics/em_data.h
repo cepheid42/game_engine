@@ -123,11 +123,17 @@ namespace tf::electromagnetics
 
     // half dt for H field, since it's split into two steps
     const auto hc = 0.5 * dt / (mu0 * dx);
+    // const auto hc = dt / (mu0 * dx);
 
     const auto e_num = dt / (eps0 * dx);
     const auto alpha = (sigma * dt) / (2.0 * eps0);
     const auto ec = (1.0 - alpha) / (1.0 + alpha);
     const auto eh = e_num / (1.0 + alpha);
+
+    // constexpr auto eta0 = 377.0;
+    // const auto ec = 1.0;
+    // const auto eh = cfl * eta0;
+    // const auto hc = cfl / eta0;
 
     init_coeff(Cexe, ec);
     init_coeff(Cexhy, eh);

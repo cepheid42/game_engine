@@ -111,9 +111,13 @@ int main() {
   emdata_t<double> em{nx, ny, dt};
   bcdata_t<double> bc{em, dt, dx};
 
+
+  // todo: need to add sources to EMData or something.
+  //       also need to finish incorporating the temporal and spatial sources
+  //       and then figure out how to do a gaussian beam using TFSF sources
   const size_t x0 = nPml + 5;
   const size_t x1 = nx - nPml - 5;
-  tf::electromagnetics::sources::TFSFSourceTM<double> tfsf{nx, dt, dx, x0, x1, x0, x1};
+  tf::electromagnetics::sources::TFSFSourceTM tfsf{nx, dt, dx, x0, x1, x0, x1};
 
   // emdata_t<double> em{nx, ny, nz, dt};
   // bcdata_t<double> bc{em, dt, dx};

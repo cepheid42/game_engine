@@ -5,6 +5,9 @@
 #ifndef TFSF_H
 #define TFSF_H
 
+#include <bc_data.h>
+#include <boundaries.h>
+
 #include "em_updates.h"
 
 namespace tf::electromagnetics::sources
@@ -22,7 +25,7 @@ namespace tf::electromagnetics::sources
   {
     inline fp_t ricker(const fp_t q) {
       constexpr auto Np = 20.0;
-      constexpr auto Md = 2.5;
+      constexpr auto Md = 2.0;
 
       const auto alpha = (M_PI * (cfl * q / Np - Md)) * (M_PI * (cfl * q / Np - Md));
 
@@ -35,62 +38,58 @@ namespace tf::electromagnetics::sources
   struct TFSFSourceTM {
     using HIntegrator = FieldIntegrator1D<tf::types::Array1D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, true, size_t>>;
     using EIntegrator = FieldIntegrator1D<tf::types::Array1D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, false, size_t>>;
-    using Boundary = Pml1DUpdate<EMFace::X, EMSide::Hi>;
-
-    using pml_t = PMLData<Array1D<T>, EMFace::X, EMSide::Hi, false>;
     using empty_t = tf::types::EmptyArray1D<T>;
 
     static constexpr empty_t empty{};
 
-    // todo: See about making the PML region better, or just use a dummy damping region. It could be better.
-    TFSFSourceTM(size_t nx, T dt, T dx, const size_t x0_, const size_t x1_, const size_t y0_, const size_t y1_)
+    TFSFSourceTM(const size_t nx, const T dt, const T dx, const size_t x0_, const size_t x1_, const size_t y0_, const size_t y1_)
     : x0(x0_), x1(x1_), y0(y0_), y1(y1_),
-      Einc{nx}, Ceze{nx}, Cezh{nx},
-      Hinc{nx - 1}, Chyh{nx - 1}, Chye{nx - 1},
-      Epml{Einc, dt, dx},
-      Hpml{Hinc, dt, dx}
+      Einc{nx + 20}, Ceze{nx + 20}, Cezh{nx + 20},
+      Hinc{nx - 1 + 20}, Chyh{nx - 1 + 20}, Chye{nx - 1 + 20}
     {
+      // todo: Adds an additional 20 nodes. Need to make sure this works when nPML == 0
+      //       since below the NLOSS region is set to be 30 nodes
       init_coefficients(dt, dx);
     }
 
     void init_coefficients(T, T);
 
-    // This whole thing assume TMz layout with propagation in +X direction
-    // todo: LSI is going to need TEy layout or something similar
+    // todo: This whole thing assume TMz layout with propagation in +X direction
+    //       LSI is going to need TEy layout or something similar
     void correct_Ez(auto& Ez, const auto& Cezhy) {
       // Correct Ez @ x0
       for (size_t j = y0; j <= y1; ++j) {
-        Ez(x0, j) -= Cezhy(x0 - 1, j) * Hinc[x0 - 1];
+        // todo: make sure offsetting by the PML depth is a good idea later on
+        Ez(x0, j) -= Cezhy(x0, j) * Hinc[x0 - 1 - nPml];
       }
 
       // Correct Ez @ x1
       for (size_t j = y0; j <= y1; ++j) {
-        Ez(x1, j) += Cezhy(x1, j) * Hinc[x1];
+        Ez(x1, j) += Cezhy(x1, j) * Hinc[x1 - nPml];
       }
     }
 
     void correct_Hx(auto& Hx, const auto& Chxez) {
       // Correct Hx @ y0
       for (size_t i = x0; i <= x1; ++i) {
-        Hx(i, y0 - 1) += Chxez(i, y0 - 1) * Einc[i];
+        Hx(i, y0 - 1) += 2.0 * Chxez(i, y0 - 1) * Einc[i - nPml];
       }
 
       // Correct Hx @ y1
       for (size_t i = x0; i <= x1; ++i) {
-        Hx(i, y1) -= Chxez(i, y1) * Einc[i];
+        Hx(i, y1) -= 2.0 * Chxez(i, y1) * Einc[i - nPml];
       }
     }
-
 
     void correct_Hy(auto& Hy, const auto& Chyez) {
       // Correct Hy @ x0
       for (size_t j = y0; j <= y1; ++j) {
-        Hy(x0 - 1, j) -= Chyez(x0 - 1, j) * Einc[x0];
+        Hy(x0 - 1, j) -= 2.0 * Chyez(x0 - 1, j) * Einc[x0 - nPml];
       }
 
       // Correct Hy @ x1
       for (size_t j = y0; j <= y1; ++j) {
-        Hy(x1, j) += Chyez(x1, j) * Einc[x1];
+        Hy(x1, j) += 2.0 * Chyez(x1, j) * Einc[x1 - nPml];
       }
     }
 
@@ -104,11 +103,9 @@ namespace tf::electromagnetics::sources
     // Update Auxiliary 1D source
     // updateH
     HIntegrator::apply(Hinc, Einc, empty, empty, Chyh, Chye, empty, empty, {0, 0, 0, 0, 0, 0});
-    Boundary::updateH(Hpml, Hinc, Einc, Chye);
 
     // updateE
     EIntegrator::apply(Einc, Hinc, empty, empty, Ceze, Cezh, empty, empty, {1, 1, 1, 1, 0, 0});
-    Boundary::updateE(Epml, Einc, Hinc, Cezh);
 
     // increment Ez(0)
     Einc[0] = detail::ricker(q);
@@ -122,39 +119,50 @@ namespace tf::electromagnetics::sources
 
     size_t x0, x1, y0, y1;
 
-    Array1D<T> Einc;
-    Array1D<T> Ceze;
-    Array1D<T> Cezh;
+    tf::types::Array1D<T> Einc;
+    tf::types::Array1D<T> Ceze;
+    tf::types::Array1D<T> Cezh;
 
-    Array1D<T> Hinc;
-    Array1D<T> Chyh;
-    Array1D<T> Chye;
-
-    pml_t Epml;
-    pml_t Hpml;
+    tf::types::Array1D<T> Hinc;
+    tf::types::Array1D<T> Chyh;
+    tf::types::Array1D<T> Chye;
   };
 
   template <typename T>
   void TFSFSourceTM<T>::init_coefficients(T dt, T dx) {
-    // constexpr auto eps0 = 8.854187812813e-12;
-    // constexpr auto mu0 = 1.2566370621219e-6;
-    // constexpr auto sigma = 0.0;
+    // todo: these constants are in a different header
+    constexpr auto eps0 = 8.854187812813e-12;
+    constexpr auto mu0 = 1.2566370621219e-6;
+
+    // todo: Need to incorporate the grids eps_r and mu_r values into these coeffs
+    const auto hc = dt / (mu0 * dx);
+    const auto eh = dt / (eps0 * dx);
+
     //
-    // // half dt for H field, since it's split into two steps
-    // const auto hc = dt / (mu0 * dx);
-    //
-    // const auto e_num = dt / (eps0 * dx);
-    // const auto alpha = (sigma * dt) / (2.0 * eps0);
-    // const auto ec = (1.0 - alpha) / (1.0 + alpha);
-    // const auto eh = e_num / (1.0 + alpha);
+    constexpr size_t NLOSS = 20;
+    constexpr double MAX_LOSS = 0.35;
 
-    constexpr auto eta0 = 377.0;
+    const auto sizex = Einc.nx();
 
-    init_coeff(Ceze, 1.0);
-    init_coeff(Cezh, cfl * eta0);
+    for (size_t i = 0; i < sizex - 1; ++i) {
+      if (i < sizex - 1 - NLOSS) {
+        Ceze[i] = 1.0;
+        Cezh[i] = eh;
+        Chyh[i] = 1.0;
+        Chye[i] = hc;
+      } else {
+        auto depth = static_cast<double>(i - (sizex - 1 - NLOSS)) + 0.5;
+        auto loss = MAX_LOSS * std::pow(depth / NLOSS, 3.0);
+        Ceze[i] = (1.0 - loss) / (1.0 + loss);
+        Cezh[i] = eh / (1.0 + loss);
 
-    init_coeff(Chyh, 1.0);
-    init_coeff(Chye, cfl / eta0);
+        depth += 0.5;
+        loss = MAX_LOSS * std::pow(depth / NLOSS, 3.0);
+        Chyh[i] = (1.0 - loss) / (1.0 + loss);
+        Chye[i] = hc / (1.0 + loss);
+      }
+    }
   }
+
 } // end namespace tf::electromagnetics::sources
 #endif //TFSF_H

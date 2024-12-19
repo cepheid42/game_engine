@@ -52,7 +52,7 @@ def plot2d(n):
 
     data = np.genfromtxt(file, dtype=np.float64, delimiter=',')
     fig, ax = plt.subplots()
-    im = ax.contourf(data, levels=100)#, vmin=-0.05, vmax=0.05)
+    im = ax.pcolormesh(data, shading='gouraud')#, vmin=-1, vmax=1)#, levels=100, extend='both', vmin=-1, vmax=1)
     plt.colorbar(im)
 
     plt.savefig(data_path + f'/pngs/Ez_{n:06d}.png')

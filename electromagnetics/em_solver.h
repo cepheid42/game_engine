@@ -5,6 +5,8 @@
 #ifndef EM_SOLVER_H
 #define EM_SOLVER_H
 
+#include <tfsf.h>
+
 #include "aydenstuff/array.h"
 // #include "em_updates.h"
 // #include "em_sources.h"
@@ -94,6 +96,7 @@ namespace tf::electromagnetics
       updateH_bcs(emdata, bcdata);
 
       src.apply(emdata, q);
+      // emdata.Ez(60, 60) += tf::electromagnetics::sources::detail::ricker(q);
 
       updateE(emdata);
       updateE_bcs(emdata, bcdata);
