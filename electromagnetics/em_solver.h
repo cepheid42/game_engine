@@ -5,7 +5,7 @@
 #ifndef EM_SOLVER_H
 #define EM_SOLVER_H
 
-#include <tfsf.h>
+// #include <tfsf.h>
 
 #include "aydenstuff/array.h"
 // #include "em_updates.h"
@@ -90,13 +90,25 @@ namespace tf::electromagnetics
       BCZ1::Hz::updateH(bcdata.z1.Hz, emdata.Hz, empty, empty);
     }
 
+    // todo: need to implement spatial sources for this, not just temporal sources
+    // static void apply_srcs(const auto& srcs, auto q) {
+    //   for (const auto& src : srcs) {
+    //     src->apply(q);
+    //   }
+    // }
 
-    static void advance(auto q, auto& emdata, auto& bcdata, auto& src) {
+    static void apply_tfsf(auto& emdata, const auto& tfsf, auto q) {
+      for (const auto& src : tfsf) {
+        src->apply(emdata, q);
+      }
+    }
+
+    static void advance(auto q, auto& emdata, auto& bcdata) {
       updateH(emdata);
       updateH_bcs(emdata, bcdata);
 
-      src.apply(emdata, q);
-      // emdata.Ez(60, 60) += tf::electromagnetics::sources::detail::ricker(q);
+      // apply_srcs(emdata.srcs, q);  // add current sources
+      apply_tfsf(emdata, emdata.tfsf, q); // add TFSF source
 
       updateE(emdata);
       updateE_bcs(emdata, bcdata);

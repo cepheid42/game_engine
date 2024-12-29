@@ -5,9 +5,12 @@
 #ifndef EM_DATA_H
 #define EM_DATA_H
 
+#include <memory>
+#include <tfsf.h>
+
 #include "aydenstuff/array.h"
 #include "em_traits.h"
-
+#include "em_sources.h"
 
 namespace tf::electromagnetics
 {
@@ -99,6 +102,9 @@ namespace tf::electromagnetics
     hz_t Chzex;
     hz_t Chzey;
     hz_t Chzh;
+
+    std::vector<std::unique_ptr<sources::TemporalSource<value_t>>> srcs{};
+    std::vector<std::unique_ptr<sources::TFSFSourceTM<value_t>>> tfsf{};
   };
 
   template<typename Array>

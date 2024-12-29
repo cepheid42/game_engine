@@ -103,11 +103,11 @@ namespace tf::electromagnetics::sources
     // Update Auxiliary 1D source
     // updateH
     HIntegrator::apply(Hinc, Einc, empty, empty, Chyh, Chye, empty, empty, {0, 0, 0, 0, 0, 0});
-
     // updateE
     EIntegrator::apply(Einc, Hinc, empty, empty, Ceze, Cezh, empty, empty, {1, 1, 1, 1, 0, 0});
 
     // increment Ez(0)
+    // todo: Figure out how to pass different functions in as template params
     Einc[0] = detail::ricker(q);
 
     // Constant X-Faces -- total-field nodes

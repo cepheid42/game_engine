@@ -12,7 +12,6 @@ namespace tf::electromagnetics::traits
   enum class EMComponent { E, H };
   enum class Derivative { DX, DY, DZ, NoOp };
 
-
   template<EMFace F, EMSide S>
   struct periodic_t {
     static constexpr EMFace face = F;
@@ -24,7 +23,6 @@ namespace tf::electromagnetics::traits
     static constexpr EMFace face = F;
     static constexpr EMSide side = S;
   };
-
 
   template<typename T>
   concept FieldComponent = requires (T t)
@@ -45,5 +43,6 @@ namespace tf::electromagnetics::traits
 
   template<typename T>
   concept is_pml = std::derived_from<T, pml_t<T::face, T::side>>;
+  //
 } // end namespace tf::electromagnetics::traits
 #endif //EM_TRAITS_H

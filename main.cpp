@@ -115,9 +115,10 @@ int main() {
   // todo: need to add sources to EMData or something.
   //       also need to finish incorporating the temporal and spatial sources
   //       and then figure out how to do a gaussian beam using TFSF sources
-  const size_t x0 = nPml + 5;
-  const size_t x1 = nx - nPml - 5;
-  tf::electromagnetics::sources::TFSFSourceTM tfsf{nx, dt, dx, x0, x1, x0, x1};
+  constexpr size_t x0 = nPml + 5;
+  constexpr size_t x1 = nx - nPml - 5;
+  em.tfsf.emplace_back(std::make_unique<tf::electromagnetics::sources::TFSFSourceTM<fp_t>>(nx, dt, dx, x0, x1, x0, x1));
+  // tf::electromagnetics::sources::TFSFSourceTM tfsf{nx, dt, dx, x0, x1, x0, x1};
 
   // emdata_t<double> em{nx, ny, nz, dt};
   // bcdata_t<double> bc{em, dt, dx};
@@ -126,7 +127,7 @@ int main() {
   size_t filecount = 0;
   for (size_t n = 0; n < nt; n++) {
 
-    EMSolver<fp_t>::advance(static_cast<fp_t>(n), em, bc, tfsf);
+    EMSolver<fp_t>::advance(static_cast<fp_t>(n), em, bc);
 
     // const auto rsrc = ricker(static_cast<fp_t>(n));
 
