@@ -78,7 +78,7 @@ namespace tf::types
     static constexpr size_t nz() { return 1u; }
     
     // Specialized Accessors
-    value_t& operator()(size_t i) { return (*this)[i]; }
+    value_t& operator()(size_t i, size_t = 0, size_t = 0) { return (*this)[i]; }
     const value_t& operator()(size_t i) const { return (*this)[i]; }
 
     // Unary Negation
@@ -153,8 +153,8 @@ namespace tf::types
     static constexpr size_t nz() { return 1u; }
     
     // Specialized accessors
-    value_t& operator()(size_t i, size_t k) { return (*this)[get_scid(i, k)]; }
-    const value_t& operator()(size_t i, size_t k) const { return (*this)[get_scid(i, k)]; }
+    value_t& operator()(size_t i, size_t j, size_t = 0) { return (*this)[get_scid(i, j)]; }
+    const value_t& operator()(size_t i, size_t j, size_t = 0) const { return (*this)[get_scid(i, j)]; }
 
     // Dims
     [[nodiscard]] vec2<size_t> dims() const { return {nx_, ny_}; }

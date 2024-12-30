@@ -103,7 +103,8 @@ namespace tf::electromagnetics
     hz_t Chzey;
     hz_t Chzh;
 
-    std::vector<std::unique_ptr<sources::TemporalSource<value_t>>> srcs{};
+    // todo: Is using a vector of unique_ptrs appropriate here? Can sources allocated in place? What about TFSF (contains a lot of Arrays..)?
+    std::vector<std::unique_ptr<sources::CurrentSource<value_t>>> srcs{};
     std::vector<std::unique_ptr<sources::TFSFSourceTM<value_t>>> tfsf{};
   };
 

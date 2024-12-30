@@ -118,7 +118,6 @@ int main() {
   constexpr size_t x0 = nPml + 5;
   constexpr size_t x1 = nx - nPml - 5;
   em.tfsf.emplace_back(std::make_unique<tf::electromagnetics::sources::TFSFSourceTM<fp_t>>(nx, dt, dx, x0, x1, x0, x1));
-  // tf::electromagnetics::sources::TFSFSourceTM tfsf{nx, dt, dx, x0, x1, x0, x1};
 
   // emdata_t<double> em{nx, ny, nz, dt};
   // bcdata_t<double> bc{em, dt, dx};
