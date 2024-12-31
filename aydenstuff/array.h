@@ -58,7 +58,8 @@ namespace tf::types
     using value_t = typename detail::ArrayBase<T, 1>::value_t;
     using vector_t = typename detail::ArrayBase<T, 1>::vector_t;
     using dimension_t = typename detail::ArrayBase<T, 1>::dimension_t;
-    
+    using array_t = Array1D<value_t>;
+
     // Constructors & Destructor
     explicit Array1D() = default;
     explicit Array1D(size_t nx_) : detail::ArrayBase<T, 1>(nx_), nx_(nx_) {}
@@ -78,7 +79,7 @@ namespace tf::types
     static constexpr size_t nz() { return 1u; }
     
     // Specialized Accessors
-    value_t& operator()(size_t i, size_t = 0, size_t = 0) { return (*this)[i]; }
+    value_t& operator()(size_t i) { return (*this)[i]; }
     const value_t& operator()(size_t i) const { return (*this)[i]; }
 
     // Unary Negation
@@ -133,7 +134,8 @@ namespace tf::types
     using value_t = typename detail::ArrayBase<T, 2>::value_t;
     using vector_t = typename detail::ArrayBase<T, 2>::vector_t;
     using dimension_t = typename detail::ArrayBase<T, 2>::dimension_t;
-    
+    using array_t = Array2D<value_t>;
+
     // Constructors & Destructor
     explicit Array2D() = default;
     explicit Array2D(size_t nx_, size_t ny_) : detail::ArrayBase<T, 2>(nx_ * ny_), nx_(nx_), ny_(ny_) {}
@@ -153,8 +155,8 @@ namespace tf::types
     static constexpr size_t nz() { return 1u; }
     
     // Specialized accessors
-    value_t& operator()(size_t i, size_t j, size_t = 0) { return (*this)[get_scid(i, j)]; }
-    const value_t& operator()(size_t i, size_t j, size_t = 0) const { return (*this)[get_scid(i, j)]; }
+    value_t& operator()(size_t i, size_t j) { return (*this)[get_scid(i, j)]; }
+    const value_t& operator()(size_t i, size_t j) const { return (*this)[get_scid(i, j)]; }
 
     // Dims
     [[nodiscard]] vec2<size_t> dims() const { return {nx_, ny_}; }
@@ -211,7 +213,8 @@ namespace tf::types
     using value_t = typename detail::ArrayBase<T, 3>::value_t;
     using vector_t = typename detail::ArrayBase<T, 3>::vector_t;
     using dimension_t = typename detail::ArrayBase<T, 3>::dimension_t;
-    
+    using array_t = Array3D<value_t>;
+
     // Constructors & Destructor
     explicit Array3D() = default;
     explicit Array3D(size_t nx_, size_t ny_, size_t nz_) : detail::ArrayBase<T, 3>(nx_ * ny_ * nz_), nx_(nx_), ny_(ny_), nz_(nz_) {}
@@ -286,10 +289,11 @@ namespace tf::types
 
   // =================== Empty Array Class for Electromagnetics =======================
   // ==================================================================================
-  template<typename T, std::size_t N>
+  template<typename Array>
   struct EmptyArray {
-    using value_t = T;
-    using dimension_t = tf::tags::Dimension<N>;
+    using value_t = typename Array::value_t;
+    using dimension_t = typename Array::dimension_t;
+    using array_t = Array;
 
     EmptyArray() = default;
     explicit EmptyArray(std::size_t...) {}
@@ -303,13 +307,13 @@ namespace tf::types
   };
 
   template<typename T>
-  using EmptyArray1D = EmptyArray<T, 1>;
+  using EmptyArray1D = EmptyArray<Array1D<T>>;
 
   template<typename T>
-  using EmptyArray2D = EmptyArray<T, 2>;
+  using EmptyArray2D = EmptyArray<Array2D<T>>;
 
   template<typename T>
-  using EmptyArray3D = EmptyArray<T, 3>;
+  using EmptyArray3D = EmptyArray<Array3D<T>>;
 } // end namespace tf::types
 
 // ===== Copy-Assignment Implementations =====

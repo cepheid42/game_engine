@@ -7,7 +7,6 @@
 // #define DBG_MACRO_DISABLE
 
 #include "electromagnetics/electromagnetics.h"
-#include "tfsf.h"
 
 template<typename Array>
 void to_csv(const Array& arr, const size_t step, const std::string& name) {
@@ -57,7 +56,7 @@ void to_csv(const Array& arr, const size_t step, const std::string& name) {
   file.close();
 }
 template<typename Array>
-requires tf::electromagnetics::traits::is_empty_field<Array, tf::types::EmptyArray<typename Array::value_t, Array::dimension_t::value>>
+requires tf::electromagnetics::traits::instance_of_type<tf::types::EmptyArray, Array>
 void print_array(const Array&) {
   std::cout << "Empty Array." << std::endl;
 }
@@ -82,16 +81,6 @@ void print_array(const Array& arr) {
   }
 }
 
-// fp_t ricker(const fp_t q) {
-//   constexpr auto Np = 20.0;
-//   constexpr auto Md = 2.5;
-//
-//   const auto alpha = (M_PI * (cfl * q / Np - Md)) * (M_PI * (cfl * q / Np - Md));
-//
-//   return (1.0 - 2.0 * alpha) * std::exp(-alpha);
-//   // return std::exp(-sqr((q - 30.0) / 10.0));
-// }
-
 int main() {
   const auto start = std::chrono::high_resolution_clock::now();
 
@@ -115,9 +104,21 @@ int main() {
   // todo: need to add sources to EMData or something.
   //       also need to finish incorporating the temporal and spatial sources
   //       and then figure out how to do a gaussian beam using TFSF sources
-  constexpr size_t x0 = nPml + 5;
-  constexpr size_t x1 = nx - nPml - 5;
-  em.tfsf.emplace_back(std::make_unique<tf::electromagnetics::sources::TFSFSourceTM<fp_t>>(nx, dt, dx, x0, x1, x0, x1));
+  // constexpr size_t x0 = nPml + 5;
+  // constexpr size_t x1 = nx - nPml - 5;
+  // em.tfsf.emplace_back(std::make_unique<tf::electromagnetics::sources::TFSFSourceTM<fp_t>>(nx, dt, dx, x0, x1, x0, x1));
+
+  using tf::electromagnetics::sources::CurrentSource;
+  using tf::electromagnetics::sources::SpatialSource;
+  using tf::electromagnetics::sources::RickerSource;
+
+  em.srcs.push_back(
+    std::make_unique<CurrentSource<Array2D<fp_t>>>(&em.Ez, SpatialSource<fp_t>(60, 61, 60, 61))
+  );
+
+  em.srcs[0]->src.t_srcs.push_back(
+    std::make_unique<RickerSource<fp_t>>()
+  );
 
   // emdata_t<double> em{nx, ny, nz, dt};
   // bcdata_t<double> bc{em, dt, dx};

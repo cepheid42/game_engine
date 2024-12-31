@@ -22,7 +22,7 @@ namespace tf::electromagnetics
   struct Electromagnetics {
     using value_t = typename EXI::value_t;
     using dimension_t = typename EXI::dimension_t;
-    using empty_t = tf::types::EmptyArray<value_t, dimension_t::value>;
+    using empty_t = tf::types::EmptyArray<typename EXI::array_t>;
 
     static constexpr empty_t empty{};
 
@@ -90,12 +90,11 @@ namespace tf::electromagnetics
       BCZ1::Hz::updateH(bcdata.z1.Hz, emdata.Hz, empty, empty);
     }
 
-    // todo: need to implement spatial sources for this, not just temporal sources
-    // static void apply_srcs(const auto& srcs, auto q) {
-    //   for (const auto& src : srcs) {
-    //     src->apply(q);
-    //   }
-    // }
+    static void apply_srcs(const auto& srcs, auto q) {
+      for (const auto& src : srcs) {
+        src->apply(q);
+      }
+    }
 
     static void apply_tfsf(auto& emdata, const auto& tfsf, auto q) {
       for (const auto& src : tfsf) {
@@ -107,7 +106,7 @@ namespace tf::electromagnetics
       updateH(emdata);
       updateH_bcs(emdata, bcdata);
 
-      // apply_srcs(emdata.srcs, q);  // add current sources
+      apply_srcs(emdata.srcs, q);  // add current sources
       apply_tfsf(emdata, emdata.tfsf, q); // add TFSF source
 
       updateE(emdata);

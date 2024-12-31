@@ -20,7 +20,8 @@ namespace tf::electromagnetics
   struct EMData {
     using value_t = typename ex_t::value_t;
     using dimension_t = typename ex_t::dimension_t;
-    using empty_t = tf::types::EmptyArray<value_t, dimension_t::value>;
+    using array_t = typename ex_t::array_t;
+    using empty_t = tf::types::EmptyArray<array_t>;
 
     EMData() = default;
 
@@ -33,7 +34,7 @@ namespace tf::electromagnetics
     }
 
     explicit EMData(const size_t nx, const size_t ny, const value_t dt)
-    requires (dimension_t::value == 2 and !is_empty_field<hx_t, empty_t>) // todo: make this smarter so other directions can be used.
+    requires (dimension_t::value == 2 and !tf::electromagnetics::traits::instance_of_type<tf::types::EmptyArray, hx_t>) // todo: make this smarter so other directions can be used.
     : Ez{nx, ny}, Jz{nx, ny}, Ceze{nx, ny}, Cezhx{nx, ny}, Cezhy{nx, ny}, Cjz{nx, ny},
       Hx{nx, ny - 1}, Chxey{nx, ny - 1}, Chxez{nx, ny - 1}, Chxh{nx, ny - 1},
       Hy{nx - 1, ny}, Chyex{nx - 1, ny}, Chyez{nx - 1, ny}, Chyh{nx - 1, ny}
@@ -43,7 +44,7 @@ namespace tf::electromagnetics
     }
 
     explicit EMData(const size_t nx, const size_t ny, const value_t dt)
-    requires (dimension_t::value == 2 and !is_empty_field<ex_t, empty_t>)// todo: make this smarter so other directions can be used.
+    requires (dimension_t::value == 2 and !tf::electromagnetics::traits::instance_of_type<tf::types::EmptyArray, ex_t>)// todo: make this smarter so other directions can be used.
     : Ex{nx - 1, ny}, Jx{nx - 1, ny}, Cexe{nx - 1, ny}, Cexhy{nx - 1, ny}, Cexhz{nx - 1, ny}, Cjx{nx - 1, ny},
       Ey{nx, ny - 1}, Jy{nx, ny - 1}, Ceye{nx, ny - 1}, Ceyhx{nx, ny - 1}, Ceyhz{nx, ny - 1}, Cjy{nx, ny - 1},
       Hz{nx - 1, ny - 1}, Chzex{nx - 1, ny - 1}, Chzey{nx - 1, ny - 1}, Chzh{nx - 1, ny - 1}
@@ -104,12 +105,12 @@ namespace tf::electromagnetics
     hz_t Chzh;
 
     // todo: Is using a vector of unique_ptrs appropriate here? Can sources allocated in place? What about TFSF (contains a lot of Arrays..)?
-    std::vector<std::unique_ptr<sources::CurrentSource<value_t>>> srcs{};
+    std::vector<std::unique_ptr<sources::CurrentSource<array_t>>> srcs{};
     std::vector<std::unique_ptr<sources::TFSFSourceTM<value_t>>> tfsf{};
   };
 
   template<typename Array>
-  requires is_empty_field<Array, tf::types::EmptyArray<typename Array::value_t, Array::dimension_t::value>>
+  requires instance_of_type<tf::types::EmptyArray, Array>
   void init_coeff(Array&, auto) {}
 
   template<typename Array>

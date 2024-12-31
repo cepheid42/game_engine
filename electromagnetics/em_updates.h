@@ -92,11 +92,12 @@ namespace tf::electromagnetics
     }
   };
 
-  template<typename T>
+  template<typename Array>
   struct FieldIntegratorNull {
-    using value_t = typename T::value_t;
-    using dimension_t = typename T::dimension_t;
-    using array_t = tf::types::EmptyArray<value_t, dimension_t::value>;
+    using value_t = typename Array::value_t;
+    using dimension_t = typename Array::dimension_t;
+    using array_t = tf::types::EmptyArray<Array>;
+
     using offset_t = tf::electromagnetics::types::IntegratorOffsets;
     // static constexpr void apply(const auto&...) {}
     static constexpr void apply(const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const offset_t&) {}
