@@ -106,6 +106,7 @@ namespace tf::electromagnetics
 
     // todo: Is using a vector of unique_ptrs appropriate here? Can sources allocated in place? What about TFSF (contains a lot of Arrays..)?
     std::vector<std::unique_ptr<sources::CurrentSource<array_t>>> srcs{};
+    std::vector<std::unique_ptr<sources::GaussianBeam<array_t>>> beams{};
     std::vector<std::unique_ptr<sources::TFSFSourceTM<value_t>>> tfsf{};
   };
 

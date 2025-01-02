@@ -13,8 +13,6 @@
 #include <source_location>
 #include <variant>
 
-#include "toml.hpp"
-#include "error_functions.h"
 #include "vector.h"
 
 namespace tf::utilities::math {

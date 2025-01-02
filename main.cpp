@@ -81,12 +81,13 @@ void print_array(const Array& arr) {
   }
 }
 
+
 int main() {
   const auto start = std::chrono::high_resolution_clock::now();
 
   constexpr size_t nx = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t ny = 100u + 2 * nPml + 2 * nHalo;
-  constexpr size_t nz = 100u + 2 * nPml + 2 * nHalo;
+  // constexpr size_t nz = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t nt = 400u;
 
   constexpr double dx = 1.0 / 99.0;
@@ -100,25 +101,45 @@ int main() {
   emdata_t<double> em{nx, ny, dt};
   bcdata_t<double> bc{em, dt, dx};
 
+  constexpr size_t x0 = nPml + 5;
+  constexpr size_t x1 = nx - nPml - 5;
 
-  // todo: need to add sources to EMData or something.
-  //       also need to finish incorporating the temporal and spatial sources
-  //       and then figure out how to do a gaussian beam using TFSF sources
-  // constexpr size_t x0 = nPml + 5;
-  // constexpr size_t x1 = nx - nPml - 5;
-  // em.tfsf.emplace_back(std::make_unique<tf::electromagnetics::sources::TFSFSourceTM<fp_t>>(nx, dt, dx, x0, x1, x0, x1));
+  using tf::electromagnetics::sources::ContinuousSource;
+  using tf::electromagnetics::sources::GaussianSource;
+  using tf::electromagnetics::sources::GaussianBeam;
 
-  using tf::electromagnetics::sources::CurrentSource;
-  using tf::electromagnetics::sources::SpatialSource;
-  using tf::electromagnetics::sources::RickerSource;
+  constexpr auto omega = 2.0 * M_PI * c0 / (20.0 * dx);
 
-  em.srcs.push_back(
-    std::make_unique<CurrentSource<Array2D<fp_t>>>(&em.Ez, SpatialSource<fp_t>(60, 61, 60, 61))
+  em.beams.push_back(
+    std::make_unique<GaussianBeam<Array2D<fp_t>>>(
+      &(em.Ez),
+      -2.75e13, // amp
+      0.17, // waist
+      omega, // freq
+      {0.5, 0.5}, // waist position
+      x0, // x0
+      x0 + 1, // x1
+      x0, // y0
+      x1 // y1
+    )
   );
 
-  em.srcs[0]->src.t_srcs.push_back(
-    std::make_unique<RickerSource<fp_t>>()
-  );
+  em.beams[0]->t_srcs.push_back(std::make_unique<ContinuousSource<fp_t>>(omega, 0.0, 1.0e30, 0.0));
+
+  constexpr auto width = 7.58e-9;
+  em.beams[0]->t_srcs.push_back(std::make_unique<GaussianSource<fp_t>>{width, 2.0, 2.0 * width});
+
+  // using tf::electromagnetics::sources::CurrentSource;
+  // using tf::electromagnetics::sources::SpatialSource;
+  // using tf::electromagnetics::sources::RickerSource;
+  //
+  // em.srcs.push_back(
+  //   std::make_unique<CurrentSource<Array2D<fp_t>>>(&em.Ez, SpatialSource<fp_t>(60, 61, 60, 61))
+  // );
+  //
+  // em.srcs[0]->src.t_srcs.push_back(
+  //   std::make_unique<RickerSource<fp_t>>()
+  // );
 
   // emdata_t<double> em{nx, ny, nz, dt};
   // bcdata_t<double> bc{em, dt, dx};

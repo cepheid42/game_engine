@@ -107,6 +107,7 @@ namespace tf::electromagnetics
       updateH_bcs(emdata, bcdata);
 
       apply_srcs(emdata.srcs, q);  // add current sources
+      apply_srcs(emdata.beams, q); // GAUSSIAN BEAMS!
       apply_tfsf(emdata, emdata.tfsf, q); // add TFSF source
 
       updateE(emdata);

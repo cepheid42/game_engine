@@ -5,6 +5,8 @@
 #ifndef ELECTROMAGNETICS_PARAM_H
 #define ELECTROMAGNETICS_PARAM_H
 
+template<typename T> constexpr T SQR(T x) { return x * x; }
+
 inline constexpr size_t NTHREADS = 8;
 inline constexpr size_t NTHREADS_BC = 4;
 
