@@ -41,7 +41,7 @@ def plot1d(n):
 
 def plot2d(n):
     print(f'Plotting file {n:06d}')
-    file = data_path + f'/Ez_{n:06d}.csv'
+    file = data_path + f'/Hy_{n:06d}.csv'
     # file1 = '/home/cepheid/TriForce/game_engine/periodic_y_data' + f'/Ez_{n:06d}.csv'
     # file2 = '/home/cepheid/TriForce/game_engine/py_nohy_data' + f'/Ez_{n:06d}.csv'
 
@@ -52,7 +52,7 @@ def plot2d(n):
 
     data = np.genfromtxt(file, dtype=np.float64, delimiter=',')
     fig, ax = plt.subplots()
-    im = ax.pcolormesh(data, shading='gouraud', vmin=-5e13, vmax=5e13)
+    im = ax.pcolormesh(data, shading='gouraud')#, vmin=-1, vmax=1)
     plt.colorbar(im)
 
     plt.savefig(data_path + f'/pngs/Ez_{n:06d}.png')

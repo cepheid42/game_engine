@@ -77,6 +77,16 @@ using emdata3D = EMData<
   Array3D<T>  // Hz
 >;
 
+template<typename T>
+using emdata2D6C = EMData<
+  Array2D<T>, // Ex
+  Array2D<T>, // Ey
+  Array2D<T>, // Ez
+  Array2D<T>, // Hx
+  Array2D<T>, // Hy
+  Array2D<T>  // Hz
+>;
+
 //=================== Electromagnetics Definitions ========================
 //=========================================================================
 template<typename T>
@@ -127,6 +137,18 @@ using EM3D = TypeList<
   /* Hx */ FieldIntegrator3D<T, FieldUpdate<Derivative::DZ, Derivative::DY, true, size_t, size_t, size_t>>,
   /* Hy */ FieldIntegrator3D<T, FieldUpdate<Derivative::DX, Derivative::DZ, true, size_t, size_t, size_t>>,
   /* Hz */ FieldIntegrator3D<T, FieldUpdate<Derivative::DY, Derivative::DX, true, size_t, size_t, size_t>>
+>;
+
+// todo: 2D-6C has all six field components, but is still x-y planar. So any DZ shouldn't exist.
+//       Eventually needs to become TEy anyway, so then DY won't exist.
+template<typename T>
+using EM2D6C = TypeList<
+  /* Ex */ FieldIntegrator2D<T, FieldUpdate<Derivative::DY, Derivative::NoOp, false, size_t, size_t>>,
+  /* Ey */ FieldIntegrator2D<T, FieldUpdate<Derivative::NoOp, Derivative::DX, false, size_t, size_t>>,
+  /* Ez */ FieldIntegrator2D<T, FieldUpdate<Derivative::DX, Derivative::DY, false, size_t, size_t>>,
+  /* Hx */ FieldIntegrator2D<T, FieldUpdate<Derivative::NoOp, Derivative::DY, true, size_t, size_t>>,
+  /* Hy */ FieldIntegrator2D<T, FieldUpdate<Derivative::DX, Derivative::NoOp, true, size_t, size_t>>,
+  /* Hz */ FieldIntegrator2D<T, FieldUpdate<Derivative::DY, Derivative::DX, true, size_t, size_t>>
 >;
 
 #endif //EM_DEFINITIONS_H

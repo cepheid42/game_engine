@@ -5,6 +5,7 @@
 #ifndef ELECTROMAGNETICS_H
 #define ELECTROMAGNETICS_H
 
+// #include "electromagnetics.param"
 #include "em_definitions.h"
 #include "bc_definitions.h"
 
@@ -14,8 +15,6 @@ using tf::electromagnetics::Electromagnetics;
 using tf::electromagnetics::boundaries::BCData;
 using tf::electromagnetics::boundaries::Boundary;
 
-inline constexpr size_t SELECT_EMSOLVER = 2;
-inline constexpr size_t SELECT_BCSOLVER[6] = {6, 6, 6, 6, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
 
 // todo: This checks for invalid BC combos that will compile & run but eventually blow up.
 //        Probably can be made more comprehensive later with concepts or something.
@@ -37,7 +36,8 @@ using BCDataTL = TypeList<
   PmlData1D<T, F, S>,       // 5
   PmlDataTM<T, F, S>,       // 6
   PmlDataTE<T, F, S>,       // 7
-  PmlData3D<T, F, S>        // 8
+  PmlData3D<T, F, S>,       // 8
+  PmlData2D6C<T, F, S>      // 9
 >;
 
 template<typename T>
@@ -60,7 +60,8 @@ using BCTypeTL = TypeList<
   Pml1D<F, S>,      // 5
   PmlTM<F, S>,      // 6
   PmlTE<F, S>,      // 7
-  Pml3D<F, S>       // 8
+  Pml3D<F, S>,      // 8
+  Pml2D6C<F, S>     // 9
 >;
 
 template<size_t I, EMFace F, EMSide S>
@@ -91,7 +92,8 @@ using EMDataTL = TypeList<
   emdata1D<T>,   // 1
   emdataTM<T>,   // 2
   emdataTE<T>,   // 3
-  emdata3D<T>    // 4
+  emdata3D<T>,   // 4
+  emdata2D6C<T>  // 5
 >; // Typelist for choosing type of EMData
 
 template<typename T>
@@ -103,7 +105,8 @@ using EMTypeTL = TypeList<
   EM1D<T>,   // 1
   EMTM<T>,   // 2
   EMTE<T>,   // 3
-  EM3D<T>    // 4
+  EM3D<T>,   // 4
+  EM2D6C<T>  // 5
 >; // Typelist (of typelists) for choosing type of EM Solver
 
 template<typename T>

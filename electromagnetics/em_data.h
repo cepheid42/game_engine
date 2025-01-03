@@ -6,11 +6,11 @@
 #define EM_DATA_H
 
 #include <memory>
-#include <tfsf.h>
 
 #include "aydenstuff/array.h"
 #include "em_traits.h"
 #include "em_sources.h"
+#include "tfsf.h"
 
 namespace tf::electromagnetics
 {
@@ -25,36 +25,36 @@ namespace tf::electromagnetics
 
     EMData() = default;
 
-    explicit EMData(const size_t nx, const value_t dt)
-    requires (dimension_t::value == 1)
+    explicit EMData(const size_t nx, const value_t dt, const value_t dx)
+    requires (SELECT_EMSOLVER == 1)
     : Ez{nx}, Jz{nx}, Ceze{nx}, Cezhy{nx}, Cjz{nx},
       Hy{nx - 1}, Chyez{nx - 1}, Chyh{nx - 1}
     {
-      init_coefficients(dt);
+      init_coefficients(dt, dx);
     }
 
-    explicit EMData(const size_t nx, const size_t ny, const value_t dt)
-    requires (dimension_t::value == 2 and !tf::electromagnetics::traits::instance_of_type<tf::types::EmptyArray, hx_t>) // todo: make this smarter so other directions can be used.
+    explicit EMData(const size_t nx, const size_t ny, const value_t dt, const value_t dx)
+    requires (SELECT_EMSOLVER == 2)
     : Ez{nx, ny}, Jz{nx, ny}, Ceze{nx, ny}, Cezhx{nx, ny}, Cezhy{nx, ny}, Cjz{nx, ny},
       Hx{nx, ny - 1}, Chxey{nx, ny - 1}, Chxez{nx, ny - 1}, Chxh{nx, ny - 1},
       Hy{nx - 1, ny}, Chyex{nx - 1, ny}, Chyez{nx - 1, ny}, Chyh{nx - 1, ny}
     {
       // TMz constructor
-      init_coefficients(dt);
+      init_coefficients(dt, dx);
     }
 
-    explicit EMData(const size_t nx, const size_t ny, const value_t dt)
-    requires (dimension_t::value == 2 and !tf::electromagnetics::traits::instance_of_type<tf::types::EmptyArray, ex_t>)// todo: make this smarter so other directions can be used.
+    explicit EMData(const size_t nx, const size_t ny, const value_t dt, const value_t dx)
+    requires (SELECT_EMSOLVER == 3)
     : Ex{nx - 1, ny}, Jx{nx - 1, ny}, Cexe{nx - 1, ny}, Cexhy{nx - 1, ny}, Cexhz{nx - 1, ny}, Cjx{nx - 1, ny},
       Ey{nx, ny - 1}, Jy{nx, ny - 1}, Ceye{nx, ny - 1}, Ceyhx{nx, ny - 1}, Ceyhz{nx, ny - 1}, Cjy{nx, ny - 1},
       Hz{nx - 1, ny - 1}, Chzex{nx - 1, ny - 1}, Chzey{nx - 1, ny - 1}, Chzh{nx - 1, ny - 1}
     {
       // TEz constructor
-      init_coefficients(dt);
+      init_coefficients(dt, dx);
     }
 
-    explicit EMData(const size_t nx, const size_t ny, const size_t nz, const value_t dt)
-    requires (dimension_t::value == 3)
+    explicit EMData(const size_t nx, const size_t ny, const size_t nz, const value_t dt, const value_t dx)
+    requires (SELECT_EMSOLVER == 4)
     : Ex{nx - 1, ny, nz}, Jx{nx - 1, ny, nz}, Cexe{nx - 1, ny, nz}, Cexhy{nx - 1, ny, nz}, Cexhz{nx - 1, ny, nz}, Cjx{nx - 1, ny, nz},
       Ey{nx, ny - 1, nz}, Jy{nx, ny - 1, nz}, Ceye{nx, ny - 1, nz}, Ceyhx{nx, ny - 1, nz}, Ceyhz{nx, ny - 1, nz}, Cjy{nx, ny - 1, nz},
       Ez{nx, ny, nz - 1}, Jz{nx, ny, nz - 1}, Ceze{nx, ny, nz - 1}, Cezhx{nx, ny, nz - 1}, Cezhy{nx, ny, nz - 1}, Cjz{nx, ny, nz - 1},
@@ -62,10 +62,22 @@ namespace tf::electromagnetics
       Hy{nx - 1, ny, nz - 1}, Chyex{nx - 1, ny, nz - 1}, Chyez{nx - 1, ny, nz - 1}, Chyh{nx - 1, ny, nz - 1},
       Hz{nx - 1, ny - 1, nz}, Chzex{nx - 1, ny - 1, nz}, Chzey{nx - 1, ny - 1, nz}, Chzh{nx - 1, ny - 1, nz}
     {
-      init_coefficients(dt);
+      init_coefficients(dt, dx);
     }
 
-    void init_coefficients(value_t);
+    explicit EMData(const size_t nx, const size_t ny, const value_t dt, const value_t dx)
+    requires (SELECT_EMSOLVER == 5)
+    : Ex{nx - 1, ny}, Jx{nx - 1, ny}, Cexe{nx - 1, ny}, Cexhy{nx - 1, ny}, Cexhz{nx - 1, ny}, Cjx{nx - 1, ny},
+      Ey{nx, ny - 1}, Jy{nx, ny - 1}, Ceye{nx, ny - 1}, Ceyhx{nx, ny - 1}, Ceyhz{nx, ny - 1}, Cjy{nx, ny - 1},
+      Ez{nx, ny}, Jz{nx, ny}, Ceze{nx, ny}, Cezhx{nx, ny}, Cezhy{nx, ny}, Cjz{nx, ny},
+      Hx{nx, ny - 1}, Chxey{nx, ny - 1}, Chxez{nx, ny - 1}, Chxh{nx, ny - 1},
+      Hy{nx - 1, ny}, Chyex{nx - 1, ny}, Chyez{nx - 1, ny}, Chyh{nx - 1, ny},
+      Hz{nx - 1, ny - 1}, Chzex{nx - 1, ny - 1}, Chzey{nx - 1, ny - 1}, Chzh{nx - 1, ny - 1}
+    {
+      init_coefficients(dt, dx);
+    }
+
+    void init_coefficients(value_t, value_t);
     // void init_coefficients_2D(value_t);
 
     ex_t Ex;
@@ -122,13 +134,11 @@ namespace tf::electromagnetics
   }
 
   template <FieldComponent EXF, FieldComponent EYF, FieldComponent EZF, FieldComponent HXF, FieldComponent HYF, FieldComponent HZF>
-  void EMData<EXF, EYF, EZF, HXF, HYF, HZF>::init_coefficients(const value_t dt)
+  void EMData<EXF, EYF, EZF, HXF, HYF, HZF>::init_coefficients(const value_t dt, const value_t dx)
   {
     constexpr auto eps0 = 8.854187812813e-12;
     constexpr auto mu0 = 1.2566370621219e-6;
     constexpr auto sigma = 0.0;
-
-    constexpr auto dx = 1.0 / 99.0;
 
     // half dt for H field, since it's split into two steps
     const auto hc = 0.5 * dt / (mu0 * dx);

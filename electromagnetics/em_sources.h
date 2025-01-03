@@ -36,17 +36,19 @@ namespace tf::electromagnetics::sources
     T delay;
   };
 
-  // todo: Needs to add dt to make this work like other sources
-  // template<typename T>
-  // struct RickerSource final : TemporalSource<T> {
-  //   [[nodiscard]] T eval(const T q) const override {
-  //     constexpr auto Np = 20.0;
-  //     constexpr auto Md = 2.0;
-  //
-  //     const auto alpha = (M_PI * (cfl * q / Np - Md)) * (M_PI * (cfl * q / Np - Md));
-  //     return (1.0 - 2.0 * alpha) * std::exp(-alpha);
-  //   }
-  // };
+  template<typename T>
+  struct RickerSource final : TemporalSource<T> {
+    explicit RickerSource(const T freq_) : freq(freq_) {}
+
+    [[nodiscard]] T eval(const T t) const override {
+      constexpr auto Md = 2.0;
+
+      const auto alpha = SQR(M_PI * freq * (t - Md / freq));
+      return (1.0 - 2.0 * alpha) * std::exp(-alpha);
+    }
+
+    T freq;
+  };
 
   template<typename T>
   struct ContinuousSource final : TemporalSource<T> {
@@ -151,12 +153,12 @@ namespace tf::electromagnetics::sources
                  const size_t x0_,
                  const size_t x1_,
                  const size_t y0_,
-                 const size_t y1_)
+                 const size_t y1_,
+                 const value_t dx)
     : SpatialSource<value_t>{amp_, x0_, x1_, y0_, y1_},
       field(f), w0(w0_), omega(omega_), p0{p0_}, Ecoeffs(y1_ - y0_)
     {
       constexpr auto c0 = 299792458.0;
-      constexpr auto dx = 1.0 / 499.0;
 
       const auto z = (5.0 * dx) - p0[0]; // +x direction
 

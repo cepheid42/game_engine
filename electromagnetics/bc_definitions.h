@@ -317,6 +317,54 @@ struct PmlData3DImpl<T, F, S> {
 template<typename T, EMFace F, EMSide S>
 using PmlData3D = typename PmlData3DImpl<T, F, S>::type;
 
+
+// -------------------------------------------
+// 2D-6C Pml
+template<typename T, EMFace F, EMSide S>
+struct PmlData2D6CImpl {
+  using type = FaceBCs<
+  /* Ex */ NullData<EmptyArray2D<T>>,
+  /* Ey */ NullData<EmptyArray2D<T>>,
+  /* Ez */ NullData<EmptyArray2D<T>>,
+  /* Hx */ NullData<EmptyArray2D<T>>,
+  /* Hy */ NullData<EmptyArray2D<T>>,
+  /* Hz */ NullData<EmptyArray2D<T>>
+>;
+};
+
+// TM X-Face
+template<typename T, EMFace F, EMSide S>
+requires (F == EMFace::X)
+struct PmlData2D6CImpl<T, F, S> {
+  using type = FaceBCs<
+    /* Ex */ NullData<EmptyArray2D<T>>,
+    /* Ey */ PMLData<Array2D<T>, F, S, false>,
+    /* Ez */ PMLData<Array2D<T>, F, S, false>,
+    /* Hx */ NullData<EmptyArray2D<T>>,
+    /* Hy */ PMLData<Array2D<T>, F, S, true>,
+    /* Hz */ PMLData<Array2D<T>, F, S, true>
+  >;
+};
+
+// TM Y-Face
+template<typename T, EMFace F, EMSide S>
+requires (F == EMFace::Y)
+struct PmlData2D6CImpl<T, F, S> {
+  using type = FaceBCs<
+    /* Ex */ PMLData<Array2D<T>, F, S, false>,
+    /* Ey */ NullData<EmptyArray2D<T>>,
+    /* Ez */ PMLData<Array2D<T>, F, S, false>,
+    /* Hx */ PMLData<Array2D<T>, F, S, true>,
+    /* Hy */ NullData<EmptyArray2D<T>>,
+    /* Hz */ PMLData<Array2D<T>, F, S, true>
+  >;
+};
+
+// Top-level alias
+template<typename T, EMFace F, EMSide S>
+using PmlData2D6C = typename PmlData2D6CImpl<T, F, S>::type;
+
+
 //=================== Boundary Condition Definitions ===================
 //======================================================================
 using ReflectingBC = TypeList<
@@ -581,5 +629,48 @@ struct Pml3DImpl<F, S> {
 // Top-level alias
 template<EMFace F, EMSide S>
 using Pml3D = typename Pml3DImpl<F, S>::type;
+
+// ===============================================
+template<EMFace F, EMSide S>
+struct Pml2D6CImpl {
+  using type = TypeList<
+  /* Ex */ ReflectingBCUpdate,
+  /* Ey */ ReflectingBCUpdate,
+  /* Ez */ ReflectingBCUpdate,
+  /* Hx */ ReflectingBCUpdate,
+  /* Hy */ ReflectingBCUpdate,
+  /* Hz */ ReflectingBCUpdate
+>;
+};
+
+template<EMFace F, EMSide S>
+requires (F == EMFace::X)
+struct Pml2D6CImpl<F, S> {
+  using type = TypeList<
+    /* Ex */ ReflectingBCUpdate,
+    /* Ey */ Pml2DUpdate<EMFace::X, S, true>,
+    /* Ez */ Pml2DUpdate<EMFace::X, S, false>,
+    /* Hx */ ReflectingBCUpdate,
+    /* Hy */ Pml2DUpdate<EMFace::X, S, false>,
+    /* Hz */ Pml2DUpdate<EMFace::X, S, true>
+  >;
+};
+
+template<EMFace F, EMSide S>
+requires (F == EMFace::Y)
+struct Pml2D6CImpl<F, S> {
+  using type = TypeList<
+    /* Ex */ Pml2DUpdate<EMFace::Y, S, false>,
+    /* Ey */ ReflectingBCUpdate,
+    /* Ez */ Pml2DUpdate<EMFace::Y, S, true>,
+    /* Hx */ Pml2DUpdate<EMFace::Y, S, true>,
+    /* Hy */ ReflectingBCUpdate,
+    /* Hz */ Pml2DUpdate<EMFace::Y, S, false>
+  >;
+};
+
+// Top-level alias
+template<EMFace F, EMSide S>
+using Pml2D6C = typename Pml2D6CImpl<F, S>::type;
 
 #endif //BC_DEFINITIONS_H
