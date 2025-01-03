@@ -85,12 +85,12 @@ void print_array(const Array& arr) {
 int main() {
   const auto start = std::chrono::high_resolution_clock::now();
 
-  constexpr size_t nx = 100u + 2 * nPml + 2 * nHalo;
-  constexpr size_t ny = 100u + 2 * nPml + 2 * nHalo;
+  constexpr size_t nx = 500u + 2 * nPml + 2 * nHalo;
+  constexpr size_t ny = 500u + 2 * nPml + 2 * nHalo;
   // constexpr size_t nz = 100u + 2 * nPml + 2 * nHalo;
-  constexpr size_t nt = 400u;
+  constexpr size_t nt = 20000u;
 
-  constexpr double dx = 1.0 / 99.0;
+  constexpr double dx = 1.0 / 499.0;
 
   constexpr auto c0 = 299792458.0;
   constexpr auto dt = cfl * dx / c0;
@@ -108,26 +108,28 @@ int main() {
   using tf::electromagnetics::sources::GaussianSource;
   using tf::electromagnetics::sources::GaussianBeam;
 
-  constexpr auto omega = 2.0 * M_PI * c0 / (20.0 * dx);
+  constexpr auto omega = 2.0 * M_PI * c0 / (40.0 * dx);
 
   em.beams.push_back(
     std::make_unique<GaussianBeam<Array2D<fp_t>>>(
-      &(em.Ez),
-      -2.75e13, // amp
-      0.17, // waist
-      omega, // freq
-      {0.5, 0.5}, // waist position
-      x0, // x0
-      x0 + 1, // x1
-      x0, // y0
-      x1 // y1
+      GaussianBeam<Array2D<fp_t>>{
+        &em.Ez,
+        -2.75e13, // amp
+        0.17, // waist
+        omega, // freq
+        {0.5, 0.5}, // waist position
+        x0, // x0
+        x0 + 1, // x1
+        x0, // y0
+        x1 // y1
+      }
     )
   );
 
   em.beams[0]->t_srcs.push_back(std::make_unique<ContinuousSource<fp_t>>(omega, 0.0, 1.0e30, 0.0));
 
   constexpr auto width = 7.58e-9;
-  em.beams[0]->t_srcs.push_back(std::make_unique<GaussianSource<fp_t>>{width, 2.0, 2.0 * width});
+  em.beams[0]->t_srcs.push_back(std::make_unique<GaussianSource<fp_t>>(width, 2.0, 2.0 * width));
 
   // using tf::electromagnetics::sources::CurrentSource;
   // using tf::electromagnetics::sources::SpatialSource;
@@ -144,45 +146,15 @@ int main() {
   // emdata_t<double> em{nx, ny, nz, dt};
   // bcdata_t<double> bc{em, dt, dx};
 
-  constexpr auto save_step = 4;
+  constexpr auto save_step = 200;
   size_t filecount = 0;
   for (size_t n = 0; n < nt; n++) {
 
-    EMSolver<fp_t>::advance(static_cast<fp_t>(n), em, bc);
-
-    // const auto rsrc = ricker(static_cast<fp_t>(n));
-
-    // em.Ez[nx / 2 - 20] += rsrc;
-
-    // em.Ex(nx / 2 - 20, ny / 2 - 20) += rsrc;
-    // em.Ey(nx / 2 - 20, ny / 2 - 20) += 3.0 * rsrc;
-    // em.Ez(nx / 2 - 20, ny / 2 - 20) += rsrc;
-
-    // em.Ex(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
-    // em.Ey(nx / 2, ny / 2, nz / 2 - 20) += rsrc;
-    // em.Ez(nx / 2, ny / 2, nz / 2) += rsrc;
+    EMSolver<fp_t>::advance(static_cast<fp_t>(n) * dt, em, bc);
 
     if (n % save_step == 0) {
       std::cout << "Step " << n << std::endl;
-
-// #pragma omp parallel num_threads(3)
-//       {
-// #pragma omp single
-//         {
-// #pragma omp task
-//           to_csv(em.Ex, filecount, "Ex");
-// #pragma omp task
-//           to_csv(em.Ey, filecount, "Ey");
-// #pragma omp task
-           to_csv(em.Ez, filecount, "Ez");
-// #pragma omp task
-//           to_csv(em.Hx, filecount, "Hx");
-// #pragma omp task
-//           to_csv(em.Hy, filecount, "Hy");
-// #pragma omp task
-//           to_csv(em.Hz, filecount, "Hz");
-//         }
-//       }
+      to_csv(em.Ez, filecount, "Ez");
 
       filecount++;
     }

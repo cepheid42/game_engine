@@ -19,12 +19,15 @@ namespace tf::electromagnetics::sources
 
   template<typename T>
   struct GaussianSource final : TemporalSource<T> {
-    GaussianSource(T width_, T power_, T delay_) : width(width_), power(power_), delay(delay_) {}
+    GaussianSource(T width_, T power_, T delay_)
+    : width(width_), power(power_), delay(delay_)
+    {}
 
     [[nodiscard]] T eval(const T t) const override {
-      constexpr auto tol = 1e-12;
+      // constexpr auto tol = 1e-12;
       const auto val = std::exp(-1.0 * std::pow((t - delay) / width, power));
-      return val > tol ? val : 0.0;
+      // DBG(val);
+      return val;
     }
 
     T width;
@@ -33,23 +36,27 @@ namespace tf::electromagnetics::sources
     T delay;
   };
 
-  template<typename T>
-  struct RickerSource final : TemporalSource<T> {
-    [[nodiscard]] T eval(const T q) const override {
-      constexpr auto Np = 20.0;
-      constexpr auto Md = 2.0;
-
-      const auto alpha = (M_PI * (cfl * q / Np - Md)) * (M_PI * (cfl * q / Np - Md));
-      return (1.0 - 2.0 * alpha) * std::exp(-alpha);
-    }
-  };
+  // todo: Needs to add dt to make this work like other sources
+  // template<typename T>
+  // struct RickerSource final : TemporalSource<T> {
+  //   [[nodiscard]] T eval(const T q) const override {
+  //     constexpr auto Np = 20.0;
+  //     constexpr auto Md = 2.0;
+  //
+  //     const auto alpha = (M_PI * (cfl * q / Np - Md)) * (M_PI * (cfl * q / Np - Md));
+  //     return (1.0 - 2.0 * alpha) * std::exp(-alpha);
+  //   }
+  // };
 
   template<typename T>
   struct ContinuousSource final : TemporalSource<T> {
-    ContinuousSource(T omega_, T start_, T stop_, T phase_) : omega(omega_), start(start_), stop(stop_), phase(phase_) {}
+    ContinuousSource(T omega_, T start_, T stop_, T phase_)
+    : omega(omega_), start(start_), stop(stop_), phase(phase_)
+    {}
 
     [[nodiscard]] T eval(const T t) const override {
       if (t < start or t > stop) { return 0.0; }
+      // DBG(std::sin(omega * t - phase));
       return std::sin(omega * t - phase);
     }
 
@@ -69,11 +76,12 @@ namespace tf::electromagnetics::sources
     {}
 
     [[nodiscard]] T eval(const T t) {
-      auto result = 1.0;
+      auto result = amp;
       for (const auto& src : t_srcs) {
         result *= src->eval(t);
       }
 
+      // DBG(result);
       return result;
     }
 
@@ -135,7 +143,7 @@ namespace tf::electromagnetics::sources
     using value_t = typename Array::value_t;
     using vec2_t = std::array<value_t, 2>;
 
-    GaussianBeam(Array* f,
+    GaussianBeam(Array* const f,
                  const value_t amp_,
                  const value_t w0_,
                  const value_t omega_,
@@ -148,16 +156,17 @@ namespace tf::electromagnetics::sources
       field(f), w0(w0_), omega(omega_), p0{p0_}, Ecoeffs(y1_ - y0_)
     {
       constexpr auto c0 = 299792458.0;
-      constexpr auto dx = 1.0 / 99.0;
+      constexpr auto dx = 1.0 / 499.0;
 
-      const auto z = 0.5 - p0[0]; // +x direction
+      const auto z = (5.0 * dx) - p0[0]; // +x direction
 
       const auto k = omega / c0;
       const auto z_R = 0.5 * k * SQR(w0);
       const auto w_z = w0 * sqrt(1.0 + SQR(z / z_R));
+
       const auto RC = z * (1.0 + SQR(z_R / z));
       const auto gouy = std::atan(z / z_R);
-      const auto c1 = SpatialSource<value_t>::amp * (w0 / w_z);
+      const auto c1 = (w0 / w_z);
 
       constexpr auto offset = dx * 5.0; // todo: number of nodes the value_tFSF is inset by, how to generalize this?
       std::vector<double> r(y1_ - y0_, offset);
@@ -167,15 +176,17 @@ namespace tf::electromagnetics::sources
       }
 
       for (size_t i = 0; i < r.size(); ++i) {
-        Ecoeffs[i] = c1 * exp(-1.0 * SQR(r[i] / w_z)) * cos((k * z) + ((k * SQR(r[i])) / (2.0 * RC)) - gouy);
+        Ecoeffs[i] = c1 * std::exp(-1.0 * SQR(r[i] / w_z)) * std::cos((k * z) + ((k * SQR(r[i])) / (2.0 * RC)) - gouy);
       }
     }
 
-    void apply(const value_t q) const
+    void apply(const value_t q)
     {
+      // todo: Soft source? Hard source? Who know! Find out next time on... Sourcing Sources with Sorcery!
       for (size_t i = SpatialSource<value_t>::x0; i < SpatialSource<value_t>::x1; ++i) {
         for (size_t j = SpatialSource<value_t>::y0; j < SpatialSource<value_t>::y1; ++j) {
-          (*field)(i, j) += Ecoeffs[j] * SpatialSource<value_t>::eval(q);
+          const auto Eidx = j - SpatialSource<value_t>::y0;
+          (*field)(i, j) += Ecoeffs[Eidx] * SpatialSource<value_t>::eval(q);
         }
       }
     }

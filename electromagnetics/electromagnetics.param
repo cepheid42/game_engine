@@ -7,10 +7,10 @@
 
 template<typename T> constexpr T SQR(T x) { return x * x; }
 
-inline constexpr size_t NTHREADS = 8;
-inline constexpr size_t NTHREADS_BC = 4;
+inline constexpr size_t NTHREADS = 32;
+inline constexpr size_t NTHREADS_BC = 8;
 
-inline constexpr size_t nPml = 10u;
+inline constexpr size_t nPml = 40u;
 inline constexpr size_t nHalo = 0u;
 
 using fp_t = double;

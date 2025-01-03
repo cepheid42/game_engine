@@ -5,11 +5,7 @@
 #ifndef EM_SOLVER_H
 #define EM_SOLVER_H
 
-// #include <tfsf.h>
-
 #include "aydenstuff/array.h"
-// #include "em_updates.h"
-// #include "em_sources.h"
 
 
 namespace tf::electromagnetics
@@ -102,13 +98,13 @@ namespace tf::electromagnetics
       }
     }
 
-    static void advance(auto q, auto& emdata, auto& bcdata) {
+    static void advance(const auto t, auto& emdata, auto& bcdata) {
       updateH(emdata);
       updateH_bcs(emdata, bcdata);
 
-      apply_srcs(emdata.srcs, q);  // add current sources
-      apply_srcs(emdata.beams, q); // GAUSSIAN BEAMS!
-      apply_tfsf(emdata, emdata.tfsf, q); // add TFSF source
+      apply_srcs(emdata.srcs, t);  // add current sources
+      apply_srcs(emdata.beams, t); // GAUSSIAN BEAMS!
+      apply_tfsf(emdata, emdata.tfsf, t); // add TFSF source
 
       updateE(emdata);
       updateE_bcs(emdata, bcdata);
