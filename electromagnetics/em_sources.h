@@ -71,25 +71,75 @@ namespace tf::electromagnetics::sources
   };
 
 
+  // todo: Does this serve any purpose? Does it solve the soft-source amplitude problem? It's certainly overkill for a
+  //       simple spatial source to have an associated 1D solver...
+  //       Maybe replace with a lookup table?
   template<typename T>
-  struct SpatialSource {
-    SpatialSource(const T amp_, const size_t x0_, const size_t x1_, const size_t y0_=0, const size_t y1_=1, const size_t z0_=0, const size_t z1_=1)
-    : amp(amp_), x0(x0_), x1(x1_), y0(y0_), y1(y1_), z0(z0_), z1(z1_), t_srcs{}
-    {}
+  struct AuxiliarySource {
+    using HIntegrator = FieldIntegrator1D<tf::types::Array1D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, true, size_t>>;
+    using EIntegrator = FieldIntegrator1D<tf::types::Array1D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, false, size_t>>;
+    using empty_t = tf::types::EmptyArray1D<T>;
+    using temporal_vec = std::vector<std::unique_ptr<TemporalSource<T>>>;
 
-    [[nodiscard]] T eval(const T t) {
-      auto result = amp;
+    static constexpr empty_t empty{};
+
+    AuxiliarySource(temporal_vec&& ts, const size_t nx, const T amp_)
+    : amplitude(amp_),
+      t_srcs{std::move(ts)},
+      Einc{nx + 20}, Ceze{nx + 20}, Cezh{nx + 20},
+      Hinc{nx + 20 - 1}, Chyh{nx + 20 - 1}, Chye{nx + 20 - 1}
+    {
+      // todo: initialize coefficients for lossy region (see TFSF)
+    }
+
+    void updateH() { HIntegrator::apply(Hinc, Einc, empty, empty, Chyh, Chye, empty, empty, {0, 0, 0, 0, 0, 0}); }
+    void updateE() { EIntegrator::apply(Einc, Hinc, empty, empty, Ceze, Cezh, empty, empty, {1, 1, 1, 1, 0, 0}); }
+
+    void apply_src(const T t) {
+      auto result = amplitude;
       for (const auto& src : t_srcs) {
         result *= src->eval(t);
       }
-
-      // DBG(result);
-      return result;
+      Einc[0] = result;
     }
 
-    T amp;
+    void advance(const T t) {
+      updateH();
+      apply_src(t);
+      updateE();
+    }
+
+    T amplitude;
+
+    temporal_vec t_srcs;
+
+    tf::types::Array1D<T> Einc;
+    tf::types::Array1D<T> Ceze;
+    tf::types::Array1D<T> Cezh;
+
+    tf::types::Array1D<T> Hinc;
+    tf::types::Array1D<T> Chyh;
+    tf::types::Array1D<T> Chye;
+  };
+
+
+
+  template<typename T>
+  struct SpatialSource {
+    using temporal_vec = std::vector<std::unique_ptr<TemporalSource<T>>>;
+
+    SpatialSource(temporal_vec&& ts, const T amp_, const size_t x0_, const size_t x1_, const size_t y0_=0, const size_t y1_=1, const size_t z0_=0, const size_t z1_=1)
+    : x0(x0_), x1(x1_), y0(y0_), y1(y1_), z0(z0_), z1(z1_),
+      aux{std::forward<temporal_vec>(ts), ((x1 - x0) > (y1 - y0)) ? (x1 - x0) : (y1 - y0), amp_}
+    {}
+
+    [[nodiscard]] T eval(const T t) {
+      aux.advance(t);
+      return aux.Einc[0];
+    }
+
     size_t x0, x1, y0, y1, z0, z1;
-    std::vector<std::unique_ptr<TemporalSource<T>>> t_srcs;
+    AuxiliarySource<T> aux;
   };
 
   // todo: Should I fold this into the SpatialSource class to get rid of a level of abstraction?
@@ -106,31 +156,31 @@ namespace tf::electromagnetics::sources
 
     // todo: These are soft sources, but don't fix the soft source problem (incorrect amplitude)
     //       Not sure what the best fix is. Auxilliary sources seem overkill. Maybe a lookup table?
-    void apply(const value_t q) const
+    void apply(const value_t t) const
     requires (dimension_t::value == 1)
     {
       for (size_t i = src.x0; i <= src.x1; ++i) {
-        (*field)[i] += src.eval(q);
+        (*field)[i] += src.eval(t);
       }
     }
 
-    void apply(const value_t q)
+    void apply(const value_t t)
     requires (dimension_t::value == 2)
     {
       for (size_t i = src.x0; i < src.x1; ++i) {
         for (size_t j = src.y0; j < src.y1; ++j) {
-          (*field)(i, j) += src.eval(q);
+          (*field)(i, j) += src.eval(t);
         }
       }
     }
 
-    void apply(const value_t q) const
+    void apply(const value_t t) const
     requires (dimension_t::value == 3)
     {
       for (size_t i = src.x0; i < src.x1; ++i) {
         for (size_t j = src.y0; j < src.y1; ++j) {
           for (size_t k = src.z0; k < src.z1; ++k) {
-            (*field)(i, j, k) += src.eval(q);
+            (*field)(i, j, k) += src.eval(t);
           }
         }
       }
@@ -144,8 +194,10 @@ namespace tf::electromagnetics::sources
   struct GaussianBeam : SpatialSource<typename Array::value_t> {
     using value_t = typename Array::value_t;
     using vec2_t = std::array<value_t, 2>;
+    using temporal_vec = std::vector<std::unique_ptr<TemporalSource<value_t>>>;
 
     GaussianBeam(Array* const f,
+                 temporal_vec&& ts,
                  const value_t amp_,
                  const value_t w0_,
                  const value_t omega_,
@@ -155,7 +207,7 @@ namespace tf::electromagnetics::sources
                  const size_t y0_,
                  const size_t y1_,
                  const value_t dx)
-    : SpatialSource<value_t>{amp_, x0_, x1_, y0_, y1_},
+    : SpatialSource<value_t>{std::forward<temporal_vec>(ts), amp_, x0_, x1_, y0_, y1_},
       field(f), w0(w0_), omega(omega_), p0{p0_}, Ecoeffs(y1_ - y0_)
     {
       constexpr auto c0 = 299792458.0;
@@ -193,6 +245,7 @@ namespace tf::electromagnetics::sources
       }
     }
 
+    AuxiliarySource<value_t> aux;
     Array* const field;
     value_t w0;
     value_t omega;

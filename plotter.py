@@ -41,7 +41,7 @@ def plot1d(n):
 
 def plot2d(n):
     print(f'Plotting file {n:06d}')
-    file = data_path + f'/Hy_{n:06d}.csv'
+    file = data_path + f'/Ez_{n:06d}.csv'
     # file1 = '/home/cepheid/TriForce/game_engine/periodic_y_data' + f'/Ez_{n:06d}.csv'
     # file2 = '/home/cepheid/TriForce/game_engine/py_nohy_data' + f'/Ez_{n:06d}.csv'
 

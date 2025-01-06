@@ -129,16 +129,27 @@ int main() {
   using tf::electromagnetics::sources::CurrentSource;
   using tf::electromagnetics::sources::SpatialSource;
   using tf::electromagnetics::sources::RickerSource;
+  using temporal_vec = std::vector<std::unique_ptr<tf::electromagnetics::sources::TemporalSource<fp_t>>>;
 
   constexpr auto freq = c0 / (40.0 * dx);
 
+  auto make_tvec = [&]()
+  {
+    temporal_vec tvec{};
+    tvec.push_back(std::make_unique<RickerSource<fp_t>>(freq));
+    return tvec;
+  };
+
   em.srcs.push_back(
-    std::make_unique<CurrentSource<Array2D<fp_t>>>(&em.Ey, SpatialSource<fp_t>(50.0, 60, 61, 60, 61))
+    std::make_unique<CurrentSource<Array2D<fp_t>>>(
+      &em.Ez,
+      SpatialSource<fp_t>(
+        make_tvec(),
+        50.0, 60, 61, 60, 61
+      )
+    )
   );
 
-  em.srcs[0]->src.t_srcs.push_back(
-    std::make_unique<RickerSource<fp_t>>(freq)
-  );
 
   // emdata_t<double> em{nx, ny, nz, dt, dx};
   // bcdata_t<double> bc{em, dt, dx};
@@ -152,24 +163,24 @@ int main() {
     if (n % save_step == 0) {
       std::cout << "Step " << n << std::endl;
 
-#pragma omp parallel num_threads(3)
-      {
-#pragma omp single
-        {
-#pragma omp task
-          to_csv(em.Ex, filecount, "Ex");
-#pragma omp task
-          to_csv(em.Ey, filecount, "Ey");
-#pragma omp task
-          to_csv(em.Ez, filecount, "Ez");
-#pragma omp task
-          to_csv(em.Hx, filecount, "Hx");
-#pragma omp task
-          to_csv(em.Hy, filecount, "Hy");
-#pragma omp task
-          to_csv(em.Hz, filecount, "Hz");
-         }
-       }
+// #pragma omp parallel num_threads(3)
+//       {
+// #pragma omp single
+//         {
+// #pragma omp task
+//           to_csv(em.Ex, filecount, "Ex");
+// #pragma omp task
+//           to_csv(em.Ey, filecount, "Ey");
+// #pragma omp task
+           to_csv(em.Ez, filecount, "Ez");
+// #pragma omp task
+//           to_csv(em.Hx, filecount, "Hx");
+// #pragma omp task
+//           to_csv(em.Hy, filecount, "Hy");
+// #pragma omp task
+//           to_csv(em.Hz, filecount, "Hz");
+//          }
+//        }
 
       filecount++;
     }

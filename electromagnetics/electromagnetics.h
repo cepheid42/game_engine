@@ -90,8 +90,8 @@ template<typename T>
 using EMDataTL = TypeList<
   emdataNone<T>, // 0
   emdata1D<T>,   // 1
-  emdataTM<T>,   // 2
-  emdataTE<T>,   // 3
+  emdataTMz<T>,   // 2
+  emdataTEy<T>,   // 3
   emdata3D<T>,   // 4
   emdata2D6C<T>  // 5
 >; // Typelist for choosing type of EMData
@@ -103,8 +103,8 @@ template<typename T>
 using EMTypeTL = TypeList<
   EMNull<T>, // 0
   EM1D<T>,   // 1
-  EMTM<T>,   // 2
-  EMTE<T>,   // 3
+  EMTMz<T>,   // 2
+  EMTEy<T>,   // 3
   EM3D<T>,   // 4
   EM2D6C<T>  // 5
 >; // Typelist (of typelists) for choosing type of EM Solver

@@ -33,21 +33,22 @@ namespace tf::electromagnetics
       init_coefficients(dt, dx);
     }
 
-    explicit EMData(const size_t nx, const size_t ny, const value_t dt, const value_t dx)
+    explicit EMData(const size_t nx, const size_t nz, const value_t dt, const value_t dx)
     requires (SELECT_EMSOLVER == 2)
-    : Ez{nx, ny}, Jz{nx, ny}, Ceze{nx, ny}, Cezhx{nx, ny}, Cezhy{nx, ny}, Cjz{nx, ny},
-      Hx{nx, ny - 1}, Chxey{nx, ny - 1}, Chxez{nx, ny - 1}, Chxh{nx, ny - 1},
-      Hy{nx - 1, ny}, Chyex{nx - 1, ny}, Chyez{nx - 1, ny}, Chyh{nx - 1, ny}
+    : Ey{nx, nz}, Jy{nx, nz}, Ceye{nx, nz}, Ceyhx{nx, nz}, Ceyhz{nx, nz}, Cjy{nx, nz},
+      Hx{nx, nz - 1}, Chxey{nx, nz - 1}, Chxez{nx, nz - 1}, Chxh{nx, nz - 1},
+      Hz{nx - 1, nz}, Chzex{nx - 1, nz}, Chzey{nx - 1, nz}, Chzh{nx - 1, nz}
     {
       // TMz constructor
       init_coefficients(dt, dx);
     }
 
-    explicit EMData(const size_t nx, const size_t ny, const value_t dt, const value_t dx)
+    // todo: In X-Z planar, none of the Nz's are shorter than the others... will this be a problem?
+    explicit EMData(const size_t nx, const size_t nz, const value_t dt, const value_t dx)
     requires (SELECT_EMSOLVER == 3)
-    : Ex{nx - 1, ny}, Jx{nx - 1, ny}, Cexe{nx - 1, ny}, Cexhy{nx - 1, ny}, Cexhz{nx - 1, ny}, Cjx{nx - 1, ny},
-      Ey{nx, ny - 1}, Jy{nx, ny - 1}, Ceye{nx, ny - 1}, Ceyhx{nx, ny - 1}, Ceyhz{nx, ny - 1}, Cjy{nx, ny - 1},
-      Hz{nx - 1, ny - 1}, Chzex{nx - 1, ny - 1}, Chzey{nx - 1, ny - 1}, Chzh{nx - 1, ny - 1}
+    : Ex{nx - 1, nz}, Jx{nx - 1, nz}, Cexe{nx - 1, nz}, Cexhy{nx - 1, nz}, Cexhz{nx - 1, nz}, Cjx{nx - 1, nz},
+      Ey{nx, nz}, Jy{nx, nz}, Ceye{nx, nz}, Ceyhx{nx, nz}, Ceyhz{nx, nz}, Cjy{nx, nz},
+      Hz{nx - 1, nz}, Chzex{nx - 1, nz}, Chzey{nx - 1, nz}, Chzh{nx - 1, nz}
     {
       // TEz constructor
       init_coefficients(dt, dx);
@@ -65,14 +66,14 @@ namespace tf::electromagnetics
       init_coefficients(dt, dx);
     }
 
-    explicit EMData(const size_t nx, const size_t ny, const value_t dt, const value_t dx)
+    explicit EMData(const size_t nx, const size_t nz, const value_t dt, const value_t dx)
     requires (SELECT_EMSOLVER == 5)
-    : Ex{nx - 1, ny}, Jx{nx - 1, ny}, Cexe{nx - 1, ny}, Cexhy{nx - 1, ny}, Cexhz{nx - 1, ny}, Cjx{nx - 1, ny},
-      Ey{nx, ny - 1}, Jy{nx, ny - 1}, Ceye{nx, ny - 1}, Ceyhx{nx, ny - 1}, Ceyhz{nx, ny - 1}, Cjy{nx, ny - 1},
-      Ez{nx, ny}, Jz{nx, ny}, Ceze{nx, ny}, Cezhx{nx, ny}, Cezhy{nx, ny}, Cjz{nx, ny},
-      Hx{nx, ny - 1}, Chxey{nx, ny - 1}, Chxez{nx, ny - 1}, Chxh{nx, ny - 1},
-      Hy{nx - 1, ny}, Chyex{nx - 1, ny}, Chyez{nx - 1, ny}, Chyh{nx - 1, ny},
-      Hz{nx - 1, ny - 1}, Chzex{nx - 1, ny - 1}, Chzey{nx - 1, ny - 1}, Chzh{nx - 1, ny - 1}
+    : Ex{nx - 1, nz}, Jx{nx - 1, nz}, Cexe{nx - 1, nz}, Cexhy{nx - 1, nz}, Cexhz{nx - 1, nz}, Cjx{nx - 1, nz},
+      Ey{nx, nz}, Jy{nx, nz}, Ceye{nx, nz}, Ceyhx{nx, nz}, Ceyhz{nx, nz}, Cjy{nx, nz},
+      Ez{nx, nz - 1}, Jz{nx, nz - 1}, Ceze{nx, nz - 1}, Cezhx{nx, nz - 1}, Cezhy{nx, nz - 1}, Cjz{nx, nz - 1},
+      Hx{nx, nz - 1}, Chxey{nx, nz - 1}, Chxez{nx, nz - 1}, Chxh{nx, nz - 1},
+      Hy{nx - 1, nz - 1}, Chyex{nx - 1, nz - 1}, Chyez{nx - 1, nz - 1}, Chyh{nx - 1, nz - 1},
+      Hz{nx - 1, nz}, Chzex{nx - 1, nz}, Chzey{nx - 1, nz}, Chzh{nx - 1, nz}
     {
       init_coefficients(dt, dx);
     }

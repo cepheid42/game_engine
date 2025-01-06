@@ -48,7 +48,7 @@ using emdata1D = EMData<
 >;
 
 template<typename T>
-using emdataTM = EMData<
+using emdataTMz = EMData<
   EmptyArray2D<T>, // Ex
   EmptyArray2D<T>, // Ey
   Array2D<T>,      // Ez
@@ -58,13 +58,13 @@ using emdataTM = EMData<
 >;
 
 template<typename T>
-using emdataTE = EMData<
+using emdataTEy = EMData<
   Array2D<T>,      // Ex
-  Array2D<T>,      // Ey
-  EmptyArray2D<T>, // Ez
+  EmptyArray2D<T>, // Ey
+  Array2D<T>,      // Ez
   EmptyArray2D<T>, // Hx
-  EmptyArray2D<T>, // Hy
-  Array2D<T>       // Hz
+  Array2D<T>,      // Hy
+  EmptyArray2D<T>  // Hz
 >;
 
 template<typename T>
@@ -110,7 +110,7 @@ using EM1D = TypeList<
 >;
 
 template<typename T>
-using EMTM = TypeList<
+using EMTMz = TypeList<
   /* Ex */ FieldIntegratorNull<T>,
   /* Ey */ FieldIntegratorNull<T>,
   /* Ez */ FieldIntegrator2D<T, FieldUpdate<Derivative::DX, Derivative::DY, false, size_t, size_t>>,
@@ -120,13 +120,13 @@ using EMTM = TypeList<
 >;
 
 template<typename T>
-using EMTE = TypeList<
+using EMTEy = TypeList<
   /* Ex */ FieldIntegrator2D<T, FieldUpdate<Derivative::DY, Derivative::NoOp, false, size_t, size_t>>,
-  /* Ey */ FieldIntegrator2D<T, FieldUpdate<Derivative::NoOp, Derivative::DX, false, size_t, size_t>>,
-  /* Ez */ FieldIntegratorNull<T>,
+  /* Ey */ FieldIntegratorNull<T>,
+  /* Ez */ FieldIntegrator2D<T, FieldUpdate<Derivative::NoOp, Derivative::DX, false, size_t, size_t>>,
   /* Hx */ FieldIntegratorNull<T>,
-  /* Hy */ FieldIntegratorNull<T>,
-  /* Hz */ FieldIntegrator2D<T, FieldUpdate<Derivative::DY, Derivative::DX, true, size_t, size_t>>
+  /* Hy */ FieldIntegrator2D<T, FieldUpdate<Derivative::DY, Derivative::DX, true, size_t, size_t>>,
+  /* Hz */ FieldIntegratorNull<T>
 >;
 
 template<typename T>
@@ -140,15 +140,16 @@ using EM3D = TypeList<
 >;
 
 // todo: 2D-6C has all six field components, but is still x-y planar. So any DZ shouldn't exist.
-//       Eventually needs to become TEy anyway, so then DY won't exist.
+//       Eventually needs to become TEy anyway, so then DY won't exist... but neither will DZ... unless we want
+//       everything to go back to being x-z planar.
 template<typename T>
 using EM2D6C = TypeList<
-  /* Ex */ FieldIntegrator2D<T, FieldUpdate<Derivative::DY, Derivative::NoOp, false, size_t, size_t>>,
-  /* Ey */ FieldIntegrator2D<T, FieldUpdate<Derivative::NoOp, Derivative::DX, false, size_t, size_t>>,
-  /* Ez */ FieldIntegrator2D<T, FieldUpdate<Derivative::DX, Derivative::DY, false, size_t, size_t>>,
-  /* Hx */ FieldIntegrator2D<T, FieldUpdate<Derivative::NoOp, Derivative::DY, true, size_t, size_t>>,
-  /* Hy */ FieldIntegrator2D<T, FieldUpdate<Derivative::DX, Derivative::NoOp, true, size_t, size_t>>,
-  /* Hz */ FieldIntegrator2D<T, FieldUpdate<Derivative::DY, Derivative::DX, true, size_t, size_t>>
+  /* Ex */ FieldIntegrator2D<T, FieldUpdate<Derivative::NoOp, Derivative::DZ, false, size_t, size_t>>,
+  /* Ey */ FieldIntegrator2D<T, FieldUpdate<Derivative::DZ, Derivative::DX, false, size_t, size_t>>,
+  /* Ez */ FieldIntegrator2D<T, FieldUpdate<Derivative::DX, Derivative::NoOp, false, size_t, size_t>>,
+  /* Hx */ FieldIntegrator2D<T, FieldUpdate<Derivative::DZ, Derivative::NoOp, true, size_t, size_t>>,
+  /* Hy */ FieldIntegrator2D<T, FieldUpdate<Derivative::DX, Derivative::DZ, true, size_t, size_t>>,
+  /* Hz */ FieldIntegrator2D<T, FieldUpdate<Derivative::NoOp, Derivative::DX, true, size_t, size_t>>
 >;
 
 #endif //EM_DEFINITIONS_H
