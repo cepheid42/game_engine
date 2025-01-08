@@ -10,7 +10,7 @@
 #include "aydenstuff/array.h"
 #include "em_traits.h"
 #include "em_sources.h"
-#include "tfsf.h"
+// #include "tfsf.h"
 
 namespace tf::electromagnetics
 {
@@ -25,37 +25,36 @@ namespace tf::electromagnetics
 
     EMData() = default;
 
-    explicit EMData(const size_t nx, const value_t dt, const value_t dx)
-    requires (SELECT_EMSOLVER == 1)
-    : Ez{nx}, Jz{nx}, Ceze{nx}, Cezhy{nx}, Cjz{nx},
-      Hy{nx - 1}, Chyez{nx - 1}, Chyh{nx - 1}
-    {
-      init_coefficients(dt, dx);
-    }
-
-    explicit EMData(const size_t nx, const size_t nz, const value_t dt, const value_t dx)
-    requires (SELECT_EMSOLVER == 2)
-    : Ey{nx, nz}, Jy{nx, nz}, Ceye{nx, nz}, Ceyhx{nx, nz}, Ceyhz{nx, nz}, Cjy{nx, nz},
-      Hx{nx, nz - 1}, Chxey{nx, nz - 1}, Chxez{nx, nz - 1}, Chxh{nx, nz - 1},
-      Hz{nx - 1, nz}, Chzex{nx - 1, nz}, Chzey{nx - 1, nz}, Chzh{nx - 1, nz}
-    {
-      // TMz constructor
-      init_coefficients(dt, dx);
-    }
-
-    // todo: In X-Z planar, none of the Nz's are shorter than the others... will this be a problem?
-    explicit EMData(const size_t nx, const size_t nz, const value_t dt, const value_t dx)
-    requires (SELECT_EMSOLVER == 3)
-    : Ex{nx - 1, nz}, Jx{nx - 1, nz}, Cexe{nx - 1, nz}, Cexhy{nx - 1, nz}, Cexhz{nx - 1, nz}, Cjx{nx - 1, nz},
-      Ey{nx, nz}, Jy{nx, nz}, Ceye{nx, nz}, Ceyhx{nx, nz}, Ceyhz{nx, nz}, Cjy{nx, nz},
-      Hz{nx - 1, nz}, Chzex{nx - 1, nz}, Chzey{nx - 1, nz}, Chzh{nx - 1, nz}
-    {
-      // TEz constructor
-      init_coefficients(dt, dx);
-    }
+    // explicit EMData(const size_t nx, const value_t dt, const value_t dx)
+    // requires (SELECT_EMSOLVER == 1)
+    // : Ez{nx}, Jz{nx}, Ceze{nx}, Cezhy{nx}, Cjz{nx},
+    //   Hy{nx - 1}, Chyez{nx - 1}, Chyh{nx - 1}
+    // {
+    //   init_coefficients(dt, dx);
+    // }
+    //
+    // explicit EMData(const size_t nx, const size_t ny, const value_t dt, const value_t dx)
+    // requires (SELECT_EMSOLVER == 2)
+    // : Ez{nx, ny}, Jz{nx, ny}, Ceze{nx, ny}, Cezhx{nx, ny}, Cezhy{nx, ny}, Cjz{nx, ny},
+    //   Hx{nx, ny - 1}, Chxey{nx, ny - 1}, Chxez{nx, ny - 1}, Chxh{nx, ny - 1},
+    //   Hy{nx - 1, ny}, Chyex{nx - 1, ny}, Chyez{nx - 1, ny}, Chyh{nx - 1, ny}
+    // {
+    //   // TMz constructor
+    //   init_coefficients(dt, dx);
+    // }
+    //
+    // explicit EMData(const size_t nx, const size_t ny, const value_t dt, const value_t dx)
+    // requires (SELECT_EMSOLVER == 3)
+    // : Ex{nx - 1, ny}, Jx{nx - 1, ny}, Cexe{nx - 1, ny}, Cexhy{nx - 1, ny}, Cexhz{nx - 1, ny}, Cjx{nx - 1, ny},
+    //   Ey{nx, ny}, Jy{nx, ny}, Ceye{nx, ny}, Ceyhx{nx, ny}, Ceyhz{nx, ny}, Cjy{nx, ny},
+    //   Hz{nx - 1, ny}, Chzex{nx - 1, ny}, Chzey{nx - 1, ny}, Chzh{nx - 1, ny}
+    // {
+    //   // TEz constructor
+    //   init_coefficients(dt, dx);
+    // }
 
     explicit EMData(const size_t nx, const size_t ny, const size_t nz, const value_t dt, const value_t dx)
-    requires (SELECT_EMSOLVER == 4)
+    // requires (SELECT_EMSOLVER == 4)
     : Ex{nx - 1, ny, nz}, Jx{nx - 1, ny, nz}, Cexe{nx - 1, ny, nz}, Cexhy{nx - 1, ny, nz}, Cexhz{nx - 1, ny, nz}, Cjx{nx - 1, ny, nz},
       Ey{nx, ny - 1, nz}, Jy{nx, ny - 1, nz}, Ceye{nx, ny - 1, nz}, Ceyhx{nx, ny - 1, nz}, Ceyhz{nx, ny - 1, nz}, Cjy{nx, ny - 1, nz},
       Ez{nx, ny, nz - 1}, Jz{nx, ny, nz - 1}, Ceze{nx, ny, nz - 1}, Cezhx{nx, ny, nz - 1}, Cezhy{nx, ny, nz - 1}, Cjz{nx, ny, nz - 1},
@@ -66,17 +65,25 @@ namespace tf::electromagnetics
       init_coefficients(dt, dx);
     }
 
-    explicit EMData(const size_t nx, const size_t nz, const value_t dt, const value_t dx)
-    requires (SELECT_EMSOLVER == 5)
-    : Ex{nx - 1, nz}, Jx{nx - 1, nz}, Cexe{nx - 1, nz}, Cexhy{nx - 1, nz}, Cexhz{nx - 1, nz}, Cjx{nx - 1, nz},
-      Ey{nx, nz}, Jy{nx, nz}, Ceye{nx, nz}, Ceyhx{nx, nz}, Ceyhz{nx, nz}, Cjy{nx, nz},
-      Ez{nx, nz - 1}, Jz{nx, nz - 1}, Ceze{nx, nz - 1}, Cezhx{nx, nz - 1}, Cezhy{nx, nz - 1}, Cjz{nx, nz - 1},
-      Hx{nx, nz - 1}, Chxey{nx, nz - 1}, Chxez{nx, nz - 1}, Chxh{nx, nz - 1},
-      Hy{nx - 1, nz - 1}, Chyex{nx - 1, nz - 1}, Chyez{nx - 1, nz - 1}, Chyh{nx - 1, nz - 1},
-      Hz{nx - 1, nz}, Chzex{nx - 1, nz}, Chzey{nx - 1, nz}, Chzh{nx - 1, nz}
-    {
-      init_coefficients(dt, dx);
-    }
+    explicit EMData(const size_t nx, const value_t dt, const value_t dx)
+    : EMData{nx, 1, 1, dt, dx}
+    {}
+
+    explicit EMData(const size_t nx, const size_t ny, const value_t dt, const value_t dx)
+    : EMData{nx, ny, (SELECT_EMSOLVER == 2) ? 2 : 1, dt, dx} // todo: this isn't dumb at all. Only needed for TMz since, nz - 1 == 0...
+    {}
+
+    // explicit EMData(const size_t nx, const size_t nz, const value_t dt, const value_t dx)
+    // requires (SELECT_EMSOLVER == 5)
+    // : Ex{nx - 1, nz}, Jx{nx - 1, nz}, Cexe{nx - 1, nz}, Cexhy{nx - 1, nz}, Cexhz{nx - 1, nz}, Cjx{nx - 1, nz},
+    //   Ey{nx, nz}, Jy{nx, nz}, Ceye{nx, nz}, Ceyhx{nx, nz}, Ceyhz{nx, nz}, Cjy{nx, nz},
+    //   Ez{nx, nz - 1}, Jz{nx, nz - 1}, Ceze{nx, nz - 1}, Cezhx{nx, nz - 1}, Cezhy{nx, nz - 1}, Cjz{nx, nz - 1},
+    //   Hx{nx, nz - 1}, Chxey{nx, nz - 1}, Chxez{nx, nz - 1}, Chxh{nx, nz - 1},
+    //   Hy{nx - 1, nz - 1}, Chyex{nx - 1, nz - 1}, Chyez{nx - 1, nz - 1}, Chyh{nx - 1, nz - 1},
+    //   Hz{nx - 1, nz}, Chzex{nx - 1, nz}, Chzey{nx - 1, nz}, Chzh{nx - 1, nz}
+    // {
+    //   init_coefficients(dt, dx);
+    // }
 
     void init_coefficients(value_t, value_t);
     // void init_coefficients_2D(value_t);
@@ -119,8 +126,8 @@ namespace tf::electromagnetics
 
     // todo: Is using a vector of unique_ptrs appropriate here? Can sources allocated in place? What about TFSF (contains a lot of Arrays..)?
     std::vector<std::unique_ptr<sources::CurrentSource<array_t>>> srcs{};
-    std::vector<std::unique_ptr<sources::GaussianBeam<array_t>>> beams{};
-    std::vector<std::unique_ptr<sources::TFSFSourceTM<value_t>>> tfsf{};
+    // std::vector<std::unique_ptr<sources::GaussianBeam<array_t>>> beams{};
+    // std::vector<std::unique_ptr<sources::TFSFSourceTM<value_t>>> tfsf{};
   };
 
   template<typename Array>

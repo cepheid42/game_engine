@@ -55,31 +55,6 @@ void to_csv(const Array& arr, const size_t step, const std::string& name) {
 
   file.close();
 }
-template<typename Array>
-requires tf::electromagnetics::traits::instance_of_type<tf::types::EmptyArray, Array>
-void print_array(const Array&) {
-  std::cout << "Empty Array." << std::endl;
-}
-
-template<typename Array>
-void print_array(const Array& arr) {
-  if constexpr (Array::dimension_t::value == 1) {
-    for (size_t i = 0; i < arr.nx(); i++) {
-      std::cout << arr[i] << ", ";
-    }
-    std::cout << std::endl;
-  } else {
-    for (size_t i = 0; i < arr.nx(); i++) {
-      for (size_t j = 0; j < arr.ny(); j++) {
-        std::cout << arr(i, j);
-        if (j < arr.ny() - 1) {
-          std::cout << ", ";
-        }
-      }
-      std::cout << std::endl;
-    }
-  }
-}
 
 
 int main() {
@@ -98,6 +73,13 @@ int main() {
   emdata_t<double> em{nx, ny, dt, dx};
   bcdata_t<double> bc{em, dt, dx};
 
+  DBG(dbg::type<emdata_t<double>>());
+  DBG(em.Ex.nx(), em.Ex.ny(), em.Ex.nz());
+  DBG(em.Ey.nx(), em.Ey.ny(), em.Ey.nz());
+  DBG(em.Ez.nx(), em.Ez.ny(), em.Ez.nz());
+  DBG(em.Hx.nx(), em.Hx.ny(), em.Hx.nz());
+  DBG(em.Hy.nx(), em.Hy.ny(), em.Hy.nz());
+  DBG(em.Hz.nx(), em.Hz.ny(), em.Hz.nz());
   // constexpr size_t x0 = nPml + 5;
   // constexpr size_t x1 = nx - nPml - 5;
   // using tf::electromagnetics::sources::ContinuousSource;
@@ -126,65 +108,69 @@ int main() {
   // constexpr auto width = 7.58e-9;
   // em.beams[0]->t_srcs.push_back(std::make_unique<GaussianSource<fp_t>>(width, 2.0, 2.0 * width));
 
-  using tf::electromagnetics::sources::CurrentSource;
-  using tf::electromagnetics::sources::SpatialSource;
-  using tf::electromagnetics::sources::RickerSource;
-  using temporal_vec = std::vector<std::unique_ptr<tf::electromagnetics::sources::TemporalSource<fp_t>>>;
-
+  // using tf::electromagnetics::sources::CurrentSource;
+  // using tf::electromagnetics::sources::SpatialSource;
+  // using tf::electromagnetics::sources::RickerSource;
+  // using temporal_vec = std::vector<std::unique_ptr<tf::electromagnetics::sources::TemporalSource<fp_t>>>;
+  //
   constexpr auto freq = c0 / (40.0 * dx);
-
-  auto make_tvec = [&]()
-  {
-    temporal_vec tvec{};
-    tvec.push_back(std::make_unique<RickerSource<fp_t>>(freq));
-    return tvec;
-  };
-
-  em.srcs.push_back(
-    std::make_unique<CurrentSource<Array2D<fp_t>>>(
-      &em.Ez,
-      SpatialSource<fp_t>(
-        make_tvec(),
-        50.0, 60, 61, 60, 61
-      )
-    )
-  );
+  //
+  // auto make_tvec = [&]()
+  // {
+  //   temporal_vec tvec{};
+  //   tvec.push_back(std::make_unique<RickerSource<fp_t>>(freq));
+  //   return tvec;
+  // };
+  //
+  // em.srcs.push_back(
+  //   std::make_unique<CurrentSource<Array3D<fp_t>>>(
+  //     &em.Ez,
+  //     SpatialSource<fp_t>(
+  //       make_tvec(),
+  //       50.0, 60, 61, 60, 61
+  //     )
+  //   )
+  // );
 
 
   // emdata_t<double> em{nx, ny, nz, dt, dx};
   // bcdata_t<double> bc{em, dt, dx};
 
-  constexpr auto save_step = 4;
-  size_t filecount = 0;
-  for (size_t n = 0; n < nt; n++) {
-
-    EMSolver<fp_t>::advance(static_cast<fp_t>(n) * dt, em, bc);
-
-    if (n % save_step == 0) {
-      std::cout << "Step " << n << std::endl;
-
-// #pragma omp parallel num_threads(3)
-//       {
-// #pragma omp single
-//         {
-// #pragma omp task
-//           to_csv(em.Ex, filecount, "Ex");
-// #pragma omp task
-//           to_csv(em.Ey, filecount, "Ey");
-// #pragma omp task
-           to_csv(em.Ez, filecount, "Ez");
-// #pragma omp task
-//           to_csv(em.Hx, filecount, "Hx");
-// #pragma omp task
-//           to_csv(em.Hy, filecount, "Hy");
-// #pragma omp task
-//           to_csv(em.Hz, filecount, "Hz");
-//          }
-//        }
-
-      filecount++;
-    }
-  }
+//   tf::electromagnetics::sources::RickerSource<double> ricker{freq};
+//
+//   constexpr auto save_step = 4;
+//   size_t filecount = 0;
+//   for (size_t n = 0; n < nt; n++) {
+//
+//     EMSolver<fp_t>::advance(static_cast<fp_t>(n) * dt, em, bc);
+//
+//     em.Ez(60, 60, 0) += ricker.eval(static_cast<fp_t>(n) * dt);
+//
+//     if (n % save_step == 0) {
+//       std::cout << "Step " << n << std::endl;
+//
+// // #pragma omp parallel num_threads(3)
+// //       {
+// // #pragma omp single
+// //         {
+// // #pragma omp task
+// //           to_csv(em.Ex, filecount, "Ex");
+// // #pragma omp task
+// //           to_csv(em.Ey, filecount, "Ey");
+// // #pragma omp task
+//            to_csv(em.Ez, filecount, "Ez");
+// // #pragma omp task
+// //           to_csv(em.Hx, filecount, "Hx");
+// // #pragma omp task
+// //           to_csv(em.Hy, filecount, "Hy");
+// // #pragma omp task
+// //           to_csv(em.Hz, filecount, "Hz");
+// //          }
+// //        }
+//
+//       filecount++;
+//     }
+//   }
 
   const auto stop = std::chrono::high_resolution_clock::now() - start;
   const auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop);

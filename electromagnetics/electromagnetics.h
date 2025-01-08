@@ -5,7 +5,7 @@
 #ifndef ELECTROMAGNETICS_H
 #define ELECTROMAGNETICS_H
 
-// #include "electromagnetics.param"
+#include "electromagnetics.param"
 #include "em_definitions.h"
 #include "bc_definitions.h"
 
@@ -14,7 +14,6 @@ using tf::electromagnetics::EMData;
 using tf::electromagnetics::Electromagnetics;
 using tf::electromagnetics::boundaries::BCData;
 using tf::electromagnetics::boundaries::Boundary;
-
 
 // todo: This checks for invalid BC combos that will compile & run but eventually blow up.
 //        Probably can be made more comprehensive later with concepts or something.
@@ -91,9 +90,8 @@ using EMDataTL = TypeList<
   emdataNone<T>, // 0
   emdata1D<T>,   // 1
   emdataTMz<T>,   // 2
-  emdataTEy<T>,   // 3
-  emdata3D<T>,   // 4
-  emdata2D6C<T>  // 5
+  emdataTEz<T>,   // 3
+  emdata3D<T>   // 4
 >; // Typelist for choosing type of EMData
 
 template<typename T>
@@ -104,9 +102,8 @@ using EMTypeTL = TypeList<
   EMNull<T>, // 0
   EM1D<T>,   // 1
   EMTMz<T>,   // 2
-  EMTEy<T>,   // 3
-  EM3D<T>,   // 4
-  EM2D6C<T>  // 5
+  EMTEz<T>,   // 3
+  EM3D<T>   // 4
 >; // Typelist (of typelists) for choosing type of EM Solver
 
 template<typename T>

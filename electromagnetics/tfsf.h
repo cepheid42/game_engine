@@ -36,9 +36,9 @@ namespace tf::electromagnetics::sources
 
   template<typename T>
   struct TFSFSourceTM {
-    using HIntegrator = FieldIntegrator1D<tf::types::Array1D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, true, size_t>>;
-    using EIntegrator = FieldIntegrator1D<tf::types::Array1D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, false, size_t>>;
-    using empty_t = tf::types::EmptyArray1D<T>;
+    using HIntegrator = FieldIntegrator3D<tf::types::Array3D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, true, size_t>>;
+    using EIntegrator = FieldIntegrator3D<tf::types::Array3D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, false, size_t>>;
+    using empty_t = tf::types::EmptyArray3D<T>;
 
     static constexpr empty_t empty{};
 
@@ -72,7 +72,7 @@ namespace tf::electromagnetics::sources
     void correct_Hx(auto& Hx, const auto& Chxez) {
       // Correct Hx @ y0
       for (size_t i = x0; i <= x1; ++i) {
-        Hx(i, y0 - 1) += 2.0 * Chxez(i, y0 - 1) * Einc[i - nPml];
+        Hx(i, y0 - 1, 0) += 2.0 * Chxez(i, y0 - 1) * Einc[i - nPml];
       }
 
       // Correct Hx @ y1
@@ -119,13 +119,13 @@ namespace tf::electromagnetics::sources
 
     size_t x0, x1, y0, y1;
 
-    tf::types::Array1D<T> Einc;
-    tf::types::Array1D<T> Ceze;
-    tf::types::Array1D<T> Cezh;
+    tf::types::Array3D<T> Einc;
+    tf::types::Array3D<T> Ceze;
+    tf::types::Array3D<T> Cezh;
 
-    tf::types::Array1D<T> Hinc;
-    tf::types::Array1D<T> Chyh;
-    tf::types::Array1D<T> Chye;
+    tf::types::Array3D<T> Hinc;
+    tf::types::Array3D<T> Chyh;
+    tf::types::Array3D<T> Chye;
   };
 
   template <typename T>

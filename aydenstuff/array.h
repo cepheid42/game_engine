@@ -52,160 +52,160 @@ namespace tf::types
     };
   }
   
-  // ----- Array1D -----
-  template <typename T>
-  struct Array1D : public detail::ArrayBase<T, 1> {
-    using value_t = typename detail::ArrayBase<T, 1>::value_t;
-    using vector_t = typename detail::ArrayBase<T, 1>::vector_t;
-    using dimension_t = typename detail::ArrayBase<T, 1>::dimension_t;
-    using array_t = Array1D<value_t>;
-
-    // Constructors & Destructor
-    explicit Array1D() = default;
-    explicit Array1D(size_t nx_) : detail::ArrayBase<T, 1>(nx_), nx_(nx_) {}
-    // Array1D(size_t nx_, value_t fill) : detail::ArrayBase<T, 1>(nx_, fill), nx_(nx_) {}
-    explicit Array1D(size_t nx_, size_t, size_t) : detail::ArrayBase<T, 1>(nx_), nx_(nx_) {} // Extra for BC fun stuff
-    Array1D(const Array1D& other) : detail::ArrayBase<T, 1>(other), nx_(other.nx_) {}
-    
-    Array1D& operator=(const Array1D& other);
-    
-    ~Array1D() = default;
-    
-    // Indexing Function
-    [[nodiscard]] static inline size_t get_scid(size_t i) { return i; }
-
-    [[nodiscard]] size_t nx() const { return nx_; }
-    static constexpr size_t ny() { return 1u; }
-    static constexpr size_t nz() { return 1u; }
-    
-    // Specialized Accessors
-    value_t& operator()(size_t i) { return (*this)[i]; }
-    const value_t& operator()(size_t i) const { return (*this)[i]; }
-
-    // Unary Negation
-    auto operator-() const {
-      Array1D result(nx_);
-      for (size_t i = 0; i < this->data.size(); i++) { result[i] = value_t(-1) * (*this)[i]; }
-      return result;
-    }
-    
-    // Augmented Assignment
-    auto& operator+=(const Array1D& other) {
-      assert(nx_ == other.nx_);
-      for (size_t i = 0; i < this->data.size(); i++) { (*this)[i] += other.data[i]; }
-      return *this;
-    }
-    
-    auto& operator-=(const Array1D& other) {
-      assert(nx_ == other.nx_);
-      for (size_t i = 0; i < this->data.size(); i++) { (*this)[i] -= other.data[i]; }
-      return *this;
-    }
-    
-    // Array-Scalar Operators
-    auto& operator+=(const value_t s) {
-      for (auto& value : this->data) { value += s; }
-      return *this;
-    }
-    
-    auto& operator-=(const value_t s) {
-      for (auto& value : this->data) { value -= s; }
-      return *this;
-    }
-    
-    auto& operator*=(const value_t s) {
-      for (auto& value : this->data) { value *= s; }
-      return *this;
-    }
-    
-    auto& operator/=(const value_t s) {
-      for (auto& value : this->data) { value /= s; }
-      return *this;
-    }
-    
-    // Stride data
-    const size_t nx_;
-    //
-  };// end class Array1D
-  
-  // ----- Array2D -----
-  template <typename T>
-  struct Array2D : public detail::ArrayBase<T, 2> {
-    using value_t = typename detail::ArrayBase<T, 2>::value_t;
-    using vector_t = typename detail::ArrayBase<T, 2>::vector_t;
-    using dimension_t = typename detail::ArrayBase<T, 2>::dimension_t;
-    using array_t = Array2D<value_t>;
-
-    // Constructors & Destructor
-    explicit Array2D() = default;
-    explicit Array2D(size_t nx_, size_t ny_) : detail::ArrayBase<T, 2>(nx_ * ny_), nx_(nx_), ny_(ny_) {}
-    explicit Array2D(size_t nx_, size_t ny_, size_t) : detail::ArrayBase<T, 2>(nx_ * ny_), nx_(nx_), ny_(ny_) {} // BC fun times
-    // Array2D(vec2<size_t> dims_, value_t fill=0.0) : Array2D(dims_[0], dims_[1], fill) {}
-    Array2D(const Array2D& other) : detail::ArrayBase<T, 2>(other), nx_(other.nx_), ny_(other.ny_) {}
-    
-    Array2D& operator=(const Array2D& other);
-    
-    ~Array2D() = default;
-    
-    // Indexing Function
-    [[nodiscard]] inline size_t get_scid(size_t i, size_t k) const { return k + ny_ * i; }
-
-    [[nodiscard]] size_t nx() const { return nx_; }
-    [[nodiscard]] size_t ny() const { return ny_; }
-    static constexpr size_t nz() { return 1u; }
-    
-    // Specialized accessors
-    value_t& operator()(size_t i, size_t j) { return (*this)[get_scid(i, j)]; }
-    const value_t& operator()(size_t i, size_t j) const { return (*this)[get_scid(i, j)]; }
-
-    // Dims
-    [[nodiscard]] vec2<size_t> dims() const { return {nx_, ny_}; }
-    
-    // Unary Negation
-    auto operator-() const {
-      Array2D result(nx_, ny_);
-      for (size_t i = 0; i < this->data.size(); i++) { result[i] = value_t(-1) * (*this)[i]; }
-      return result;
-    }
-    
-    // Augmented Assignment
-    auto& operator+=(const Array2D& other) {
-      assert(nx_ == other.nx_ && ny_ == other.ny_);
-      for (size_t i = 0; i < this->data.size(); i++) { (*this)[i] += other.data[i]; }
-      return *this;
-    }
-    
-    auto& operator-=(const Array2D& other) {
-      assert(nx_ == other.nx_ && ny_ == other.ny_);
-      for (size_t i = 0; i < this->data.size(); i++) { (*this)[i] -= other.data[i]; }
-      return *this;
-    }
-    
-    // Array-Scalar Operators
-    auto& operator+=(const value_t s) {
-      for (auto& value : this->data) { value += s; }
-      return *this;
-    }
-    
-    auto& operator-=(const value_t s) {
-      for (auto& value : this->data) { value -= s; }
-      return *this;
-    }
-    
-    auto& operator*=(const value_t s) {
-      for (auto& value : this->data) { value *= s; }
-      return *this;
-    }
-    
-    auto& operator/=(const value_t s) {
-      for (auto& value : this->data) { value /= s; }
-      return *this;
-    }
-    
-    // Stride data
-    const size_t nx_, ny_;
-    //
-  };// end class Array2D
+  // // ----- Array1D -----
+  // template <typename T>
+  // struct Array1D : public detail::ArrayBase<T, 1> {
+  //   using value_t = typename detail::ArrayBase<T, 1>::value_t;
+  //   using vector_t = typename detail::ArrayBase<T, 1>::vector_t;
+  //   using dimension_t = typename detail::ArrayBase<T, 1>::dimension_t;
+  //   using array_t = Array1D<value_t>;
+  //
+  //   // Constructors & Destructor
+  //   explicit Array1D() = default;
+  //   explicit Array1D(size_t nx_) : detail::ArrayBase<T, 1>(nx_), nx_(nx_) {}
+  //   // Array1D(size_t nx_, value_t fill) : detail::ArrayBase<T, 1>(nx_, fill), nx_(nx_) {}
+  //   explicit Array1D(size_t nx_, size_t, size_t) : detail::ArrayBase<T, 1>(nx_), nx_(nx_) {} // Extra for BC fun stuff
+  //   Array1D(const Array1D& other) : detail::ArrayBase<T, 1>(other), nx_(other.nx_) {}
+  //
+  //   Array1D& operator=(const Array1D& other);
+  //
+  //   ~Array1D() = default;
+  //
+  //   // Indexing Function
+  //   [[nodiscard]] static inline size_t get_scid(size_t i) { return i; }
+  //
+  //   [[nodiscard]] size_t nx() const { return nx_; }
+  //   static constexpr size_t ny() { return 1u; }
+  //   static constexpr size_t nz() { return 1u; }
+  //
+  //   // Specialized Accessors
+  //   value_t& operator()(size_t i) { return (*this)[i]; }
+  //   const value_t& operator()(size_t i) const { return (*this)[i]; }
+  //
+  //   // Unary Negation
+  //   auto operator-() const {
+  //     Array1D result(nx_);
+  //     for (size_t i = 0; i < this->data.size(); i++) { result[i] = value_t(-1) * (*this)[i]; }
+  //     return result;
+  //   }
+  //
+  //   // Augmented Assignment
+  //   auto& operator+=(const Array1D& other) {
+  //     assert(nx_ == other.nx_);
+  //     for (size_t i = 0; i < this->data.size(); i++) { (*this)[i] += other.data[i]; }
+  //     return *this;
+  //   }
+  //
+  //   auto& operator-=(const Array1D& other) {
+  //     assert(nx_ == other.nx_);
+  //     for (size_t i = 0; i < this->data.size(); i++) { (*this)[i] -= other.data[i]; }
+  //     return *this;
+  //   }
+  //
+  //   // Array-Scalar Operators
+  //   auto& operator+=(const value_t s) {
+  //     for (auto& value : this->data) { value += s; }
+  //     return *this;
+  //   }
+  //
+  //   auto& operator-=(const value_t s) {
+  //     for (auto& value : this->data) { value -= s; }
+  //     return *this;
+  //   }
+  //
+  //   auto& operator*=(const value_t s) {
+  //     for (auto& value : this->data) { value *= s; }
+  //     return *this;
+  //   }
+  //
+  //   auto& operator/=(const value_t s) {
+  //     for (auto& value : this->data) { value /= s; }
+  //     return *this;
+  //   }
+  //
+  //   // Stride data
+  //   const size_t nx_;
+  //   //
+  // };// end class Array1D
+  //
+  // // ----- Array2D -----
+  // template <typename T>
+  // struct Array2D : public detail::ArrayBase<T, 2> {
+  //   using value_t = typename detail::ArrayBase<T, 2>::value_t;
+  //   using vector_t = typename detail::ArrayBase<T, 2>::vector_t;
+  //   using dimension_t = typename detail::ArrayBase<T, 2>::dimension_t;
+  //   using array_t = Array2D<value_t>;
+  //
+  //   // Constructors & Destructor
+  //   explicit Array2D() = default;
+  //   explicit Array2D(size_t nx_, size_t ny_) : detail::ArrayBase<T, 2>(nx_ * ny_), nx_(nx_), ny_(ny_) {}
+  //   explicit Array2D(size_t nx_, size_t ny_, size_t) : detail::ArrayBase<T, 2>(nx_ * ny_), nx_(nx_), ny_(ny_) {} // BC fun times
+  //   // Array2D(vec2<size_t> dims_, value_t fill=0.0) : Array2D(dims_[0], dims_[1], fill) {}
+  //   Array2D(const Array2D& other) : detail::ArrayBase<T, 2>(other), nx_(other.nx_), ny_(other.ny_) {}
+  //
+  //   Array2D& operator=(const Array2D& other);
+  //
+  //   ~Array2D() = default;
+  //
+  //   // Indexing Function
+  //   [[nodiscard]] inline size_t get_scid(size_t i, size_t k) const { return k + ny_ * i; }
+  //
+  //   [[nodiscard]] size_t nx() const { return nx_; }
+  //   [[nodiscard]] size_t ny() const { return ny_; }
+  //   static constexpr size_t nz() { return 1u; }
+  //
+  //   // Specialized accessors
+  //   value_t& operator()(size_t i, size_t j) { return (*this)[get_scid(i, j)]; }
+  //   const value_t& operator()(size_t i, size_t j) const { return (*this)[get_scid(i, j)]; }
+  //
+  //   // Dims
+  //   [[nodiscard]] vec2<size_t> dims() const { return {nx_, ny_}; }
+  //
+  //   // Unary Negation
+  //   auto operator-() const {
+  //     Array2D result(nx_, ny_);
+  //     for (size_t i = 0; i < this->data.size(); i++) { result[i] = value_t(-1) * (*this)[i]; }
+  //     return result;
+  //   }
+  //
+  //   // Augmented Assignment
+  //   auto& operator+=(const Array2D& other) {
+  //     assert(nx_ == other.nx_ && ny_ == other.ny_);
+  //     for (size_t i = 0; i < this->data.size(); i++) { (*this)[i] += other.data[i]; }
+  //     return *this;
+  //   }
+  //
+  //   auto& operator-=(const Array2D& other) {
+  //     assert(nx_ == other.nx_ && ny_ == other.ny_);
+  //     for (size_t i = 0; i < this->data.size(); i++) { (*this)[i] -= other.data[i]; }
+  //     return *this;
+  //   }
+  //
+  //   // Array-Scalar Operators
+  //   auto& operator+=(const value_t s) {
+  //     for (auto& value : this->data) { value += s; }
+  //     return *this;
+  //   }
+  //
+  //   auto& operator-=(const value_t s) {
+  //     for (auto& value : this->data) { value -= s; }
+  //     return *this;
+  //   }
+  //
+  //   auto& operator*=(const value_t s) {
+  //     for (auto& value : this->data) { value *= s; }
+  //     return *this;
+  //   }
+  //
+  //   auto& operator/=(const value_t s) {
+  //     for (auto& value : this->data) { value /= s; }
+  //     return *this;
+  //   }
+  //
+  //   // Stride data
+  //   const size_t nx_, ny_;
+  //   //
+  // };// end class Array2D
   
   // ----- Array3D -----
   template <typename T>
@@ -217,7 +217,7 @@ namespace tf::types
 
     // Constructors & Destructor
     explicit Array3D() = default;
-    explicit Array3D(size_t nx_, size_t ny_, size_t nz_) : detail::ArrayBase<T, 3>(nx_ * ny_ * nz_), nx_(nx_), ny_(ny_), nz_(nz_) {}
+    explicit Array3D(const size_t nx_, const size_t ny_=1, const size_t nz_=1) : detail::ArrayBase<T, 3>(nx_ * ny_ * nz_), nx_(nx_), ny_(ny_), nz_(nz_) {}
     // Array3D(vec3<size_t> dims_, value_t fill=0.0) : Array3D(dims_[0], dims_[1], dims_[2], fill) {}
     Array3D(const Array3D& other) : detail::ArrayBase<T, 3>(other), nx_(other.nx_), ny_(other.ny_), nz_(other.nz_) {}
     
@@ -306,11 +306,11 @@ namespace tf::types
     constexpr value_t operator()(std::size_t...) const { return static_cast<value_t>(0.0); }
   };
 
-  template<typename T>
-  using EmptyArray1D = EmptyArray<Array1D<T>>;
-
-  template<typename T>
-  using EmptyArray2D = EmptyArray<Array2D<T>>;
+  // template<typename T>
+  // using EmptyArray1D = EmptyArray<Array1D<T>>;
+  //
+  // template<typename T>
+  // using EmptyArray2D = EmptyArray<Array2D<T>>;
 
   template<typename T>
   using EmptyArray3D = EmptyArray<Array3D<T>>;
@@ -318,17 +318,17 @@ namespace tf::types
 
 // ===== Copy-Assignment Implementations =====
 // ===========================================
-template <typename T>
-tf::types::Array1D<T>& tf::types::Array1D<T>::operator=(const tf::types::Array1D<T> &other) {
-  assert(false);
-  return *this;
-}
-
-template <typename T>
-tf::types::Array2D<T>& tf::types::Array2D<T>::operator=(const tf::types::Array2D<T>& other) {
-  assert(false);
-  return *this;
-}
+// template <typename T>
+// tf::types::Array1D<T>& tf::types::Array1D<T>::operator=(const tf::types::Array1D<T> &other) {
+//   assert(false);
+//   return *this;
+// }
+//
+// template <typename T>
+// tf::types::Array2D<T>& tf::types::Array2D<T>::operator=(const tf::types::Array2D<T>& other) {
+//   assert(false);
+//   return *this;
+// }
 
 template <typename T>
 tf::types::Array3D<T>& tf::types::Array3D<T>::operator=(const tf::types::Array3D<T> &other) {

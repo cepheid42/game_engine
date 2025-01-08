@@ -22,11 +22,11 @@ using tf::electromagnetics::boundaries::Periodic3DUpdate;
 using tf::electromagnetics::boundaries::Pml1DUpdate;
 using tf::electromagnetics::boundaries::Pml2DUpdate;
 using tf::electromagnetics::boundaries::Pml3DUpdate;
-using tf::types::Array1D;
-using tf::types::Array2D;
 using tf::types::Array3D;
-using tf::types::EmptyArray1D;
-using tf::types::EmptyArray2D;
+using tf::types::Array3D;
+using tf::types::Array3D;
+using tf::types::EmptyArray3D;
+using tf::types::EmptyArray3D;
 using tf::types::EmptyArray3D;
 
 //=================== BCData Definitions ===================
@@ -35,36 +35,36 @@ using tf::types::EmptyArray3D;
 // Reflecting Boundary
 template<typename T>
 using ReflectingData = FaceBCs<
-  /* Ex */ NullData<EmptyArray1D<T>>,
-  /* Ey */ NullData<EmptyArray1D<T>>,
-  /* Ez */ NullData<EmptyArray1D<T>>,
-  /* Hx */ NullData<EmptyArray1D<T>>,
-  /* Hy */ NullData<EmptyArray1D<T>>,
-  /* Hz */ NullData<EmptyArray1D<T>>
+  /* Ex */ NullData<EmptyArray3D<T>>,
+  /* Ey */ NullData<EmptyArray3D<T>>,
+  /* Ez */ NullData<EmptyArray3D<T>>,
+  /* Hx */ NullData<EmptyArray3D<T>>,
+  /* Hy */ NullData<EmptyArray3D<T>>,
+  /* Hz */ NullData<EmptyArray3D<T>>
 >;
 
 // -------------------------------------------
 // 1D Boundary
 template<typename T, EMFace F, EMSide S>
 using PeriodicData1D = FaceBCs<
-  /* Ex */ NullData<EmptyArray1D<T>>,
-  /* Ey */ NullData<EmptyArray1D<T>>,
-  /* Ez */ PeriodicData<Array1D<T>, F, S>,
-  /* Hx */ NullData<EmptyArray1D<T>>,
-  /* Hy */ NullData<EmptyArray1D<T>>,
-  /* Hz */ NullData<EmptyArray1D<T>>
+  /* Ex */ NullData<EmptyArray3D<T>>,
+  /* Ey */ NullData<EmptyArray3D<T>>,
+  /* Ez */ PeriodicData<Array3D<T>, F, S>,
+  /* Hx */ NullData<EmptyArray3D<T>>,
+  /* Hy */ NullData<EmptyArray3D<T>>,
+  /* Hz */ NullData<EmptyArray3D<T>>
 >;
 
 // -------------------------------------------
 // TM Boundary
 template<typename T, EMFace F, EMSide S>
 using PeriodicDataTM = FaceBCs<
-  /* Ex */ NullData<EmptyArray2D<T>>,
-  /* Ey */ NullData<EmptyArray2D<T>>,
-  /* Ez */ PeriodicData<Array2D<T>, F, S>,
-  /* Hx */ NullData<EmptyArray2D<T>>,
-  /* Hy */ NullData<EmptyArray2D<T>>,
-  /* Hz */ NullData<EmptyArray2D<T>>
+  /* Ex */ NullData<EmptyArray3D<T>>,
+  /* Ey */ NullData<EmptyArray3D<T>>,
+  /* Ez */ PeriodicData<Array3D<T>, F, S>,
+  /* Hx */ NullData<EmptyArray3D<T>>,
+  /* Hy */ NullData<EmptyArray3D<T>>,
+  /* Hz */ NullData<EmptyArray3D<T>>
 >;
 
 // -------------------------------------------
@@ -73,12 +73,12 @@ using PeriodicDataTM = FaceBCs<
 template<typename T, EMFace F, EMSide S>
 struct PeriodicDataTEImpl {
   using type = FaceBCs<
-    /* Ex */ NullData<EmptyArray2D<T>>,
-    /* Ey */ NullData<EmptyArray2D<T>>,
-    /* Ez */ NullData<EmptyArray2D<T>>,
-    /* Hx */ NullData<EmptyArray2D<T>>,
-    /* Hy */ NullData<EmptyArray2D<T>>,
-    /* Hz */ NullData<EmptyArray2D<T>>
+    /* Ex */ NullData<EmptyArray3D<T>>,
+    /* Ey */ NullData<EmptyArray3D<T>>,
+    /* Ez */ NullData<EmptyArray3D<T>>,
+    /* Hx */ NullData<EmptyArray3D<T>>,
+    /* Hy */ NullData<EmptyArray3D<T>>,
+    /* Hz */ NullData<EmptyArray3D<T>>
   >;
 };
 
@@ -86,12 +86,12 @@ template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::X)
 struct PeriodicDataTEImpl<T, F, S> {
   using type = FaceBCs<
-    /* Ex */ NullData<EmptyArray2D<T>>,
-    /* Ey */ PeriodicData<Array2D<T>, F, S>,
-    /* Ez */ NullData<EmptyArray2D<T>>,
-    /* Hx */ NullData<EmptyArray2D<T>>,
-    /* Hy */ NullData<EmptyArray2D<T>>,
-    /* Hz */ NullData<EmptyArray2D<T>>
+    /* Ex */ NullData<EmptyArray3D<T>>,
+    /* Ey */ PeriodicData<Array3D<T>, F, S>,
+    /* Ez */ NullData<EmptyArray3D<T>>,
+    /* Hx */ NullData<EmptyArray3D<T>>,
+    /* Hy */ NullData<EmptyArray3D<T>>,
+    /* Hz */ NullData<EmptyArray3D<T>>
   >;
 };
 
@@ -99,12 +99,12 @@ template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::Y)
 struct PeriodicDataTEImpl<T, F, S> {
   using type = FaceBCs<
-    /* Ex */ PeriodicData<Array2D<T>, F, S>,
-    /* Ey */ NullData<EmptyArray2D<T>>,
-    /* Ez */ NullData<EmptyArray2D<T>>,
-    /* Hx */ NullData<EmptyArray2D<T>>,
-    /* Hy */ NullData<EmptyArray2D<T>>,
-    /* Hz */ NullData<EmptyArray2D<T>>
+    /* Ex */ PeriodicData<Array3D<T>, F, S>,
+    /* Ey */ NullData<EmptyArray3D<T>>,
+    /* Ez */ NullData<EmptyArray3D<T>>,
+    /* Hx */ NullData<EmptyArray3D<T>>,
+    /* Hy */ NullData<EmptyArray3D<T>>,
+    /* Hz */ NullData<EmptyArray3D<T>>
   >;
 };
 
@@ -165,12 +165,12 @@ using PeriodicData3D = typename PeriodicData3DImpl<T, F, S>::type;
 // 1D PML Boundary
 template<typename T, EMFace F, EMSide S>
 using PmlData1D = FaceBCs<
-  /* Ex */ NullData<EmptyArray1D<T>>,
-  /* Ey */ NullData<EmptyArray1D<T>>,
-  /* Ez */ PMLData<Array1D<T>, F, S, false>,
-  /* Hx */ NullData<EmptyArray1D<T>>,
-  /* Hy */ PMLData<Array1D<T>, F, S, true>,
-  /* Hz */ NullData<EmptyArray1D<T>>
+  /* Ex */ NullData<EmptyArray3D<T>>,
+  /* Ey */ NullData<EmptyArray3D<T>>,
+  /* Ez */ PMLData<Array3D<T>, F, S, false>,
+  /* Hx */ NullData<EmptyArray3D<T>>,
+  /* Hy */ PMLData<Array3D<T>, F, S, true>,
+  /* Hz */ NullData<EmptyArray3D<T>>
 >;
 
 // -------------------------------------------
@@ -178,12 +178,12 @@ using PmlData1D = FaceBCs<
 template<typename T, EMFace F, EMSide S>
 struct PmlDataTMImpl {
   using type = FaceBCs<
-  /* Ex */ NullData<EmptyArray2D<T>>,
-  /* Ey */ NullData<EmptyArray2D<T>>,
-  /* Ez */ NullData<EmptyArray2D<T>>,
-  /* Hx */ NullData<EmptyArray2D<T>>,
-  /* Hy */ NullData<EmptyArray2D<T>>,
-  /* Hz */ NullData<EmptyArray2D<T>>
+  /* Ex */ NullData<EmptyArray3D<T>>,
+  /* Ey */ NullData<EmptyArray3D<T>>,
+  /* Ez */ NullData<EmptyArray3D<T>>,
+  /* Hx */ NullData<EmptyArray3D<T>>,
+  /* Hy */ NullData<EmptyArray3D<T>>,
+  /* Hz */ NullData<EmptyArray3D<T>>
 >;
 };
 
@@ -192,12 +192,12 @@ template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::X)
 struct PmlDataTMImpl<T, F, S> {
   using type = FaceBCs<
-    /* Ex */ NullData<EmptyArray2D<T>>,
-    /* Ey */ NullData<EmptyArray2D<T>>,
-    /* Ez */ PMLData<Array2D<T>, F, S, false>,
-    /* Hx */ NullData<EmptyArray2D<T>>,
-    /* Hy */ PMLData<Array2D<T>, F, S, true>,
-    /* Hz */ NullData<EmptyArray2D<T>>
+    /* Ex */ NullData<EmptyArray3D<T>>,
+    /* Ey */ NullData<EmptyArray3D<T>>,
+    /* Ez */ PMLData<Array3D<T>, F, S, false>,
+    /* Hx */ NullData<EmptyArray3D<T>>,
+    /* Hy */ PMLData<Array3D<T>, F, S, true>,
+    /* Hz */ NullData<EmptyArray3D<T>>
   >;
 };
 
@@ -206,12 +206,12 @@ template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::Y)
 struct PmlDataTMImpl<T, F, S> {
   using type = FaceBCs<
-    /* Ex */ NullData<EmptyArray2D<T>>,
-    /* Ey */ NullData<EmptyArray2D<T>>,
-    /* Ez */ PMLData<Array2D<T>, F, S, false>,
-    /* Hx */ PMLData<Array2D<T>, F, S, true>,
-    /* Hy */ NullData<EmptyArray2D<T>>,
-    /* Hz */ NullData<EmptyArray2D<T>>
+    /* Ex */ NullData<EmptyArray3D<T>>,
+    /* Ey */ NullData<EmptyArray3D<T>>,
+    /* Ez */ PMLData<Array3D<T>, F, S, false>,
+    /* Hx */ PMLData<Array3D<T>, F, S, true>,
+    /* Hy */ NullData<EmptyArray3D<T>>,
+    /* Hz */ NullData<EmptyArray3D<T>>
   >;
 };
 
@@ -225,12 +225,12 @@ using PmlDataTM = typename PmlDataTMImpl<T, F, S>::type;
 template<typename T, EMFace F, EMSide S>
 struct PmlDataTEImpl{
   using type = FaceBCs<
-    /* Ex */ NullData<EmptyArray2D<T>>,
-    /* Ey */ NullData<EmptyArray2D<T>>,
-    /* Ez */ NullData<EmptyArray2D<T>>,
-    /* Hx */ NullData<EmptyArray2D<T>>,
-    /* Hy */ NullData<EmptyArray2D<T>>,
-    /* Hz */ NullData<EmptyArray2D<T>>
+    /* Ex */ NullData<EmptyArray3D<T>>,
+    /* Ey */ NullData<EmptyArray3D<T>>,
+    /* Ez */ NullData<EmptyArray3D<T>>,
+    /* Hx */ NullData<EmptyArray3D<T>>,
+    /* Hy */ NullData<EmptyArray3D<T>>,
+    /* Hz */ NullData<EmptyArray3D<T>>
   >;
 };
 
@@ -239,12 +239,12 @@ template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::X)
 struct PmlDataTEImpl<T, F, S> {
   using type = FaceBCs<
-    /* Ex */ NullData<EmptyArray2D<T>>,
-    /* Ey */ PMLData<Array2D<T>, F, S, false>,
-    /* Ez */ NullData<EmptyArray2D<T>>,
-    /* Hx */ NullData<EmptyArray2D<T>>,
-    /* Hy */ NullData<EmptyArray2D<T>>,
-    /* Hz */ PMLData<Array2D<T>, F, S, true>
+    /* Ex */ NullData<EmptyArray3D<T>>,
+    /* Ey */ PMLData<Array3D<T>, F, S, false>,
+    /* Ez */ NullData<EmptyArray3D<T>>,
+    /* Hx */ NullData<EmptyArray3D<T>>,
+    /* Hy */ NullData<EmptyArray3D<T>>,
+    /* Hz */ PMLData<Array3D<T>, F, S, true>
   >;
 };
 
@@ -253,12 +253,12 @@ template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::Y)
 struct PmlDataTEImpl<T, F, S> {
   using type = FaceBCs<
-    /* Ex */ PMLData<Array2D<T>, F, S, false>,
-    /* Ey */ NullData<EmptyArray2D<T>>,
-    /* Ez */ NullData<EmptyArray2D<T>>,
-    /* Hx */ NullData<EmptyArray2D<T>>,
-    /* Hy */ NullData<EmptyArray2D<T>>,
-    /* Hz */ PMLData<Array2D<T>, F, S, true>
+    /* Ex */ PMLData<Array3D<T>, F, S, false>,
+    /* Ey */ NullData<EmptyArray3D<T>>,
+    /* Ez */ NullData<EmptyArray3D<T>>,
+    /* Hx */ NullData<EmptyArray3D<T>>,
+    /* Hy */ NullData<EmptyArray3D<T>>,
+    /* Hz */ PMLData<Array3D<T>, F, S, true>
   >;
 };
 
@@ -323,12 +323,12 @@ using PmlData3D = typename PmlData3DImpl<T, F, S>::type;
 template<typename T, EMFace F, EMSide S>
 struct PmlData2D6CImpl {
   using type = FaceBCs<
-  /* Ex */ NullData<EmptyArray2D<T>>,
-  /* Ey */ NullData<EmptyArray2D<T>>,
-  /* Ez */ NullData<EmptyArray2D<T>>,
-  /* Hx */ NullData<EmptyArray2D<T>>,
-  /* Hy */ NullData<EmptyArray2D<T>>,
-  /* Hz */ NullData<EmptyArray2D<T>>
+  /* Ex */ NullData<EmptyArray3D<T>>,
+  /* Ey */ NullData<EmptyArray3D<T>>,
+  /* Ez */ NullData<EmptyArray3D<T>>,
+  /* Hx */ NullData<EmptyArray3D<T>>,
+  /* Hy */ NullData<EmptyArray3D<T>>,
+  /* Hz */ NullData<EmptyArray3D<T>>
 >;
 };
 
@@ -337,12 +337,12 @@ template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::X)
 struct PmlData2D6CImpl<T, F, S> {
   using type = FaceBCs<
-    /* Ex */ NullData<EmptyArray2D<T>>,
-    /* Ey */ PMLData<Array2D<T>, F, S, false>,
-    /* Ez */ PMLData<Array2D<T>, F, S, false>,
-    /* Hx */ NullData<EmptyArray2D<T>>,
-    /* Hy */ PMLData<Array2D<T>, F, S, true>,
-    /* Hz */ PMLData<Array2D<T>, F, S, true>
+    /* Ex */ NullData<EmptyArray3D<T>>,
+    /* Ey */ PMLData<Array3D<T>, F, S, false>,
+    /* Ez */ PMLData<Array3D<T>, F, S, false>,
+    /* Hx */ NullData<EmptyArray3D<T>>,
+    /* Hy */ PMLData<Array3D<T>, F, S, true>,
+    /* Hz */ PMLData<Array3D<T>, F, S, true>
   >;
 };
 
@@ -351,12 +351,12 @@ template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::Y)
 struct PmlData2D6CImpl<T, F, S> {
   using type = FaceBCs<
-    /* Ex */ PMLData<Array2D<T>, F, S, false>,
-    /* Ey */ NullData<EmptyArray2D<T>>,
-    /* Ez */ PMLData<Array2D<T>, F, S, false>,
-    /* Hx */ PMLData<Array2D<T>, F, S, true>,
-    /* Hy */ NullData<EmptyArray2D<T>>,
-    /* Hz */ PMLData<Array2D<T>, F, S, true>
+    /* Ex */ PMLData<Array3D<T>, F, S, false>,
+    /* Ey */ NullData<EmptyArray3D<T>>,
+    /* Ez */ PMLData<Array3D<T>, F, S, false>,
+    /* Hx */ PMLData<Array3D<T>, F, S, true>,
+    /* Hy */ NullData<EmptyArray3D<T>>,
+    /* Hz */ PMLData<Array3D<T>, F, S, true>
   >;
 };
 

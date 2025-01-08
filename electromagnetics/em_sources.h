@@ -76,9 +76,9 @@ namespace tf::electromagnetics::sources
   //       Maybe replace with a lookup table?
   template<typename T>
   struct AuxiliarySource {
-    using HIntegrator = FieldIntegrator1D<tf::types::Array1D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, true, size_t>>;
-    using EIntegrator = FieldIntegrator1D<tf::types::Array1D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, false, size_t>>;
-    using empty_t = tf::types::EmptyArray1D<T>;
+    using HIntegrator = FieldIntegrator3D<tf::types::Array3D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, true, size_t, size_t, size_t>>;
+    using EIntegrator = FieldIntegrator3D<tf::types::Array3D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, false, size_t, size_t, size_t>>;
+    using empty_t = tf::types::EmptyArray3D<T>;
     using temporal_vec = std::vector<std::unique_ptr<TemporalSource<T>>>;
 
     static constexpr empty_t empty{};
@@ -113,13 +113,13 @@ namespace tf::electromagnetics::sources
 
     temporal_vec t_srcs;
 
-    tf::types::Array1D<T> Einc;
-    tf::types::Array1D<T> Ceze;
-    tf::types::Array1D<T> Cezh;
+    tf::types::Array3D<T> Einc;
+    tf::types::Array3D<T> Ceze;
+    tf::types::Array3D<T> Cezh;
 
-    tf::types::Array1D<T> Hinc;
-    tf::types::Array1D<T> Chyh;
-    tf::types::Array1D<T> Chye;
+    tf::types::Array3D<T> Hinc;
+    tf::types::Array3D<T> Chyh;
+    tf::types::Array3D<T> Chye;
   };
 
 
@@ -154,27 +154,27 @@ namespace tf::electromagnetics::sources
       src(std::move(s))
     {}
 
-    // todo: These are soft sources, but don't fix the soft source problem (incorrect amplitude)
-    //       Not sure what the best fix is. Auxilliary sources seem overkill. Maybe a lookup table?
-    void apply(const value_t t) const
-    requires (dimension_t::value == 1)
-    {
-      for (size_t i = src.x0; i <= src.x1; ++i) {
-        (*field)[i] += src.eval(t);
-      }
-    }
+    // // todo: These are soft sources, but don't fix the soft source problem (incorrect amplitude)
+    // //       Not sure what the best fix is. Auxilliary sources seem overkill. Maybe a lookup table?
+    // void apply(const value_t t) const
+    // requires (dimension_t::value == 1)
+    // {
+    //   for (size_t i = src.x0; i <= src.x1; ++i) {
+    //     (*field)[i] += src.eval(t);
+    //   }
+    // }
+    //
+    // void apply(const value_t t)
+    // requires (dimension_t::value == 2)
+    // {
+    //   for (size_t i = src.x0; i < src.x1; ++i) {
+    //     for (size_t j = src.y0; j < src.y1; ++j) {
+    //       (*field)(i, j) += src.eval(t);
+    //     }
+    //   }
+    // }
 
     void apply(const value_t t)
-    requires (dimension_t::value == 2)
-    {
-      for (size_t i = src.x0; i < src.x1; ++i) {
-        for (size_t j = src.y0; j < src.y1; ++j) {
-          (*field)(i, j) += src.eval(t);
-        }
-      }
-    }
-
-    void apply(const value_t t) const
     requires (dimension_t::value == 3)
     {
       for (size_t i = src.x0; i < src.x1; ++i) {
@@ -190,68 +190,70 @@ namespace tf::electromagnetics::sources
     SpatialSource<value_t> src;
   };
 
-  template<typename Array>
-  struct GaussianBeam : SpatialSource<typename Array::value_t> {
-    using value_t = typename Array::value_t;
-    using vec2_t = std::array<value_t, 2>;
-    using temporal_vec = std::vector<std::unique_ptr<TemporalSource<value_t>>>;
-
-    GaussianBeam(Array* const f,
-                 temporal_vec&& ts,
-                 const value_t amp_,
-                 const value_t w0_,
-                 const value_t omega_,
-                 const vec2_t& p0_,
-                 const size_t x0_,
-                 const size_t x1_,
-                 const size_t y0_,
-                 const size_t y1_,
-                 const value_t dx)
-    : SpatialSource<value_t>{std::forward<temporal_vec>(ts), amp_, x0_, x1_, y0_, y1_},
-      field(f), w0(w0_), omega(omega_), p0{p0_}, Ecoeffs(y1_ - y0_)
-    {
-      constexpr auto c0 = 299792458.0;
-
-      const auto z = (5.0 * dx) - p0[0]; // +x direction
-
-      const auto k = omega / c0;
-      const auto z_R = 0.5 * k * SQR(w0);
-      const auto w_z = w0 * sqrt(1.0 + SQR(z / z_R));
-
-      const auto RC = z * (1.0 + SQR(z_R / z));
-      const auto gouy = std::atan(z / z_R);
-      const auto c1 = (w0 / w_z);
-
-      constexpr auto offset = dx * 5.0; // todo: number of nodes the value_tFSF is inset by, how to generalize this?
-      std::vector<double> r(y1_ - y0_, offset);
-
-      for (size_t i = 0; i < r.size(); ++i) {
-        r[i] += dx * static_cast<double>(i) - 0.5; // todo: 0.5 is the center of the y range
-      }
-
-      for (size_t i = 0; i < r.size(); ++i) {
-        Ecoeffs[i] = c1 * std::exp(-1.0 * SQR(r[i] / w_z)) * std::cos((k * z) + ((k * SQR(r[i])) / (2.0 * RC)) - gouy);
-      }
-    }
-
-    void apply(const value_t q)
-    {
-      // todo: Soft source? Hard source? Who know! Find out next time on... Sourcing Sources with Sorcery!
-      for (size_t i = SpatialSource<value_t>::x0; i < SpatialSource<value_t>::x1; ++i) {
-        for (size_t j = SpatialSource<value_t>::y0; j < SpatialSource<value_t>::y1; ++j) {
-          const auto Eidx = j - SpatialSource<value_t>::y0;
-          (*field)(i, j) += Ecoeffs[Eidx] * SpatialSource<value_t>::eval(q);
-        }
-      }
-    }
-
-    AuxiliarySource<value_t> aux;
-    Array* const field;
-    value_t w0;
-    value_t omega;
-    vec2_t p0;
-    std::vector<value_t> Ecoeffs;
-  };
+  // template<typename Array>
+  // struct GaussianBeam : SpatialSource<typename Array::value_t> {
+  //   using value_t = typename Array::value_t;
+  //   using vec2_t = std::array<value_t, 2>;
+  //   using temporal_vec = std::vector<std::unique_ptr<TemporalSource<value_t>>>;
+  //
+  //   GaussianBeam(Array* const f,
+  //                temporal_vec&& ts,
+  //                const value_t amp_,
+  //                const value_t w0_,
+  //                const value_t omega_,
+  //                const vec2_t& p0_,
+  //                const size_t x0_,
+  //                const size_t x1_,
+  //                const size_t y0_,
+  //                const size_t y1_,
+  //                const value_t dx)
+  //   : SpatialSource<value_t>{std::forward<temporal_vec>(ts), amp_, x0_, x1_, y0_, y1_},
+  //     field(f), w0(w0_), omega(omega_), p0{p0_}, Ecoeffs(y1_ - y0_)
+  //   {
+  //     constexpr auto c0 = 299792458.0;
+  //
+  //     const auto z = (5.0 * dx) - p0[0]; // +x direction
+  //
+  //     const auto k = omega / c0;
+  //     const auto z_R = 0.5 * k * SQR(w0);
+  //     const auto w_z = w0 * sqrt(1.0 + SQR(z / z_R));
+  //
+  //     const auto RC = z * (1.0 + SQR(z_R / z));
+  //     const auto gouy = std::atan(z / z_R);
+  //     const auto c1 = (w0 / w_z);
+  //
+  //     constexpr auto offset = dx * 5.0; // todo: number of nodes the value_tFSF is inset by, how to generalize this?
+  //     std::vector<double> r(y1_ - y0_, offset);
+  //
+  //     for (size_t i = 0; i < r.size(); ++i) {
+  //       r[i] += dx * static_cast<double>(i) - 0.5; // todo: 0.5 is the center of the y range
+  //     }
+  //
+  //     for (size_t i = 0; i < r.size(); ++i) {
+  //       Ecoeffs[i] = c1 * std::exp(-1.0 * SQR(r[i] / w_z)) * std::cos((k * z) + ((k * SQR(r[i])) / (2.0 * RC)) - gouy);
+  //     }
+  //   }
+  //
+  //   void apply(const value_t q)
+  //   {
+  //     // todo: Soft source? Hard source? Who know! Find out next time on... Sourcing Sources with Sorcery!
+  //     for (size_t i = SpatialSource<value_t>::x0; i < SpatialSource<value_t>::x1; ++i) {
+  //       for (size_t j = SpatialSource<value_t>::y0; j < SpatialSource<value_t>::y1; ++j) {
+  //         for (size_t k = SpatialSource<value_t>::z0; j < SpatialSource<value_t>::z1; ++k) {
+  //           const auto Eidx = j - SpatialSource<value_t>::y0;
+  //           (*field)(i, j, k) += Ecoeffs[Eidx] * SpatialSource<value_t>::eval(q);
+  //         }
+  //       }
+  //     }
+  //   }
+  //
+  //   AuxiliarySource<value_t> aux;
+  //   Array* const field;
+  //   value_t w0;
+  //   value_t omega;
+  //   vec2_t p0;
+  //   std::vector<value_t> Ecoeffs;
+  // };
   
   //
 } // end namespace tf::electromagnetics::sources
