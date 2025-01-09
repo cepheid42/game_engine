@@ -154,26 +154,6 @@ namespace tf::electromagnetics::sources
       src(std::move(s))
     {}
 
-    // // todo: These are soft sources, but don't fix the soft source problem (incorrect amplitude)
-    // //       Not sure what the best fix is. Auxilliary sources seem overkill. Maybe a lookup table?
-    // void apply(const value_t t) const
-    // requires (dimension_t::value == 1)
-    // {
-    //   for (size_t i = src.x0; i <= src.x1; ++i) {
-    //     (*field)[i] += src.eval(t);
-    //   }
-    // }
-    //
-    // void apply(const value_t t)
-    // requires (dimension_t::value == 2)
-    // {
-    //   for (size_t i = src.x0; i < src.x1; ++i) {
-    //     for (size_t j = src.y0; j < src.y1; ++j) {
-    //       (*field)(i, j) += src.eval(t);
-    //     }
-    //   }
-    // }
-
     void apply(const value_t t)
     requires (dimension_t::value == 3)
     {
@@ -190,6 +170,7 @@ namespace tf::electromagnetics::sources
     SpatialSource<value_t> src;
   };
 
+  // todo: 2D gaussian beam, need a 3D version eventually
   // template<typename Array>
   // struct GaussianBeam : SpatialSource<typename Array::value_t> {
   //   using value_t = typename Array::value_t;

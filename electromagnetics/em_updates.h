@@ -32,46 +32,6 @@ namespace tf::electromagnetics
     }
   };
 
-
-//   /*
-//    * todo: could these be merged into one Integrator? Make y1/z1 be 1 so the loops all run at least once?
-//    *       Also could this use a concept to make sure the array_t is an Array1D instead of hard coding it?
-//    *       Same for all the other ones.
-//    */
-//   template<typename T, typename UpdateFunctor>
-//   struct FieldIntegrator1D {
-//     using value_t = typename T::value_t;
-//     using dimension_t = typename T::dimension_t;
-//     using array_t = tf::types::Array1D<value_t>;
-//     using update_func = UpdateFunctor;
-//     using offset_t = tf::electromagnetics::types::IntegratorOffsets;
-//
-//     static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d1, const auto& c_d2, const auto& c_src, const offset_t& o) {
-// #pragma omp parallel for num_threads(NTHREADS)
-//       for (size_t i = o.x0; i < f.nx() - o.x1; ++i) {
-//         update_func::apply(f, d1, d2, js, c_f, c_d1, c_d2, c_src, i);
-//       }
-//     }
-//   };
-
-//   template<typename T, typename UpdateFunctor>
-//   struct FieldIntegrator2D {
-//     using value_t = typename T::value_t;
-//     using dimension_t = typename T::dimension_t;
-//     using array_t = tf::types::Array2D<value_t>;
-//     using update_func = UpdateFunctor;
-//     using offset_t = tf::electromagnetics::types::IntegratorOffsets;
-//
-//     static void apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d1, const auto& c_d2, const auto& c_src, const offset_t& o) {
-// #pragma omp parallel for collapse(2) num_threads(NTHREADS)
-//       for (size_t i = o.x0; i < f.nx() - o.x1; ++i) {
-//         for (size_t j = o.y0; j < f.ny() - o.y1; ++j) {
-//           update_func::apply(f, d1, d2, js, c_f, c_d1, c_d2, c_src, i, j);
-//         }
-//       }
-//     }
-//   };
-
   template<typename T, typename UpdateFunctor>
   struct FieldIntegrator3D {
     using value_t = typename T::value_t;

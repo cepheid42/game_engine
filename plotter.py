@@ -62,9 +62,9 @@ def plot2d(n):
 def plot3d(n):
     print(f'Plotting file {n:06d}')
     file = data_path + f'/Ez_{n:06d}.csv'
-    nx = 124
-    ny = 124
-    nz = 124
+    nx = 120
+    ny = 120
+    nz = 120
 
     # f1 = data_path + f'/Ez_psi_{n:06d}.csv'
     # f2 = f'/home/cepheid/TriForce/game_engine/data_bak/Ez_psi_{n:06d}.csv'
@@ -198,8 +198,8 @@ def main():
 
     with mp.Pool(16) as p:
         # p.map(plot1d, targs)
-        p.map(plot2d, targs)
-        # p.map(plot3d, targs)
+        # p.map(plot2d, targs)
+        p.map(plot3d, targs)
 
 
 if __name__ == '__main__':

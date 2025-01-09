@@ -28,15 +28,8 @@ static_assert(valid_x_combo and valid_y_combo and valid_z_combo,
 template<typename T, EMFace F, EMSide S>
 using BCDataTL = TypeList<
   ReflectingData<T>,        // 0
-  PeriodicData1D<T, F, S>,  // 1
-  PeriodicDataTM<T, F, S>,  // 2
-  PeriodicDataTE<T, F, S>,  // 3
-  PeriodicData3D<T, F, S>,  // 4
-  PmlData1D<T, F, S>,       // 5
-  PmlDataTM<T, F, S>,       // 6
-  PmlDataTE<T, F, S>,       // 7
-  PmlData3D<T, F, S>,       // 8
-  PmlData2D6C<T, F, S>      // 9
+  PeriodicData3D<T, F, S>,  // 1
+  PmlData3D<T, F, S>        // 2
 >;
 
 template<typename T>
@@ -52,15 +45,8 @@ using bcdata_t = BCData<
 template<EMFace F, EMSide S>
 using BCTypeTL = TypeList<
   ReflectingBC,     // 0
-  Periodic1D<F, S>, // 1
-  PeriodicTM<F, S>, // 2
-  PeriodicTE<F, S>, // 3
-  Periodic3D<F, S>, // 4
-  Pml1D<F, S>,      // 5
-  PmlTM<F, S>,      // 6
-  PmlTE<F, S>,      // 7
-  Pml3D<F, S>,      // 8
-  Pml2D6C<F, S>     // 9
+  Periodic3D<F, S>, // 1
+  Pml3D<F, S>       // 2
 >;
 
 template<size_t I, EMFace F, EMSide S>
@@ -88,10 +74,7 @@ using bcz1_t = boundary_t<BCType<SELECT_BCSOLVER[5], EMFace::Z, EMSide::Hi>>;
 template<typename T>
 using EMDataTL = TypeList<
   emdataNone<T>, // 0
-  emdata1D<T>,   // 1
-  emdataTMz<T>,   // 2
-  emdataTEz<T>,   // 3
-  emdata3D<T>   // 4
+  emdata3D<T>    // 1
 >; // Typelist for choosing type of EMData
 
 template<typename T>
@@ -100,10 +83,7 @@ using emdata_t = TypeListAt<SELECT_EMSOLVER, EMDataTL<T>>;
 template<typename T>
 using EMTypeTL = TypeList<
   EMNull<T>, // 0
-  EM1D<T>,   // 1
-  EMTMz<T>,   // 2
-  EMTEz<T>,   // 3
-  EM3D<T>   // 4
+  EM3D<T>    // 1
 >; // Typelist (of typelists) for choosing type of EM Solver
 
 template<typename T>

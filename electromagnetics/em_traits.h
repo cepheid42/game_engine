@@ -35,9 +35,6 @@ namespace tf::electromagnetics::traits
     { t.nz() }-> std::same_as<size_t>;
   };
 
-  // template<typename T, typename EMPTY>
-  // concept is_empty_field = std::same_as<T, EMPTY>;
-
   template <template <typename...> typename C, typename   T> struct type_instance_impl : std::false_type {};
   template <template <typename...> typename C, typename...T> struct type_instance_impl<C, C<T...>> : std::true_type {};
   template <template <typename...> typename C, typename   T> concept instance_of_type = type_instance_impl<C, std::decay_t<T>>::value;
