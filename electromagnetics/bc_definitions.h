@@ -203,11 +203,11 @@ requires (F == EMFace::X)
 struct Pml3DImpl<F, S> {
   using type = TypeList<
     /* Ex */ ReflectingBCUpdate,
-    /* Ey */ Pml3DUpdate<EMFace::X, S, true>,
-    /* Ez */ Pml3DUpdate<EMFace::X, S, false>,
+    /* Ey */ Pml3DUpdate<EMFace::X, S, Derivative::DX, true, false>,
+    /* Ez */ Pml3DUpdate<EMFace::X, S, Derivative::DX, false, false>,
     /* Hx */ ReflectingBCUpdate,
-    /* Hy */ Pml3DUpdate<EMFace::X, S, false>,
-    /* Hz */ Pml3DUpdate<EMFace::X, S, true>
+    /* Hy */ Pml3DUpdate<EMFace::X, S, Derivative::DX, false, true>,
+    /* Hz */ Pml3DUpdate<EMFace::X, S, Derivative::DX,  true, true>
   >;
 };
 
@@ -215,12 +215,12 @@ template<EMFace F, EMSide S>
 requires (F == EMFace::Y)
 struct Pml3DImpl<F, S> {
   using type = TypeList<
-    /* Ex */ Pml3DUpdate<EMFace::Y, S, false>,
+    /* Ex */ Pml3DUpdate<EMFace::Y, S, Derivative::DY, false, false>,
     /* Ey */ ReflectingBCUpdate,
-    /* Ez */ Pml3DUpdate<EMFace::Y, S, true>,
-    /* Hx */ Pml3DUpdate<EMFace::Y, S, true>,
+    /* Ez */ Pml3DUpdate<EMFace::Y, S, Derivative::DY, true, false>,
+    /* Hx */ Pml3DUpdate<EMFace::Y, S, Derivative::DY, true, true>,
     /* Hy */ ReflectingBCUpdate,
-    /* Hz */ Pml3DUpdate<EMFace::Y, S, false>
+    /* Hz */ Pml3DUpdate<EMFace::Y, S, Derivative::DY, false, true>
   >;
 };
 
@@ -228,11 +228,11 @@ template<EMFace F, EMSide S>
 requires (F == EMFace::Z)
 struct Pml3DImpl<F, S> {
   using type = TypeList<
-    /* Ex */ Pml3DUpdate<EMFace::Z, S, true>,
-    /* Ey */ Pml3DUpdate<EMFace::Z, S, false>,
+    /* Ex */ Pml3DUpdate<EMFace::Z, S, Derivative::DZ, true, false>,
+    /* Ey */ Pml3DUpdate<EMFace::Z, S, Derivative::DZ, false, false>,
     /* Ez */ ReflectingBCUpdate,
-    /* Hx */ Pml3DUpdate<EMFace::Z, S, false>,
-    /* Hy */ Pml3DUpdate<EMFace::Z, S, true>,
+    /* Hx */ Pml3DUpdate<EMFace::Z, S, Derivative::DZ, false, true>,
+    /* Hy */ Pml3DUpdate<EMFace::Z, S, Derivative::DZ, true, true>,
     /* Hz */ ReflectingBCUpdate
   >;
 };

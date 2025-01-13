@@ -21,12 +21,11 @@ namespace tf::electromagnetics
     using value_t = typename ex_t::value_t;
     using dimension_t = typename ex_t::dimension_t;
     using array_t = typename ex_t::array_t;
-    using empty_t = tf::types::EmptyArray<array_t>;
+    using empty_t = tf::types::detail::EmptyArray<array_t>;
 
     EMData() = default;
 
     explicit EMData(const size_t nx, const size_t ny, const size_t nz, const value_t dt, const value_t dx)
-    // requires (SELECT_EMSOLVER == 4)
     : Ex{nx - 1, ny, nz}, Jx{nx - 1, ny, nz}, Cexe{nx - 1, ny, nz}, Cexhy{nx - 1, ny, nz}, Cexhz{nx - 1, ny, nz}, Cjx{nx - 1, ny, nz},
       Ey{nx, ny - 1, nz}, Jy{nx, ny - 1, nz}, Ceye{nx, ny - 1, nz}, Ceyhx{nx, ny - 1, nz}, Ceyhz{nx, ny - 1, nz}, Cjy{nx, ny - 1, nz},
       Ez{nx, ny, nz - 1}, Jz{nx, ny, nz - 1}, Ceze{nx, ny, nz - 1}, Cezhx{nx, ny, nz - 1}, Cezhy{nx, ny, nz - 1}, Cjz{nx, ny, nz - 1},
@@ -84,7 +83,7 @@ namespace tf::electromagnetics
   };
 
   template<typename Array>
-  requires instance_of_type<tf::types::EmptyArray, Array>
+  requires instance_of_type<tf::types::detail::EmptyArray, Array>
   void init_coeff(Array&, auto) {}
 
   template<typename Array>

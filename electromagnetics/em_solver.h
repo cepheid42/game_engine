@@ -5,6 +5,7 @@
 #ifndef EM_SOLVER_H
 #define EM_SOLVER_H
 
+#include <omp.h>
 #include "aydenstuff/array.h"
 
 
@@ -18,7 +19,7 @@ namespace tf::electromagnetics
   struct Electromagnetics {
     using value_t = typename EXI::value_t;
     using dimension_t = typename EXI::dimension_t;
-    using empty_t = tf::types::EmptyArray<typename EXI::array_t>;
+    using empty_t = tf::types::detail::EmptyArray<typename EXI::array_t>;
 
     static constexpr empty_t empty{};
 
@@ -103,6 +104,7 @@ namespace tf::electromagnetics
       updateH_bcs(emdata, bcdata);
 
       apply_srcs(emdata.srcs, t);  // add current sources
+
       // apply_srcs(emdata.beams, t); // GAUSSIAN BEAMS!
       // apply_tfsf(emdata, emdata.tfsf, t); // add TFSF source
 

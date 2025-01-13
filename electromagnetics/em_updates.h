@@ -38,13 +38,14 @@ namespace tf::electromagnetics
     using dimension_t = typename T::dimension_t;
     using array_t = tf::types::Array3D<value_t>;
     using update_func = UpdateFunctor;
-    using offset_t = tf::electromagnetics::types::IntegratorOffsets;
+    using offset_t = types::IntegratorOffsets;
 
     static auto apply(auto& f, const auto& d1, const auto& d2, const auto& js, const auto& c_f, const auto& c_d1, const auto& c_d2, const auto& c_src, const offset_t& o) {
-#pragma omp parallel for collapse(3) num_threads(NTHREADS)
+#pragma omp parallel for simd collapse(3) num_threads(NTHREADS)
       for (size_t i = o.x0; i < f.nx() - o.x1; ++i) {
         for (size_t j = o.y0; j < f.ny() - o.y1; ++j) {
           for (size_t k = o.z0; k < f.nz() - o.z1; ++k) {
+            // std::cout << i << " " << j << " " << k << " = " << f.get_scid(i, j, k) << std::endl;
             update_func::apply(f, d1, d2, js, c_f, c_d1, c_d2, c_src, i, j, k);
           }
         }
@@ -56,10 +57,9 @@ namespace tf::electromagnetics
   struct FieldIntegratorNull {
     using value_t = typename Array::value_t;
     using dimension_t = typename Array::dimension_t;
-    using array_t = tf::types::EmptyArray<Array>;
+    using array_t = typename Array::empty_t;
 
-    using offset_t = tf::electromagnetics::types::IntegratorOffsets;
-    // static constexpr void apply(const auto&...) {}
+    using offset_t = types::IntegratorOffsets;
     static constexpr void apply(const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const offset_t&) {}
   };
 } // end namespace tf::electromagnetics

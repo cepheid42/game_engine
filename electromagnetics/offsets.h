@@ -52,5 +52,25 @@ namespace tf::electromagnetics::types
       return get_z_offsets<Side, DEPTH>(f);
     }
   }
-}
+
+  template<EMFace F, EMSide S, bool isH, size_t DEPTH>
+  IntegratorOffsets get_pml_offsets(const auto& f) {
+    auto result = get_offsets<F, S, DEPTH>(f);
+    constexpr auto lo = static_cast<size_t>(isH != (S == EMSide::Lo)); // logical xor
+    constexpr auto hi = static_cast<size_t>(isH == (S == EMSide::Lo)); // logical xnor
+
+    if constexpr (F == EMFace::X) {
+      result.x0 += lo;
+      result.x1 -= hi;
+    } else if constexpr (F == EMFace::Y) {
+      result.y0 += lo;
+      result.y1 -= hi;
+    } else {
+      result.z0 += lo;
+      result.z1 -= hi;
+    }
+
+    return result;
+  }
+} // end namespace tf::electromagnetics::types
 #endif //OFFSETS_H

@@ -64,7 +64,7 @@ def plot3d(n):
     file = data_path + f'/Ez_{n:06d}.csv'
     nx = 120
     ny = 120
-    nz = 120
+    nz = 2
 
     # f1 = data_path + f'/Ez_psi_{n:06d}.csv'
     # f2 = f'/home/cepheid/TriForce/game_engine/data_bak/Ez_psi_{n:06d}.csv'
@@ -87,8 +87,11 @@ def plot3d(n):
 
     # ax.contourf(data[nx // 2, :, :], levels=100)
     # ax.contourf(data[:, ny // 2, :], levels=100)
-    im = ax.contourf(data[:, :, nz // 2], levels=100)
+    im = ax.contourf(data[:, :, 0], levels=100)
     fig.colorbar(im)
+
+    # ax.plot(data[:, 0, 0])
+    # ax.set_ylim([-1, 1])
 
     plt.savefig(data_path + f'/pngs/Ez_{n:06d}.png')
     plt.close(fig)

@@ -35,10 +35,9 @@ namespace tf::electromagnetics::traits
     { t.nz() }-> std::same_as<size_t>;
   };
 
-  template <template <typename...> typename C, typename   T> struct type_instance_impl : std::false_type {};
+  template <template <typename...> typename, typename>       struct type_instance_impl : std::false_type {};
   template <template <typename...> typename C, typename...T> struct type_instance_impl<C, C<T...>> : std::true_type {};
   template <template <typename...> typename C, typename   T> concept instance_of_type = type_instance_impl<C, std::decay_t<T>>::value;
-
 
   template<typename T>
   concept is_periodic = std::derived_from<T, periodic_t<T::face, T::side>>;

@@ -10,18 +10,9 @@
 #include "bc_definitions.h"
 
 // todo: Does this need to have namespaces?
-using tf::electromagnetics::EMData;
 using tf::electromagnetics::Electromagnetics;
 using tf::electromagnetics::boundaries::BCData;
 using tf::electromagnetics::boundaries::Boundary;
-
-// todo: This checks for invalid BC combos that will compile & run but eventually blow up.
-//        Probably can be made more comprehensive later with concepts or something.
-static constexpr bool valid_x_combo = SELECT_BCSOLVER[0] + 4 != SELECT_BCSOLVER[1];
-static constexpr bool valid_y_combo = SELECT_BCSOLVER[2] + 4 != SELECT_BCSOLVER[3];
-static constexpr bool valid_z_combo = SELECT_BCSOLVER[4] + 4 != SELECT_BCSOLVER[5];
-static_assert(valid_x_combo and valid_y_combo and valid_z_combo,
-  "Periodic lower boundary and PML upper boundary is an invalid combination.");
 
 //=================== Boundary Condition Selectors ===================
 //====================================================================

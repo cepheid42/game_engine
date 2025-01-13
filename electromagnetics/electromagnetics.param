@@ -7,11 +7,11 @@
 
 template<typename T> constexpr T SQR(T x) { return x * x; }
 
-inline constexpr size_t NTHREADS = 32;
-inline constexpr size_t NTHREADS_BC = 16;
+inline constexpr size_t NTHREADS = 1;
+inline constexpr size_t NTHREADS_BC = 8;
 
 inline constexpr size_t SELECT_EMSOLVER = 1;
-inline constexpr size_t SELECT_BCSOLVER[6] = {2, 2, 2, 2, 2, 2}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
+inline constexpr size_t SELECT_BCSOLVER[6] = {2, 2, 2, 2, 0, 0}; // Xlo, Xhi, Ylo, Yhi, Zlo, Zhi
 
 inline constexpr size_t nPml = 10u;
 inline constexpr size_t nHalo = 0u;

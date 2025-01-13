@@ -8,6 +8,7 @@
 #include <cmath>
 
 #include "electromagnetics.param"
+#include "aydenstuff/array.h"
 
 namespace tf::electromagnetics::sources
 {
@@ -86,14 +87,14 @@ namespace tf::electromagnetics::sources
     AuxiliarySource(temporal_vec&& ts, const size_t nx, const T amp_)
     : amplitude(amp_),
       t_srcs{std::move(ts)},
-      Einc{nx + 20}, Ceze{nx + 20}, Cezh{nx + 20},
-      Hinc{nx + 20 - 1}, Chyh{nx + 20 - 1}, Chye{nx + 20 - 1}
+      Einc{nx + 20, 1, 1}, Ceze{nx + 20, 1, 1}, Cezh{nx + 20, 1, 1},
+      Hinc{nx + 20 - 1, 1, 1}, Chyh{nx + 20 - 1, 1, 1}, Chye{nx + 20 - 1, 1, 1}
     {
       // todo: initialize coefficients for lossy region (see TFSF)
     }
 
     void updateH() { HIntegrator::apply(Hinc, Einc, empty, empty, Chyh, Chye, empty, empty, {0, 0, 0, 0, 0, 0}); }
-    void updateE() { EIntegrator::apply(Einc, Hinc, empty, empty, Ceze, Cezh, empty, empty, {1, 1, 1, 1, 0, 0}); }
+    void updateE() { EIntegrator::apply(Einc, Hinc, empty, empty, Ceze, Cezh, empty, empty, {1, 1, 0, 0, 0, 0}); }
 
     void apply_src(const T t) {
       auto result = amplitude;
@@ -155,11 +156,11 @@ namespace tf::electromagnetics::sources
     {}
 
     void apply(const value_t t)
-    requires (dimension_t::value == 3)
     {
       for (size_t i = src.x0; i < src.x1; ++i) {
         for (size_t j = src.y0; j < src.y1; ++j) {
           for (size_t k = src.z0; k < src.z1; ++k) {
+            // std::cout << i << " " << j << " " << k << std::endl;
             (*field)(i, j, k) += src.eval(t);
           }
         }

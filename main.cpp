@@ -32,13 +32,12 @@ void to_csv(const Array& arr, const size_t step, const std::string& name) {
   file.close();
 }
 
-
 int main() {
   const auto start = std::chrono::high_resolution_clock::now();
 
   constexpr size_t nx = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t ny = 100u + 2 * nPml + 2 * nHalo;
-  constexpr size_t nz = 100u + 2 * nPml + 2 * nHalo;
+  constexpr size_t nz = 2;//100u + 2 * nPml + 2 * nHalo;
   constexpr size_t nt = 400u;
 
   constexpr double dx = 1.0 / 99.0;
@@ -82,7 +81,7 @@ int main() {
   using tf::electromagnetics::sources::RickerSource;
   using temporal_vec = std::vector<std::unique_ptr<tf::electromagnetics::sources::TemporalSource<fp_t>>>;
 
-  constexpr auto freq = c0 / (40.0 * dx);
+  constexpr auto freq = c0 / (20.0 * dx);
 
   auto make_tvec = [&]()
   {
@@ -96,10 +95,10 @@ int main() {
       &em.Ez,
       SpatialSource<fp_t>(
         make_tvec(),
-        50.0,
+        0.1,
         60, 61, // xs
         60, 61, // ys
-        60, 61  // zs
+        0, 1  // zs
       )
     )
   );
@@ -113,31 +112,31 @@ int main() {
     if (n % save_step == 0) {
       std::cout << "Step " << n << std::endl;
 
-// #pragma omp parallel num_threads(3)
-//       {
-// #pragma omp single
-//         {
-// #pragma omp task
-//           to_csv(em.Ex, filecount, "Ex");
-// #pragma omp task
-//           to_csv(em.Ey, filecount, "Ey");
-// #pragma omp task
-           to_csv(em.Ez, filecount, "Ez");
-// #pragma omp task
-//           to_csv(em.Hx, filecount, "Hx");
-// #pragma omp task
-//           to_csv(em.Hy, filecount, "Hy");
-// #pragma omp task
-//           to_csv(em.Hz, filecount, "Hz");
-//          }
-//        }
+      // #pragma omp parallel num_threads(3)
+      //       {
+      // #pragma omp single
+      //         {
+      // #pragma omp task
+      //           to_csv(em.Ex, filecount, "Ex");
+      // #pragma omp task
+      //           to_csv(em.Ey, filecount, "Ey");
+      // #pragma omp task
+      to_csv(em.Ez, filecount, "Ez");
+      // #pragma omp task
+      //           to_csv(em.Hx, filecount, "Hx");
+      // #pragma omp task
+      //           to_csv(em.Hy, filecount, "Hy");
+      // #pragma omp task
+      //           to_csv(em.Hz, filecount, "Hz");
+      //          }
+      //        }
 
       filecount++;
     }
   }
 
   const auto stop = std::chrono::high_resolution_clock::now() - start;
-  const auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop);
-  std::cout << "Execution time: " << duration.count() << " seconds" << std::endl;
+  const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop);
+  std::cout << "Execution time: " << duration.count() << " ms" << std::endl;
   return 0;
 }

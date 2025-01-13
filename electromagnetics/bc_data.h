@@ -6,6 +6,7 @@
 #define BC_DATA_H
 
 #include <array>
+#include <algorithm>
 
 #include "electromagnetics.param"
 
@@ -46,9 +47,9 @@ namespace tf::electromagnetics::boundaries
     using offset_t = typename tf::electromagnetics::types::IntegratorOffsets;
 
     explicit PeriodicData(const Array& f, const value_t, const value_t)
-    : numInterior{get_num_interior<F>(f)},
-      hi_idx{get_hi_index<F>(f)},
-      offsets{get_offsets<F, S, nHalo>(f)}
+    : numInterior{get_num_interior(f)},
+      hi_idx{get_hi_index(f)},
+      offsets{tf::electromagnetics::types::get_offsets<F, S, nHalo>(f)}
     {}
 
     static size_t get_num_interior(const auto& f) {
@@ -82,28 +83,30 @@ namespace tf::electromagnetics::boundaries
     using array_t = Array;
     using value_t = typename Array::value_t;
     using dimension_t = typename Array::dimension_t;
-    using offset_t = typename tf::electromagnetics::types::IntegratorOffsets;
+    using offset_t = types::IntegratorOffsets;
 
     explicit PMLData(const Array& f, const value_t dt, const value_t dx) requires (F == EMFace::X)
-    : offsets{tf::electromagnetics::types::get_offsets<F, S, nPml>(f)},
+    : offsets{types::get_pml_offsets<F, S, HField, nPml>(f)},
       psi{nPml, f.ny(), f.nz()}
     {
       set_coefficients(dt, dx);
     }
 
     explicit PMLData(const Array& f, const value_t dt, const value_t dx) requires (F == EMFace::Y)
-    : offsets{tf::electromagnetics::types::get_offsets<F, S, nPml>(f)},
+    : offsets{types::get_pml_offsets<F, S, HField, nPml>(f)},
       psi{f.nx(), nPml, f.nz()}
     {
       set_coefficients(dt, dx);
     }
 
     explicit PMLData(const Array& f, const value_t dt, const value_t dx) requires (F == EMFace::Z)
-    : offsets{tf::electromagnetics::types::get_offsets<F, S, nPml>(f)},
+    : offsets{types::get_pml_offsets<F, S, HField, nPml>(f)},
       psi{f.nx(), f.ny(), nPml}
     {
       set_coefficients(dt, dx);
     }
+
+
 
     void set_coefficients(const value_t dt, const value_t dx) {
       // todo: These will all be in the constants header
