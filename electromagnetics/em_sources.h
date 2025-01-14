@@ -72,20 +72,56 @@ namespace tf::electromagnetics::sources
 
   template<typename T>
   struct AuxiliarySource {
-    using HIntegrator = FieldIntegrator3D<tf::types::Array3D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, false, size_t, size_t, size_t>>;
-    using EIntegrator = FieldIntegrator3D<tf::types::Array3D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, true, size_t, size_t, size_t>>;
+    using array_t = tf::types::Array3D<T>;
     using empty_t = tf::types::EmptyArray3D<T>;
     using temporal_vec = std::vector<std::unique_ptr<TemporalSource<T>>>;
 
-    static constexpr empty_t empty{};
+    using HIntegrator = FieldIntegrator3D<array_t, FieldUpdate<Derivative::DX, Derivative::NoOp, false, size_t, size_t, size_t>>;
+    using EIntegrator = FieldIntegrator3D<array_t, FieldUpdate<Derivative::DX, Derivative::NoOp, true, size_t, size_t, size_t>>;
 
-    AuxiliarySource(temporal_vec&& ts, const size_t nx, const T amp_)
+    static constexpr empty_t empty{};
+    static constexpr size_t NLOSS = 20u;
+
+    AuxiliarySource(temporal_vec&& ts, const size_t nx, const T amp_, const T dt, const T dx)
     : amplitude(amp_),
       t_srcs{std::move(ts)},
-      Einc{nx + 20, 1, 1}, Ceze{nx + 20, 1, 1}, Cezh{nx + 20, 1, 1},
-      Hinc{nx + 20 - 1, 1, 1}, Chyh{nx + 20 - 1, 1, 1}, Chye{nx + 20 - 1, 1, 1}
+      Einc{nx + NLOSS, 1, 1}, Ceze{nx + NLOSS, 1, 1}, Cezh{nx + NLOSS, 1, 1},
+      Hinc{nx + NLOSS - 1, 1, 1}, Chyh{nx + NLOSS - 1, 1, 1}, Chye{nx + NLOSS - 1, 1, 1}
     {
-      // todo: initialize coefficients for lossy region (see TFSF)
+      init_coefficients(dt, dx);
+    }
+
+    void init_coefficients(T dt, T dx) {
+      // todo: these constants are in a different header
+      constexpr auto eps0 = 8.854187812813e-12;
+      constexpr auto mu0 = 1.2566370621219e-6;
+
+      // todo: Need to incorporate the grids eps_r/mu_r/dx... values into these coeffs
+      const auto hc = dt / (mu0 * dx);
+      const auto eh = dt / (eps0 * dx);
+
+      constexpr double MAX_LOSS = 0.35; // todo: is there a better value?
+
+      const auto sizex = Einc.nx();
+
+      for (size_t i = 0; i < sizex - 1; ++i) {
+        if (i < sizex - 1 - NLOSS) {
+          Ceze[i] = 1.0;
+          Cezh[i] = eh;
+          Chyh[i] = 1.0;
+          Chye[i] = hc;
+        } else {
+          auto depth = static_cast<T>(i - (sizex - 1 - NLOSS)) + 0.5;
+          auto loss = MAX_LOSS * std::pow(depth / static_cast<T>(NLOSS), 3.0);
+          Ceze[i] = (1.0 - loss) / (1.0 + loss);
+          Cezh[i] = eh / (1.0 + loss);
+
+          depth += 0.5;
+          loss = MAX_LOSS * std::pow(depth / static_cast<T>(NLOSS), 3.0);
+          Chyh[i] = (1.0 - loss) / (1.0 + loss);
+          Chye[i] = hc / (1.0 + loss);
+        }
+      }
     }
 
     void updateH() { HIntegrator::apply(Hinc, Einc, empty, empty, Chyh, Chye, empty, empty, {0, 0, 0, 0, 0, 0}); }
@@ -106,16 +142,15 @@ namespace tf::electromagnetics::sources
     }
 
     T amplitude;
-
     temporal_vec t_srcs;
 
-    tf::types::Array3D<T> Einc;
-    tf::types::Array3D<T> Ceze;
-    tf::types::Array3D<T> Cezh;
+    array_t Einc;
+    array_t Ceze;
+    array_t Cezh;
 
-    tf::types::Array3D<T> Hinc;
-    tf::types::Array3D<T> Chyh;
-    tf::types::Array3D<T> Chye;
+    array_t Hinc;
+    array_t Chyh;
+    array_t Chye;
   };
 
 
@@ -138,7 +173,6 @@ namespace tf::electromagnetics::sources
     AuxiliarySource<T> aux;
   };
 
-  // todo: Should I fold this into the SpatialSource class to get rid of a level of abstraction?
   template<typename Array>
   struct CurrentSource {
     using array_t = Array;
@@ -155,7 +189,6 @@ namespace tf::electromagnetics::sources
       for (size_t i = src.x0; i < src.x1; ++i) {
         for (size_t j = src.y0; j < src.y1; ++j) {
           for (size_t k = src.z0; k < src.z1; ++k) {
-            // std::cout << i << " " << j << " " << k << std::endl;
             (*field)(i, j, k) += src.eval(t);
           }
         }

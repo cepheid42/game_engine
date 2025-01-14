@@ -77,7 +77,6 @@ namespace tf::electromagnetics::types
   constexpr IntegratorOffsets get_offsets() {
     // todo: figure out when this isn't valid. e.g. 1D Ez requires {1, 1, 0, 0, 0, 0}
     //       what else is different for 2d?
-    // todo: swap E with H here
     if constexpr (C == EMComponent::H) {
       if constexpr (F == EMFace::X)      { return {0, 0, 1, 1, 1, 1}; }
       else if constexpr (F == EMFace::Y) { return {1, 1, 0, 0, 1, 1}; }
