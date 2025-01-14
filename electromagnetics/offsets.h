@@ -53,11 +53,11 @@ namespace tf::electromagnetics::types
     }
   }
 
-  template<EMFace F, EMSide S, bool isH, size_t DEPTH>
+  template<EMFace F, EMSide S, bool isE, size_t DEPTH>
   IntegratorOffsets get_pml_offsets(const auto& f) {
     auto result = get_offsets<F, S, DEPTH>(f);
-    constexpr auto lo = static_cast<size_t>(isH != (S == EMSide::Lo)); // logical xor
-    constexpr auto hi = static_cast<size_t>(isH == (S == EMSide::Lo)); // logical xnor
+    constexpr auto lo = static_cast<size_t>(isE != (S == EMSide::Lo)); // logical xor
+    constexpr auto hi = static_cast<size_t>(isE == (S == EMSide::Lo)); // logical xnor
 
     if constexpr (F == EMFace::X) {
       result.x0 += lo;
@@ -71,6 +71,20 @@ namespace tf::electromagnetics::types
     }
 
     return result;
+  }
+
+  template<EMComponent C, EMFace F>
+  constexpr IntegratorOffsets get_offsets() {
+    // todo: figure out when this isn't valid. e.g. 1D Ez requires {1, 1, 0, 0, 0, 0}
+    //       what else is different for 2d?
+    // todo: swap E with H here
+    if constexpr (C == EMComponent::H) {
+      if constexpr (F == EMFace::X)      { return {0, 0, 1, 1, 1, 1}; }
+      else if constexpr (F == EMFace::Y) { return {1, 1, 0, 0, 1, 1}; }
+      else                               { return {1, 1, 1, 1, 0, 0}; }
+    }
+
+    return {0, 0, 0, 0, 0, 0};
   }
 } // end namespace tf::electromagnetics::types
 #endif //OFFSETS_H

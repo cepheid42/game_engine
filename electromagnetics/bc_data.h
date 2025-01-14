@@ -44,12 +44,12 @@ namespace tf::electromagnetics::boundaries
     using array_t = Array;
     using value_t = typename Array::value_t;
     using dimension_t = typename Array::dimension_t;
-    using offset_t = typename tf::electromagnetics::types::IntegratorOffsets;
+    using offset_t = types::IntegratorOffsets;
 
     explicit PeriodicData(const Array& f, const value_t, const value_t)
     : numInterior{get_num_interior(f)},
       hi_idx{get_hi_index(f)},
-      offsets{tf::electromagnetics::types::get_offsets<F, S, nHalo>(f)}
+      offsets{types::get_offsets<F, S, nHalo>(f)}
     {}
 
     static size_t get_num_interior(const auto& f) {
@@ -78,29 +78,31 @@ namespace tf::electromagnetics::boundaries
   };
 
 
-  template<typename Array, EMFace F, EMSide S, bool HField>
+  template<typename Array, EMFace F, EMSide S, bool isE>
   struct PMLData {
     using array_t = Array;
     using value_t = typename Array::value_t;
     using dimension_t = typename Array::dimension_t;
     using offset_t = types::IntegratorOffsets;
 
+    PMLData() = delete;
+
     explicit PMLData(const Array& f, const value_t dt, const value_t dx) requires (F == EMFace::X)
-    : offsets{types::get_pml_offsets<F, S, HField, nPml>(f)},
+    : offsets{types::get_pml_offsets<F, S, isE, nPml>(f)},
       psi{nPml, f.ny(), f.nz()}
     {
       set_coefficients(dt, dx);
     }
 
     explicit PMLData(const Array& f, const value_t dt, const value_t dx) requires (F == EMFace::Y)
-    : offsets{types::get_pml_offsets<F, S, HField, nPml>(f)},
+    : offsets{types::get_pml_offsets<F, S, isE, nPml>(f)},
       psi{f.nx(), nPml, f.nz()}
     {
       set_coefficients(dt, dx);
     }
 
     explicit PMLData(const Array& f, const value_t dt, const value_t dx) requires (F == EMFace::Z)
-    : offsets{types::get_pml_offsets<F, S, HField, nPml>(f)},
+    : offsets{types::get_pml_offsets<F, S, isE, nPml>(f)},
       psi{f.nx(), f.ny(), nPml}
     {
       set_coefficients(dt, dx);
@@ -116,7 +118,7 @@ namespace tf::electromagnetics::boundaries
       auto d = linspace(1.0, 0.0, nPml, false);
       auto coef1 = -dt / eps0;
 
-      if constexpr (HField) {
+      if constexpr (isE) {
         coef1 /= 2.0; // H field update is split into two steps, to need half dt
         constexpr value_t hstep = 1.0 / (2.0 * static_cast<value_t>(nPml));
         for (auto& x: d) {

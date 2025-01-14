@@ -45,7 +45,6 @@ namespace tf::electromagnetics
       for (size_t i = o.x0; i < f.nx() - o.x1; ++i) {
         for (size_t j = o.y0; j < f.ny() - o.y1; ++j) {
           for (size_t k = o.z0; k < f.nz() - o.z1; ++k) {
-            // std::cout << i << " " << j << " " << k << " = " << f.get_scid(i, j, k) << std::endl;
             update_func::apply(f, d1, d2, js, c_f, c_d1, c_d2, c_src, i, j, k);
           }
         }

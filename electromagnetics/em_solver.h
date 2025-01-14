@@ -7,6 +7,7 @@
 
 #include <omp.h>
 #include "aydenstuff/array.h"
+#include "offsets.h"
 
 
 namespace tf::electromagnetics
@@ -24,15 +25,15 @@ namespace tf::electromagnetics
     static constexpr empty_t empty{};
 
     static void updateE(auto& emdata) {
-      EXI::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexhz, emdata.Cexhy, emdata.Cjx, {0, 0, 1, 1, 1, 1});
-      EYI::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyhx, emdata.Ceyhz, emdata.Cjy, {1, 1, 0, 0, 1, 1});
-      EZI::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezhy, emdata.Cezhx, emdata.Cjz, {1, 1, 1, 1, 0, 0});
+      EXI::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexhz, emdata.Cexhy, emdata.Cjx, types::get_offsets<EMComponent::E, EMFace::X>());
+      EYI::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyhx, emdata.Ceyhz, emdata.Cjy, types::get_offsets<EMComponent::E, EMFace::Y>());
+      EZI::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezhy, emdata.Cezhx, emdata.Cjz, types::get_offsets<EMComponent::E, EMFace::Z>());
     }
 
     static void updateH(auto& emdata) {
-      HXI::apply(emdata.Hx, emdata.Ey, emdata.Ez, empty, emdata.Chxh, emdata.Chxey, emdata.Chxez, empty, {0, 0, 0, 0, 0, 0});
-      HYI::apply(emdata.Hy, emdata.Ez, emdata.Ex, empty, emdata.Chyh, emdata.Chyez, emdata.Chyex, empty, {0, 0, 0, 0, 0, 0});
-      HZI::apply(emdata.Hz, emdata.Ex, emdata.Ey, empty, emdata.Chzh, emdata.Chzex, emdata.Chzey, empty, {0, 0, 0, 0, 0, 0});
+      HXI::apply(emdata.Hx, emdata.Ey, emdata.Ez, empty, emdata.Chxh, emdata.Chxey, emdata.Chxez, empty, types::get_offsets<EMComponent::H, EMFace::X>());
+      HYI::apply(emdata.Hy, emdata.Ez, emdata.Ex, empty, emdata.Chyh, emdata.Chyez, emdata.Chyex, empty, types::get_offsets<EMComponent::H, EMFace::Y>());
+      HZI::apply(emdata.Hz, emdata.Ex, emdata.Ey, empty, emdata.Chzh, emdata.Chzex, emdata.Chzey, empty, types::get_offsets<EMComponent::H, EMFace::Z>());
     }
 
     static void updateE_bcs(auto& emdata, auto& bcdata) {

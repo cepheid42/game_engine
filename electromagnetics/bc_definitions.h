@@ -45,10 +45,10 @@ requires (F == EMFace::X)
 struct PeriodicData3DImpl<T, F, S> {
   using type = FaceBCs<
     /* Ex */ NullData<EmptyArray3D<T>>,
-    /* Ey */ PeriodicData<Array3D<T>, F, S>,
-    /* Ez */ PeriodicData<Array3D<T>, F, S>,
-    /* Hx */ NullData<EmptyArray3D<T>>,
-    /* Hy */ NullData<EmptyArray3D<T>>,
+    /* Ey */ NullData<EmptyArray3D<T>>,
+    /* Ez */ NullData<EmptyArray3D<T>>,
+    /* Hx */ PeriodicData<Array3D<T>, F, S>,
+    /* Hy */ PeriodicData<Array3D<T>, F, S>,
     /* Hz */ NullData<EmptyArray3D<T>>
   >;
 };
@@ -57,12 +57,12 @@ template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::Y)
 struct PeriodicData3DImpl<T, F, S> {
   using type = FaceBCs<
-    /* Ex */ PeriodicData<Array3D<T>, F, S>,
+    /* Ex */ NullData<EmptyArray3D<T>>,
     /* Ey */ NullData<EmptyArray3D<T>>,
-    /* Ez */ PeriodicData<Array3D<T>, F, S>,
-    /* Hx */ NullData<EmptyArray3D<T>>,
+    /* Ez */ NullData<EmptyArray3D<T>>,
+    /* Hx */ PeriodicData<Array3D<T>, F, S>,
     /* Hy */ NullData<EmptyArray3D<T>>,
-    /* Hz */ NullData<EmptyArray3D<T>>
+    /* Hz */ PeriodicData<Array3D<T>, F, S>
   >;
 };
 
@@ -70,11 +70,11 @@ template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::Z)
 struct PeriodicData3DImpl<T, F, S> {
   using type = FaceBCs<
-    /* Ex */ PeriodicData<Array3D<T>, F, S>,
-    /* Ey */ PeriodicData<Array3D<T>, F, S>,
+    /* Ex */ NullData<EmptyArray3D<T>>,
+    /* Ey */ NullData<EmptyArray3D<T>>,
     /* Ez */ NullData<EmptyArray3D<T>>,
-    /* Hx */ NullData<EmptyArray3D<T>>,
-    /* Hy */ NullData<EmptyArray3D<T>>,
+    /* Hx */ PeriodicData<Array3D<T>, F, S>,
+    /* Hy */ PeriodicData<Array3D<T>, F, S>,
     /* Hz */ NullData<EmptyArray3D<T>>
   >;
 };
@@ -95,11 +95,11 @@ requires (F == EMFace::X)
 struct PmlData3DImpl<T, F, S> {
   using type = FaceBCs<
     /* Ex */ NullData<EmptyArray3D<T>>,
-    /* Ey */ PMLData<Array3D<T>, F, S, false>,
-    /* Ez */ PMLData<Array3D<T>, F, S, false>,
+    /* Ey */ PMLData<Array3D<T>, F, S, true>,
+    /* Ez */ PMLData<Array3D<T>, F, S, true>,
     /* Hx */ NullData<EmptyArray3D<T>>,
-    /* Hy */ PMLData<Array3D<T>, F, S, true>,
-    /* Hz */ PMLData<Array3D<T>, F, S, true>
+    /* Hy */ PMLData<Array3D<T>, F, S, false>,
+    /* Hz */ PMLData<Array3D<T>, F, S, false>
   >;
 };
 
@@ -108,12 +108,12 @@ template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::Y)
 struct PmlData3DImpl<T, F, S> {
   using type = FaceBCs<
-    /* Ex */ PMLData<Array3D<T>, F, S, false>,
+    /* Ex */ PMLData<Array3D<T>, F, S, true>,
     /* Ey */ NullData<EmptyArray3D<T>>,
-    /* Ez */ PMLData<Array3D<T>, F, S, false>,
-    /* Hx */ PMLData<Array3D<T>, F, S, true>,
+    /* Ez */ PMLData<Array3D<T>, F, S, true>,
+    /* Hx */ PMLData<Array3D<T>, F, S, false>,
     /* Hy */ NullData<EmptyArray3D<T>>,
-    /* Hz */ PMLData<Array3D<T>, F, S, true>
+    /* Hz */ PMLData<Array3D<T>, F, S, false>
   >;
 };
 
@@ -122,11 +122,11 @@ template<typename T, EMFace F, EMSide S>
 requires (F == EMFace::Z)
 struct PmlData3DImpl<T, F, S> {
   using type = FaceBCs<
-    /* Ex */ PMLData<Array3D<T>, F, S, false>,
-    /* Ey */ PMLData<Array3D<T>, F, S, false>,
+    /* Ex */ PMLData<Array3D<T>, F, S, true>,
+    /* Ey */ PMLData<Array3D<T>, F, S, true>,
     /* Ez */ NullData<EmptyArray3D<T>>,
-    /* Hx */ PMLData<Array3D<T>, F, S, true>,
-    /* Hy */ PMLData<Array3D<T>, F, S, true>,
+    /* Hx */ PMLData<Array3D<T>, F, S, false>,
+    /* Hy */ PMLData<Array3D<T>, F, S, false>,
     /* Hz */ NullData<EmptyArray3D<T>>
   >;
 };
@@ -156,10 +156,10 @@ requires (F == EMFace::X)
 struct Periodic3DImpl<F, S> {
   using type = TypeList<
     /* Ex */ ReflectingBCUpdate,
-    /* Ey */ Periodic3DUpdate<F, S>,
-    /* Ez */ Periodic3DUpdate<F, S>,
-    /* Hx */ ReflectingBCUpdate,
-    /* Hy */ ReflectingBCUpdate,
+    /* Ey */ ReflectingBCUpdate,
+    /* Ez */ ReflectingBCUpdate,
+    /* Hx */ Periodic3DUpdate<F, S>,
+    /* Hy */ Periodic3DUpdate<F, S>,
     /* Hz */ ReflectingBCUpdate
   >;
 };
@@ -168,12 +168,12 @@ template<EMFace F, EMSide S>
 requires (F == EMFace::Y)
 struct Periodic3DImpl<F, S> {
   using type = TypeList<
-    /* Ex */ Periodic3DUpdate<F, S>,
+    /* Ex */ ReflectingBCUpdate,
     /* Ey */ ReflectingBCUpdate,
-    /* Ez */ Periodic3DUpdate<F, S>,
-    /* Hx */ ReflectingBCUpdate,
+    /* Ez */ ReflectingBCUpdate,
+    /* Hx */ Periodic3DUpdate<F, S>,
     /* Hy */ ReflectingBCUpdate,
-    /* Hz */ ReflectingBCUpdate
+    /* Hz */ Periodic3DUpdate<F, S>
   >;
 };
 
@@ -181,11 +181,11 @@ template<EMFace F, EMSide S>
 requires (F == EMFace::Z)
 struct Periodic3DImpl<F, S> {
   using type = TypeList<
-    /* Ex */ Periodic3DUpdate<F, S>,
-    /* Ey */ Periodic3DUpdate<F, S>,
+    /* Ex */ ReflectingBCUpdate,
+    /* Ey */ ReflectingBCUpdate,
     /* Ez */ ReflectingBCUpdate,
-    /* Hx */ ReflectingBCUpdate,
-    /* Hy */ ReflectingBCUpdate,
+    /* Hx */ Periodic3DUpdate<F, S>,
+    /* Hy */ Periodic3DUpdate<F, S>,
     /* Hz */ ReflectingBCUpdate
   >;
 };
@@ -203,11 +203,11 @@ requires (F == EMFace::X)
 struct Pml3DImpl<F, S> {
   using type = TypeList<
     /* Ex */ ReflectingBCUpdate,
-    /* Ey */ Pml3DUpdate<EMFace::X, S, Derivative::DX, true, false>,
-    /* Ez */ Pml3DUpdate<EMFace::X, S, Derivative::DX, false, false>,
+    /* Ey */ Pml3DUpdate<EMFace::X, S, Derivative::DX, true, true>,
+    /* Ez */ Pml3DUpdate<EMFace::X, S, Derivative::DX, false, true>,
     /* Hx */ ReflectingBCUpdate,
-    /* Hy */ Pml3DUpdate<EMFace::X, S, Derivative::DX, false, true>,
-    /* Hz */ Pml3DUpdate<EMFace::X, S, Derivative::DX,  true, true>
+    /* Hy */ Pml3DUpdate<EMFace::X, S, Derivative::DX, false, false>,
+    /* Hz */ Pml3DUpdate<EMFace::X, S, Derivative::DX,  true, false>
   >;
 };
 
@@ -215,12 +215,12 @@ template<EMFace F, EMSide S>
 requires (F == EMFace::Y)
 struct Pml3DImpl<F, S> {
   using type = TypeList<
-    /* Ex */ Pml3DUpdate<EMFace::Y, S, Derivative::DY, false, false>,
+    /* Ex */ Pml3DUpdate<EMFace::Y, S, Derivative::DY, false, true>,
     /* Ey */ ReflectingBCUpdate,
-    /* Ez */ Pml3DUpdate<EMFace::Y, S, Derivative::DY, true, false>,
-    /* Hx */ Pml3DUpdate<EMFace::Y, S, Derivative::DY, true, true>,
+    /* Ez */ Pml3DUpdate<EMFace::Y, S, Derivative::DY, true, true>,
+    /* Hx */ Pml3DUpdate<EMFace::Y, S, Derivative::DY, true, false>,
     /* Hy */ ReflectingBCUpdate,
-    /* Hz */ Pml3DUpdate<EMFace::Y, S, Derivative::DY, false, true>
+    /* Hz */ Pml3DUpdate<EMFace::Y, S, Derivative::DY, false, false>
   >;
 };
 
@@ -228,11 +228,11 @@ template<EMFace F, EMSide S>
 requires (F == EMFace::Z)
 struct Pml3DImpl<F, S> {
   using type = TypeList<
-    /* Ex */ Pml3DUpdate<EMFace::Z, S, Derivative::DZ, true, false>,
-    /* Ey */ Pml3DUpdate<EMFace::Z, S, Derivative::DZ, false, false>,
+    /* Ex */ Pml3DUpdate<EMFace::Z, S, Derivative::DZ, true, true>,
+    /* Ey */ Pml3DUpdate<EMFace::Z, S, Derivative::DZ, false, true>,
     /* Ez */ ReflectingBCUpdate,
-    /* Hx */ Pml3DUpdate<EMFace::Z, S, Derivative::DZ, false, true>,
-    /* Hy */ Pml3DUpdate<EMFace::Z, S, Derivative::DZ, true, true>,
+    /* Hx */ Pml3DUpdate<EMFace::Z, S, Derivative::DZ, false, false>,
+    /* Hy */ Pml3DUpdate<EMFace::Z, S, Derivative::DZ, true, false>,
     /* Hz */ ReflectingBCUpdate
   >;
 };

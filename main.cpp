@@ -37,7 +37,7 @@ int main() {
 
   constexpr size_t nx = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t ny = 100u + 2 * nPml + 2 * nHalo;
-  constexpr size_t nz = 2;//100u + 2 * nPml + 2 * nHalo;
+  constexpr size_t nz = 100u + 2 * nPml + 2 * nHalo;
   constexpr size_t nt = 400u;
 
   constexpr double dx = 1.0 / 99.0;
@@ -95,10 +95,10 @@ int main() {
       &em.Ez,
       SpatialSource<fp_t>(
         make_tvec(),
-        0.1,
+        1.0,
         60, 61, // xs
         60, 61, // ys
-        0, 1  // zs
+        60, 61  // zs
       )
     )
   );

@@ -27,7 +27,6 @@ namespace tf::electromagnetics::sources
     [[nodiscard]] T eval(const T t) const override {
       // constexpr auto tol = 1e-12;
       const auto val = std::exp(-1.0 * std::pow((t - delay) / width, power));
-      // DBG(val);
       return val;
     }
 
@@ -43,7 +42,6 @@ namespace tf::electromagnetics::sources
 
     [[nodiscard]] T eval(const T t) const override {
       constexpr auto Md = 2.0;
-
       const auto alpha = SQR(M_PI * freq * (t - Md / freq));
       return (1.0 - 2.0 * alpha) * std::exp(-alpha);
     }
@@ -72,13 +70,10 @@ namespace tf::electromagnetics::sources
   };
 
 
-  // todo: Does this serve any purpose? Does it solve the soft-source amplitude problem? It's certainly overkill for a
-  //       simple spatial source to have an associated 1D solver...
-  //       Maybe replace with a lookup table?
   template<typename T>
   struct AuxiliarySource {
-    using HIntegrator = FieldIntegrator3D<tf::types::Array3D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, true, size_t, size_t, size_t>>;
-    using EIntegrator = FieldIntegrator3D<tf::types::Array3D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, false, size_t, size_t, size_t>>;
+    using HIntegrator = FieldIntegrator3D<tf::types::Array3D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, false, size_t, size_t, size_t>>;
+    using EIntegrator = FieldIntegrator3D<tf::types::Array3D<T>, FieldUpdate<Derivative::DX, Derivative::NoOp, true, size_t, size_t, size_t>>;
     using empty_t = tf::types::EmptyArray3D<T>;
     using temporal_vec = std::vector<std::unique_ptr<TemporalSource<T>>>;
 

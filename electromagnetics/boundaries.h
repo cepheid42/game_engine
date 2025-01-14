@@ -12,23 +12,20 @@ namespace tf::electromagnetics::boundaries
 {
   template<typename UpdateFunc>
   struct Boundary {
-    static void updateE(auto& bc, auto& f1, auto& f2, const auto& c1) {
+    static void updateH(auto& bc, auto& f1, auto& f2, const auto& c1) {
       if constexpr (is_periodic<UpdateFunc>) {
         UpdateFunc::updateE(bc, f1);
       } else if constexpr (is_pml<UpdateFunc>) {
         UpdateFunc::updateE(bc, f1, f2, c1);
       }
-      // Reflecting do not update the E-field components
+      // Reflecting do not update the H-field components
     }
 
-    static void updateH(auto& bc, auto& f1, auto& f2, const auto& c1) {
-      // if constexpr (is_periodic<UpdateFunc>) {
-      //   UpdateFunc::updateH(bc, f1);
-      // } else
+    static void updateE(auto& bc, auto& f1, auto& f2, const auto& c1) {
       if constexpr (is_pml<UpdateFunc>) {
         UpdateFunc::updateH(bc, f1, f2, c1);
       }
-      // Reflecting does not update H field components
+      // Reflecting/Periodic does not update E field components
     }
   };
 
@@ -36,7 +33,6 @@ namespace tf::electromagnetics::boundaries
 
   template<EMFace F, EMSide S>
   struct Periodic3DUpdate : periodic_t<F, S> {
-    // static void updateH() { DBG("Periodic3D::updateE()"); }
     static void updateE(auto&, auto&) {} // Only lo-side periodic is used
     static void updateE(auto& bc, auto& f) requires (S == EMSide::Lo) {
       const auto& os = bc.offsets;
@@ -79,11 +75,6 @@ namespace tf::electromagnetics::boundaries
       if constexpr (S == EMSide::Lo) { ipml = i; }
       else { ipml = i - x0 + Forward; }
 
-      // DBG(F, S, Forward);
-      // DBG(i, x0, Forward, ipml, i - x0 + 1);
-      // DBG(psi.size(), psi.get_scid(ipml, j, k));
-      // DBG(psi(ipml, j, k));
-
       psi(ipml, j, k) = b[ipml] * psi(ipml, j, k) + c[ipml] * Curl::apply(f2, i, j, k);
       if constexpr (Negate) {
         f1(i, j, k) -= c1(i, j, k) * psi(ipml, j, k);
@@ -123,7 +114,7 @@ namespace tf::electromagnetics::boundaries
     }
   };
 
-  template<EMFace F, EMSide S, Derivative D1, bool Negate, bool isH>
+  template<EMFace F, EMSide S, Derivative D1, bool Negate, bool isE>
   struct BCIntegrator3D {
     static auto apply(auto& f1, const auto& f2, const auto& c1, auto& bc) {
       size_t pml_offset;
@@ -135,21 +126,21 @@ namespace tf::electromagnetics::boundaries
       for (size_t i = bc.offsets.x0; i < bc.offsets.x1; ++i) {
         for (size_t j = bc.offsets.y0; j < bc.offsets.y1; ++j) {
           for (size_t k = bc.offsets.z0; k < bc.offsets.z1; ++k) {
-            Pml3DFunctor<F, S, D1, Negate, isH>::apply(f1, f2, c1, bc.psi, bc.b, bc.c, i, j, k, pml_offset);
+            Pml3DFunctor<F, S, D1, Negate, isE>::apply(f1, f2, c1, bc.psi, bc.b, bc.c, i, j, k, pml_offset);
           } // end k-loop
         } // end j-loop
       } // end i-loop
     }
   };
 
-  template<EMFace F, EMSide S, Derivative D1, bool Negate, bool isH>
+  template<EMFace F, EMSide S, Derivative D1, bool Negate, bool isE>
   struct Pml3DUpdate : pml_t<F, S> {
     static void updateE(auto& bc, auto& f1, const auto& f2, const auto& c1) {
-      BCIntegrator3D<F, S, D1, Negate, isH>::apply(f1, f2, c1, bc);
+      BCIntegrator3D<F, S, D1, Negate, isE>::apply(f1, f2, c1, bc);
     }
 
     static void updateH(auto& bc, auto& f1, const auto& f2, const auto& c1) {
-      BCIntegrator3D<F, S, D1, Negate, isH>::apply(f1, f2, c1, bc);
+      BCIntegrator3D<F, S, D1, Negate, isE>::apply(f1, f2, c1, bc);
     }
   };
 } // end namespace tf::electromagnetics::boundaries
