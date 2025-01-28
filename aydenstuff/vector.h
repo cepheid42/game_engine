@@ -2,15 +2,14 @@
 // Created by akis on 8/27/24.
 //
 
-#include <iostream>
+#ifndef TRIFORCE_VECTOR_H
+#define TRIFORCE_VECTOR_H
+
 #include <cmath>
 #include <tuple>
 #include <iomanip>
 
 #include "tags.h"
-
-#ifndef TRIFORCE_VECTOR_H
-#define TRIFORCE_VECTOR_H
 
 // ===== Vector Types =====
 // ========================
