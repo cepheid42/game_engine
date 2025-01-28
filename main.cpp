@@ -1,147 +1,220 @@
-#include <fstream>
-#include <cmath>
+#include <x86intrin.h>
 #include <iostream>
 #include <chrono>
-#include <string>
+#include <cassert>
+#include <cmath>
+#include <array>
 
-// #define DBG_MACRO_DISABLE
+// This function checks if two values are within tolerance of each other
+template<class T>
+bool approximatelyEqual(T a, T b, T tol = static_cast<T>(1e-4)) { return std::abs(a - b) <= tol; }
 
-// #include "electromagnetics/electromagnetics.h"
+struct alignas(32) vec3 {
+  double e[4]{};
+};
 
-template<typename Array>
-void to_csv(const Array& arr, const size_t step, const std::string& name) {
-  std::string count_padded = std::to_string(step);
-  count_padded.insert(count_padded.begin(), 6 - count_padded.length(), '0');
+std::ostream& operator<<(std::ostream& os, const vec3& v) {
+  return os << "(" << v.e[0] << ", " << v.e[1] << ", " << v.e[2] << ", " << v.e[3] << ")";
+}
 
-  std::string filename{"../data/" + name + "_" + count_padded + ".csv"};
-  std::ofstream file;
-  file.open(filename.c_str());
+//Method 1: Simple SSE
+[[nodiscard]] inline static __m256d cross_product1(__m256d const& vec0, __m256d const& vec1) noexcept {
+  __m256d tmp0 = _mm256_permute4x64_pd(vec0, _MM_SHUFFLE(3,0,2,1));
+  __m256d tmp1 = _mm256_permute4x64_pd(vec1, _MM_SHUFFLE(3,1,0,2) );
+  __m256d tmp2 = _mm256_permute4x64_pd(vec0, _MM_SHUFFLE(3,1,0,2) );
+  __m256d tmp3 = _mm256_permute4x64_pd(vec1, _MM_SHUFFLE(3,0,2,1) );
+  return _mm256_sub_pd(
+    _mm256_mul_pd( tmp0, tmp1 ),
+    _mm256_mul_pd( tmp2, tmp3 )
+  );
+}
 
-  for (size_t i = 0; i < arr.nx(); i++) {
-    for (size_t j = 0; j < arr.ny(); j++) {
-      for (size_t k = 0; k < arr.nz(); k++) {
-        file << arr(i, j, k);
-        if (k < arr.nz() - 1) {
-          file << ", ";
-        }
-      }
-      file << '\n';
-    }
+//Method 2: Simple SSE (FMA instructions)
+[[nodiscard]] inline static __m256d cross_product2(__m256d const& vec0, __m256d const& vec1 )noexcept {
+  __m256d tmp0 = _mm256_permute4x64_pd(vec0, _MM_SHUFFLE(3,0,2,1) );
+  __m256d tmp1 = _mm256_permute4x64_pd(vec1, _MM_SHUFFLE(3,1,0,2) );
+  __m256d tmp2 = _mm256_permute4x64_pd(vec0, _MM_SHUFFLE(3,1,0,2) );
+  __m256d tmp3 = _mm256_permute4x64_pd(vec1, _MM_SHUFFLE(3,0,2,1) );
+  __m256d tmp4 = _mm256_mul_pd( tmp2, tmp3 );
+  return _mm256_fmsub_pd( tmp0,tmp1, tmp4 );
+}
+
+//Method 3: Fewer swizzles, swizzle after subtraction
+[[nodiscard]] inline static __m256d cross_product3(__m256d const& vec0, __m256d const& vec1) noexcept {
+  __m256d tmp0 = _mm256_permute4x64_pd(vec1, _MM_SHUFFLE(3,0,2,1) );
+  __m256d tmp1 = _mm256_permute4x64_pd(vec0, _MM_SHUFFLE(3,0,2,1) );
+  tmp0 = _mm256_mul_pd( tmp0, vec0 );
+  tmp1 = _mm256_mul_pd( tmp1, vec1 );
+  __m256d tmp2 = _mm256_sub_pd( tmp0, tmp1 );
+  return _mm256_permute4x64_pd(tmp2, _MM_SHUFFLE(3,0,2,1) );
+}
+
+//Method 4: Fewer swizzles, swizzle after subtraction (FMA instructions)
+[[nodiscard]] inline static __m256d cross_product4(__m256d const& vec0, __m256d const& vec1) noexcept {
+  __m256d tmp0 = _mm256_permute4x64_pd(vec1, _MM_SHUFFLE(3,0,2,1) );
+  __m256d tmp1 = _mm256_permute4x64_pd(vec0, _MM_SHUFFLE(3,0,2,1) );
+  tmp1 = _mm256_mul_pd( tmp1, vec1 );
+  __m256d tmp2 = _mm256_fmsub_pd( tmp0,vec0, tmp1 );
+  return _mm256_permute4x64_pd(tmp2, _MM_SHUFFLE(3,0,2,1) );
+}
+
+// Method 5: Fewer swizzles, swizzle before subtraction
+[[nodiscard]] inline static __m256d cross_product5(__m256d const& vec0, __m256d const& vec1) noexcept {
+  const __m256d tmp0 = _mm256_permute4x64_pd(vec0, _MM_SHUFFLE(3,0,2,1) );
+  const __m256d tmp1 = _mm256_permute4x64_pd(vec1, _MM_SHUFFLE(3,1,0,2) );
+  const __m256d tmp2 = _mm256_mul_pd(tmp0, vec1 );
+  const __m256d tmp3 = _mm256_mul_pd(tmp0, tmp1 );
+  const __m256d tmp4 = _mm256_permute4x64_pd(tmp2, _MM_SHUFFLE(3,0,2,1) );
+  return _mm256_sub_pd( tmp3, tmp4 );
+}
+
+//Method 6: Fewer swizzles, swizzle before subtraction (FMA instructions)
+[[nodiscard]] inline static __m256d cross_product6(__m256d const& vec0, __m256d const& vec1) noexcept {
+  __m256d tmp0 = _mm256_permute4x64_pd(vec0, _MM_SHUFFLE(3,0,2,1) );
+  __m256d tmp1 = _mm256_permute4x64_pd(vec1, _MM_SHUFFLE(3,1,0,2) );
+  __m256d tmp2 = _mm256_mul_pd( tmp0, vec1 );
+  __m256d tmp4 = _mm256_permute4x64_pd(tmp2, _MM_SHUFFLE(3,0,2,1) );
+  return _mm256_fmsub_pd( tmp0,tmp1, tmp4 );
+}
+
+vec3 cross(const vec3& u, const vec3& v) {
+  // Performs u x v
+  return {u.e[1] * v.e[2] - u.e[2] * v.e[1],
+          u.e[2] * v.e[0] - u.e[0] * v.e[2],
+          u.e[0] * v.e[1] - u.e[1] * v.e[0],
+          0.0};
+}
+
+#define NUM 10000
+
+void validate(const std::array<vec3, NUM>& test, const std::array<vec3, NUM>& solution) {
+  for (std::size_t i = 0; i < NUM - 1; ++i) {
+  //   std::cout << test[i] << " | " << solution[i] << std::endl;
+  assert(approximatelyEqual(test[i].e[0], solution[i].e[0]));
+  assert(approximatelyEqual(test[i].e[1], solution[i].e[1]));
+  assert(approximatelyEqual(test[i].e[2], solution[i].e[2]));
+  assert(approximatelyEqual(test[i].e[3], solution[i].e[3]));
   }
-
-  file.close();
 }
 
 int main() {
-  // for (const auto& x: dx) {
-  //   std::cout << x << ", ";
-  // }
-  // std::cout << std::endl;
+  std::array<vec3, NUM> array{};
+  std::array<vec3, NUM> i1_result{};
+  std::array<vec3, NUM> reg_result{};
 
-  // const auto start = std::chrono::high_resolution_clock::now();
-  //
-  // constexpr size_t nx = 100u + 2 * nPml + 2 * nHalo;
-  // constexpr size_t ny = 100u + 2 * nPml + 2 * nHalo;
-  // constexpr size_t nz = 100u + 2 * nPml + 2 * nHalo;
-  // constexpr size_t nt = 400u;
-  //
-  // constexpr double dx = 1.0 / 99.0;
-  //
-  // constexpr auto c0 = 299792458.0;
-  // constexpr auto dt = cfl * dx / c0;
-  //
-  // emdata_t<double> em{nx, ny, nz, dt, dx};
-  // bcdata_t<double> bc{em, dt, dx};
-  //
-  // // constexpr size_t x0 = nPml + 5;
-  // // constexpr size_t x1 = nx - nPml - 5;
-  // // using tf::electromagnetics::sources::ContinuousSource;
-  // // using tf::electromagnetics::sources::GaussianSource;
-  // // using tf::electromagnetics::sources::GaussianBeam;
-  // // constexpr auto omega = 2.0 * M_PI * c0 / (40.0 * dx);
-  // // em.beams.push_back(
-  // //   std::make_unique<GaussianBeam<Array2D<fp_t>>>(
-  // //     GaussianBeam<Array2D<fp_t>>{
-  // //       &em.Ez,
-  // //       -2.75e13, // amp
-  // //       0.17, // waist
-  // //       omega, // freq
-  // //       {0.5, 0.5}, // waist position
-  // //       x0, // x0
-  // //       x0 + 1, // x1
-  // //       x0, // y0
-  // //       x1, // y1,
-  // //       dx
-  // //     }
-  // //   )
-  // // );
-  // //
-  // // em.beams[0]->t_srcs.push_back(std::make_unique<ContinuousSource<fp_t>>(omega, 0.0, 1.0e30, 0.0));
-  // //
-  // // constexpr auto width = 7.58e-9;
-  // // em.beams[0]->t_srcs.push_back(std::make_unique<GaussianSource<fp_t>>(width, 2.0, 2.0 * width));
-  //
-  // using tf::electromagnetics::sources::CurrentSource;
-  // using tf::electromagnetics::sources::SpatialSource;
-  // using tf::electromagnetics::sources::RickerSource;
-  // using temporal_vec = std::vector<std::unique_ptr<tf::electromagnetics::sources::TemporalSource<fp_t>>>;
-  //
-  // constexpr auto freq = c0 / (20.0 * dx);
-  //
-  // auto make_tvec = [&]()
-  // {
-  //   temporal_vec tvec{};
-  //   tvec.push_back(std::make_unique<RickerSource<fp_t>>(freq));
-  //   return tvec;
-  // };
-  //
-  // em.srcs.push_back(
-  //   std::make_unique<CurrentSource<Array3D<fp_t>>>(
-  //     &em.Ez,
-  //     SpatialSource<fp_t>(
-  //       make_tvec(),
-  //       1.0,
-  //       60, 61, // xs
-  //       60, 61, // ys
-  //       60, 61  // zs
-  //     )
-  //   )
-  // );
-  //
-  // constexpr auto save_step = 4;
-  // size_t filecount = 0;
-  // for (size_t n = 0; n < nt; n++) {
-  //
-  //   EMSolver<fp_t>::advance(static_cast<fp_t>(n) * dt, em, bc);
-  //
-  //   if (n % save_step == 0) {
-  //     std::cout << "Step " << n << std::endl;
-  //
-  //     // #pragma omp parallel num_threads(3)
-  //     //       {
-  //     // #pragma omp single
-  //     //         {
-  //     // #pragma omp task
-  //     //           to_csv(em.Ex, filecount, "Ex");
-  //     // #pragma omp task
-  //     //           to_csv(em.Ey, filecount, "Ey");
-  //     // #pragma omp task
-  //     to_csv(em.Ez, filecount, "Ez");
-  //     // #pragma omp task
-  //     //           to_csv(em.Hx, filecount, "Hx");
-  //     // #pragma omp task
-  //     //           to_csv(em.Hy, filecount, "Hy");
-  //     // #pragma omp task
-  //     //           to_csv(em.Hz, filecount, "Hz");
-  //     //          }
-  //     //        }
-  //
-  //     filecount++;
-  //   }
-  // }
-  //
-  // const auto stop = std::chrono::high_resolution_clock::now() - start;
-  // const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop);
-  // std::cout << "Execution time: " << duration.count() << " ms" << std::endl;
+  for (size_t i = 0; i < NUM; ++i) {
+    const double r1 = static_cast <double> (rand()) / static_cast <double> (RAND_MAX);
+    const double r2 = static_cast <double> (rand()) / static_cast <double> (RAND_MAX);
+    const double r3 = static_cast <double> (rand()) / static_cast <double> (RAND_MAX);
+    array[i].e[0] = r1;
+    array[i].e[1] = r2;
+    array[i].e[2] = r3;
+    array[i].e[3] = 0.0f;
+  }
+
+  const auto reg_start = std::chrono::high_resolution_clock::now();
+  for (std::size_t i = 0; i < NUM - 1; ++i) {
+    reg_result[i] = cross(array[i], array[i + 1]);
+  }
+  const auto reg_stop = std::chrono::high_resolution_clock::now() - reg_start;
+
+  const auto i1_start = std::chrono::high_resolution_clock::now();
+  for (std::size_t i = 0; i < NUM - 1; ++i) {
+    const __m256d vec0 = _mm256_load_pd(array[i].e);
+    const __m256d vec1 = _mm256_load_pd(array[i + 1].e);
+    const __m256d val = cross_product1(vec0, vec1);
+    _mm256_store_pd(i1_result[i].e, val);
+  }
+  const auto i1_stop = std::chrono::high_resolution_clock::now() - i1_start;
+  validate(i1_result, reg_result);
+
+
+  const auto i2_start = std::chrono::high_resolution_clock::now();
+  for (std::size_t i = 0; i < NUM - 1; ++i) {
+    const __m256d vec0 = _mm256_load_pd(array[i].e);
+    const __m256d vec1 = _mm256_load_pd(array[i + 1].e);
+    const __m256d val = cross_product2(vec0, vec1);
+    _mm256_store_pd(i1_result[i].e, val);
+  }
+  const auto i2_stop = std::chrono::high_resolution_clock::now() - i2_start;
+  validate(i1_result, reg_result);
+
+
+  const auto i3_start = std::chrono::high_resolution_clock::now();
+  for (std::size_t i = 0; i < NUM - 1; ++i) {
+    const __m256d vec0 = _mm256_load_pd(array[i].e);
+    const __m256d vec1 = _mm256_load_pd(array[i + 1].e);
+    const __m256d val = cross_product3(vec0, vec1);
+    _mm256_store_pd(i1_result[i].e, val);
+  }
+  const auto i3_stop = std::chrono::high_resolution_clock::now() - i3_start;
+  validate(i1_result, reg_result);
+
+
+  const auto i4_start = std::chrono::high_resolution_clock::now();
+  for (std::size_t i = 0; i < NUM - 1; ++i) {
+    const __m256d vec0 = _mm256_load_pd(array[i].e);
+    const __m256d vec1 = _mm256_load_pd(array[i + 1].e);
+    const __m256d val = cross_product4(vec0, vec1);
+    _mm256_store_pd(i1_result[i].e, val);
+  }
+  const auto i4_stop = std::chrono::high_resolution_clock::now() - i4_start;
+  validate(i1_result, reg_result);
+
+
+  const auto i5_start = std::chrono::high_resolution_clock::now();
+  for (std::size_t i = 0; i < NUM - 1; ++i) {
+    const __m256d vec0 = _mm256_load_pd(array[i].e);
+    const __m256d vec1 = _mm256_load_pd(array[i + 1].e);
+    const __m256d val = cross_product5(vec0, vec1);
+    _mm256_store_pd(i1_result[i].e, val);
+  }
+  const auto i5_stop = std::chrono::high_resolution_clock::now() - i5_start;
+  validate(i1_result, reg_result);
+
+
+  const auto i6_start = std::chrono::high_resolution_clock::now();
+  for (std::size_t i = 0; i < NUM - 1; ++i) {
+    const __m256d vec0 = _mm256_load_pd(array[i].e);
+    const __m256d vec1 = _mm256_load_pd(array[i + 1].e);
+    const __m256d val = cross_product6(vec0, vec1);
+    _mm256_store_pd(i1_result[i].e, val);
+  }
+  const auto i6_stop = std::chrono::high_resolution_clock::now() - i6_start;
+  validate(i1_result, reg_result);
+
+  const auto i1_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(i1_stop);
+  const auto i2_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(i2_stop);
+  const auto i3_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(i3_stop);
+  const auto i4_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(i4_stop);
+  const auto i5_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(i5_stop);
+  const auto i6_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(i6_stop);
+  const auto reg_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(reg_stop);
+
+  const auto i1df = static_cast<double>(i1_duration.count());
+  const auto i2df = static_cast<double>(i2_duration.count());
+  const auto i3df = static_cast<double>(i3_duration.count());
+  const auto i4df = static_cast<double>(i4_duration.count());
+  const auto i5df = static_cast<double>(i5_duration.count());
+  const auto i6df = static_cast<double>(i6_duration.count());
+  const auto regf = static_cast<double>(reg_duration.count());
+
+  const auto i1ave = static_cast<double>(i1df) / static_cast<double>(NUM - 1);
+  const auto i2ave = static_cast<double>(i2df) / static_cast<double>(NUM - 1);
+  const auto i3ave = static_cast<double>(i3df) / static_cast<double>(NUM - 1);
+  const auto i4ave = static_cast<double>(i4df) / static_cast<double>(NUM - 1);
+  const auto i5ave = static_cast<double>(i5df) / static_cast<double>(NUM - 1);
+  const auto i6ave = static_cast<double>(i6df) / static_cast<double>(NUM - 1);
+  const auto rave = static_cast<double>(regf) / static_cast<double>(NUM - 1);
+  // const auto speedup = iave / rave * 100.0;
+
+  std::cout << "Intrinics 1: " << i1_duration.count() << " ns (" << i1ave << " ns/op)" << std::endl;
+  std::cout << "Intrinics 2: " << i2_duration.count() << " ns (" << i2ave << " ns/op)" << std::endl;
+  std::cout << "Intrinics 3: " << i3_duration.count() << " ns (" << i3ave << " ns/op)" << std::endl;
+  std::cout << "Intrinics 4: " << i4_duration.count() << " ns (" << i4ave << " ns/op)" << std::endl;
+  std::cout << "Intrinics 5: " << i5_duration.count() << " ns (" << i5ave << " ns/op)" << std::endl;
+  std::cout << "Intrinics 6: " << i6_duration.count() << " ns (" << i6ave << " ns/op)" << std::endl;
+  std::cout << "    Regular: " << reg_duration.count() << " ns (" << rave << " ns/op)" << std::endl;
+
   return 0;
 }
