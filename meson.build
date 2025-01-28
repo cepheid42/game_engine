@@ -3,8 +3,8 @@ project(
     'cpp',
     version : '0.0.1',
     default_options : [
-#        'buildtype=debugoptimized',
-        'buildtype=release',
+        'buildtype=debugoptimized',
+#        'buildtype=release',
         'warning_level=3',
         'cpp_std=c++20',
 #        'b_sanitize=address'
@@ -21,8 +21,8 @@ gcc_opts = [
 includes = include_directories('core', 'electromagnetics', 'aydenstuff')
 
 sources = [
-#    'main.cpp',
-    'main_single.cpp'
+    'main.cpp',
+#    'main_single.cpp'
 #    'core/memory.cpp',
 ]
 
