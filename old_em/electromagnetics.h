@@ -93,5 +93,5 @@ namespace tf::electromagnetics
     bcz0_t, bcz1_t
   >; // Auto-selects full BC's per face and EMSolver per field component based on chosen settings.
 
-} // end namespace tf::electromagnetics
+} // end namespace tf::old_em
 #endif //ELECTROMAGNETICS_H

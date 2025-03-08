@@ -230,6 +230,6 @@ namespace tf::electromagnetics
   template<EMFace F, EMSide S>
   using Pml3D = typename Pml3DImpl<F, S>::type;
 
-} // end namespace tf::electromagnetics
+} // end namespace tf::old_em
 
 #endif // BC_DEFINITIONS_H

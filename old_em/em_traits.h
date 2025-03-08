@@ -45,5 +45,5 @@ namespace tf::electromagnetics::traits
   template<typename T>
   concept is_pml = std::derived_from<T, pml_t<T::face, T::side>>;
   //
-} // end namespace tf::electromagnetics::traits
+} // end namespace tf::old_em::traits
 #endif //EM_TRAITS_H

@@ -143,6 +143,6 @@ namespace tf::electromagnetics::boundaries
       BCIntegrator3D<F, S, D1, Negate, isE>::apply(f1, f2, c1, bc);
     }
   };
-} // end namespace tf::electromagnetics::boundaries
+} // end namespace tf::old_em::boundaries
 
 #endif //BOUNDARIES_H

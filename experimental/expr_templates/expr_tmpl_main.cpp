@@ -18,7 +18,7 @@
 // #include "core/random.h"
 // #include "core/timers.h"
 // #include "core/typelist.h"
-// #include "electromagnetics/em_solver.h"
+// #include "old_em/em_solver.h"
 
 #include "expr_templates/expr_array.h"
 #include "expr_templates/expr_scalar.h"

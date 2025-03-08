@@ -18,7 +18,7 @@ gcc_opts = [
 # '-save-temps'
  ]
 
-includes = include_directories('core', 'electromagnetics', 'aydenstuff')
+includes = include_directories('core', 'old_em', 'aydenstuff')
 
 sources = [
     'main.cpp',

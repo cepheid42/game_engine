@@ -1,11 +1,8 @@
-//
-// Created by cepheid on 5/16/24.
-//
-
 #ifndef MEMORY_H
 #define MEMORY_H
 
 #include <cstdint>
+#include <cstring>
 #include <cassert>
 
 #define DEFAULT_ALIGN (2 * sizeof(void*))
@@ -15,7 +12,7 @@ namespace memory {
     return (x & (x-1)) == 0;
   }
 
-  inline uintptr_t align_forward(const uintptr_t ptr, const size_t align)
+  inline uintptr_t align_forward(const uintptr_t ptr, const std::size_t align)
   {
     assert(is_power_of_two(align));
 
@@ -32,36 +29,39 @@ namespace memory {
     return p;
   }
 
-  // struct Arena {
-  //   unsigned char* buf;
-  //   size_t         buf_len;
-  //   size_t         prev_offset; // This will be useful for later on
-  //   size_t         curr_offset;
-  //
-  //   void* alloc_align(size_t size, size_t align);
-  //   void* alloc(size_t size);
-  //   void* resize_align(void* old_memory, size_t old_size, size_t new_size, size_t align=DEFAULT_ALIGN);
-  //   void* resize(void* old_memory, size_t old_size, size_t new_size);
-  //   void free_all();
-  //   void init(void* backing_buffer, size_t backing_buffer_length);
-  //
-  //   static void free([[maybe_unused]] void* ptr) {} // Do nothing
-  // };
-
   struct Pool_Free_Node {
     Pool_Free_Node *next;
   };
 
+  template<typename T>
   struct Pool {
-    unsigned char *buf;
-    size_t buf_len;
-    size_t chunk_size;
+    using pointer = T*;
 
-    Pool_Free_Node *head; // Free List Head
+    Pool();
+    Pool(const std::size_t size);
 
-    void* alloc();
+    T* buf;
+    std::size_t buf_len;
+    std::size_t chunk_size;
 
-    void init(void* buffer, size_t buffer_length, size_t block_size, size_t block_align=DEFAULT_ALIGN);
+    Pool_Free_Node* head; // Free List Head
+
+    pointer allocate(std::size_t n) {
+      auto* node = head;
+      if (!node) {
+        assert(false && "Pool allocator has no free memory");
+        return nullptr;
+      }
+
+      head = head->next;
+      return std::memset(node, 0, chunk_size);
+    }
+
+    void deallocate(pointer p, std::size_t n) {
+
+    }
+
+
     void free(void *ptr);
     void free_all();
   };

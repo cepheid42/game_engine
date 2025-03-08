@@ -116,5 +116,5 @@ namespace tf::electromagnetics
       updateH_bcs(emdata, bcdata);
     }
   };
-} // end namespace tf::electromagnetics
+} // end namespace tf::old_em
 #endif //EM_SOLVER_H

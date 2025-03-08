@@ -55,5 +55,5 @@ namespace tf::electromagnetics
     /* Hy */ FieldIntegrator3D<T, FieldUpdate<Derivative::DX, Derivative::DZ, false, size_t, size_t, size_t>>,
     /* Hz */ FieldIntegrator3D<T, FieldUpdate<Derivative::DY, Derivative::DX, false, size_t, size_t, size_t>>
   >;
-} // end namespace tf::electromagnetics
+} // end namespace tf::old_em
 #endif //EM_DEFINITIONS_H

@@ -27,7 +27,7 @@ namespace tf::electromagnetics
 
     explicit EMData(const size_t nx, const size_t ny, const size_t nz, const value_t dt, const value_t dx)
     : Ex{nx, ny - 1, nz - 1}, Jx{nx, ny - 1, nz - 1}, Cexe{nx, ny - 1, nz - 1}, Cexhy{nx, ny - 1, nz - 1}, Cexhz{nx, ny - 1, nz - 1}, Cjx{nx, ny - 1, nz - 1},
-      Ey{nx - 1, ny, nz - 1}, Jy{nx - 1, ny, nz - 1}, Ceye{nx - 1, ny, nz - 1}, Ceyhx{nx - 1, ny, nz - 1}, Ceyhz{nx - 1, ny, nz - 1}, Cjy{nx - 1, ny, nz - 1},
+      Ey{nx - 1, ny, nz - 1}, Jy{nx - 1, ny, nz - 1}, Ceye{nx - 1, ny, nz - 1}, Ceyhx{nx - 0, ny, nz - 1}, Ceyhz{nx - 1, ny, nz - 1}, Cjy{nx - 1, ny, nz - 1},
       Ez{nx - 1, ny - 1, nz}, Jz{nx - 1, ny - 1, nz}, Ceze{nx - 1, ny - 1, nz}, Cezhx{nx - 1, ny - 1, nz}, Cezhy{nx - 1, ny - 1, nz}, Cjz{nx - 1, ny - 1, nz},
       Hx{nx - 1, ny, nz}, Chxey{nx - 1, ny, nz}, Chxez{nx - 1, ny, nz}, Chxh{nx - 1, ny, nz},
       Hy{nx, ny - 1, nz}, Chyex{nx, ny - 1, nz}, Chyez{nx, ny - 1, nz}, Chyh{nx, ny - 1, nz},
@@ -141,5 +141,5 @@ namespace tf::electromagnetics
     init_coeff(Chzex, hc);
     init_coeff(Chzey, hc);
   }
-} // end namespace tf::electromagnetics
+} // end namespace tf::old_em
 #endif //EM_DATA_H

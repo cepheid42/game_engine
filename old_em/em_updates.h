@@ -61,5 +61,5 @@ namespace tf::electromagnetics
     using offset_t = types::IntegratorOffsets;
     static constexpr void apply(const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const auto&, const offset_t&) {}
   };
-} // end namespace tf::electromagnetics
+} // end namespace tf::old_em
 #endif //EM_UPDATES_H

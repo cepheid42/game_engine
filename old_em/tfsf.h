@@ -13,7 +13,7 @@
 //
 //#include "em_updates.h"
 //
-//namespace tf::electromagnetics::sources
+//namespace tf::old_em::sources
 //{
 //
 //  template<typename Array>
@@ -167,5 +167,5 @@
 //    }
 //  }
 //
-//} // end namespace tf::electromagnetics::sources
+//} // end namespace tf::old_em::sources
 #endif //TFSF_H

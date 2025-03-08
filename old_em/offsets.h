@@ -85,5 +85,5 @@ namespace tf::electromagnetics::types
 
     return {0, 0, 0, 0, 0, 0};
   }
-} // end namespace tf::electromagnetics::types
+} // end namespace tf::old_em::types
 #endif //OFFSETS_H
