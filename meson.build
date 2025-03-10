@@ -3,10 +3,10 @@ project(
     'cpp',
     version : '0.0.1',
     default_options : [
-#        'buildtype=debugoptimized',
-        'buildtype=release',
+        'buildtype=debugoptimized',
+#        'buildtype=release',
         'warning_level=3',
-        'cpp_std=c++20',
+        'cpp_std=c++23',
 #        'b_sanitize=address'
     ]
 )
@@ -18,12 +18,12 @@ gcc_opts = [
 # '-save-temps'
  ]
 
-includes = include_directories('core', 'old_em', 'aydenstuff')
+includes = include_directories('core', 'electromagnetics')
 
 sources = [
     'main.cpp',
-#    'main_single.cpp'
-#    'core/memory.cpp',
+    'electromagnetics/em_solver.cpp',
+
 ]
 
 thread_dep = dependency('OpenMP')

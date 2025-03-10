@@ -1,13 +1,11 @@
-//
-// Created by akis on 8/27/24.
-//
-
 #ifndef TRIFORCE_VECTOR_H
 #define TRIFORCE_VECTOR_H
 
 #include <cmath>
+#include <initializer_list>
+#include <ostream>
 
-#include "tags.h"
+// #include "tags.h"
 
 // ===== Vector Types =====
 // ========================
@@ -19,7 +17,7 @@ namespace tf::types
     template<typename T, size_t N>
     struct VectorBase {
       using value_t = T;
-      using dimension_t = tags::Dimension<N>;
+      // using dimension_t = tags::Dimension<N>;
       
       VectorBase(std::initializer_list<T[N]> init_) : data(init_) {}
       
@@ -44,14 +42,14 @@ namespace tf::types
   template<typename T>
   struct vec3 : detail::VectorBase<T, 3> {
     using value_t = typename detail::VectorBase<T, 3>::value_t;
-    using dimension_t = typename detail::VectorBase<T, 3>::dimension_t;
+    // using dimension_t = typename detail::VectorBase<T, 3>::dimension_t;
     
     vec3() = default;
     vec3(std::initializer_list<value_t[3]> init_) : detail::VectorBase<T, 3>(init_) {}
     vec3(value_t e0, value_t e1, value_t e2) : vec3({e0, e1, e2}) {}
     
     // Unary Negation
-    vec3 operator-() const { return {-(*this)[0], -(*this)[1], -(*this)[2]}}
+    vec3 operator-() const { return {-(*this)[0], -(*this)[1], -(*this)[2]}; }
     
     vec3 &operator+=(const vec3 &v) {
       (*this)[0] += v[0];

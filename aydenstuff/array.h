@@ -22,11 +22,9 @@ namespace tf::types
   {
     // =================== Empty Array Class for Electromagnetics =======================
     // ==================================================================================
-    template<typename Array>
+    template<typename T>
     struct EmptyArray {
-      using value_t = typename Array::value_t;
-      using dimension_t = typename Array::dimension_t;
-      using array_t = Array;
+      using value_t = T;
 
       EmptyArray() = default;
       explicit EmptyArray(std::size_t...) {}
@@ -43,9 +41,7 @@ namespace tf::types
     class ArrayBase {
     public:
       using value_t = T;
-      using vector_t = std::vector<value_t>;
-      using dimension_t = tags::Dimension<N>;
-      
+
       explicit ArrayBase() = default;
       explicit ArrayBase(const size_t size) : data(size) {}
       ArrayBase(const size_t size, const value_t fill) : data(size, fill) {}
@@ -68,7 +64,7 @@ namespace tf::types
       const value_t& operator[](const size_t i) const { return data[i]; }
     
     protected:
-      vector_t data;
+      std::vector<value_t> data;
     };
   }
   
