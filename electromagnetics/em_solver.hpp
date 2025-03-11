@@ -9,19 +9,20 @@
 namespace tf::electromagnetics {
   struct EMSolver {
     using emdata_t = EMData<ex_t, ey_t, ez_t, hx_t, hy_t, hz_t>;
-    using ex_func = FieldIntegrator<ex_t, ExplicitUpdateFunctor<forward_dy, forward_dz>>;
-    using ey_func = FieldIntegrator<ey_t, ExplicitUpdateFunctor<forward_dz, forward_dx>>;
-    using ez_func = FieldIntegrator<ez_t, ExplicitUpdateFunctor<forward_dx, forward_dy>>;
-    using hx_func = FieldIntegrator<hx_t, ExplicitUpdateFunctor<backward_dz, backward_dy>>;
-    using hy_func = FieldIntegrator<hy_t, ExplicitUpdateFunctor<backward_dx, backward_dz>>;
-    using hz_func = FieldIntegrator<hz_t, ExplicitUpdateFunctor<backward_dy, backward_dx>>;
+    using ex_func = FieldIntegrator<ex_t, ExplicitUpdateFunctor<backward_dy, backward_dz>>;
+    using ey_func = FieldIntegrator<ey_t, ExplicitUpdateFunctor<backward_dz, backward_dx>>;
+    using ez_func = FieldIntegrator<ez_t, ExplicitUpdateFunctor<backward_dx, backward_dy>>;
+    using hx_func = FieldIntegrator<hx_t, ExplicitUpdateFunctor<forward_dz, forward_dy>>;
+    using hy_func = FieldIntegrator<hy_t, ExplicitUpdateFunctor<forward_dx, forward_dz>>;
+    using hz_func = FieldIntegrator<hz_t, ExplicitUpdateFunctor<forward_dy, forward_dx>>;
 
     explicit EMSolver() = delete;
     explicit EMSolver(std::size_t, std::size_t, std::size_t, double, double);
 
-    void advance();
+    void advance(double);
     void updateE();
     void updateH();
+    void apply_srcs(double) const;
 
     emdata_t emdata;
     ex_func ex_update{};

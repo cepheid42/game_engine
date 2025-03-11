@@ -11,22 +11,22 @@ namespace tf::electromagnetics {
     using value_t = T;
   public:
     explicit Array3D() = default;
-    explicit Array3D(const std::size_t nx, const std::size_t ny=1, const std::size_t nz=1)
-    : nx_(nx), ny_(ny), nz_(nz), data_{nx * ny * nz} {
-      std::cout << "Array3D ctor" << std::endl;
-      std::cout << "nx = " << nx << ", ny = " << ny << ", nz = " << nz << std::endl;
-    }
+    explicit Array3D(const std::size_t nx, const std::size_t ny, const std::size_t nz)
+    : nx_(nx), ny_(ny), nz_(nz), data_(nx * ny * nz)
+    {}
 
     auto begin() { return data_.begin(); }
     auto end() { return data_.end(); }
 
+    const auto* data() const { return data_.data(); }
+    [[nodiscard]] auto capacity() const { return data_.capacity(); }
     [[nodiscard]] constexpr std::size_t size() const { return data_.size(); }
     [[nodiscard]] constexpr std::size_t num_bytes() const { return size() * sizeof(T); }
     [[nodiscard]] std::size_t get_scid(const std::size_t i, const std::size_t j, const std::size_t k) const { return k + nz_ * j + nz_ * ny_ * i; }
 
     // Specialized accessors
-    T& operator()(const std::size_t i, const std::size_t j, const std::size_t k) { return (*this)[get_scid(i, j, k)]; }
-    const T& operator()(const std::size_t i, const std::size_t j, const std::size_t k) const { return (*this)[get_scid(i, j, k)]; }
+    T& operator()(const std::size_t i, const std::size_t j, const std::size_t k) { return data_[get_scid(i, j, k)]; }
+    const T& operator()(const std::size_t i, const std::size_t j, const std::size_t k) const { return data_[get_scid(i, j, k)]; }
 
     T& operator[](const std::size_t i) { return data_[i]; }
     const T& operator[](const std::size_t i) const { return data_[i]; }
