@@ -2,18 +2,22 @@
 #include <print>
 
 #include "program_params.hpp"
+#include "constants.hpp"
 #include "em_solver.hpp"
-#include "metrics/metrics.hpp"
+#include "metrics.hpp"
+#include "array.hpp"
 
 int main() {
-  using array_t = tf::electromagnetics::Array3D<double>;
+  using array_t = tf::Array3D<double>;
   using ricker_t = tf::electromagnetics::RickerSource;
   using temporal_vec = std::vector<std::unique_ptr<tf::electromagnetics::TemporalSource>>;
 
   constexpr auto nx2 = Nx / 2;
 
-  auto make_ricker = [](temporal_vec& srcs) {
-    srcs.push_back(std::make_unique<ricker_t>(1.3e-9));
+  constexpr auto freq = tf::constants::c / (20.0 * dx);
+
+  auto make_ricker = [&freq](temporal_vec& srcs) {
+    srcs.push_back(std::make_unique<ricker_t>(freq));
   };
 
   auto make_srcvec = [&]() -> temporal_vec {
@@ -37,8 +41,8 @@ int main() {
 
   metrics.addMetric(
     std::make_unique<tf::metrics::EMFieldsMetric>(
-      std::unordered_map<std::string, std::shared_ptr<array_t>> {
-        {"Ez", std::make_shared<array_t>(emsolver.emdata.Ez)},
+      std::unordered_map<std::string, array_t*> {
+        {"Ez", &emsolver.emdata.Ez},
         // {"Ey", std::make_shared<array_t>(emsolver.emdata.Ey)}
       },
       metrics.adios.DeclareIO("EMFields")

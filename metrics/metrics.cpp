@@ -2,7 +2,7 @@
 
 namespace tf::metrics {
 
-  EMFieldsMetric::EMFieldsMetric(field_map&& fields_, adios2::IO&& io_)
+  EMFieldsMetric::EMFieldsMetric(const field_map& fields_, adios2::IO&& io_)
   : io(io_)
   {
     for (const auto& [name, field]: fields_) {
@@ -25,13 +25,13 @@ namespace tf::metrics {
     writer.BeginStep();
 
     // ReSharper disable once CppUseElementsView
-    for (const auto& [field, variable]: fields) {
+    for (auto& [field, variable]: fields) {
       writer.Put(variable, field->data());
     }
 
     writer.EndStep();
     writer.Close();
-  }v
+  }
 
 
   void Metrics::write(const std::size_t step) {

@@ -3,12 +3,12 @@
 
 #include <iostream>
 
-#include "em_constants.hpp"
-#include "em_array.hpp"
+#include "constants.hpp"
+#include "array.hpp"
 #include "em_sources.hpp"
+#include "em_boundaries.hpp"
 
 namespace tf::electromagnetics {
-  template<typename ex_t, typename ey_t, typename ez_t, typename hx_t, typename hy_t, typename hz_t>
   struct EMData {
     EMData() = delete;
 
@@ -18,7 +18,8 @@ namespace tf::electromagnetics {
       Ez(nx, ny, nz - 1), Jz(nx, ny, nz - 1), Ceze(nx, ny, nz - 1), Cezhx(nx, ny, nz - 1), Cezhy(nx, ny, nz - 1), Cjz(nx, ny, nz - 1),
       Hx(nx, ny - 1, nz - 1), Chxh(nx, ny - 1, nz - 1), Chxey(nx, ny - 1, nz - 1), Chxez(nx, ny - 1, nz - 1),
       Hy(nx - 1, ny, nz - 1), Chyh(nx - 1, ny, nz - 1), Chyex(nx - 1, ny, nz - 1), Chyez(nx - 1, ny, nz - 1),
-      Hz(nx - 1, ny - 1, nz), Chzh(nx - 1, ny - 1, nz), Chzex(nx - 1, ny - 1, nz), Chzey(nx - 1, ny - 1, nz)
+      Hz(nx - 1, ny - 1, nz), Chzh(nx - 1, ny - 1, nz), Chzex(nx - 1, ny - 1, nz), Chzey(nx - 1, ny - 1, nz),
+      bcdata(nx, ny, nz)
     {
       init_coefficients(cfl, dt);
     }
@@ -61,14 +62,15 @@ namespace tf::electromagnetics {
     Array3D<hz_t> Chzex;
     Array3D<hz_t> Chzey;
 
+    BCData bcdata;
+
     std::vector<CurrentSource> srcs{};
 
     Array3D<void> empty{}; // for the shits and possibly also some giggles...
   };
 
 
-  template<typename ex_t, typename ey_t, typename ez_t, typename hx_t, typename hy_t, typename hz_t>
-  void EMData<ex_t, ey_t, ez_t, hx_t, hy_t, hz_t>::init_coefficients(const double cfl, const double dt) {
+  inline void EMData::init_coefficients(const double cfl, const double dt) {
     const auto e_coeff = cfl * constants::eta0;
     const auto h_coeff = cfl / constants::eta0;
     const auto j_coeff = dt / constants::eps0;

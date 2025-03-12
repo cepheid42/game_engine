@@ -5,10 +5,10 @@
 #include "em_data.hpp"
 #include "em_updates.hpp"
 #include "em_curl.hpp"
+#include "em_boundaries.hpp"
 
 namespace tf::electromagnetics {
   struct EMSolver {
-    using emdata_t = EMData<ex_t, ey_t, ez_t, hx_t, hy_t, hz_t>;
     using ex_func = FieldIntegrator<ex_t, ExplicitUpdateFunctor<backward_dy, backward_dz>>;
     using ey_func = FieldIntegrator<ey_t, ExplicitUpdateFunctor<backward_dz, backward_dx>>;
     using ez_func = FieldIntegrator<ez_t, ExplicitUpdateFunctor<backward_dx, backward_dy>>;
@@ -24,7 +24,7 @@ namespace tf::electromagnetics {
     void updateH();
     void apply_srcs(double) const;
 
-    emdata_t emdata;
+    EMData emdata;
     ex_func ex_update{};
     ey_func ey_update{};
     ez_func ez_update{};

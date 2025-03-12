@@ -3,13 +3,10 @@
 
 #include <cmath>
 #include <initializer_list>
-#include <ostream>
-
-// #include "tags.h"
 
 // ===== Vector Types =====
 // ========================
-namespace tf::types
+namespace tf
 {
   // ----- Detail -----
   namespace detail
@@ -33,9 +30,9 @@ namespace tf::types
 
       T data[N];
       //
-    };// end struct tf::types::detail::VectorBase
+    };// end struct tf::detail::VectorBase
     //
-  } // end namespace tf::types::detail
+  } // end namespace tf::detail
 
   // ===== vec3 =====
   // ================
@@ -81,59 +78,59 @@ namespace tf::types
     
     bool operator==(const vec3 &v) const { return ((*this)[0] == v[0] && (*this)[1] == v[1] && (*this)[2] == v[2]); }
     bool operator!=(const vec3 &v) const { return !((*this) == v); }
-  };// end struct tf::types::vec3
-} // end namespace tf::types
+  };// end struct tf::vec3
+} // end namespace tf
 
 // ===== vec3 Operators =====
 // ==========================
 template<typename T>
-tf::types::vec3<T> operator*(T s, const tf::types::vec3<T>& u)  {
+tf::vec3<T> operator*(T s, const tf::vec3<T>& u)  {
   return {s * u[0], s * u[1], s * u[2]};
 }
 
 template<typename T>
-tf::types::vec3<T> operator*(const tf::types::vec3<T>& u, T s)  {
+tf::vec3<T> operator*(const tf::vec3<T>& u, T s)  {
   return s * u;
 }
 
 template<typename T>
-tf::types::vec3<T> operator/(const tf::types::vec3<T>& u, T s) {
+tf::vec3<T> operator/(const tf::vec3<T>& u, T s) {
   return (T(1) / s) * u;
 }
 
 template<typename T>
-tf::types::vec3<T> operator+(const tf::types::vec3<T>& u, const tf::types::vec3<T>& v) {
+tf::vec3<T> operator+(const tf::vec3<T>& u, const tf::vec3<T>& v) {
   return {u[0] + v[0], u[1] + v[1], u[2] + v[2]};
 }
 
 template<typename T>
-tf::types::vec3<T> operator-(const tf::types::vec3<T>& u, const tf::types::vec3<T>& v) {
+tf::vec3<T> operator-(const tf::vec3<T>& u, const tf::vec3<T>& v) {
   return {u[0] - v[0], u[1] - v[1], u[2] - v[2]};
 }
 
 template<typename T>
-tf::types::vec3<T> operator*(const tf::types::vec3<T>& u, const tf::types::vec3<T>& v) {
+tf::vec3<T> operator*(const tf::vec3<T>& u, const tf::vec3<T>& v) {
   return {u[0] * v[0], u[1] * v[1], u[2] * v[2]};
 }
 
 template<typename T>
-tf::types::vec3<T> operator/(const tf::types::vec3<T>& u, const tf::types::vec3<T>& v) {
+tf::vec3<T> operator/(const tf::vec3<T>& u, const tf::vec3<T>& v) {
   return {u[0] / v[0], u[1] / v[1], u[2] / v[2]};
 }
 
 template<typename T>
-tf::types::vec3<T> unit_vector(const tf::types::vec3<T>& u){
+tf::vec3<T> unit_vector(const tf::vec3<T>& u){
   return u / u.length();
 }
 
 template<typename T>
-T dot(const tf::types::vec3<T>& u, const tf::types::vec3<T>& v) {
+T dot(const tf::vec3<T>& u, const tf::vec3<T>& v) {
   // Performs u @ v
   return (u[0] * v[0]) + (u[1] * v[1]) + (u[2] * v[2]);
 }
 
 template<typename T>
-tf::types::vec3<T> cross(const tf::types::vec3<T>& u, const tf::types::vec3<T>& v) {
+tf::vec3<T> cross(const tf::vec3<T>& u, const tf::vec3<T>& v) {
   // Performs u x v
   return {u[1] * v[2] - u[2] * v[1],
           u[2] * v[0] - u[0] * v[2],
@@ -148,14 +145,14 @@ tf::types::vec3<T> cross(const tf::types::vec3<T>& u, const tf::types::vec3<T>& 
 //
 ///* To Cartesian Coordinates */
 //template<typename T>
-//tf::types::vec3<T> cylindrical_to_cartesian(const tf::types::vec3<T>& v) {
+//tf::vec3<T> cylindrical_to_cartesian(const tf::vec3<T>& v) {
 //  auto x = v[0] * cos(v[1]);
 //  auto y = v[0] * sin(v[1]);
 //  return {x, y, v[2]};
 //}
 //
 //template<typename T>
-//tf::types::vec3<T> spherical_to_cartesian(const tf::types::vec3<T>& v) {
+//tf::vec3<T> spherical_to_cartesian(const tf::vec3<T>& v) {
 //  auto x = v[0] * sin(v[2]) * cos(v[1]);
 //  auto y = v[0] * sin(v[2]) * sin(v[1]);
 //  auto z = v[0] * cos(v[2]);
@@ -164,14 +161,14 @@ tf::types::vec3<T> cross(const tf::types::vec3<T>& u, const tf::types::vec3<T>& 
 //
 ///* To Cylindrical Coordinates */
 //template<typename T>
-//tf::types::vec3<T> cartesian_to_cylindrical(const tf::types::vec3<T>& v) {
+//tf::vec3<T> cartesian_to_cylindrical(const tf::vec3<T>& v) {
 //  auto r = sqrt((v[0] * v[0]) + (v[1] * v[1]));
 //  auto phi = atan2(v[1], v[2]);
 //  return {r, phi, v[2]};
 //}
 //
 //template<typename T>
-//tf::types::vec3<T> spherical_to_cylindrical(const tf::types::vec3<T>& v) {
+//tf::vec3<T> spherical_to_cylindrical(const tf::vec3<T>& v) {
 //  auto r = v[0] * sin(v[2]);
 //  auto z = v[0] * cos(v[2]);
 //  return {r, v[1], z};
@@ -179,7 +176,7 @@ tf::types::vec3<T> cross(const tf::types::vec3<T>& u, const tf::types::vec3<T>& 
 //
 ///* To Spherical Coordinates */
 //template<typename T>
-//tf::types::vec3<T> cartesian_to_spherical(const tf::types::vec3<T>& v) {
+//tf::vec3<T> cartesian_to_spherical(const tf::vec3<T>& v) {
 //  auto rho = v.length();
 //  auto theta = acos(v[2] / rho);
 //  auto phi = acos(v[0] / sqrt((v[0] * v[0]) + (v[1] * v[1])));
@@ -187,57 +184,44 @@ tf::types::vec3<T> cross(const tf::types::vec3<T>& u, const tf::types::vec3<T>& 
 //}
 //
 //template<typename T>
-//tf::types::vec3<T> cylindrical_to_spherical(const tf::types::vec3<T>& v) {
+//tf::vec3<T> cylindrical_to_spherical(const tf::vec3<T>& v) {
 //  auto rho = sqrt((v[0] * v[0]) * (v[2] * v[2]));
 //  auto theta = atan2(v[0], v[2]);
 //  return {rho, theta, v[1]};
 //}
 
 template<typename T>
-tf::types::vec3<T> rotateAround_X(const tf::types::vec3<T>& v, T theta) {
-  // rotates tf::types::vec3 v around x-axis by theta radians
+tf::vec3<T> rotateAround_X(const tf::vec3<T>& v, T theta) {
+  // rotates tf::vec3 v around x-axis by theta radians
   auto yp = v[1] * cos(theta) - v[2] * sin(theta);
   auto zp = v[1] * sin(theta) + v[2] * cos(theta);
   return {v[0], yp, zp};
 }
 
-// rotates tf::types::vec3 v around y-axis by theta radians
+// rotates tf::vec3 v around y-axis by theta radians
 template<typename T>
-tf::types::vec3<T> rotateAround_Y(const tf::types::vec3<T>& v, T theta) {
-  // rotates tf::types::vec3 v around y-axis by theta radians
+tf::vec3<T> rotateAround_Y(const tf::vec3<T>& v, T theta) {
+  // rotates tf::vec3 v around y-axis by theta radians
   auto xp = v[0] * cos(theta) + v[2] * sin(theta);
   auto zp = -v[0] * sin(theta) + v[2] * cos(theta);
   return {xp, v[1], zp};
 }
 
 template<typename T>
-tf::types::vec3<T> rotateAround_Z(const tf::types::vec3<T>& v, T theta) {
-  // rotates tf::types::vec3 v around z-axis by theta radians
+tf::vec3<T> rotateAround_Z(const tf::vec3<T>& v, T theta) {
+  // rotates tf::vec3 v around z-axis by theta radians
   auto xp = v[0] * cos(theta) - v[1] * sin(theta);
   auto yp = v[0] * sin(theta) + v[1] * cos(theta);
   return {xp, yp, v[2]};
 }
 
 template<typename T>
-tf::types::vec3<T> rotate(const tf::types::vec3<T>& v, T gamma, T beta, T alpha) {
+tf::vec3<T> rotate(const tf::vec3<T>& v, T gamma, T beta, T alpha) {
   auto v1 = rotateAround_X(v, gamma);
   auto v2 = rotateAround_Y(v1, beta);
   auto v3 = rotateAround_Z(v2, alpha);
   return v3;
 }
 
-// ===== Printing Function =====
-// ==============================
-template <typename T, size_t N>
-std::ostream& operator<<(std::ostream& out, const tf::types::detail::VectorBase<T, N>& v) {
-  out << "(";
-  for (size_t i = 0; i < N; i++) {
-    out << v.data[i];
-    if (i < N - 1) {
-      out << ", ";
-    }
-  }
-  return out << ")";
-}
 
 #endif //TRIFORCE_VECTOR_H

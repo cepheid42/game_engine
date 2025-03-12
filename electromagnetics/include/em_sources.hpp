@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include "em_array.hpp"
+#include "array.hpp"
 
 namespace tf::electromagnetics {
 

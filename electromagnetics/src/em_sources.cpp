@@ -1,6 +1,7 @@
 #include <cmath>
+#include <print>
 
-#include "em_constants.hpp"
+#include "constants.hpp"
 #include "em_sources.hpp"
 
 namespace tf::electromagnetics {
@@ -21,6 +22,7 @@ namespace tf::electromagnetics {
   void CurrentSource::apply(const double t) const {
     const auto& [x0, x1, y0, y1, z0, z1] = src.offsets;
     const auto val = src.eval(t);
+
     for (size_t i = x0; i < x1; ++i) {
       for (size_t j = y0; j < y1; ++j) {
         for (size_t k = z0; k < z1; ++k) {

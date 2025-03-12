@@ -18,12 +18,13 @@ gcc_opts = [
 # '-save-temps'
  ]
 
-includes = include_directories('core', 'electromagnetics', 'metrics')
+includes = include_directories('core', 'electromagnetics/include', 'metrics', 'params', 'utilities')
 
 sources = [
     'main.cpp',
-    'electromagnetics/em_solver.cpp',
-    'electromagnetics/em_sources.cpp',
+    'electromagnetics/src/em_solver.cpp',
+    'electromagnetics/src/em_sources.cpp',
+#    'electromagnetics/src/em_boundaries.cpp',
     'metrics/metrics.cpp'
 ]
 

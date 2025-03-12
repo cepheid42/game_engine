@@ -7,7 +7,7 @@
 
 #include <adios2.h>
 
-#include "em_array.hpp"
+#include "array.hpp"
 
 namespace tf::metrics {
   namespace detail {
@@ -19,7 +19,7 @@ namespace tf::metrics {
 
 
   struct EMFieldsMetric final : detail::MetricBase {
-    using pointer_t = std::shared_ptr<electromagnetics::Array3D<double>>;
+    using pointer_t = tf::Array3D<double>*;
     using field_map = std::unordered_map<std::string, pointer_t>;
 
     struct FieldVariable {
@@ -27,7 +27,7 @@ namespace tf::metrics {
       adios2::Variable<double> variable;
     };
 
-    EMFieldsMetric(field_map&&, adios2::IO&&);
+    EMFieldsMetric(const field_map&, adios2::IO&&);
     void write(const std::string&, const std::string&) override;
 
     adios2::IO io;

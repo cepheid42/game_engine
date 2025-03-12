@@ -3,9 +3,9 @@
 
 #include <vector>
 
-#include "em_vec3.hpp"
+#include "vec3.hpp"
 
-namespace tf::electromagnetics {
+namespace tf {
   template<typename T>
   class Array3D {
     using value_t = T;
@@ -18,7 +18,7 @@ namespace tf::electromagnetics {
     auto begin() { return data_.begin(); }
     auto end() { return data_.end(); }
 
-    const auto* data() const { return data_.data(); }
+    auto* data() { return data_.data(); }
     [[nodiscard]] auto capacity() const { return data_.capacity(); }
     [[nodiscard]] constexpr std::size_t size() const { return data_.size(); }
     [[nodiscard]] constexpr std::size_t num_bytes() const { return size() * sizeof(T); }
@@ -34,7 +34,7 @@ namespace tf::electromagnetics {
     void fill(T value) { for (auto& el : data_) el = value; }
 
     // Dims
-    [[nodiscard]] tf::types::vec3<std::size_t> dims() const { return {nx_, ny_, nz_}; }
+    [[nodiscard]] tf::vec3<std::size_t> dims() const { return {nx_, ny_, nz_}; }
     [[nodiscard]] std::size_t nx() const { return nx_; }
     [[nodiscard]] std::size_t ny() const { return ny_; }
     [[nodiscard]] std::size_t nz() const { return nz_; }
