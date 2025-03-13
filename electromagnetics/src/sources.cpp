@@ -1,8 +1,7 @@
-#include <cmath>
-#include <print>
-
 #include "constants.hpp"
-#include "em_sources.hpp"
+#include "sources.hpp"
+
+#include <cmath>
 
 namespace tf::electromagnetics {
   [[nodiscard]] double RickerSource::eval(const double t) const {

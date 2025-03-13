@@ -1,14 +1,8 @@
-//
-// Created by cepheid on 7/31/24.
-//
-
 #ifndef MATHS_H
 #define MATHS_H
 
-#include <limits>
 #include <cmath>
 #include <vector>
-#include <algorithm>
 
 namespace tf::math
 {

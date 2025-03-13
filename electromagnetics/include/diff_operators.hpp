@@ -1,8 +1,6 @@
 #ifndef EM_CURL_HPP
 #define EM_CURL_HPP
 
-#include <cstdint>
-
 namespace tf::electromagnetics
 {
   enum class Derivative { DX, DY, DZ };
@@ -15,6 +13,7 @@ namespace tf::electromagnetics
   // ================= Forward Differences =================
   template<Derivative D>
   struct Diff<D, true> {
+    static constexpr Derivative type = D;
     static auto apply(const auto& f, std::size_t i, std::size_t j, std::size_t k) {
       if constexpr (D == Derivative::DX) {
         return f(i + 1, j, k) - f(i, j, k);
@@ -31,6 +30,7 @@ namespace tf::electromagnetics
   // ================= Backward Differences =================
   template<Derivative D>
   struct Diff<D, false> {
+    static constexpr Derivative type = D;
     static auto apply(const auto& f, std::size_t i, std::size_t j, std::size_t k) {
       if constexpr (D == Derivative::DX) {
         return f(i, j, k) - f(i - 1, j, k);

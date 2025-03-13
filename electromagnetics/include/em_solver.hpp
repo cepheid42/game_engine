@@ -3,9 +3,9 @@
 
 #include "em_params.hpp"
 #include "em_data.hpp"
-#include "em_updates.hpp"
-#include "em_curl.hpp"
-#include "em_boundaries.hpp"
+#include "update_functors.hpp"
+#include "bc_functors.hpp"
+#include "diff_operators.hpp"
 
 namespace tf::electromagnetics {
   struct EMSolver {
@@ -32,6 +32,6 @@ namespace tf::electromagnetics {
     hy_func hy_update{};
     hz_func hz_update{};
   };
-}
+} // end namespace tf::electromagnetics
 
 #endif //EM_SOLVER_HPP

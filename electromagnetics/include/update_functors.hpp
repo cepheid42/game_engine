@@ -2,7 +2,7 @@
 #define EM_UPDATES_HPP
 
 #include <array>
-#include <iostream>
+#include <concepts>
 
 namespace tf::electromagnetics {
   template<typename T, typename UpdateFunc>

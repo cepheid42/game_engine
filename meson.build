@@ -22,9 +22,10 @@ includes = include_directories('core', 'electromagnetics/include', 'metrics', 'p
 
 sources = [
     'main.cpp',
+    'electromagnetics/src/bc_data.cpp',
+    'electromagnetics/src/em_data.cpp',
     'electromagnetics/src/em_solver.cpp',
-    'electromagnetics/src/em_sources.cpp',
-#    'electromagnetics/src/em_boundaries.cpp',
+    'electromagnetics/src/sources.cpp',
     'metrics/metrics.cpp'
 ]
 

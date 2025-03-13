@@ -1,9 +1,9 @@
 #ifndef EM_ARRAY_HPP
 #define EM_ARRAY_HPP
 
-#include <vector>
-
 #include "vec3.hpp"
+
+#include <vector>
 
 namespace tf {
   template<typename T>
@@ -34,14 +34,14 @@ namespace tf {
     void fill(T value) { for (auto& el : data_) el = value; }
 
     // Dims
-    [[nodiscard]] tf::vec3<std::size_t> dims() const { return {nx_, ny_, nz_}; }
+    [[nodiscard]] vec3<std::size_t> dims() const { return {nx_, ny_, nz_}; }
     [[nodiscard]] std::size_t nx() const { return nx_; }
     [[nodiscard]] std::size_t ny() const { return ny_; }
     [[nodiscard]] std::size_t nz() const { return nz_; }
 
     // Unary Negation
     auto operator-() const {
-      Array3D<T> out(*this);
+      Array3D out(*this);
       for (std::size_t i = 0; i < data_.size(); i++) { out[i] = -data_[i]; }
       return out;
     }
@@ -82,10 +82,10 @@ namespace tf {
 
   private:
     // Stride data_
-    std::size_t nx_;
-    std::size_t ny_;
-    std::size_t nz_;
-    std::vector<T> data_;
+    std::size_t nx_{};
+    std::size_t ny_{};
+    std::size_t nz_{};
+    std::vector<T> data_{};
   }; // end class Array3D
 
   template<>
@@ -107,6 +107,6 @@ namespace tf {
 //    [[nodiscard]] std::size_t ny() const { return 0zu; }
 //    [[nodiscard]] std::size_t nz() const { return 0zu; }
   };
-}
+} // end namespace tf
 
 #endif //EM_ARRAY_HPP

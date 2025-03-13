@@ -1,13 +1,12 @@
 #ifndef EM_SOURCES_HPP
 #define EM_SOURCES_HPP
 
+#include "array.hpp"
+
 #include <memory>
 #include <vector>
 
-#include "array.hpp"
-
 namespace tf::electromagnetics {
-
   template<typename T> T SQR(T x) { return x * x; }
 
   struct TemporalSource {
@@ -53,6 +52,6 @@ namespace tf::electromagnetics {
     array_t* const field;
     SpatialSource src;
   }; // end struct CurrentSource
-}
+} // end namespace tf::electromagnetics
 
 #endif //EM_SOURCES_HPP

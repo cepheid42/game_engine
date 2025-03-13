@@ -1,5 +1,6 @@
 #include "em_solver.hpp"
-#include "em_updates.hpp"
+#include "update_functors.hpp"
+#include "bc_functors.hpp"
 
 namespace tf::electromagnetics {
   EMSolver::EMSolver(const std::size_t nx, const std::size_t ny, const std::size_t nz, const double cfl, const double dt)
@@ -22,7 +23,6 @@ namespace tf::electromagnetics {
     for (const auto& src: emdata.srcs) { // todo: may need explicit loop if I want threads here
       src.apply(t);
     }
-
   }
 
   void EMSolver::advance(const double t) {
@@ -33,6 +33,5 @@ namespace tf::electromagnetics {
 
     updateE();
     // updateEBCS();
-
   }
-}
+} // end namespace tf::electromagnetics

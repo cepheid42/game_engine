@@ -1,11 +1,11 @@
-#include <iostream>
-#include <print>
-
 #include "program_params.hpp"
 #include "constants.hpp"
 #include "em_solver.hpp"
 #include "metrics.hpp"
+#include "sources.hpp"
 #include "array.hpp"
+
+#include <print>
 
 int main() {
   using array_t = tf::Array3D<double>;
