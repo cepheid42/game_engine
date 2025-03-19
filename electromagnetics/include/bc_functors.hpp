@@ -6,14 +6,16 @@
 #include <array>
 
 namespace tf::electromagnetics {
-  template<typename Curl, bool Hi, bool Negate, bool Forward>
+  template<typename CurlFunc, bool Hi, bool Negate>
   struct PMLFunctor {
+    using Curl = CurlFunc;
+
     static void apply(auto& f1, const auto& f2, const auto& c1, auto& psi, const auto& b, const auto& c, const std::size_t i, const std::size_t j, const std::size_t k, const std::size_t x0)
     requires (Curl::type == Derivative::DX)
     {
       std::size_t ipml;
       if constexpr (!Hi) { ipml = i; }
-      else { ipml = i - x0 + Forward; }
+      else { ipml = i - x0 + Curl::Forward; }
 
       psi(ipml, j, k) = b[ipml] * psi(ipml, j, k) + c[ipml] * Curl::apply(f2, i, j, k);
       if constexpr (Negate) {
@@ -28,7 +30,7 @@ namespace tf::electromagnetics {
     {
       std::size_t jpml;
       if constexpr (!Hi) { jpml = j; }
-      else { jpml = j - y0 + Forward; }
+      else { jpml = j - y0 + Curl::Forward; }
 
       psi(i, jpml, k) = b[jpml] * psi(i, jpml, k) + c[jpml] * Curl::apply(f2, i, j, k);
       if constexpr (Negate) {
@@ -43,7 +45,7 @@ namespace tf::electromagnetics {
     {
       std::size_t kpml;
       if constexpr (!Hi) { kpml = k; }
-      else { kpml = k - z0 + Forward; }
+      else { kpml = k - z0 + Curl::Forward; }
 
       psi(i, j, kpml) = b[kpml] * psi(i, j, kpml) + c[kpml] * Curl::apply(f2, i, j, k);
       if constexpr (Negate) {
@@ -54,7 +56,7 @@ namespace tf::electromagnetics {
     } // end apply
   }; // end struct Pml3DFunctor
 
-  template<typename T, typename UpdateFunc>
+  template<typename UpdateFunc>
   struct BCIntegrator {
     using offset_t = std::array<std::size_t, 6>;
     static constexpr auto direction = UpdateFunc::Curl::type;
@@ -76,6 +78,13 @@ namespace tf::electromagnetics {
       } // end for i
     } // end operator()
   }; // end struct BCIntegrator
+
+  template<>
+  struct BCIntegrator<void> {
+    using offset_t = std::array<std::size_t, 6>;
+    static void operator()() {}
+    static void operator()(auto&, auto&, auto&, auto&, auto&, auto&, offset_t&) {}
+  };
 } // end namespace tf::electromagnetics
 
 #endif //BC_FUNCTORS_HPP

@@ -48,8 +48,6 @@ namespace tf::electromagnetics {
     Array3D<hz_t> Chzex;
     Array3D<hz_t> Chzey;
 
-    BCData bcdata;
-
     std::vector<CurrentSource> srcs{};
 
     Array3D<void> empty{}; // for the shits and possibly also some giggles...

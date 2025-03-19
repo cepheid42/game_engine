@@ -9,8 +9,7 @@ namespace tf::electromagnetics {
     Ez(nx, ny, nz - 1), Jz(nx, ny, nz - 1), Ceze(nx, ny, nz - 1), Cezhx(nx, ny, nz - 1), Cezhy(nx, ny, nz - 1), Cjz(nx, ny, nz - 1),
     Hx(nx, ny - 1, nz - 1), Chxh(nx, ny - 1, nz - 1), Chxey(nx, ny - 1, nz - 1), Chxez(nx, ny - 1, nz - 1),
     Hy(nx - 1, ny, nz - 1), Chyh(nx - 1, ny, nz - 1), Chyex(nx - 1, ny, nz - 1), Chyez(nx - 1, ny, nz - 1),
-    Hz(nx - 1, ny - 1, nz), Chzh(nx - 1, ny - 1, nz), Chzex(nx - 1, ny - 1, nz), Chzey(nx - 1, ny - 1, nz),
-    bcdata(nx, ny, nz)
+    Hz(nx - 1, ny - 1, nz), Chzh(nx - 1, ny - 1, nz), Chzex(nx - 1, ny - 1, nz), Chzey(nx - 1, ny - 1, nz)
   {
     init_coefficients(cfl, dt);
   }

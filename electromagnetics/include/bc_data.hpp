@@ -1,64 +1,205 @@
 #ifndef EM_BOUNDARIES_HPP
 #define EM_BOUNDARIES_HPP
 
+#include "program_params.hpp"
 #include "em_params.hpp"
 #include "array.hpp"
-#include "bc_functors.hpp"
+#include "constants.hpp"
+#include "math_utils.hpp"
 
-#include <array>
 #include <vector>
+#include <algorithm>
+#include <array>
 
 namespace tf::electromagnetics {
-  //  struct PeriodicData {
-  //    using offset_t = std::array<std::size_t, 6>;
-  //
-  //    explicit PeriodicData(std::size_t nInterior_, std::size_t hi_idx_, offset_t offsets_)
-  //    : nInterior(nInterior_), hi_idx(hi_idx_), offsets(offsets_)
-  //    {}
-  //
-  //    std::size_t nInterior;
-  //    std::size_t hi_idx;
-  //    offset_t offsets;
-  //  };
 
+  enum class EMFace { X, Y, Z};
+  enum class EMSide { Lo, Hi };
+
+  template<EMSide S>
+  std::array<std::size_t, 6> get_x_offsets(const std::size_t nx, const std::size_t ny, const std::size_t nz) {
+    if constexpr (S == EMSide::Lo) {
+      return {0, PMLDepth, 0, ny, 0, nz};
+    } else {
+      return {nx - PMLDepth - 1, nx - 1, 0, ny, 0, nz};
+    }
+  }
+
+  template<EMSide S>
+  std::array<std::size_t, 6> get_y_offsets(const std::size_t nx, const std::size_t ny, const std::size_t nz) {
+    if constexpr (S == EMSide::Lo) {
+      return {0, nx, 0, PMLDepth, 0, nz};
+    } else {
+      return {0, nx, ny - PMLDepth - 1, ny - 1, 0, nz};
+    }
+  }
+
+  template<EMSide S>
+  std::array<std::size_t, 6> get_z_offsets(const std::size_t nx, const std::size_t ny, const std::size_t nz) {
+    if constexpr (S == EMSide::Lo) {
+      return {0, PMLDepth, 0, ny, 0, nz};
+    } else {
+      return {0, nx, 0, ny, nz - PMLDepth - 1, nz - 1};
+    }
+  }
+
+  template<EMFace F, EMSide S, bool isE>
+  auto getOffsets(const auto& f) {
+    std::array<std::size_t, 6> result{};
+
+    if constexpr (F == EMFace::X) {
+      result = get_x_offsets<S>(f.nx(), f.ny(), f.nz());
+    } else if constexpr (F == EMFace::Y) {
+      result = get_y_offsets<S>(f.nx(), f.ny(), f.nz());
+    } else {
+      result = get_z_offsets<S>(f.nx(), f.ny(), f.nz());
+    }
+
+    constexpr auto lo = static_cast<std::size_t>(isE == (S == EMSide::Lo));
+    constexpr auto hi = static_cast<std::size_t>(isE != (S == EMSide::Lo));
+
+    std::size_t lo_idx, hi_idx;
+    if constexpr (F == EMFace::X) {
+      lo_idx = 0; // x0
+      hi_idx = 1; // x1
+    } else if constexpr (F == EMFace::Y) {
+      lo_idx = 2; // y0
+      hi_idx = 3; // y1
+    } else {
+      lo_idx = 4; // z0
+      hi_idx = 5; // z1
+    }
+
+    result[lo_idx] += lo;
+    result[hi_idx] -= hi;
+
+    return result;
+  }
+
+
+  template<EMFace F>
   struct PMLData {
     using offset_t = std::array<std::size_t, 6>;
     using coeffs_t = std::array<double, PMLDepth>;
 
     explicit PMLData() = delete;
-    PMLData(std::size_t, std::size_t, std::size_t, const offset_t&, const offset_t&, bool=false);
 
-    void init_coefficients(bool);
-    static std::vector<double> calculate_sigma(const std::vector<double>&, double);
-    static std::vector<double> calculate_alpha(const std::vector<double>&);
-    static void calculate_coeffs(coeffs_t&, coeffs_t&, const std::vector<double>&, const std::vector<double>&);
+    PMLData(const std::size_t nx_, const std::size_t ny_, const std::size_t nz_, const offset_t& offsets_, const EMSide side, const bool isE)
+    : psi(nx_, ny_, nz_),
+      offsets(offsets_)
+    {
+      init_coefficients(side, isE);
+    }
 
-    Array3D<double> psiE;
-    Array3D<double> psiH;
-    offset_t offsetsE;
-    offset_t offsetsH;
-    coeffs_t bE{};
-    coeffs_t cE{};
-    coeffs_t bH{};
-    coeffs_t cH{};
+    PMLData(const Array3D<double>& f, const offset_t& offsets, const EMSide side, const bool isE)
+    requires (F == EMFace::X)
+    : PMLData(PMLDepth, f.ny(), f.nz(), offsets, side, isE)
+    {}
+
+    PMLData(const Array3D<double>& f, const offset_t& offsets, const EMSide side, const bool isE)
+    requires (F == EMFace::Y)
+    : PMLData(f.nx(), PMLDepth, f.nz(), offsets, side, isE)
+    {}
+
+    PMLData(const Array3D<double>& f, const offset_t& offsets, const EMSide side, const bool isE)
+    requires (F == EMFace::Z)
+    : PMLData(f.nx(), f.ny(), PMLDepth, offsets, side, isE)
+    {}
+
+    void init_coefficients(const EMSide side, const bool isE) {
+      std::vector<double> d = math::linspace(1.0, 0.0, PMLDepth, false);
+      // const std::vector<double> dh = math::linspace(1.0 - hstep, -hstep, PMLDepth, false);
+
+      if (!isE) {
+        constexpr auto hstep = 1.0 / (2.0 * static_cast<double>(PMLDepth));
+        for (auto& x: d) { x -= hstep; }
+      }
+
+      constexpr auto sigma_max = (0.8 * (PMLGrade + 1.0)) / (dx * constants::eta0);
+
+      const auto sigma_d = calculate_sigma(d, sigma_max);
+      const auto alpha_d = calculate_alpha(d);
+      calculate_coeffs(sigma_d, alpha_d);
+
+      if (side == EMSide::Hi) {
+        std::ranges::reverse(b);
+        std::ranges::reverse(c);
+      }
+    }
+
+    static std::vector<double> calculate_sigma(const std::vector<double>& d, const double sigma_max) {
+      auto sigma_bc(d);
+      for (auto& x: sigma_bc) {
+        x = sigma_max * std::pow(x, PMLGrade);
+      }
+      return sigma_bc;
+    }
+
+    static std::vector<double> calculate_alpha(const std::vector<double>& d) {
+      auto alpha_bc(d);
+      for (auto& x: alpha_bc) {
+        x = PMLAlphaMax * std::pow(1.0 - x, 1.0);
+      }
+      return alpha_bc;
+    }
+
+    void calculate_coeffs(const std::vector<double>& sigma, const std::vector<double>& alpha) {
+      constexpr auto coef1 = -dt / constants::eps0;
+
+      for (auto i = 0zu; i < PMLDepth; i++) {
+        constexpr auto kappa_bc = 1.0;
+        b[i] = std::exp(coef1 * ((sigma[i] / kappa_bc) + alpha[i]));
+        c[i] = (sigma[i] * (b[i] - 1.0)) / (kappa_bc * (sigma[i] + (kappa_bc * alpha[i])));
+      }
+    }
+
+    Array3D<double> psi;
+    offset_t offsets;
+    coeffs_t b{};
+    coeffs_t c{};
+  };
+
+  template<EMFace F, EMSide S>
+  struct FaceBC {
+    // template<bool isE> using getOffsets = get_pml_offsets<F, S, isE>;
+
+    explicit FaceBC() = delete;
+
+    explicit FaceBC(const auto& emdata)
+    : Ex{emdata.Ex, getOffsets<F, S, true>(emdata.Ex), S, false},
+      Ey{emdata.Ey, getOffsets<F, S, true>(emdata.Ey), S, false},
+      Ez{emdata.Ez, getOffsets<F, S, true>(emdata.Ez), S, false},
+      Hx{emdata.Hx, getOffsets<F, S, false>(emdata.Hx), S, true},
+      Hy{emdata.Hy, getOffsets<F, S, false>(emdata.Hy), S, true},
+      Hz{emdata.Hz, getOffsets<F, S, false>(emdata.Hz), S, true}
+    {}
+
+    PMLData<F> Ex;
+    PMLData<F> Ey;
+    PMLData<F> Ez;
+    PMLData<F> Hx;
+    PMLData<F> Hy;
+    PMLData<F> Hz;
   };
 
 
+
   struct BCData {
-    using Ey_x0_bc = BCIntegrator<double, PMLFunctor<forward_dx, false, true, true>>; // todo: is forward correct?
-    using Ey_x1_bc = BCIntegrator<double, PMLFunctor<forward_dx, true, true, true>>;
+    explicit BCData(const auto& emdata)
+    : x0(emdata),
+      y0(emdata),
+      z0(emdata),
+      x1(emdata),
+      y1(emdata),
+      z1(emdata)
+    {}
 
-    using Hy_x0_bc = BCIntegrator<double, PMLFunctor<backward_dx, false, false, false>>; // todo: is forward correct?
-    using Hy_x1_bc = BCIntegrator<double, PMLFunctor<backward_dx, true, false, false>>;
-
-    BCData(std::size_t, std::size_t, std::size_t);
-
-    PMLData x0;
-    PMLData y0;
-    PMLData z0;
-    PMLData x1;
-    PMLData y1;
-    PMLData z1;
+    FaceBC<EMFace::X, EMSide::Lo> x0;
+    FaceBC<EMFace::X, EMSide::Hi> y0;
+    FaceBC<EMFace::Y, EMSide::Lo> z0;
+    FaceBC<EMFace::Y, EMSide::Hi> x1;
+    FaceBC<EMFace::Z, EMSide::Lo> y1;
+    FaceBC<EMFace::Z, EMSide::Hi> z1;
   };
 }
 
