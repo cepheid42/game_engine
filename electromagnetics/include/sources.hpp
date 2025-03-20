@@ -2,13 +2,12 @@
 #define EM_SOURCES_HPP
 
 #include "array.hpp"
+#include "math_utils.hpp"
 
 #include <memory>
 #include <vector>
 
 namespace tf::electromagnetics {
-  template<typename T> T SQR(T x) { return x * x; }
-
   struct TemporalSource {
     virtual ~TemporalSource() = default;
     [[nodiscard]] virtual double eval(double) const = 0;

@@ -7,7 +7,7 @@
 namespace tf::electromagnetics {
   [[nodiscard]] double RickerSource::eval(const double t) const {
     constexpr auto Md = 2.0;
-    const auto alpha = SQR(constants::pi * freq * (t - Md / freq));
+    const auto alpha = math::SQR(constants::pi * freq * (t - Md / freq));
     return (1.0 - 2.0 * alpha) * std::exp(-alpha);
   }
 

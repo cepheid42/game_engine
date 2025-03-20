@@ -13,9 +13,7 @@ int main() {
   using temporal_vec = std::vector<std::unique_ptr<tf::electromagnetics::TemporalSource>>;
 
   constexpr auto nx2 = Nx / 2;
-
   constexpr auto freq = tf::constants::c / (20.0 * dx);
-
   auto make_ricker = [&freq](temporal_vec& srcs) {
     srcs.push_back(std::make_unique<ricker_t>(freq));
   };
@@ -42,27 +40,36 @@ int main() {
   metrics.addMetric(
     std::make_unique<tf::metrics::EMFieldsMetric>(
       std::unordered_map<std::string, array_t*> {
+        {"Ex", &emsolver.emdata.Ex},
+        {"Ey", &emsolver.emdata.Ey},
         {"Ez", &emsolver.emdata.Ez},
-        // {"Ey", std::make_shared<array_t>(emsolver.emdata.Ey)}
+        {"Hx", &emsolver.emdata.Hx},
+        {"Hy", &emsolver.emdata.Hy},
+        {"Hz", &emsolver.emdata.Hz},
       },
       metrics.adios.DeclareIO("EMFields")
     )
   );
+
+  std::println("dt = {}", dt);
 
   double t = 0.0;
   std::size_t step = 0zu;
   while (t <= total_time) {
     emsolver.advance(t);
 
-    if (step % 400 == 0) {
+    if (step % save_interval == 0) {
       const auto percent = 100.0 * t / total_time;
-      std::println("Step {:4} Time: {:10.4e} Complete: {:4.1f}%", step, t, percent);
+      std::print("Step {:4} Time: {:7.1e} Complete: {:4.1f}%\r", step, t, percent);
       metrics.write(step);
     }
 
     t += dt;
     step++;
   }
+  const auto percent = 100.0 * t / total_time;
+  std::println("Step {:4} Time: {:7.1e} Complete: {:4.1f}%", step, t, percent);
+  metrics.write(step);
 
   return 0;
 }

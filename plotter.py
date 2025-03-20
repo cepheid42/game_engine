@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from adios2 import FileReader
-# import numpy as np
+import numpy as np
 import multiprocessing as mp
 import matplotlib.pyplot as plt
 from matplotlib.cm import ScalarMappable
@@ -12,7 +12,7 @@ data_dir = '/home/cepheid/TriForce/game_engine/data'
 EPS0 = 8.8541878188E-12 # F/m
 MU0 = 1.25663706127E-6 # N/A^2
 
-dt = 5.000040741175102e-12
+dt = 1.829541541469147e-11
 
 def load_field(n, name):
     filename = f'/fields_{n:010d}.bp'
@@ -46,50 +46,44 @@ def plot3d(n, name, step):
     plt.clf()
     plt.close(fig)
 
-# def total_field_energy(n):
-#     Ex = load_frame(n, 'Ex')[:-1, :, :]
-#     Ey = load_frame(n, 'Ey')[:, :-1, :]
-#     Ez = load_frame(n, 'Ez')[:, :, :-1]
-#     Bx = load_frame(n, 'Bx')[:, :-1, :-1]
-#     By = load_frame(n, 'By')[:-1, :, :-1]
-#     Bz = load_frame(n, 'Bz')[:-1, :-1, :]
-#
-#     E = 0.5 * EPS0 * (Ex**2 + Ey**2 + Ez**2)
-#     B = (0.5 / MU0) * (Bx**2 + By**2 + Bz**2)
-#
-#     return E.sum() * (5e-3**3), B.sum() * (5e-3**3), (Ex**2).sum() * 0.5 * EPS0 * (5e-3**3), (Ey**2).sum() * 0.5 * EPS0 * (5e-3**3), (Ez**2).sum() * 0.5 * EPS0 * (5e-3**3)
+def total_field_energy(n):
+    Ex = load_field(n, 'Ex')[:, :-1, :-1]
+    Ey = load_field(n, 'Ey')[:-1, :, :-1]
+    Ez = load_field(n, 'Ez')[:-1, :-1, :]
+    Hx = load_field(n, 'Hx')[:-1, :, :]
+    Hy = load_field(n, 'Hy')[:, :-1, :]
+    Hz = load_field(n, 'Hz')[:, :, :-1]
 
-# def plot_total_energy(start, stop, step):
-#     def plot_regular(arr):
-#         times = np.linspace(0, stop * dt, len(arr))
-#         fig, ax = plt.subplots(figsize=(8,8))
-#         # ax.plot(times, arr[:, 1], 'b', label='B-Field')
-#         # ax.plot(times, arr[:, 0], 'r', label='E-Field')
-#         ax.plot(times, arr[:, 2], 'r', label='Ex-Field')
-#         ax.plot(times, arr[:, 3], 'g', label='Ey-Field')
-#         ax.plot(times, arr[:, 4], 'b', label='Ez-Field')
-#         ax.grid(True, which='major', axis='both', linestyle='--')
-#         # ax.set_xlim([0, 0.85e-8])
-#         ax.set_xlabel('Time (s)')
-#         ax.set_ylabel('Energy (J)')
-#         ax.set_title(f'Total Field Energy')
-#         ax.legend()
-#         plt.savefig(data_dir + f'/pngs/total_energy.png')
-#         plt.close(fig)
-#
-#     def plot_log(arr):
-#         fig, ax = plt.subplots()
-#         ax.set_yscale('log')
-#         ax.plot(arr)
-#         plt.savefig(data_dir + f'/pngs/total_energy_log.png')
-#         plt.close(fig)
-#
-#     targs = [n for n in range(start, stop + step, step)]
-#
-#     with mp.Pool(16) as p:
-#         result = p.map(total_field_energy, targs)
-#
-#     plot_regular(np.asarray(result))
+    E = 0.5 * EPS0 * (Ex**2 + Ey**2 + Ez**2)
+    H = (0.5 * MU0) * (Hx**2 + Hy**2 + Hz**2)
+
+    return E.sum() * (0.01**3), H.sum() * (0.01**3)
+
+def plot_total_energy(start, stop, step):
+    def plot_regular(arr, log=False):
+        times = np.linspace(0, stop * dt, len(arr))
+        fig, ax = plt.subplots(figsize=(8,8))
+
+        ax.plot(times, arr[:, 0], 'r', label='E-Field')
+        ax.plot(times, arr[:, 1], 'b', label='B-Field')
+
+        if log:
+            ax.set_yscale('log')
+
+        ax.grid(True, which='major', axis='both', linestyle='--')
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Energy (J)')
+        ax.set_title(f'Total Field Energy')
+        ax.legend()
+        plt.savefig(data_dir + f'/pngs/total_energy.png')
+        plt.close(fig)
+
+    targs = [n for n in range(start, stop + step, step)]
+
+    with mp.Pool(16) as p:
+        result = p.map(total_field_energy, targs)
+
+    plot_regular(np.asarray(result), True)
 
 # def load_particles(n, name, metric):
 #     filename = f'/{name}_{metric}_{n:010}.h5'
@@ -117,17 +111,19 @@ def plot3d(n, name, step):
 
 def main():
     start = 0
-    stop = 4000
+    stop = 40000
     step = 40
 
     # targs = [(n, 'electrons', 'density', step) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
     #     p.starmap(plot_metric, targs)
 
-    field = 'Ez'
-    targs = [(n, field, step) for n in range(start, stop + step, step)]
-    with mp.Pool(16) as p:
-        p.starmap(plot3d, targs)
+    # field = 'Ez'
+    # targs = [(n, field, step) for n in range(start, stop + step, step)]
+    # with mp.Pool(16) as p:
+    #     p.starmap(plot3d, targs)
+
+    plot_total_energy(start, stop, step)
 
 
 if __name__ == '__main__':

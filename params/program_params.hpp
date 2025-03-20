@@ -22,5 +22,6 @@ inline constexpr double Nt = 40000.0;
 inline constexpr double dt = cfl * dx / 299792458.0;
 inline constexpr double total_time = Nt * dt;
 
+inline constexpr std::size_t save_interval = 40;
 
 #endif //PROGRAM_PARAM_HPP

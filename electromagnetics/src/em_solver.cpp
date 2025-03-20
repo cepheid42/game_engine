@@ -54,7 +54,6 @@ namespace tf::electromagnetics {
     Hy_z1(emdata.Hy, emdata.Ex, emdata.Chyex, bcdata.z1.Hy);
   }
 
-
   void EMSolver::apply_srcs(const double t) const {
     for (const auto& src: emdata.srcs) { // todo: may need explicit loop if I want threads here
       src.apply(t);
@@ -63,11 +62,11 @@ namespace tf::electromagnetics {
 
   void EMSolver::advance(const double t) {
     updateH();
-    // updateHBCs();
+    updateHBCs();
 
     apply_srcs(t);
 
     updateE();
-    // updateEBCs();
+    updateEBCs();
   }
 } // end namespace tf::electromagnetics
