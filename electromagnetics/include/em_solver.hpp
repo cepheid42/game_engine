@@ -47,17 +47,17 @@ namespace tf::electromagnetics {
     using Hz_y1_bc = BCIntegrator<PMLFunctor<forward_dy,  true, false>>;
 
     // Z-Faces
-    using Ex_z0_bc = BCIntegrator<PMLFunctor<backward_dx, false,  true>>;
-    using Ex_z1_bc = BCIntegrator<PMLFunctor<backward_dx,  true,  true>>;
-    using Ey_z0_bc = BCIntegrator<PMLFunctor<backward_dx, false, false>>;
-    using Ey_z1_bc = BCIntegrator<PMLFunctor<backward_dx,  true, false>>;
+    using Ex_z0_bc = BCIntegrator<PMLFunctor<backward_dz, false,  true>>;
+    using Ex_z1_bc = BCIntegrator<PMLFunctor<backward_dz,  true,  true>>;
+    using Ey_z0_bc = BCIntegrator<PMLFunctor<backward_dz, false, false>>;
+    using Ey_z1_bc = BCIntegrator<PMLFunctor<backward_dz,  true, false>>;
     using Ez_z0_bc = BCIntegrator<void>;
     using Ez_z1_bc = BCIntegrator<void>;
 
-    using Hx_z0_bc = BCIntegrator<PMLFunctor<forward_dx, false, false>>;
-    using Hx_z1_bc = BCIntegrator<PMLFunctor<forward_dx,  true, false>>;
-    using Hy_z0_bc = BCIntegrator<PMLFunctor<forward_dx, false,  true>>;
-    using Hy_z1_bc = BCIntegrator<PMLFunctor<forward_dx,  true,  true>>;
+    using Hx_z0_bc = BCIntegrator<PMLFunctor<forward_dz, false, false>>;
+    using Hx_z1_bc = BCIntegrator<PMLFunctor<forward_dz,  true, false>>;
+    using Hy_z0_bc = BCIntegrator<PMLFunctor<forward_dz, false,  true>>;
+    using Hy_z1_bc = BCIntegrator<PMLFunctor<forward_dz,  true,  true>>;
     using Hz_z0_bc = BCIntegrator<void>;
     using Hz_z1_bc = BCIntegrator<void>;
 
@@ -67,8 +67,8 @@ namespace tf::electromagnetics {
     void advance(double);
     void updateE();
     void updateH();
-    void updateEbcs();
-    void updateHbcs();
+    void updateEBCs();
+    void updateHBCs();
     void apply_srcs(double) const;
 
     EMData emdata;

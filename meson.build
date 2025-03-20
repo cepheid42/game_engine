@@ -3,6 +3,7 @@ project(
     'cpp',
     version : '0.0.1',
     default_options : [
+#        'buildtype=debug',
         'buildtype=debugoptimized',
 #        'buildtype=release',
         'warning_level=3',
@@ -22,7 +23,6 @@ includes = include_directories('core', 'electromagnetics/include', 'metrics', 'p
 
 sources = [
     'main.cpp',
-    'electromagnetics/src/bc_data.cpp',
     'electromagnetics/src/em_data.cpp',
     'electromagnetics/src/em_solver.cpp',
     'electromagnetics/src/sources.cpp',

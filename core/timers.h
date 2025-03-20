@@ -20,7 +20,7 @@ struct Timer {
   duration_t elapsed{};
   time_t start{};
 
-  EventTimer()
+  Timer()
   : elapsed{duration_t::zero()},
     start{clock::now()}
   {}

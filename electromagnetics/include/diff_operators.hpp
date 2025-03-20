@@ -14,7 +14,7 @@ namespace tf::electromagnetics
   template<Derivative D>
   struct Diff<D, true> {
     static constexpr Derivative type = D;
-    static constexpr bool Forward = true;
+    static constexpr std::size_t Forward = 1;
 
     static auto apply(const auto& f, std::size_t i, std::size_t j, std::size_t k) {
       if constexpr (D == Derivative::DX) {
@@ -33,7 +33,7 @@ namespace tf::electromagnetics
   template<Derivative D>
   struct Diff<D, false> {
     static constexpr Derivative type = D;
-    static constexpr bool Forward = false;
+    static constexpr std::size_t Forward = 0;
 
     static auto apply(const auto& f, std::size_t i, std::size_t j, std::size_t k) {
       if constexpr (D == Derivative::DX) {

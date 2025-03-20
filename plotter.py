@@ -1,22 +1,10 @@
 #!/usr/bin/env python3
 
-
-
 from adios2 import FileReader
 # import numpy as np
 import multiprocessing as mp
 import matplotlib.pyplot as plt
-
-# with FileReader('./data/fields_0000000000.bp') as f:
-#     varbs = f.available_variables()
-#
-#     for name, info in varbs.items():
-#         print(f'{name}')
-#         for k, v in info.items():
-#             print(f'\t{k}: {v}')
-#
-#     ex = f.read('Ez')
-#     print(ex.shape)
+from matplotlib.cm import ScalarMappable
 
 
 data_dir = '/home/cepheid/TriForce/game_engine/data'
@@ -33,7 +21,7 @@ def load_field(n, name):
 
 def plot3d(n, name, step):
     print(f'Processing file {n}')
-    # vmin, vmax = -1000, 1000
+    vmin, vmax = -0.1, 0.1
     # norm = Normalize(vmin=vmin, vmax=vmax)
 
     frame = load_field(n, name)
@@ -44,11 +32,11 @@ def plot3d(n, name, step):
     ny = frame.shape[1] // 2
     nz = frame.shape[2] // 2
 
-    im = ax.contourf(frame[:, :, nz].T, levels=100)#, vmin=vmin, vmax=vmax)
+    im = ax.contourf(frame[:, :, nz].T, levels=100, vmin=vmin, vmax=vmax)
     #im = ax.pcolormesh(frame[:, :, nz].T, vmin=vmin, vmax=vmax)
 
-    # fig.colorbar(ScalarMappable(norm=im.norm), ax=ax)
-    fig.colorbar(im)
+    fig.colorbar(ScalarMappable(norm=im.norm), ax=ax)
+    # fig.colorbar(im)
 
     ax.set_xlabel('x (arb)')
     ax.set_ylabel('y (arb)')
@@ -129,8 +117,8 @@ def plot3d(n, name, step):
 
 def main():
     start = 0
-    stop = 400
-    step = 4
+    stop = 4000
+    step = 40
 
     # targs = [(n, 'electrons', 'density', step) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:

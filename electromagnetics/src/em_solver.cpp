@@ -20,51 +20,39 @@ namespace tf::electromagnetics {
     hz_update(emdata.Hz, emdata.Ex, emdata.Ey, emdata.empty, emdata.Chzh, emdata.Chzex, emdata.Chzey, emdata.empty, {0, 0, 0, 0, 0, 0});
   }
 
-  // void EMSolver::updateEbcs() {
-  //   // Ex_x0();
-  //   // Ex_x1();
-  //   Ey_x0(emdata.Ey, emdata.Hz, emdata.Ceyhz, emdata.bcdata.);
-  //   Ey_x1();
-  //   Ez_x0();
-  //   Ez_x1();
-  //
-  //   Ex_y0();
-  //   Ex_y1();
-  //   // Ey_y0();
-  //   // Ey_y1();
-  //   Ez_y0();
-  //   Ez_y1();
-  //
-  //   Ex_z0();
-  //   Ex_z1();
-  //   Ey_z0();
-  //   Ey_z1();
-  //   // Ez_z0();
-  //   // Ez_z1();
-  // }
-  //
-  // void EMSolver::updateHbcs() {
-  //   Hx_x0();
-  //   Hx_x1();
-  //   Hy_x0();
-  //   Hy_x1();
-  //   Hz_x0();
-  //   Hz_x1();
-  //
-  //   Hx_y0();
-  //   Hx_y1();
-  //   Hy_y0();
-  //   Hy_y1();
-  //   Hz_y0();
-  //   Hz_y1();
-  //
-  //   Hx_z0();
-  //   Hx_z1();
-  //   Hy_z0();
-  //   Hy_z1();
-  //   Hz_z0();
-  //   Hz_z1();
-  // }
+  void EMSolver::updateEBCs() {
+    Ey_x0(emdata.Ey, emdata.Hz, emdata.Ceyhz, bcdata.x0.Ey);
+    Ey_x1(emdata.Ey, emdata.Hz, emdata.Ceyhz, bcdata.x1.Ey);
+    Ez_x0(emdata.Ez, emdata.Hy, emdata.Cezhy, bcdata.x0.Ez);
+    Ez_x1(emdata.Ez, emdata.Hy, emdata.Cezhy, bcdata.x1.Ez);
+
+    Ex_y0(emdata.Ex, emdata.Hz, emdata.Cexhz, bcdata.y0.Ex);
+    Ex_y1(emdata.Ex, emdata.Hz, emdata.Cexhz, bcdata.y1.Ex);
+    Ez_y0(emdata.Ez, emdata.Hx, emdata.Cezhx, bcdata.y0.Ez);
+    Ez_y1(emdata.Ez, emdata.Hx, emdata.Cezhx, bcdata.y1.Ez);
+
+    Ex_z0(emdata.Ex, emdata.Hy, emdata.Cexhy, bcdata.z0.Ex);
+    Ex_z1(emdata.Ex, emdata.Hy, emdata.Cexhy, bcdata.z1.Ex);
+    Ey_z0(emdata.Ey, emdata.Hx, emdata.Ceyhx, bcdata.z0.Ey);
+    Ey_z1(emdata.Ey, emdata.Hx, emdata.Ceyhx, bcdata.z1.Ey);
+  }
+
+  void EMSolver::updateHBCs() {
+    Hy_x0(emdata.Hy, emdata.Ez, emdata.Chyez, bcdata.x0.Hy);
+    Hy_x1(emdata.Hy, emdata.Ez, emdata.Chyez, bcdata.x1.Hy);
+    Hz_x0(emdata.Hz, emdata.Ey, emdata.Chzey, bcdata.x0.Hz);
+    Hz_x1(emdata.Hz, emdata.Ey, emdata.Chzey, bcdata.x1.Hz);
+
+    Hx_y0(emdata.Hx, emdata.Ez, emdata.Chxez, bcdata.y0.Hx);
+    Hx_y1(emdata.Hx, emdata.Ez, emdata.Chxez, bcdata.y1.Hx);
+    Hz_y0(emdata.Hz, emdata.Ex, emdata.Chzex, bcdata.y0.Hz);
+    Hz_y1(emdata.Hz, emdata.Ex, emdata.Chzex, bcdata.y1.Hz);
+
+    Hx_z0(emdata.Hx, emdata.Ey, emdata.Chxey, bcdata.z0.Hx);
+    Hx_z1(emdata.Hx, emdata.Ey, emdata.Chxey, bcdata.z1.Hx);
+    Hy_z0(emdata.Hy, emdata.Ex, emdata.Chyex, bcdata.z0.Hy);
+    Hy_z1(emdata.Hy, emdata.Ex, emdata.Chyex, bcdata.z1.Hy);
+  }
 
 
   void EMSolver::apply_srcs(const double t) const {
@@ -80,6 +68,6 @@ namespace tf::electromagnetics {
     apply_srcs(t);
 
     updateE();
-    // updateEBCS();
+    // updateEBCs();
   }
 } // end namespace tf::electromagnetics

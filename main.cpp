@@ -32,7 +32,7 @@ int main() {
     &emsolver.emdata.Ez,
     tf::electromagnetics::SpatialSource{
       make_srcvec(),
-      1.0,
+      100.0,
       {nx2, nx2 + 1, nx2, nx2 + 1, nx2, nx2 + 1}
     }
   );
@@ -51,12 +51,12 @@ int main() {
 
   double t = 0.0;
   std::size_t step = 0zu;
-  while (t < total_time) {
+  while (t <= total_time) {
     emsolver.advance(t);
 
-    if (step % 4 == 0) {
+    if (step % 400 == 0) {
       const auto percent = 100.0 * t / total_time;
-      std::println("Step {:4} Time: {:10.4e} Complete: {:4.1f}", step, t, percent);
+      std::println("Step {:4} Time: {:10.4e} Complete: {:4.1f}%", step, t, percent);
       metrics.write(step);
     }
 

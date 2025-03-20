@@ -4,6 +4,9 @@
 #include "diff_operators.hpp"
 
 #include <array>
+#include <print>
+#include <format>
+
 
 namespace tf::electromagnetics {
   template<typename CurlFunc, bool Hi, bool Negate>
@@ -17,6 +20,7 @@ namespace tf::electromagnetics {
       if constexpr (!Hi) { ipml = i; }
       else { ipml = i - x0 + Curl::Forward; }
 
+      // std::println("({}, {}, {}) -> {}", i, j, k, ipml);
       psi(ipml, j, k) = b[ipml] * psi(ipml, j, k) + c[ipml] * Curl::apply(f2, i, j, k);
       if constexpr (Negate) {
         f1(i, j, k) -= c1(i, j, k) * psi(ipml, j, k);
@@ -61,18 +65,18 @@ namespace tf::electromagnetics {
     using offset_t = std::array<std::size_t, 6>;
     static constexpr auto direction = UpdateFunc::Curl::type;
 
-    static void operator()(auto& f1, const auto& f2, const auto& c1, auto& psi, const auto& b, const auto& c, const offset_t& offsets)
+    static void operator()(auto& f1, const auto& f2, const auto& c1, auto& bc)
     {
-      const auto& [x0, x1, y0, y1, z0, z1] = offsets;
+      const auto& [x0, x1, y0, y1, z0, z1] = bc.offsets;
       std::size_t pml_offset;
       if constexpr      (direction == Derivative::DX) { pml_offset = x0; }
       else if constexpr (direction == Derivative::DY) { pml_offset = y0; }
       else                                            { pml_offset = z0; }
-
+#pragma omp parallel for simd collapse(3) num_threads(nThreads)
       for (std::size_t i = x0; i < x1; ++i) {
         for (std::size_t j = y0; j < y1; ++j) {
           for (std::size_t k = z0; k < z1; ++k) {
-            UpdateFunc::apply(f1, f2, c1, psi, b, c, i, j, k, pml_offset);
+            UpdateFunc::apply(f1, f2, c1, bc.psi, bc.b, bc.c, i, j, k, pml_offset);
           } // end for k
         } // end for j
       } // end for i
@@ -86,5 +90,6 @@ namespace tf::electromagnetics {
     static void operator()(auto&, auto&, auto&, auto&, auto&, auto&, offset_t&) {}
   };
 } // end namespace tf::electromagnetics
+
 
 #endif //BC_FUNCTORS_HPP

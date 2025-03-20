@@ -14,12 +14,12 @@ namespace tf::electromagnetics {
     requires std::same_as<T, void>
     {}
 
-    // todo: probably won't like static operator()
     static void operator()(auto& f, const auto& d1, const auto& d2, const auto& src,
                            const auto& c_f, const auto& c_d1, const auto& c_d2, const auto& c_src,
                            const offset_t& offsets)
     {
       const auto& [x0, x1, y0, y1, z0, z1] = offsets;
+#pragma omp parallel for simd collapse(3) num_threads(nThreads)
       for (std::size_t i = x0; i < f.nx() - x1; ++i) {
         for (std::size_t j = y0; j < f.ny() - y1; ++j) {
           for (std::size_t k = z0; k < f.nz() - z1; ++k) {

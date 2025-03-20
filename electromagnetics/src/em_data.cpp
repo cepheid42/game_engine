@@ -1,6 +1,7 @@
 #include "em_data.hpp"
-
 #include "constants.hpp"
+
+#include <print>
 
 namespace tf::electromagnetics {
   EMData::EMData(const std::size_t nx, const std::size_t ny, const std::size_t nz, const double cfl, const double dt)

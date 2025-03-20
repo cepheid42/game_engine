@@ -12,7 +12,6 @@
 #include <array>
 
 namespace tf::electromagnetics {
-
   enum class EMFace { X, Y, Z};
   enum class EMSide { Lo, Hi };
 
@@ -37,7 +36,7 @@ namespace tf::electromagnetics {
   template<EMSide S>
   std::array<std::size_t, 6> get_z_offsets(const std::size_t nx, const std::size_t ny, const std::size_t nz) {
     if constexpr (S == EMSide::Lo) {
-      return {0, PMLDepth, 0, ny, 0, nz};
+      return {0, nx, 0, ny, 0, PMLDepth};
     } else {
       return {0, nx, 0, ny, nz - PMLDepth - 1, nz - 1};
     }
@@ -77,38 +76,37 @@ namespace tf::electromagnetics {
   }
 
 
-  template<EMFace F>
+  template<EMFace F, EMSide S>
   struct PMLData {
     using offset_t = std::array<std::size_t, 6>;
     using coeffs_t = std::array<double, PMLDepth>;
 
     explicit PMLData() = delete;
 
-    PMLData(const std::size_t nx_, const std::size_t ny_, const std::size_t nz_, const offset_t& offsets_, const EMSide side, const bool isE)
+    PMLData(const std::size_t nx_, const std::size_t ny_, const std::size_t nz_, const offset_t& offsets_, const bool isE)
     : psi(nx_, ny_, nz_),
       offsets(offsets_)
     {
-      init_coefficients(side, isE);
+      init_coefficients(isE);
     }
 
-    PMLData(const Array3D<double>& f, const offset_t& offsets, const EMSide side, const bool isE)
+    PMLData(const Array3D<double>& f, const offset_t& offset, const bool isE)
     requires (F == EMFace::X)
-    : PMLData(PMLDepth, f.ny(), f.nz(), offsets, side, isE)
+    : PMLData(PMLDepth, f.ny(), f.nz(), offset, isE)
     {}
 
-    PMLData(const Array3D<double>& f, const offset_t& offsets, const EMSide side, const bool isE)
+    PMLData(const Array3D<double>& f, const offset_t& offset, const bool isE)
     requires (F == EMFace::Y)
-    : PMLData(f.nx(), PMLDepth, f.nz(), offsets, side, isE)
+    : PMLData(f.nx(), PMLDepth, f.nz(), offset, isE)
     {}
 
-    PMLData(const Array3D<double>& f, const offset_t& offsets, const EMSide side, const bool isE)
+    PMLData(const Array3D<double>& f, const offset_t& offset, const bool isE)
     requires (F == EMFace::Z)
-    : PMLData(f.nx(), f.ny(), PMLDepth, offsets, side, isE)
+    : PMLData(f.nx(), f.ny(), PMLDepth, offset, isE)
     {}
 
-    void init_coefficients(const EMSide side, const bool isE) {
+    void init_coefficients(const bool isE) {
       std::vector<double> d = math::linspace(1.0, 0.0, PMLDepth, false);
-      // const std::vector<double> dh = math::linspace(1.0 - hstep, -hstep, PMLDepth, false);
 
       if (!isE) {
         constexpr auto hstep = 1.0 / (2.0 * static_cast<double>(PMLDepth));
@@ -121,7 +119,7 @@ namespace tf::electromagnetics {
       const auto alpha_d = calculate_alpha(d);
       calculate_coeffs(sigma_d, alpha_d);
 
-      if (side == EMSide::Hi) {
+      if constexpr (S == EMSide::Hi) {
         std::ranges::reverse(b);
         std::ranges::reverse(c);
       }
@@ -161,27 +159,26 @@ namespace tf::electromagnetics {
 
   template<EMFace F, EMSide S>
   struct FaceBC {
-    // template<bool isE> using getOffsets = get_pml_offsets<F, S, isE>;
+    // template<bool isE> using getOffsets = get_pml_offsets<F, isE>;
 
     explicit FaceBC() = delete;
 
     explicit FaceBC(const auto& emdata)
-    : Ex{emdata.Ex, getOffsets<F, S, true>(emdata.Ex), S, false},
-      Ey{emdata.Ey, getOffsets<F, S, true>(emdata.Ey), S, false},
-      Ez{emdata.Ez, getOffsets<F, S, true>(emdata.Ez), S, false},
-      Hx{emdata.Hx, getOffsets<F, S, false>(emdata.Hx), S, true},
-      Hy{emdata.Hy, getOffsets<F, S, false>(emdata.Hy), S, true},
-      Hz{emdata.Hz, getOffsets<F, S, false>(emdata.Hz), S, true}
+    : Ex{emdata.Ex, getOffsets<F, S, true>(emdata.Ex), true},
+      Ey{emdata.Ey, getOffsets<F, S, true>(emdata.Ey), true},
+      Ez{emdata.Ez, getOffsets<F, S, true>(emdata.Ez), true},
+      Hx{emdata.Hx, getOffsets<F, S, false>(emdata.Hx), false},
+      Hy{emdata.Hy, getOffsets<F, S, false>(emdata.Hy), false},
+      Hz{emdata.Hz, getOffsets<F, S, false>(emdata.Hz), false}
     {}
 
-    PMLData<F> Ex;
-    PMLData<F> Ey;
-    PMLData<F> Ez;
-    PMLData<F> Hx;
-    PMLData<F> Hy;
-    PMLData<F> Hz;
+    PMLData<F, S> Ex;
+    PMLData<F, S> Ey;
+    PMLData<F, S> Ez;
+    PMLData<F, S> Hx;
+    PMLData<F, S> Hy;
+    PMLData<F, S> Hz;
   };
-
 
 
   struct BCData {
@@ -195,10 +192,10 @@ namespace tf::electromagnetics {
     {}
 
     FaceBC<EMFace::X, EMSide::Lo> x0;
-    FaceBC<EMFace::X, EMSide::Hi> y0;
-    FaceBC<EMFace::Y, EMSide::Lo> z0;
-    FaceBC<EMFace::Y, EMSide::Hi> x1;
-    FaceBC<EMFace::Z, EMSide::Lo> y1;
+    FaceBC<EMFace::Y, EMSide::Lo> y0;
+    FaceBC<EMFace::Z, EMSide::Lo> z0;
+    FaceBC<EMFace::X, EMSide::Hi> x1;
+    FaceBC<EMFace::Y, EMSide::Hi> y1;
     FaceBC<EMFace::Z, EMSide::Hi> z1;
   };
 }
