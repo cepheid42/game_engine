@@ -96,8 +96,8 @@ namespace tf {
     explicit Array3D(const std::size_t, const std::size_t, const std::size_t, const auto) {}
 
     // Specialized accessors
-    static constexpr auto operator()(const std::size_t, const std::size_t, const std::size_t) { return 0; }
-    static constexpr auto operator[](const std::size_t) { return 0; }
+    static constexpr auto operator()(const std::size_t, const std::size_t, const std::size_t) { return 0.0f; }
+    static constexpr auto operator[](const std::size_t) { return 0.0f; }
 
     static constexpr void fill(auto) {}
 

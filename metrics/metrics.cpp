@@ -1,5 +1,7 @@
 #include "metrics.hpp"
 
+#include "program_params.hpp"
+
 namespace tf::metrics {
 
   EMFieldsMetric::EMFieldsMetric(const field_map& fields_, adios2::IO&& io_)
@@ -8,7 +10,7 @@ namespace tf::metrics {
     for (const auto& [name, field]: fields_) {
       fields.push_back({
         .field = field,
-        .variable = io.DefineVariable<double>(
+        .variable = io.DefineVariable<compute_t>(
             name,
             {field->nx(), field->ny(), field->nz()}, // shape (global)
             {0, 0, 0},                               // start (local)

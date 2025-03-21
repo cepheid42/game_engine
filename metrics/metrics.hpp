@@ -1,13 +1,16 @@
 #ifndef METRICS_HPP
 #define METRICS_HPP
 
+#include "program_params.hpp"
+#include "array.hpp"
+
 #include <print>
 #include <unordered_map>
 #include <memory>
 
 #include <adios2.h>
 
-#include "array.hpp"
+
 
 namespace tf::metrics {
   namespace detail {
@@ -19,12 +22,12 @@ namespace tf::metrics {
 
 
   struct EMFieldsMetric final : detail::MetricBase {
-    using pointer_t = tf::Array3D<double>*;
+    using pointer_t = tf::Array3D<compute_t>*;
     using field_map = std::unordered_map<std::string, pointer_t>;
 
     struct FieldVariable {
       pointer_t field;
-      adios2::Variable<double> variable;
+      adios2::Variable<compute_t> variable;
     };
 
     EMFieldsMetric(const field_map&, adios2::IO&&);

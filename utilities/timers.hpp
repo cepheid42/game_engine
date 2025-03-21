@@ -1,14 +1,7 @@
-//
-// Created by cepheid on 11/9/23.
-//
-
 #ifndef TRIFORCE_TIMER_H
 #define TRIFORCE_TIMER_H
 
 #include <chrono>
-#include <map>
-#include <string>
-#include <iostream>
 
 //========== Timer Classes =========
 //==================================
@@ -17,13 +10,10 @@ struct Timer {
   using duration_t = std::chrono::nanoseconds;
   using time_t = std::chrono::time_point<clock>;
 
-  duration_t elapsed{};
   time_t start{};
+  duration_t elapsed{};
 
-  Timer()
-  : elapsed{duration_t::zero()},
-    start{clock::now()}
-  {}
+  Timer() : start{clock::now()}, elapsed{duration_t::zero()}  {}
 
   void start_timer() {
     start = clock::now();
@@ -44,19 +34,5 @@ struct Timer {
     elapsed   = duration_t::zero();
   }
 };
-
-struct EventTimer {
-  Timer& timer;
-
-  explicit EventTimer(Timer& timer_)
-  : timer{timer_}
-  {
-    timer.start_timer();
-  }
-
-  ~EventTimer() {
-    timer.stop_timer();
-  }
-}
 
 #endif //TRIFORCE_TIMER_H

@@ -1,20 +1,21 @@
 #ifndef EM_SOLVER_HPP
 #define EM_SOLVER_HPP
 
-#include "em_params.hpp"
+#include "program_params.hpp"
 #include "em_data.hpp"
+#include "bc_data.hpp"
 #include "update_functors.hpp"
 #include "bc_functors.hpp"
 #include "diff_operators.hpp"
 
 namespace tf::electromagnetics {
   struct EMSolver {
-    using ex_func = FieldIntegrator<ex_t, ExplicitUpdateFunctor<backward_dy, backward_dz>>;
-    using ey_func = FieldIntegrator<ey_t, ExplicitUpdateFunctor<backward_dz, backward_dx>>;
-    using ez_func = FieldIntegrator<ez_t, ExplicitUpdateFunctor<backward_dx, backward_dy>>;
-    using hx_func = FieldIntegrator<hx_t, ExplicitUpdateFunctor<forward_dz, forward_dy>>;
-    using hy_func = FieldIntegrator<hy_t, ExplicitUpdateFunctor<forward_dx, forward_dz>>;
-    using hz_func = FieldIntegrator<hz_t, ExplicitUpdateFunctor<forward_dy, forward_dx>>;
+    using ex_func = FieldIntegrator<compute_t, ExplicitUpdateFunctor<backward_dy, backward_dz>>;
+    using ey_func = FieldIntegrator<compute_t, ExplicitUpdateFunctor<backward_dz, backward_dx>>;
+    using ez_func = FieldIntegrator<compute_t, ExplicitUpdateFunctor<backward_dx, backward_dy>>;
+    using hx_func = FieldIntegrator<compute_t, ExplicitUpdateFunctor<forward_dz, forward_dy>>;
+    using hy_func = FieldIntegrator<compute_t, ExplicitUpdateFunctor<forward_dx, forward_dz>>;
+    using hz_func = FieldIntegrator<compute_t, ExplicitUpdateFunctor<forward_dy, forward_dx>>;
     
     // X-Faces
     using Ex_x0_bc = BCIntegrator<void>;
@@ -62,14 +63,14 @@ namespace tf::electromagnetics {
     using Hz_z1_bc = BCIntegrator<void>;
 
     explicit EMSolver() = delete;
-    explicit EMSolver(std::size_t, std::size_t, std::size_t, double, double);
+    explicit EMSolver(std::size_t, std::size_t, std::size_t, compute_t, compute_t);
 
-    void advance(double);
+    void advance(compute_t);
     void updateE();
     void updateH();
     void updateEBCs();
     void updateHBCs();
-    void apply_srcs(double) const;
+    void apply_srcs(compute_t) const;
 
     EMData emdata;
     BCData bcdata;

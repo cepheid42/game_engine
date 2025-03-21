@@ -5,8 +5,6 @@
 
 #include <array>
 #include <print>
-#include <format>
-
 
 namespace tf::electromagnetics {
   template<typename CurlFunc, bool Hi, bool Negate>

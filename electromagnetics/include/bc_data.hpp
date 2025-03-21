@@ -79,7 +79,7 @@ namespace tf::electromagnetics {
   template<EMFace F, EMSide S>
   struct PMLData {
     using offset_t = std::array<std::size_t, 6>;
-    using coeffs_t = std::array<double, PMLDepth>;
+    using coeffs_t = std::array<compute_t, PMLDepth>;
 
     explicit PMLData() = delete;
 
@@ -90,30 +90,30 @@ namespace tf::electromagnetics {
       init_coefficients(isE);
     }
 
-    PMLData(const Array3D<double>& f, const offset_t& offset, const bool isE)
+    PMLData(const Array3D<compute_t>& f, const offset_t& offset, const bool isE)
     requires (F == EMFace::X)
     : PMLData(PMLDepth, f.ny(), f.nz(), offset, isE)
     {}
 
-    PMLData(const Array3D<double>& f, const offset_t& offset, const bool isE)
+    PMLData(const Array3D<compute_t>& f, const offset_t& offset, const bool isE)
     requires (F == EMFace::Y)
     : PMLData(f.nx(), PMLDepth, f.nz(), offset, isE)
     {}
 
-    PMLData(const Array3D<double>& f, const offset_t& offset, const bool isE)
+    PMLData(const Array3D<compute_t>& f, const offset_t& offset, const bool isE)
     requires (F == EMFace::Z)
     : PMLData(f.nx(), f.ny(), PMLDepth, offset, isE)
     {}
 
     void init_coefficients(const bool isE) {
-      std::vector<double> d = math::linspace(1.0, 0.0, PMLDepth, false);
+      std::vector<compute_t> d = math::linspace(1.0f, 0.0f, PMLDepth, false);
 
       if (!isE) {
-        constexpr auto hstep = 1.0 / (2.0 * static_cast<double>(PMLDepth));
+        constexpr auto hstep = 1.0f / (2.0f * static_cast<compute_t>(PMLDepth));
         for (auto& x: d) { x -= hstep; }
       }
 
-      constexpr auto sigma_max = (0.8 * (PMLGrade + 1.0)) / (dx * constants::eta0);
+      constexpr auto sigma_max = (0.8f * (PMLGrade + 1.0f)) / (dx * constants::eta0);
 
       const auto sigma_d = calculate_sigma(d, sigma_max);
       const auto alpha_d = calculate_alpha(d);
@@ -125,7 +125,7 @@ namespace tf::electromagnetics {
       }
     }
 
-    static std::vector<double> calculate_sigma(const std::vector<double>& d, const double sigma_max) {
+    static std::vector<compute_t> calculate_sigma(const std::vector<compute_t>& d, const compute_t sigma_max) {
       auto sigma_bc(d);
       for (auto& x: sigma_bc) {
         x = sigma_max * std::pow(x, PMLGrade);
@@ -133,25 +133,25 @@ namespace tf::electromagnetics {
       return sigma_bc;
     }
 
-    static std::vector<double> calculate_alpha(const std::vector<double>& d) {
+    static std::vector<compute_t> calculate_alpha(const std::vector<compute_t>& d) {
       auto alpha_bc(d);
       for (auto& x: alpha_bc) {
-        x = PMLAlphaMax * std::pow(1.0 - x, 1.0);
+        x = PMLAlphaMax * std::pow(1.0f - x, 1.0f);
       }
       return alpha_bc;
     }
 
-    void calculate_coeffs(const std::vector<double>& sigma, const std::vector<double>& alpha) {
+    void calculate_coeffs(const std::vector<compute_t>& sigma, const std::vector<compute_t>& alpha) {
       constexpr auto coef1 = -dt / constants::eps0;
 
       for (auto i = 0zu; i < PMLDepth; i++) {
-        constexpr auto kappa_bc = 1.0;
-        b[i] = std::exp(coef1 * ((sigma[i] / kappa_bc) + alpha[i]));
-        c[i] = (sigma[i] * (b[i] - 1.0)) / (kappa_bc * (sigma[i] + (kappa_bc * alpha[i])));
+        constexpr auto kappa_bc = 1.0f;
+        b[i] = std::expf(coef1 * ((sigma[i] / kappa_bc) + alpha[i]));
+        c[i] = (sigma[i] * (b[i] - 1.0f)) / (kappa_bc * (sigma[i] + (kappa_bc * alpha[i])));
       }
     }
 
-    Array3D<double> psi;
+    Array3D<compute_t> psi;
     offset_t offsets;
     coeffs_t b{};
     coeffs_t c{};
