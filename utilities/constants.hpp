@@ -22,15 +22,17 @@ namespace tf::constants
   inline constexpr auto one_sixth { 1.0f / 6.0f };
 
   // Physical
-  inline constexpr auto c { 299792458.0f };  // m/s
+  inline constexpr auto c { 299792458.0 };  // m/s
   inline constexpr auto c_sqr { c * c };    // (m/s)^2
-  inline constexpr auto over_c_sqr { 1.0f / (c * c) };    // (s/m)^2
+  inline constexpr auto over_c_sqr { 1.0 / (c * c) };    // (s/m)^2
 
   inline constexpr auto eps0 { 8.854187812813e-12f };   // F/m
   inline constexpr auto mu0 { 1.2566370621219e-6f };        // H/m
   inline constexpr auto eta0 { 376.73031366686992f };       // Ohms
   inline constexpr auto sqrt_mueps { 3.3356409519864e-9f }; // sqrt(mu_0 * eps_0)
   inline constexpr auto four_pi_eps0 { 1.11265005544787e-10f };
+
+  inline constexpr auto q_e { 1.6021766e-19f };        // electron charge, coulombs
 
 }
 

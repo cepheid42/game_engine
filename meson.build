@@ -19,7 +19,7 @@ gcc_opts = [
 # '-save-temps'
  ]
 
-includes = include_directories('core', 'electromagnetics/include', 'metrics', 'params', 'utilities')
+includes = include_directories('core', 'electromagnetics/include', 'metrics', 'params', 'particles/include', 'utilities')
 
 sources = [
     'main.cpp',

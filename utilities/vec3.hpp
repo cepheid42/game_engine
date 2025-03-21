@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <initializer_list>
+#include <sstream>
 
 // ===== Vector Types =====
 // ========================
@@ -15,7 +16,8 @@ namespace tf
     struct VectorBase {
       using value_t = T;
       // using dimension_t = tags::Dimension<N>;
-      
+
+      VectorBase() = default;
       VectorBase(std::initializer_list<T[N]> init_) : data(init_) {}
       
       T &operator[](int i) { return data[i]; }
@@ -223,5 +225,13 @@ tf::vec3<T> rotate(const tf::vec3<T>& v, T gamma, T beta, T alpha) {
   return v3;
 }
 
+template<typename T>
+std::istringstream& operator>>(std::istringstream& in, tf::vec3<T>& v)
+{
+  for (std::size_t i = 0; i < 3; i++) {
+    in >> v[i];
+  }
 
+  return in;
+}
 #endif //TRIFORCE_VECTOR_H
