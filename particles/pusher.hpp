@@ -60,7 +60,7 @@ namespace tf::particles {
           // undo the rotation to get proper indices back
           const auto [x, y, z] = rotateOrigin<D == 2 ? D : !D>(vec3{i + ci, j + cj, k + ck});
 
-          result += s0i * s0j * s0k * E.template get<D>(ci + i, cj + j, ck + k);
+          result += s0i * s0j * s0k * E(ci + i, cj + j, ck + k);
         }
       }
     }
@@ -95,7 +95,7 @@ namespace tf::particles {
           // undo the rotation to get proper indices back
           const auto [x, y, z] = rotateOrigin<D == 2 ? D : !D>(vec3{i + ci, j + cj, k + ck});
 
-          result += s0i * s0j * s0k * E(ci + i, cj + j, ck + k);
+          result += s0i * s0j * s0k * B(ci + i, cj + j, ck + k);
         }
       }
     }
@@ -104,7 +104,14 @@ namespace tf::particles {
 
   static std::array<double, 6> FieldAtParticle(Particle& p, const auto& emdata) {
     const auto cids = morton_decode(p.code);
+
+    assertm(cids[0] < Ncx - 1 and cids[0] > 1, "Invalid particle cell in x.");
+    assertm(cids[1] < Ncy - 1 and cids[1] > 1, "Invalid particle cell in y.");
+    assertm(cids[2] < Ncz - 1 and cids[2] > 1, "Invalid particle cell in z.");
+
     const auto exc = EFieldToParticle<0>(emdata.Ex, p.location, cids);
+    const auto eyc = EFieldToParticle<0>(emdata.Ex, p.location, cids);
+    const auto ezc = EFieldToParticle<0>(emdata.Ex, p.location, cids);
 
     const auto bxc = BFieldToParticle<0>(emdata.Bx, p.location, cids);
 
@@ -144,7 +151,7 @@ namespace tf::particles {
                             std::floor(new_loc[1]),
                             std::floor(new_loc[2])};
 
-      assert(offsets[1] == 0.0);
+      assertm(offsets[1] == 0.0, "UpdatePosition: Y offset is not zero");
 
       const auto inew = iold + static_cast<std::size_t>(offsets[0]);
       const auto jnew = jold + static_cast<std::size_t>(offsets[1]);
@@ -154,7 +161,6 @@ namespace tf::particles {
         p.code = group_t::DISABLED;
       } else {
         p.code = morton_encode(inew, jnew, knew);
-        std::println("{}, {}, {}", inew, jnew, knew);
       }
 
       p.old_location = p.location - offsets;

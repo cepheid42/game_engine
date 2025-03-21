@@ -53,4 +53,6 @@ constexpr std::size_t get_cid(const std::size_t i, const std::size_t j, const st
   return k + (Ncz * j) + (Ncz * Ncy * i);
 }
 
+#define assertm(exp, msg) assert((void(msg), exp))
+
 #endif //PROGRAM_PARAM_HPP
