@@ -21,6 +21,22 @@ namespace tf::electromagnetics {
     return result;
   } // end SpatialSource::eval
 
+  [[nodiscard]] compute_t BlackmanHarris::eval(const compute_t t) const {
+    if (t > duration) { return 1.0f; }
+
+    const auto c1 = std::cos(bn[0] * omega * t);
+    const auto c2 = std::cos(bn[1] * omega * t);
+    const auto c3 = std::cos(bn[2] * omega * t);
+    return an[0] + (an[1] * c1) + (an[2] * c2) + (an[3] * c3);
+  }
+
+  [[nodiscard]] compute_t ContinuousSource::eval(const compute_t t) const {
+    if (t < start or t > stop) { return 0.0f; }
+    // return std::sin(omega * t - phase);
+    return ramp.eval(t) * std::sin(omega * t - phase);
+    // return std::sin(omega * t - phase);
+  }
+
   void CurrentSource::apply(const compute_t t) const {
     const auto& [x0, x1, y0, y1, z0, z1] = src.offsets;
     const auto val = src.eval(t);
