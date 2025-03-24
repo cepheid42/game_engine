@@ -3,12 +3,12 @@ project(
     'cpp',
     version : '0.0.1',
     default_options : [
-#        'buildtype=debug',
-        'buildtype=debugoptimized',
+        'buildtype=debug',
+#        'buildtype=debugoptimized',
 #        'buildtype=release',
         'warning_level=3',
         'cpp_std=c++23',
-#        'b_sanitize=address'
+        'b_sanitize=address'
     ]
 )
 

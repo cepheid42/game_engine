@@ -7,9 +7,13 @@ using compute_t = float;
 
 inline constexpr std::size_t nThreads = 32;
 
-inline constexpr std::size_t Nx = 101zu;
-inline constexpr std::size_t Ny = 101zu;
-inline constexpr std::size_t Nz = 101zu;
+// inline constexpr std::size_t Nx = 101zu;
+// inline constexpr std::size_t Ny = 101zu;
+// inline constexpr std::size_t Nz = 101zu;
+
+inline constexpr std::size_t Nx = 8zu;
+inline constexpr std::size_t Ny = 8zu;
+inline constexpr std::size_t Nz = 8zu;
 
 inline constexpr std::array x_range = {0.0f, 1.0f};
 inline constexpr std::array y_range = {0.0f, 1.0f};

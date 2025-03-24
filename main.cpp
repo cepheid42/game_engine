@@ -1,22 +1,53 @@
-#include "program_params.hpp"
-#include "constants.hpp"
-#include "em_solver.hpp"
-#include "metrics.hpp"
-#include "sources.hpp"
-#include "array.hpp"
-#include "timers.hpp"
+// #include "program_params.hpp"
+// #include "constants.hpp"
+// #include "em_solver.hpp"
+// #include "metrics.hpp"
+// #include "sources.hpp"
+// #include "array.hpp"
+// #include "timers.hpp"
 #include "particle.hpp"
-#include "pusher.hpp"
+// #include "pusher.hpp"
+//
 
-#include <print>
-#include <chrono>
+#include "octree.hpp"
+
+// #include <print>
+// #include <bitset>
+// #include <iostream>
+// #include <chrono>
 
 int main() {
+  tf::particles::ParticleGroup p("test", 0.0, 0.0, 1);
 
-  std::println("Particle size: {} bytes", sizeof(tf::particles::Particle));
-  std::println("bitset<85> size: {} bytes", sizeof(std::bitset<85>));
-  std::println("Chunk size: {} bytes", sizeof(tf::particles::ParticleChunk), sizeof(tf::particles::Particle), sizeof(std::bitset<64>));
+  p.cells[250].push_back(tf::particles::Particle{{}, {}, {}, 250.0, 0.0});
+  p.cells[251].push_back(tf::particles::Particle{{}, {}, {}, 251.0, 0.0});
+  p.cells[252].push_back(tf::particles::Particle{{}, {}, {}, 252.0, 0.0});
+  p.cells[253].push_back(tf::particles::Particle{{}, {}, {}, 253.0, 0.0});
+  p.cells[254].push_back(tf::particles::Particle{{}, {}, {}, 254.0, 0.0});
 
+  p.update_tree();
+
+  tf::particles::visit_octree(p.tree);
+
+  // for (const auto& c : p.cells) {
+  //   for (const auto& ps : c) {
+  //     std::println("{}", ps.weight);
+  //   }
+  // }
+
+  // for (std::size_t i = 0; i < 8; i++) {
+  //   for (std::size_t j = 0; j < 8; j++) {
+  //     for (std::size_t k = 0; k < 8; k++) {
+  //       auto idx = tf::particles::morton_encode(i, j, k);
+  //
+  //     }
+  //   }
+  // }
+
+  // std::println("Particle size: {} bytes", sizeof(tf::particles::Particle));
+  // std::println("bitset<85> size: {} bytes", sizeof(std::bitset<85>));
+  // std::println("Chunk size: {} bytes", sizeof(tf::particles::ParticleChunk), sizeof(tf::particles::Particle), sizeof(std::bitset<64>));
+  //
 
   // using array_t = tf::Array3D<compute_t>;
   // using ricker_t = tf::electromagnetics::RickerSource;

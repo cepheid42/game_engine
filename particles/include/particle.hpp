@@ -2,12 +2,14 @@
 #define PARTICLE_HPP
 
 #include "program_params.hpp"
+#include "particle_params.hpp"
 #include "vec3.hpp"
 #include "constants.hpp"
+#include "octree.hpp"
 
-#include <array>
-#include <bitset>
-#include <type_traits>
+// #include <array>
+// #include <bitset>
+// #include <type_traits>
 #include <string>
 #include <fstream>
 
@@ -20,45 +22,6 @@ namespace tf::particles {
     double gamma;
   }; // end struct Particle
 
-  struct alignas(alignof(Particle)) ParticleChunk {
-    using vec_t = vec3<compute_t>;
-
-    static constexpr std::size_t padding = 40;
-    static constexpr std::size_t n_particles = 84;
-    // (84 * 48 bytes + 16 bytes + 40 bytes) = 4096 exactly
-    //  ^ particles      ^ bitset   ^ padding
-
-    explicit ParticleChunk(const std::size_t cid_) : cid(cid_) {}
-
-    bool add_particle(const Particle& p) {
-      // todo: would disabling this check effect performance? Just loop over and then default false.
-      if (active.all()) { return false; } // chunk is full
-
-      for (std::size_t i = 0; i < n_particles; ++i) {
-        if (!active.test(i)) {
-          particles[i] = p;
-          active.set(i);
-          return true;
-        }
-      }
-
-      return false;
-    }
-
-    void remove_particle(const std::size_t pid) {
-      active.set(pid, false);
-    }
-
-    Particle& operator[](const size_t pid) { return particles[pid]; }
-    const Particle& operator[](const size_t pid) const { return particles[pid]; }
-
-    [[nodiscard]] std::size_t num_active() const { return active.count(); }
-
-    std::array<Particle, n_particles> particles{};
-    std::bitset<n_particles> active{};
-    std::uint32_t cid{};
-    std::aligned_storage_t<40, alignof(Particle)> pad;
-  }; // end struct ParticleChunk
 
   struct ParticleGroup {
     ParticleGroup() = delete;
@@ -72,22 +35,40 @@ namespace tf::particles {
       cm_ratio(charge / mass),
       inv_cm_ratio(1.0f / cm_ratio),
       qdt_over_2m(0.5f * charge * dt * constants::q_e / mass),
-      update_interval()
-    {}
-
-    [[nodiscard]] bool update_this_step(const compute_t time) {
-      return update_interval.update_this_step(time);
+      // cells{Nx * Ny * Nz},
+      tree(create_particle_octree(cells))
+//      update_interval(),
+    {
+      for (auto& cell : cells) {
+        cell.reserve(max_ppc);
+      }
+      create_particle_octree(cells);
     }
 
-    void add_particle(Particle&& p, std::size_t cid) {
-      // todo: this would be where setting octree bits would happen
-      for (auto& chunk : cells[cid]) {
-        if (chunk.add_particle(p)) {
-          return;
+//    [[nodiscard]] bool update_this_step(const compute_t time) {
+//      return update_interval.update_this_step(time);
+//    }
+
+    void add_particle(Particle&& p, const std::size_t cid) {
+      cells[cid].push_back(std::move(p));
+    }
+
+    static bool update_tree_nodes(auto& node) {
+      for (std::size_t i = 0; i < 8; i++) {
+        if (node.is_leaf) {
+          // check for particles in each cell and set the appropriate active bit
+          node.active.set(i, !node.cells[i]->empty());
+        } else {
+          // recurse
+          const auto has_particles = update_tree_nodes(node.children[i]);
+          node.active.set(i, has_particles);
         }
       }
-      cells[cid].emplace_back(cid);
-      cells[cid].back().add_particle(p);
+      return node.active.any();
+    }
+
+    void update_tree() {
+      update_tree_nodes(tree);
     }
 
 
@@ -100,40 +81,41 @@ namespace tf::particles {
     compute_t inv_cm_ratio;
     compute_t qdt_over_2m;
 
-    Interval update_interval{};
-    std::vector<std::vector<ParticleChunk>> cells{};
+//    Interval update_interval{};
+    std::vector<std::vector<Particle>> cells{Nx * Ny * Nz};
+    Octree<std::vector<Particle>> tree;
   }; // end struct ParticleGroup
 
-  struct ParticleInitializer {
-    static void initializeFromFile(ParticleGroup& g, const std::string& filename) {
-      std::fstream file(filename, std::ios::in);
-
-      if (!file.is_open()) {
-        throw std::runtime_error("Particle initialization from file failed: " + filename);
-      }
-
-      vec3<compute_t> location{};
-      vec3<compute_t> velocity{};
-      float weight = 0.0;
-
-      std::println("Opened particle file: {}", filename);
-      std::string line;
-      while (getline(file, line)) {
-        std::istringstream buffer(line);
-        buffer >> location >> velocity >> weight;// >> uid;
-
-        //std::cout << uid << group.mass << group.charge << std::endl;
-
-        // compute Lorentz factor and relativistic momentum
-        double gamma = 1.0 / std::sqrt(1.0 - velocity.length_squared() / constants::c_sqr);
-        auto momentum = gamma * g.mass * velocity;
-
-        // add particle to group
-        g.add_particle({location, location, momentum, gamma, weight});
-      }
-      file.close();
-    } // end initializeFromFile
-  }; // end struct Particle Initializer
+  // struct ParticleInitializer {
+  //   static void initializeFromFile(ParticleGroup& g, const std::string& filename) {
+  //     std::fstream file(filename, std::ios::in);
+  //
+  //     if (!file.is_open()) {
+  //       throw std::runtime_error("Particle initialization from file failed: " + filename);
+  //     }
+  //
+  //     vec3<compute_t> location{};
+  //     vec3<compute_t> velocity{};
+  //     float weight = 0.0;
+  //
+  //     std::println("Opened particle file: {}", filename);
+  //     std::string line;
+  //     while (getline(file, line)) {
+  //       std::istringstream buffer(line);
+  //       buffer >> location >> velocity >> weight;// >> uid;
+  //
+  //       //std::cout << uid << group.mass << group.charge << std::endl;
+  //
+  //       // compute Lorentz factor and relativistic momentum
+  //       double gamma = 1.0 / std::sqrt(1.0 - velocity.length_squared() / constants::c_sqr);
+  //       auto momentum = gamma * g.mass * velocity;
+  //
+  //       // add particle to group
+  //       g.add_particle({location, location, momentum, gamma, weight});
+  //     }
+  //     file.close();
+  //   } // end initializeFromFile
+  // }; // end struct Particle Initializer
 } // end namespace tf::particles
 
 #endif //PARTICLE_HPP
