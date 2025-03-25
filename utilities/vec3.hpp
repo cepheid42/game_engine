@@ -9,44 +9,24 @@
 // ========================
 namespace tf
 {
-  // ----- Detail -----
-  namespace detail
-  {
-    template<typename T, size_t N>
-    struct VectorBase {
-      using value_t = T;
-      // using dimension_t = tags::Dimension<N>;
-
-      VectorBase() = default;
-      VectorBase(std::initializer_list<T[N]> init_) : data(init_) {}
-      
-      T &operator[](int i) { return data[i]; }
-      const T &operator[](int i) const { return data[i]; }
-      
-      auto length_squared() {
-        auto sum = T(0.0);
-        for (int i = 0; i < N; i++) { sum += data[i] * data[i]; }
-        return sum;
-      }
-      T length() const { return std::sqrt(length_squared()); }
-
-      T data[N];
-      //
-    };// end struct tf::detail::VectorBase
-    //
-  } // end namespace tf::detail
-
   // ===== vec3 =====
   // ================
   template<typename T>
-  struct vec3 : detail::VectorBase<T, 3> {
-    using value_t = typename detail::VectorBase<T, 3>::value_t;
-    // using dimension_t = typename detail::VectorBase<T, 3>::dimension_t;
-    
+  struct vec3 {    
     vec3() = default;
-    vec3(std::initializer_list<value_t[3]> init_) : detail::VectorBase<T, 3>(init_) {}
-    vec3(value_t e0, value_t e1, value_t e2) : vec3({e0, e1, e2}) {}
+    vec3(T e0, T e1, T e2) : data{e0, e1, e2} {}
     
+    T &operator[](std::size_t i) { return data[i]; }
+    const T &operator[](std::size_t i) const { return data[i]; }
+      
+    auto length_squared() const {
+      auto sum = T(0.0);
+      for (std::size_t i = 0; i < 3; i++) { sum += data[i] * data[i]; }
+      return sum;
+    }
+    
+    T length() const { return std::sqrt(length_squared()); }
+
     // Unary Negation
     vec3 operator-() const { return {-(*this)[0], -(*this)[1], -(*this)[2]}; }
     
@@ -80,6 +60,8 @@ namespace tf
     
     bool operator==(const vec3 &v) const { return ((*this)[0] == v[0] && (*this)[1] == v[1] && (*this)[2] == v[2]); }
     bool operator!=(const vec3 &v) const { return !((*this) == v); }
+
+    T data[3];
   };// end struct tf::vec3
 } // end namespace tf
 

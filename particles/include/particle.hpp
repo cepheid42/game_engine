@@ -24,25 +24,27 @@ namespace tf::particles {
 
 
   struct ParticleGroup {
+    using p_vec = std::vector<Particle>;
+
     ParticleGroup() = delete;
 
-    ParticleGroup(std::string name_, const compute_t mass_, const compute_t charge_, const std::size_t z_)
-    : name(std::move(name_)),
+    ParticleGroup(const std::string& name_, const compute_t mass_, const compute_t charge_, const std::size_t z_)
+    : name(name_),
       atomic_number(z_),
       mass(mass_),
       charge(charge_),
       inv_mass(1.0f / mass),
       cm_ratio(charge / mass),
       inv_cm_ratio(1.0f / cm_ratio),
-      qdt_over_2m(0.5f * charge * dt * constants::q_e / mass),
-      // cells{Nx * Ny * Nz},
-      tree(create_particle_octree(cells))
-//      update_interval(),
+      qdt_over_2m(0.5f * charge * dt * constants::q_e / mass)
+      // cells{Nx * Ny * Nz}
+      // tree(create_particle_octree(cells))
     {
-      for (auto& cell : cells) {
-        cell.reserve(max_ppc);
-      }
-      create_particle_octree(cells);
+      // for (auto& cell : cells) {
+      //   cell.reserve(max_ppc);
+      // }
+      // todo: particle initialization should go here
+      // update_tree();
     }
 
 //    [[nodiscard]] bool update_this_step(const compute_t time) {
@@ -50,27 +52,26 @@ namespace tf::particles {
 //    }
 
     void add_particle(Particle&& p, const std::size_t cid) {
-      cells[cid].push_back(std::move(p));
+      // cells[cid].push_back(p);
     }
-
-    static bool update_tree_nodes(auto& node) {
-      for (std::size_t i = 0; i < 8; i++) {
-        if (node.is_leaf) {
-          // check for particles in each cell and set the appropriate active bit
-          node.active.set(i, !node.cells[i]->empty());
-        } else {
-          // recurse
-          const auto has_particles = update_tree_nodes(node.children[i]);
-          node.active.set(i, has_particles);
-        }
-      }
-      return node.active.any();
-    }
-
-    void update_tree() {
-      update_tree_nodes(tree);
-    }
-
+    //
+    // static bool update_tree_nodes(auto& node) {
+    //   for (std::size_t i = 0; i < 8; i++) {
+    //     if (node.is_leaf) {
+    //       // check for particles in each cell and set the appropriate active bit
+    //       node.active.set(i, !node.cells[i]->empty());
+    //     } else {
+    //       // recurse
+    //       const auto has_particles = update_tree_nodes(node.children[i]);
+    //       node.active.set(i, has_particles);
+    //     }
+    //   }
+    //   return node.active.any();
+    // }
+    //
+    // void update_tree() {
+    //   update_tree_nodes(tree);
+    // }
 
     std::string name;
     std::size_t atomic_number;
@@ -81,9 +82,8 @@ namespace tf::particles {
     compute_t inv_cm_ratio;
     compute_t qdt_over_2m;
 
-//    Interval update_interval{};
-    std::vector<std::vector<Particle>> cells{Nx * Ny * Nz};
-    Octree<std::vector<Particle>> tree;
+    // std::vector<p_vec> cells;
+    // Octree<p_vec> tree;
   }; // end struct ParticleGroup
 
   // struct ParticleInitializer {

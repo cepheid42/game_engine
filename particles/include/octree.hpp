@@ -58,31 +58,8 @@ namespace tf::particles {
   };
 
   template<typename P>
-  void visit_octree(Octree<P>& node) {
-//    if (node.active.none()) { return; }
-    for (std::size_t i = 0; i < 8; i++) {
-//      if (node.active.test(i)) {
-        if (node.is_leaf) {
-          // visit leaf
-//          const auto& [x, y, z] = node.cell_coords;
-//          auto& cell = node.cells[i];
-          std::print("Node: ");
-          for (std::size_t j = 0; j < 8; j++) {
-            std::print("{} ", node.active.test(i));
-          }
-          std::println();
-        } else {
-          // visit node
-          visit_octree(node.children[i]);
-        }
-//      }
-    }
-  }
-
-  template<typename P>
   Octree<P> build_octree(std::vector<P>& cells, std::size_t begin, std::size_t end, std::size_t depth_limit) {
     Octree<P> oct{};
-//    oct.active.flip();
 
     if (depth_limit == 0) {
       // leaf nodes

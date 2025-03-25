@@ -13,6 +13,10 @@ namespace tf::electromagnetics {
 
     void init_coefficients(compute_t, compute_t);
 
+    compute_t Bx(std::size_t, std::size_t, std::size_t) const;
+    compute_t By(std::size_t, std::size_t, std::size_t) const;
+    compute_t Bz(std::size_t, std::size_t, std::size_t) const;
+
     Array3D<compute_t> Ex;
     Array3D<compute_t> Jx;
     Array3D<compute_t> Cexe;

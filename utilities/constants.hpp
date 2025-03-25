@@ -33,6 +33,7 @@ namespace tf::constants
   inline constexpr auto four_pi_eps0 { 1.11265005544787e-10f };
 
   inline constexpr auto q_e { 1.6021766e-19f };        // electron charge, coulombs
+  inline constexpr double m_e { 9.10938370e-31 };       // electron mass, kg
 
 }
 

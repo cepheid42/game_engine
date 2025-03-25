@@ -48,5 +48,12 @@ namespace tf::electromagnetics {
     Chzex.fill(h_coeff);
     Chzey.fill(h_coeff);
   }
+
+  compute_t EMData::Bx(const std::size_t i, const std::size_t j, const std::size_t k) const { return constants::mu0 * Hx(i, j, k); }
+  compute_t EMData::By(const std::size_t i, const std::size_t j, const std::size_t k) const { return constants::mu0 * Hy(i, j, k); }
+  compute_t EMData::Bz(const std::size_t i, const std::size_t j, const std::size_t k) const { return constants::mu0 * Hz(i, j, k); }
+
+
+
 } // end namespace tf::electromagnetics
 

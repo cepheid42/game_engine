@@ -10,8 +10,6 @@
 
 #include <adios2.h>
 
-
-
 namespace tf::metrics {
   namespace detail {
     struct MetricBase {
@@ -35,6 +33,10 @@ namespace tf::metrics {
 
     adios2::IO io;
     std::vector<FieldVariable> fields;
+  };
+
+  struct ParticleMetric final : detail::MetricBase {
+    void write(const std::string&, const std::string&) override;
   };
 
   class Metrics {
