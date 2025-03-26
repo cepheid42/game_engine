@@ -5,18 +5,20 @@
 #include "sources.hpp"
 #include "array.hpp"
 #include "timers.hpp"
-#include "particle.hpp"
+#include "particles.hpp"
 #include "pusher.hpp"
 #include "constants.hpp"
+#include "current_deposition.hpp"
 
 #include <print>
 #include <chrono>
 
+
 using tf::particles::ParticleGroup;
 using tf::vec3;
+using array_t = tf::Array3D<compute_t>;
 
 int main() {
-  using array_t = tf::Array3D<compute_t>;
   // using continuous_t = tf::electromagnetics::ContinuousSource;
   // using temporal_vec = std::vector<std::unique_ptr<tf::electromagnetics::TemporalSource>>;
 
@@ -35,7 +37,7 @@ int main() {
   //   return result;
   // };
 
-  tf::electromagnetics::EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
+  const tf::electromagnetics::EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
 
   // emsolver.emdata.srcs.emplace_back(
   //   &emsolver.emdata.Ez,
@@ -47,7 +49,7 @@ int main() {
   // );
   //
   tf::metrics::Metrics metrics("/home/cepheid/TriForce/game_engine/data/particle_test");
-  //
+
   // metrics.addMetric(
   //   std::make_unique<tf::metrics::EMFieldsMetric>(
   //     std::unordered_map<std::string, array_t*> {
@@ -62,15 +64,19 @@ int main() {
   //   )
   // );
 
+
   ParticleGroup g1("test_electron", tf::constants::m_e, -tf::constants::q_e, 0);
 
-  g1.add_particle(
-  // tf::particles::Particle{{},{},{}, 100.0, 0.0},
-    tf::particles::Particle{{0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 0.0f}, 100.0f, 0.0f},
-    250
+  tf::particles::ParticleInitializer::initializeFromFile(g1, "/home/cepheid/TriForce/game_engine/data/electron_init.txt");
+
+  metrics.addMetric(
+    std::make_unique<tf::metrics::ParticleMetric>(
+      &g1,
+      metrics.adios.DeclareIO("Particles")
+    )
   );
 
-  tf::particles::BorisPush particle_push{};
+  constexpr tf::particles::BorisPush particle_push{};
 
   Timer timer{};
 
@@ -85,7 +91,7 @@ int main() {
 
     if (step % save_interval == 0) {
       const auto percent = 100.0f * t / total_time;
-      std::println("Step {:4} Time: {:7.1e} Complete: {:4.1f}%", step, t, percent);
+      std::println("Step {:4} Time: {:8.2e} Complete: {:4.1f}%", step, t, percent);
       metrics.write(step);
     }
 

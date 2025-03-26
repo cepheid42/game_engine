@@ -3,8 +3,8 @@ project(
     'cpp',
     version : '0.0.1',
     default_options : [
-        'buildtype=debug',
-#        'buildtype=debugoptimized',
+#        'buildtype=debug',
+        'buildtype=debugoptimized',
 #        'buildtype=release',
         'warning_level=3',
         'cpp_std=c++23',
@@ -13,20 +13,28 @@ project(
 )
 
 gcc_opts = [
-# '-fconcepts-diagnostics-depth=200',
- '-march=native',
- '-Wconversion',
-# '-save-temps'
- ]
+    '-fuse-ld=mold',
+    '-march=native',
+    '-Wconversion'
+]
 
-includes = include_directories('core', 'electromagnetics/include', 'metrics', 'params', 'particles/include', 'utilities')
+includes = include_directories(
+    'core',
+    'electromagnetics/include',
+    'metrics',
+    'params',
+    'particles/include',
+    'utilities'
+)
 
 sources = [
     'main.cpp',
     'electromagnetics/src/em_data.cpp',
     'electromagnetics/src/em_solver.cpp',
     'electromagnetics/src/sources.cpp',
-    'metrics/metrics.cpp'
+    'metrics/metrics.cpp',
+    'particles/src/particles.cpp',
+    'particles/src/pusher.cpp'
 ]
 
 thread_dep = dependency('OpenMP')

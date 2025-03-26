@@ -27,6 +27,24 @@ namespace tf::math
     return result;
   }
 
+  template<typename T>
+  std::size_t findIndex(const T loc, const std::vector<T>& vec, const bool right = false) {
+    if (loc <= vec[0]) { return 0; }
+    const auto last = vec.size() - 1;
+    if (loc >= vec[last]) { return last; }
+
+    // Branchless Binary Search to find index for a given location on the full grid
+    const T *base = vec.data();
+    int n = vec.size();
+
+    while (n > 1) {
+      const auto half = n / 2;
+      base = (base[half] < loc) ? &base[half] : base;
+      n -= half;
+    }
+    return (*base < loc) + base - vec.data() - 1 + right;
+  }
+
 //  /*
 //   * a - first input value
 //   * b - second input value

@@ -3,6 +3,7 @@
 
 #include "program_params.hpp"
 #include "array.hpp"
+#include "particles.hpp"
 
 #include <print>
 #include <unordered_map>
@@ -20,7 +21,7 @@ namespace tf::metrics {
 
 
   struct EMFieldsMetric final : detail::MetricBase {
-    using pointer_t = tf::Array3D<compute_t>*;
+    using pointer_t = Array3D<compute_t>*;
     using field_map = std::unordered_map<std::string, pointer_t>;
 
     struct FieldVariable {
@@ -36,7 +37,16 @@ namespace tf::metrics {
   };
 
   struct ParticleMetric final : detail::MetricBase {
+    using group_t = particles::ParticleGroup;
+
+    ParticleMetric(const group_t*, adios2::IO&&);
     void write(const std::string&, const std::string&) override;
+
+    adios2::IO io;
+    const group_t* group;
+    adios2::Variable<compute_t> var_loc;
+    adios2::Variable<compute_t> var_mom;
+    adios2::Variable<compute_t> var_w;
   };
 
   class Metrics {

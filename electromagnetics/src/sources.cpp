@@ -4,7 +4,6 @@
 #include "constants.hpp"
 
 #include <cmath>
-#include <print>
 
 namespace tf::electromagnetics {
   [[nodiscard]] compute_t RickerSource::eval(const compute_t t) const {

@@ -3,8 +3,6 @@
 #include "program_params.hpp"
 #include "constants.hpp"
 
-#include <print>
-
 namespace tf::electromagnetics {
   EMData::EMData(const std::size_t nx, const std::size_t ny, const std::size_t nz, const compute_t cfl, const compute_t dt)
   : Ex(nx - 1, ny, nz), Jx(nx - 1, ny, nz), Cexe(nx - 1, ny, nz), Cexhy(nx - 1, ny, nz), Cexhz(nx - 1, ny, nz), Cjx(nx - 1, ny, nz),
