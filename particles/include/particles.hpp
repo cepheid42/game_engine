@@ -13,11 +13,16 @@ namespace tf::particles {
   struct Particle {
     vec3<compute_t> location; // todo: use normalized locations here
     vec3<compute_t> old_location;
-    vec3<compute_t> momentum;
+    vec3<compute_t> velocity;
     float weight;
     double gamma;
+    bool active;
   }; // end struct Particle
 
+  struct ParticleCell {
+    std::vector<Particle> particles;
+    std::size_t cid;
+  };
 
   struct ParticleGroup {
     using p_vec = std::vector<Particle>;
@@ -34,13 +39,18 @@ namespace tf::particles {
       cm_ratio(charge / mass),
       inv_cm_ratio(1.0f / cm_ratio),
       qdt_over_2m(0.5f * charge * dt * constants::q_e / mass),
-      cells{Nx * Ny * Nz},
+      cells{(Nx - 1) * (Ny - 1) * (Nz - 1)},
       tree(create_particle_octree(cells))
     {
-      for (auto& cell : cells) {
-        cell.reserve(max_ppc);
+      for (std::size_t i = 0; i < Nx - 1; i++) {
+        for (std::size_t j = 0; j < Ny - 1; j++) {
+          for (std::size_t k = 0; k < Nz - 1; k++) {
+            const auto code = morton_encode(i, j, k);
+            cells[code] = {{}, code};
+          }
+        }
       }
-      // todo: particle initialization should go here
+
       update_tree();
     }
 
@@ -49,19 +59,19 @@ namespace tf::particles {
 //    }
 
     void add_particle(Particle&& p, const std::size_t cid) {
-      cells[cid].push_back(p);
+      cells[cid].particles.push_back(p);
       num_particles++;
     }
 
-    void add_particle(Particle&& p, const std::size_t i, const std::size_t j, const std::size_t k) {
-      add_particle(std::forward<Particle>(p), morton_encode(i, j, k));
+    void add_particle(Particle&& p, const std::array<std::size_t, 3>& idx) {
+      add_particle(std::forward<Particle>(p), morton_encode(idx[0], idx[1], idx[2]));
     }
 
     static bool update_tree_nodes(auto& node) {
       for (std::size_t i = 0; i < 8; i++) {
         if (node.is_leaf) {
           // check for particles in each cell and set the appropriate active bit
-          node.active.set(i, !node.cells[i]->empty());
+          node.active.set(i, !node.cells[i]->particles.empty());
         } else {
           // recurse
           const auto has_particles = update_tree_nodes(node.children[i]);
@@ -85,8 +95,8 @@ namespace tf::particles {
     compute_t inv_cm_ratio;
     compute_t qdt_over_2m;
 
-    std::vector<p_vec> cells;
-    Octree<p_vec> tree;
+    std::vector<ParticleCell> cells;
+    Octree<ParticleCell> tree;
   }; // end struct ParticleGroup
 
   struct ParticleInitializer {

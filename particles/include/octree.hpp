@@ -50,7 +50,6 @@ namespace tf::particles {
 
   template<typename P>
   struct Octree {
-    std::array<std::size_t, 3> cell_coords{};
     std::array<P*, 8> cells{}; // P = std::vector<particle>
     std::vector<Octree> children{};
     std::bitset<8> active{};
@@ -58,12 +57,23 @@ namespace tf::particles {
   };
 
   template<typename P>
+  void visit_octree(Octree<P>& node) {
+    for (std::size_t c = 0; c < 8; c++) {
+      if (node.is_leaf) {
+        const auto& [i, j, k] = morton_decode(node.cells[c]->cid);
+        std::println("{} -> ({}, {}, {})", node.cells[c]->cid, i, j, k);
+      } else {
+        visit_octree(node.children[c]);
+      }
+    }
+  }
+
+  template<typename P>
   Octree<P> build_octree(std::vector<P>& cells, std::size_t begin, std::size_t end, std::size_t depth_limit) {
     Octree<P> oct{};
 
     if (depth_limit == 0) {
       // leaf nodes
-      oct.cell_coords = morton_decode(begin);
       oct.is_leaf = true;
       for (std::size_t i = 0; i < 8; i++) {
         oct.cells[i] = &(cells[begin + i]);

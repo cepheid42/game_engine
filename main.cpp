@@ -13,12 +13,30 @@
 #include <print>
 #include <chrono>
 
-
 using tf::particles::ParticleGroup;
 using tf::vec3;
 using array_t = tf::Array3D<compute_t>;
 
+// #include "particles.hpp"
+// #include "octree.hpp"
+// #include <vector>
+
 int main() {
+  //
+  // std::vector<tf::particles::ParticleCell> cells((Nx - 1) * (Ny - 1) * (Nz - 1));
+  //
+  // for (std::size_t i = 0; i < Nx - 1; i++) {
+  //   for (std::size_t j = 0; j < Ny - 1; j++) {
+  //     for (std::size_t k = 0; k < Nz - 1; k++) {
+  //       const auto code = tf::particles::morton_encode(i, j, k);
+  //       cells[code] = {{}, code};
+  //     }
+  //   }
+  // }
+  // auto tree = tf::particles::create_particle_octree(cells);
+  //
+  // tf::particles::visit_octree(tree);
+
   // using continuous_t = tf::electromagnetics::ContinuousSource;
   // using temporal_vec = std::vector<std::unique_ptr<tf::electromagnetics::TemporalSource>>;
 

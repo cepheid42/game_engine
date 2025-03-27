@@ -40,7 +40,7 @@ namespace tf::metrics {
   : io(io_),
     group(group_),
     var_loc(io.DefineVariable<compute_t>("Position", {group->num_particles, 3}, {0, 0}, {group->num_particles, 3})),
-    var_mom(io.DefineVariable<compute_t>("Momentum", {group->num_particles, 3}, {0, 0}, {group->num_particles, 3})),
+    var_vel(io.DefineVariable<compute_t>("Velocity", {group->num_particles, 3}, {0, 0}, {group->num_particles, 3})),
     var_w(io.DefineVariable<compute_t>("Weight", {group->num_particles, 1}, {0, 0}, {group->num_particles, 1}))
   {}
 
@@ -51,21 +51,21 @@ namespace tf::metrics {
 
     const auto& nParticles = group->num_particles;
     std::vector<compute_t> position(nParticles);
-    std::vector<compute_t> momentum(nParticles);
+    std::vector<compute_t> velocity(nParticles);
     std::vector<compute_t> weight(nParticles);
 
     for (const auto& cell: group->cells) {
-      for (const auto& p: cell) {
+      for (const auto& p: cell.particles) {
         for (std::size_t i = 0; i < 3; i++) {
           position.push_back(p.location[i]);
-          momentum.push_back(p.momentum[i]);
+          velocity.push_back(p.velocity[i]);
         }
         weight.push_back(p.weight);
       }
     }
 
     writer.Put(var_loc, position.data());
-    writer.Put(var_mom, momentum.data());
+    writer.Put(var_vel, velocity.data());
     writer.Put(var_w, weight.data());
 
     writer.EndStep();

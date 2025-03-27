@@ -2,7 +2,7 @@
 #define TRIFORCE_VECTOR_H
 
 #include <cmath>
-#include <initializer_list>
+#include <functional>
 #include <sstream>
 
 // ===== Vector Types =====
@@ -30,34 +30,53 @@ namespace tf
     // Unary Negation
     vec3 operator-() const { return {-(*this)[0], -(*this)[1], -(*this)[2]}; }
     
-    vec3 &operator+=(const vec3 &v) {
+    vec3& operator+=(const vec3 &v) {
       (*this)[0] += v[0];
       (*this)[1] += v[1];
       (*this)[2] += v[2];
       return *this;
     }
     
-    vec3 &operator-=(const vec3 &v) {
+    vec3& operator-=(const vec3 &v) {
       (*this)[0] -= v[0];
       (*this)[1] -= v[1];
       (*this)[2] -= v[2];
       return *this;
     }
     
-    vec3 &operator*=(const T s) {
+    vec3& operator*=(const T s) {
       (*this)[0] *= s;
       (*this)[1] *= s;
       (*this)[2] *= s;
       return *this;
     }
     
-    vec3 &operator/=(const T s) {
+    vec3& operator/=(const T s) {
       (*this)[0] /= s;
       (*this)[1] /= s;
       (*this)[2] /= s;
       return *this;
     }
-    
+
+    vec3& operator/=(const vec3& v) {
+      (*this)[0] /= v[0];
+      (*this)[1] /= v[1];
+      (*this)[2] /= v[2];
+      return *this;
+    }
+
+    vec3<float> to_float() {
+      return {static_cast<float>(data[0]),
+              static_cast<float>(data[1]),
+              static_cast<float>(data[2])};
+    }
+
+    vec3<double> to_double() {
+      return {static_cast<double>(data[0]),
+              static_cast<double>(data[1]),
+              static_cast<double>(data[2])};
+    }
+
     bool operator==(const vec3 &v) const { return ((*this)[0] == v[0] && (*this)[1] == v[1] && (*this)[2] == v[2]); }
     bool operator!=(const vec3 &v) const { return !((*this) == v); }
 
@@ -213,7 +232,6 @@ std::istringstream& operator>>(std::istringstream& in, tf::vec3<T>& v)
   for (std::size_t i = 0; i < 3; i++) {
     in >> v[i];
   }
-
   return in;
 }
 #endif //TRIFORCE_VECTOR_H
