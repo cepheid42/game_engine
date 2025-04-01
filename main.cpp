@@ -69,9 +69,9 @@ int main() {
   );
 
 
-  ParticleGroup g1("test_electron", tf::constants::m_e, -tf::constants::q_e, 0);
+  ParticleGroup g1("electrons", tf::constants::m_e, -tf::constants::q_e, 0);
 
-  tf::particles::ParticleInitializer::initializeFromFile(g1, "/home/cepheid/TriForce/game_engine/data/electron_init.txt");
+  tf::particles::ParticleInitializer::initializeFromFile(g1, "/home/cepheid/TriForce/game_engine/data/electron.dat");
 
   metrics.addMetric(
     std::make_unique<tf::metrics::ParticleMetric>(

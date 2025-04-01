@@ -3,6 +3,9 @@
 #include "program_params.hpp"
 #include "particles.hpp"
 
+#include <vector>
+#include <adios2.h>
+
 namespace tf::metrics {
 
   EMFieldsMetric::EMFieldsMetric(const field_map& fields_, adios2::IO&& io_)
@@ -46,6 +49,13 @@ namespace tf::metrics {
 
   void ParticleMetric::write(const std::string& dir, const std::string& step_ext) {
     const std::string file{dir + "/" + group->name + "_" + step_ext};
+
+    io.DefineAttribute<std::string>("name", group->name);
+    io.DefineAttribute<std::size_t>("num_particles", group->num_particles);
+    io.DefineAttribute<std::size_t>("atomic_number", group->atomic_number);
+    io.DefineAttribute<compute_t>("mass", group->mass);
+    io.DefineAttribute<compute_t>("charge", group->charge);
+
     adios2::Engine writer = io.Open(file, adios2::Mode::Write);
     writer.BeginStep();
 
