@@ -65,13 +65,13 @@ namespace tf
       return *this;
     }
 
-    vec3<float> to_float() {
+    vec3<float> to_float() const {
       return {static_cast<float>(data[0]),
               static_cast<float>(data[1]),
               static_cast<float>(data[2])};
     }
 
-    vec3<double> to_double() {
+    vec3<double> to_double() const {
       return {static_cast<double>(data[0]),
               static_cast<double>(data[1]),
               static_cast<double>(data[2])};

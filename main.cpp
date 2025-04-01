@@ -22,20 +22,6 @@ using array_t = tf::Array3D<compute_t>;
 // #include <vector>
 
 int main() {
-  //
-  // std::vector<tf::particles::ParticleCell> cells((Nx - 1) * (Ny - 1) * (Nz - 1));
-  //
-  // for (std::size_t i = 0; i < Nx - 1; i++) {
-  //   for (std::size_t j = 0; j < Ny - 1; j++) {
-  //     for (std::size_t k = 0; k < Nz - 1; k++) {
-  //       const auto code = tf::particles::morton_encode(i, j, k);
-  //       cells[code] = {{}, code};
-  //     }
-  //   }
-  // }
-  // auto tree = tf::particles::create_particle_octree(cells);
-  //
-  // tf::particles::visit_octree(tree);
 
   // using continuous_t = tf::electromagnetics::ContinuousSource;
   // using temporal_vec = std::vector<std::unique_ptr<tf::electromagnetics::TemporalSource>>;
@@ -55,7 +41,7 @@ int main() {
   //   return result;
   // };
 
-  const tf::electromagnetics::EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
+  tf::electromagnetics::EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
 
   // emsolver.emdata.srcs.emplace_back(
   //   &emsolver.emdata.Ez,
@@ -68,19 +54,19 @@ int main() {
   //
   tf::metrics::Metrics metrics("/home/cepheid/TriForce/game_engine/data/particle_test");
 
-  // metrics.addMetric(
-  //   std::make_unique<tf::metrics::EMFieldsMetric>(
-  //     std::unordered_map<std::string, array_t*> {
-  //       {"Ex", &emsolver.emdata.Ex},
-  //       {"Ey", &emsolver.emdata.Ey},
-  //       {"Ez", &emsolver.emdata.Ez},
-  //       {"Hx", &emsolver.emdata.Hx},
-  //       {"Hy", &emsolver.emdata.Hy},
-  //       {"Hz", &emsolver.emdata.Hz},
-  //     },
-  //     metrics.adios.DeclareIO("EMFields")
-  //   )
-  // );
+  metrics.addMetric(
+    std::make_unique<tf::metrics::EMFieldsMetric>(
+      std::unordered_map<std::string, array_t*> {
+        {"Ex", &emsolver.emdata.Ex},
+        {"Ey", &emsolver.emdata.Ey},
+        {"Ez", &emsolver.emdata.Ez},
+        {"Hx", &emsolver.emdata.Hx},
+        {"Hy", &emsolver.emdata.Hy},
+        {"Hz", &emsolver.emdata.Hz},
+      },
+      metrics.adios.DeclareIO("EMFields")
+    )
+  );
 
 
   ParticleGroup g1("test_electron", tf::constants::m_e, -tf::constants::q_e, 0);
@@ -103,7 +89,7 @@ int main() {
 
   timer.start_timer();
   while (t <= total_time) {
-    // emsolver.advance(t);
+    emsolver.advance(t);
 
     particle_push(g1, emsolver.emdata);
 

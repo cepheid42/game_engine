@@ -5,14 +5,14 @@
 
 namespace tf::particles {
   vec3<compute_t> BFieldAtParticle(const vec3<compute_t>& loc,
-                                   const std::array<compute_t, 2>& Hx_c,
-                                   const std::array<compute_t, 2>& Hy_c,
-                                   const std::array<compute_t, 2>& Hz_c)
+                                   const std::array<compute_t, 2>& Bx_c,
+                                   const std::array<compute_t, 2>& By_c,
+                                   const std::array<compute_t, 2>& Bz_c)
   {
-    return {(1.0f - loc[0]) * Hx_c[0] + loc[0] * Hx_c[1],
-            (1.0f - loc[1]) * Hy_c[0] + loc[1] * Hy_c[1],
-            (1.0f - loc[2]) * Hz_c[0] + loc[2] * Hz_c[1]};
-  }
+    return {(1.0f - loc[0]) * Bx_c[0] + loc[0] * Bx_c[1],
+            (1.0f - loc[1]) * By_c[0] + loc[1] * By_c[1],
+            (1.0f - loc[2]) * Bz_c[0] + loc[2] * Bz_c[1]};
+  } // end BFieldAtParticle()
 
   vec3<compute_t> EFieldAtParticle(const vec3<compute_t>& loc,
                                    const std::array<compute_t, 4>& Ex_c,
@@ -37,10 +37,9 @@ namespace tf::particles {
     return {yz1 * Ex_c[0] + yz2 * Ex_c[1] + yz3 * Ex_c[2] + yz4 * Ex_c[3],
             xz1 * Ey_c[0] + xz2 * Ey_c[1] + xz3 * Ey_c[2] + xz4 * Ey_c[3],
             xy1 + Ez_c[0] + xy2 + Ez_c[1] + xy3 + Ez_c[2] + xy4 * Ez_c[3]};
-  }
+  } // end EFieldAtParticle()
 
   void BorisPush::update_particle(Particle& p,
-                                  const compute_t qdt_over_2m,
                                   const efield& Ex_c,
                                   const efield& Ey_c,
                                   const efield& Ez_c,
@@ -48,8 +47,11 @@ namespace tf::particles {
                                   const bfield& By_c,
                                   const bfield& Bz_c)
   {
-    auto eps = qdt_over_2m * EFieldAtParticle(p.location, Ex_c, Ey_c, Ez_c);
-    const auto bet = qdt_over_2m * BFieldAtParticle(p.location, Bx_c, By_c, Bz_c);
+    // Inverse square root intrinsics
+    // https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=rsqrt&expand=4804&ig_expand=5653,5653
+
+    auto eps = EFieldAtParticle(p.location, Ex_c, Ey_c, Ez_c);
+    const auto bet = BFieldAtParticle(p.location, Bx_c, By_c, Bz_c);
 
     const auto um = p.velocity + eps;
     const auto t = bet / static_cast<compute_t>(std::sqrt(1.0 + um.length_squared() * constants::over_c_sqr));
@@ -58,7 +60,7 @@ namespace tf::particles {
     eps += um + cross(um + cross(um, t), s);
 
     p.velocity = eps.to_float();
-    p.gamma = std::sqrt(1.0 + eps.length_squared() * constants::over_c_sqr);
+    p.gamma = 1.0 / std::sqrt(1.0 + eps.length_squared() * constants::over_c_sqr);
     
     // todo: updating location here, since it seems reasonable
     const auto new_loc = p.location + (dt * p.velocity / static_cast<compute_t>(p.gamma));
@@ -66,23 +68,34 @@ namespace tf::particles {
 
     p.old_location = p.location - offsets;
     p.location = new_loc - offsets;
-  }
+  } // end BorisPush::update_particle()
 
   void BorisPush::advance_particles(ParticleCell& c, const group_t& g, const emdata_t& emdata) {
     auto& particles = c.particles;
     const auto& [i, j, k] = morton_decode(c.cid);
 
-    const efield Ex_c = {emdata.Ex(i, j, k), emdata.Ex(i, j + 1, k), emdata.Ex(i, j, k + 1), emdata.Ex(i, j + 1, k + 1)};
-    const efield Ey_c = {emdata.Ey(i, j, k), emdata.Ey(i + 1, j, k), emdata.Ey(i, j, k + 1), emdata.Ey(i + 1, j, k + 1)};
-    const efield Ez_c = {emdata.Ez(i, j, k), emdata.Ez(i, j + 1, k), emdata.Ez(i + 1, j, k), emdata.Ez(i + 1, j + 1, k)};
+    efield Ex_c = {emdata.Ex(i, j, k), emdata.Ex(i, j + 1, k), emdata.Ex(i, j, k + 1), emdata.Ex(i, j + 1, k + 1)};
+    efield Ey_c = {emdata.Ey(i, j, k), emdata.Ey(i + 1, j, k), emdata.Ey(i, j, k + 1), emdata.Ey(i + 1, j, k + 1)};
+    efield Ez_c = {emdata.Ez(i, j, k), emdata.Ez(i, j + 1, k), emdata.Ez(i + 1, j, k), emdata.Ez(i + 1, j + 1, k)};
 
+    for (std::size_t q = 0; q < 4; q++) {
+      Ex_c[q] *= g.qdt_over_2m;
+      Ey_c[q] *= g.qdt_over_2m;
+      Ez_c[q] *= g.qdt_over_2m;
+    }
     // todo: B-fields are not aligned in time with E-fields at this point
-    const bfield Bx_c = {emdata.Bx(i, j, k), emdata.Bx(i + 1, j, k)};
-    const bfield By_c = {emdata.By(i, j, k), emdata.By(i, j + 1, k)};
-    const bfield Bz_c = {emdata.Bz(i, j, k), emdata.Bz(i, j, k + 1)};
+    bfield Bx_c = {emdata.Bx(i, j, k), emdata.Bx(i + 1, j, k)};
+    bfield By_c = {emdata.By(i, j, k), emdata.By(i, j + 1, k)};
+    bfield Bz_c = {emdata.Bz(i, j, k), emdata.Bz(i, j, k + 1)};
 
-    for (std::size_t cid = 0; cid < particles.size(); cid++) {
-      update_particle(particles[cid], g.qdt_over_2m, Ex_c, Ey_c, Ez_c, Bx_c, By_c, Bz_c);
+    for (std::size_t q = 0; q < 2; q++) {
+      Bx_c[q] *= g.qdt_over_2m;
+      By_c[q] *= g.qdt_over_2m;
+      Bz_c[q] *= g.qdt_over_2m;
+    }
+
+    for (auto & particle : particles) {
+      update_particle(particle, Ex_c, Ey_c, Ez_c, Bx_c, By_c, Bz_c);
     }
   } // end BorisPush::advance_particles()
 
@@ -119,12 +132,12 @@ namespace tf::particles {
             }
           }
           // erase all inactive particles from current cell
-          std::erase_if(node.cells[c]->particles, [&](const auto& p) { return p.active; });
+          std::erase_if(node.cells[c]->particles, [](const auto& p) { return p.active; });
         }
       } else {
         update_cells(node.children[c], g);
       }
-    }
-  }
+    } // end for(c)
+  } // end BorisPush::update_cells()
 
 } // end namespace tf::particles

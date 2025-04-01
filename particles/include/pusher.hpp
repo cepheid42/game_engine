@@ -3,6 +3,9 @@
 
 #include "particles.hpp"
 #include "em_data.hpp"
+#include "current_deposition.hpp"
+
+#include "octree.hpp"
 
 #include <cmath>
 
@@ -16,7 +19,6 @@ namespace tf::particles {
     using bfield = std::array<compute_t, 2>;
 
     static void update_particle(Particle&,
-                                compute_t,
                                 const efield&, const efield&, const efield&,
                                 const bfield&, const bfield&, const bfield&);
 
@@ -24,9 +26,11 @@ namespace tf::particles {
     static void push_particles(const p_tree&, const group_t&, const emdata_t&);
 
     static void update_cells(const p_tree&, group_t&);
+
     static void operator()(group_t& g, const emdata_t& emdata) {
       push_particles(g.tree, g, emdata);
       update_cells(g.tree, g);
+
     }
   }; // end struct MomentumIntegrator
 } // end namespace tf::particles
