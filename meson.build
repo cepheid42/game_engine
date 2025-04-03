@@ -7,6 +7,7 @@ project(
         'buildtype=debugoptimized',
 #        'buildtype=release',
         'warning_level=3',
+        'werror=true',
         'cpp_std=c++23',
         'b_sanitize=address'
     ]
@@ -19,7 +20,6 @@ gcc_opts = [
 ]
 
 includes = include_directories(
-    'core',
     'electromagnetics/include',
     'metrics',
     'params',

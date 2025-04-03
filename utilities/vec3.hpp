@@ -4,6 +4,9 @@
 #include <cmath>
 #include <functional>
 #include <sstream>
+#include <string>
+#include <format>
+#include <print>
 
 // ===== Vector Types =====
 // ========================
@@ -13,72 +16,67 @@ namespace tf
   // ================
   template<typename T>
   struct vec3 {    
-    vec3() = default;
-    vec3(T e0, T e1, T e2) : data{e0, e1, e2} {}
+    constexpr vec3() = default;
+    constexpr vec3(T e0, T e1, T e2) : data{e0, e1, e2} {}
     
     T &operator[](std::size_t i) { return data[i]; }
     const T &operator[](std::size_t i) const { return data[i]; }
       
-    auto length_squared() const {
+    [[nodiscard]] auto length_squared() const {
       auto sum = T(0.0);
       for (std::size_t i = 0; i < 3; i++) { sum += data[i] * data[i]; }
       return sum;
     }
     
-    T length() const { return std::sqrt(length_squared()); }
+    [[nodiscard]] T length() const { return std::sqrt(length_squared()); }
 
     // Unary Negation
-    vec3 operator-() const { return {-(*this)[0], -(*this)[1], -(*this)[2]}; }
+    vec3 operator-() const { return {-data[0], -data[1], -data[2]}; }
     
     vec3& operator+=(const vec3 &v) {
-      (*this)[0] += v[0];
-      (*this)[1] += v[1];
-      (*this)[2] += v[2];
+      data[0] += v[0];
+      data[1] += v[1];
+      data[2] += v[2];
       return *this;
     }
     
     vec3& operator-=(const vec3 &v) {
-      (*this)[0] -= v[0];
-      (*this)[1] -= v[1];
-      (*this)[2] -= v[2];
+      data[0] -= v[0];
+      data[1] -= v[1];
+      data[2] -= v[2];
       return *this;
     }
     
     vec3& operator*=(const T s) {
-      (*this)[0] *= s;
-      (*this)[1] *= s;
-      (*this)[2] *= s;
+      data[0] *= s;
+      data[1] *= s;
+      data[2] *= s;
       return *this;
     }
     
     vec3& operator/=(const T s) {
-      (*this)[0] /= s;
-      (*this)[1] /= s;
-      (*this)[2] /= s;
+      data[0] /= s;
+      data[1] /= s;
+      data[2] /= s;
       return *this;
     }
 
     vec3& operator/=(const vec3& v) {
-      (*this)[0] /= v[0];
-      (*this)[1] /= v[1];
-      (*this)[2] /= v[2];
+      data[0] /= v[0];
+      data[1] /= v[1];
+      data[2] /= v[2];
       return *this;
     }
 
-    vec3<float> to_float() const {
-      return {static_cast<float>(data[0]),
-              static_cast<float>(data[1]),
-              static_cast<float>(data[2])};
+    template<typename U>
+    vec3<U> as_type() const {
+      return {static_cast<U>(data[0]),
+              static_cast<U>(data[1]),
+              static_cast<U>(data[2])};
     }
 
-    vec3<double> to_double() const {
-      return {static_cast<double>(data[0]),
-              static_cast<double>(data[1]),
-              static_cast<double>(data[2])};
-    }
-
-    bool operator==(const vec3 &v) const { return ((*this)[0] == v[0] && (*this)[1] == v[1] && (*this)[2] == v[2]); }
-    bool operator!=(const vec3 &v) const { return !((*this) == v); }
+    bool operator==(const vec3 &v) const { return (data[0] == v[0] && data[1] == v[1] && data[2] == v[2]); }
+    bool operator!=(const vec3 &v) const { return !(data == v); }
 
     T data[3];
   };// end struct tf::vec3
@@ -234,4 +232,12 @@ std::istringstream& operator>>(std::istringstream& in, tf::vec3<T>& v)
   }
   return in;
 }
+
+template <typename T>
+struct std::formatter<tf::vec3<T>> : std::formatter<std::string> {
+  auto format(const tf::vec3<T>& p, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "[{}, {}, {}]", p[0], p[1], p[2]);
+  }
+};
+
 #endif //TRIFORCE_VECTOR_H

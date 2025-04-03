@@ -5,6 +5,8 @@
 
 #include "particles.hpp"
 #include "em_data.hpp"
+#include "bc_data.hpp"
+#include "bc_functors.hpp"
 
 #include <array>
 #include <cmath>
@@ -20,8 +22,8 @@ namespace tf::particles {
 
   struct Segment {
     std::array<std::size_t, 3> cids = {0, 0, 0};
-    vec3<compute_t> p0 = {0.0f, 0.0f, 0.0f};
-    vec3<compute_t> p1 = {0.0f, 0.0f, 0.0f};
+    vec3<compute_t> p0 = {0.0_fp, 0.0_fp, 0.0_fp};
+    vec3<compute_t> p1 = {0.0_fp, 0.0_fp, 0.0_fp};
     bool active = false;
   };
 
@@ -36,9 +38,9 @@ namespace tf::particles {
               Segment{cidx1, p.old_location, p.location, false}};
     }
 
-    const auto xr0 = x_offset == 0.0f ? p.location[0] : std::max(0.0f, -x_offset);
-    const auto yr0 = y_offset == 0.0f ? p.location[1] : std::max(0.0f, -y_offset);
-    const auto zr0 = z_offset == 0.0f ? p.location[2] : std::max(0.0f, -z_offset);
+    const auto xr0 = x_offset == 0.0_fp ? p.location[0] : std::max(0.0_fp, -x_offset);
+    const auto yr0 = y_offset == 0.0_fp ? p.location[1] : std::max(0.0_fp, -y_offset);
+    const auto zr0 = z_offset == 0.0_fp ? p.location[2] : std::max(0.0_fp, -z_offset);
 
     const vec3<compute_t> pr0{xr0, yr0, zr0};
     const vec3<compute_t> pr1{xr0 + x_offset, yr0 + y_offset, zr0 + z_offset};
@@ -52,16 +54,46 @@ namespace tf::particles {
             Segment{cidx1, pr1, p.location, true}};
   }
 
+  template<electromagnetics::EMFace F>
+  struct PeriodicBC {
+    using PeriodicData = electromagnetics::PeriodicData<F, electromagnetics::EMSide::Lo>;
+    using PeriodicFunctor = electromagnetics::PeriodicFunctor<F, true>;
+    using BCIntegrator = electromagnetics::BCIntegrator<PeriodicFunctor>;
+
+    static constexpr Array3D<void> empty{};
+
+    BCIntegrator updater_func{};
+    PeriodicData J0;
+    PeriodicData J1;
+
+    explicit PeriodicBC(const auto& j0, const auto& j1)
+    : J0(j0), J1(j1)
+    {}
+
+    void operator()(auto& j0, auto& j1) {
+      updater_func(j0, empty, empty, J0);
+      updater_func(j1, empty, empty, J1);
+    }
+  };
+
 
   struct CurrentDeposition {
     using emdata_t = electromagnetics::EMData;
     using group_t = ParticleGroup;;
     using p_tree = Octree<ParticleCell>;
     using array_t = std::array<std::size_t, 3>;
+    using EMFace = electromagnetics::EMFace;
+    using EMSide = electromagnetics::EMSide;
 
-    static constexpr array_t x_bounds = {2, 3, 3};
-    static constexpr array_t y_bounds = {3, 2, 3};
-    static constexpr array_t z_bounds = {3, 3, 2};
+    PeriodicBC<EMFace::X> x_bc;
+    PeriodicBC<EMFace::Y> y_bc;
+    PeriodicBC<EMFace::Z> z_bc;
+
+    explicit CurrentDeposition(const emdata_t& emdata)
+    : x_bc(emdata.Jy, emdata.Jz),
+      y_bc(emdata.Jx, emdata.Jz),
+      z_bc(emdata.Jx, emdata.Jy)
+    {}
 
     template<int D>
     static void updateJ(auto& J, const auto& as0, const auto& as1, const auto& bs0, const auto& bs1, const auto& cs0, const auto& cs1, const auto& qA, const std::array<std::size_t, 3>& idxs, const std::array<std::size_t, 3>& bounds) {
@@ -72,7 +104,7 @@ namespace tf::particles {
       const auto& [i1, j1, k1] = bounds;
 
       compute_t wm;
-      auto wT = 0.0f;
+      auto wT = 0.0_fp;
       const std::array<compute_t, 2> ws = {as0[0] - as1[0], as1[2] - as0[2]};
 
       for (std::size_t ii = 0; ii < i1; ii++) {
@@ -120,18 +152,20 @@ namespace tf::particles {
 
     static void update(const p_tree& node, const group_t& g, emdata_t& emdata) {
       for (std::size_t i = 0; i < 8; i++) {
+        if (!node.active.test(i)) { continue; }
         if (node.is_leaf) {
-          if (node.active.test(i)) {
-            updateCell(node.cells[i]->particles, node.cells[i]->cid, g.charge, emdata);
-          }
+          updateCell(node.cells[i]->particles, node.cells[i]->cid, g.charge, emdata);
         } else {
           update(node.children[i], g, emdata);
         }
       }
     }
 
-    static void operator()(const group_t& g, emdata_t& emdata) {
+    void operator()(const group_t& g, emdata_t& emdata) {
       update(g.tree, g, emdata);
+      x_bc(emdata.Jy, emdata.Jz);
+      y_bc(emdata.Jx, emdata.Jz);
+      z_bc(emdata.Jx, emdata.Jy);
     }
   }; // end struct CurrentDeposition
 } // end namepsace tf::particles

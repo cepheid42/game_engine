@@ -23,6 +23,7 @@ namespace tf::electromagnetics {
   }
 
   void EMSolver::updateEBCs() {
+
     Ey_x0(emdata.Ey, emdata.Hz, emdata.Ceyhz, bcdata.x0.Ey);
     Ey_x1(emdata.Ey, emdata.Hz, emdata.Ceyhz, bcdata.x1.Ey);
     Ez_x0(emdata.Ez, emdata.Hy, emdata.Cezhy, bcdata.x0.Ez);
@@ -40,6 +41,12 @@ namespace tf::electromagnetics {
   }
 
   void EMSolver::updateHBCs() {
+    // std::println("Hy_x0.numInterior = {}, hi_idx = {}", bcdata.x0.Hy.numInterior, bcdata.x0.Hy.hi_idx);
+    // std::println("Hz_x0.numInterior = {}, hi_idx = {}", bcdata.x0.Hz.numInterior, bcdata.x0.Hz.hi_idx);
+    //
+    // std::println("Hx_y0.numInterior = {}, hi_idx = {}", bcdata.y0.Hx.numInterior, bcdata.y0.Hx.hi_idx);
+    // std::println("Hz_y0.numInterior = {}, hi_idx = {}", bcdata.y0.Hz.numInterior, bcdata.y0.Hz.hi_idx);
+
     Hy_x0(emdata.Hy, emdata.Ez, emdata.Chyez, bcdata.x0.Hy);
     Hy_x1(emdata.Hy, emdata.Ez, emdata.Chyez, bcdata.x1.Hy);
     Hz_x0(emdata.Hz, emdata.Ey, emdata.Chzey, bcdata.x0.Hz);

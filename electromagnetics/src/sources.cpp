@@ -7,9 +7,9 @@
 
 namespace tf::electromagnetics {
   [[nodiscard]] compute_t RickerSource::eval(const compute_t t) const {
-    constexpr auto Md = 2.0f;
-    const auto alpha = math::SQR(constants::pi * freq * (t - Md / freq));
-    return (1.0f - 2.0f * alpha) * std::exp(-alpha);
+    constexpr auto Md = 2.0_fp;
+    const auto alpha = math::SQR(static_cast<compute_t>(constants::pi) * freq * (t - Md / freq));
+    return (1.0_fp - 2.0_fp * alpha) * std::exp(-alpha);
   }
 
   [[nodiscard]] compute_t SpatialSource::eval(const compute_t t) const {
@@ -21,7 +21,7 @@ namespace tf::electromagnetics {
   } // end SpatialSource::eval
 
   [[nodiscard]] compute_t BlackmanHarris::eval(const compute_t t) const {
-    if (t > duration) { return 1.0f; }
+    if (t > duration) { return 1.0_fp; }
 
     const auto c1 = std::cos(bn[0] * omega * t);
     const auto c2 = std::cos(bn[1] * omega * t);
@@ -30,7 +30,7 @@ namespace tf::electromagnetics {
   }
 
   [[nodiscard]] compute_t ContinuousSource::eval(const compute_t t) const {
-    if (t < start or t > stop) { return 0.0f; }
+    if (t < start or t > stop) { return 0.0_fp; }
     // return std::sin(omega * t - phase);
     return ramp.eval(t) * std::sin(omega * t - phase);
     // return std::sin(omega * t - phase);

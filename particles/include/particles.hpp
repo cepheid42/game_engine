@@ -8,14 +8,22 @@
 #include "octree.hpp"
 
 #include <fstream>
+#include <print>
+
+// template<size_t N>
+// struct std::formatter<std::bitset<N>> : std::formatter<std::string> {
+//   auto format(std::bitset<N> b, format_context& ctx) const {
+//     return formatter<std::string>::format(b.to_string(), N);
+//   }
+// };
 
 namespace tf::particles {
   struct Particle {
     vec3<compute_t> location; // todo: use normalized locations here
     vec3<compute_t> old_location;
     vec3<compute_t> velocity;
-    float weight;
-    double gamma;
+    compute_t weight;
+    // double gamma;
     bool active;
   }; // end struct Particle
 
@@ -35,10 +43,10 @@ namespace tf::particles {
       atomic_number(z_),
       mass(mass_),
       charge(charge_),
-      inv_mass(1.0f / mass),
-      cm_ratio(charge / mass),
-      inv_cm_ratio(1.0f / cm_ratio),
-      qdt_over_2m(0.5f * charge * dt * constants::q_e / mass),
+      // inv_mass(1.0f / mass),
+      // cm_ratio(charge / mass),
+      // inv_cm_ratio(1.0f / cm_ratio),
+      qdt_over_2m(static_cast<compute_t>(0.5 * static_cast<double>(charge) * static_cast<double>(dt) / static_cast<double>(mass))),
       cells{(Nx - 1) * (Ny - 1) * (Nz - 1)},
       tree(create_particle_octree(cells))
     {
@@ -51,12 +59,7 @@ namespace tf::particles {
         }
       }
 
-      update_tree();
     }
-
-//    [[nodiscard]] bool update_this_step(const compute_t time) {
-//      return update_interval.update_this_step(time);
-//    }
 
     void add_particle(Particle&& p, const std::size_t cid) {
       cells[cid].particles.push_back(p);
@@ -78,6 +81,7 @@ namespace tf::particles {
           node.active.set(i, has_particles);
         }
       }
+
       return node.active.any();
     }
 
@@ -90,9 +94,9 @@ namespace tf::particles {
     std::size_t atomic_number;
     compute_t mass;
     compute_t charge;
-    compute_t inv_mass;
-    compute_t cm_ratio;
-    compute_t inv_cm_ratio;
+    // compute_t inv_mass;
+    // compute_t cm_ratio;
+    // compute_t inv_cm_ratio;
     compute_t qdt_over_2m;
 
     std::vector<ParticleCell> cells;
@@ -100,7 +104,7 @@ namespace tf::particles {
   }; // end struct ParticleGroup
 
   struct ParticleInitializer {
-    static void initializeFromFile(ParticleGroup& g, const std::string& filename);
+    static ParticleGroup initializeFromFile(const std::string&, compute_t, compute_t, std::size_t , const std::string&);
   };
 } // end namespace tf::particles
 

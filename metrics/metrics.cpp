@@ -43,33 +43,43 @@ namespace tf::metrics {
   : io(io_),
     group(group_),
     var_loc(io.DefineVariable<compute_t>("Position", {group->num_particles, 3}, {0, 0}, {group->num_particles, 3})),
-    var_vel(io.DefineVariable<compute_t>("Velocity", {group->num_particles, 3}, {0, 0}, {group->num_particles, 3})),
+    var_vel(io.DefineVariable<double>("Velocity", {group->num_particles, 3}, {0, 0}, {group->num_particles, 3})),
     var_w(io.DefineVariable<compute_t>("Weight", {group->num_particles, 1}, {0, 0}, {group->num_particles, 1}))
   {}
 
   void ParticleMetric::write(const std::string& dir, const std::string& step_ext) {
     const std::string file{dir + "/" + group->name + "_" + step_ext};
 
-    io.DefineAttribute<std::string>("name", group->name);
-    io.DefineAttribute<std::size_t>("num_particles", group->num_particles);
-    io.DefineAttribute<std::size_t>("atomic_number", group->atomic_number);
-    io.DefineAttribute<compute_t>("mass", group->mass);
-    io.DefineAttribute<compute_t>("charge", group->charge);
+    // io.DefineAttribute<std::string>("name", group->name);
+    // io.DefineAttribute<std::size_t>("num_particles", group->num_particles);
+    // io.DefineAttribute<std::size_t>("atomic_number", group->atomic_number);
+    // io.DefineAttribute<compute_t>("mass", group->mass);
+    // io.DefineAttribute<compute_t>("charge", group->charge);
 
     adios2::Engine writer = io.Open(file, adios2::Mode::Write);
     writer.BeginStep();
 
+    const vec3<compute_t> delta{dx, dy, dz};
+    const vec3<compute_t> lb{x_range[0], y_range[0], z_range[0]};
     const auto& nParticles = group->num_particles;
-    std::vector<compute_t> position(nParticles);
-    std::vector<compute_t> velocity(nParticles);
-    std::vector<compute_t> weight(nParticles);
+    std::vector<compute_t> position{};
+    std::vector<double> velocity{};
+    std::vector<compute_t> weight{};
+
+    position.reserve(3 * nParticles);
+    velocity.reserve(3 * nParticles);
+    weight.reserve(nParticles);
 
     for (const auto& cell: group->cells) {
+      const auto& idx = particles::morton_decode(cell.cid);
       for (const auto& p: cell.particles) {
-        for (std::size_t i = 0; i < 3; i++) {
-          position.push_back(p.location[i]);
-          velocity.push_back(p.velocity[i]);
+        // std::print("({}, {}, {}) | (", idx[0], idx[1], idx[2]);
+        for (std::size_t d = 0; d < 3; d++) {
+          // std::print("{}, ", lb[d] + delta[d] * (static_cast<compute_t>(idx[d]) + p.location[d]));
+          position.push_back(lb[d] + delta[d] * (static_cast<compute_t>(idx[d]) + p.location[d]));
+          velocity.push_back(p.velocity[d]);
         }
+        // std::println(")");
         weight.push_back(p.weight);
       }
     }

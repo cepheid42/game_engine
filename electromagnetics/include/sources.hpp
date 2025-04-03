@@ -41,10 +41,10 @@ namespace tf::electromagnetics {
 
     compute_t omega;
     compute_t duration;
-    static constexpr compute_t Nl = 25.0f;
+    static constexpr compute_t Nl = 25.0_fp;
     static constexpr compute_t cutoff_factor{4.867f};
-    static constexpr compute_t an[4]{0.3588f, -0.4882f, 0.1413f, -0.0116f};
-    static constexpr compute_t bn[3]{0.6452f, 1.2903f, 1.9355f};
+    static constexpr compute_t an[4]{0.3588_fp, -0.4882_fp, 0.1413_fp, -0.0116_fp};
+    static constexpr compute_t bn[3]{0.6452_fp, 1.2903_fp, 1.9355_fp};
   }; // end struct BlackmanHarris
   
   struct ContinuousSource final : TemporalSource {

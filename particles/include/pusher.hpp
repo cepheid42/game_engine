@@ -13,7 +13,7 @@ namespace tf::particles {
 
   struct BorisPush {
     using emdata_t = electromagnetics::EMData;
-    using group_t = ParticleGroup;;
+    using group_t = ParticleGroup;
     using p_tree = Octree<ParticleCell>;
     using efield = std::array<compute_t, 4>;
     using bfield = std::array<compute_t, 2>;
@@ -30,9 +30,10 @@ namespace tf::particles {
     static void operator()(group_t& g, const emdata_t& emdata) {
       push_particles(g.tree, g, emdata);
       update_cells(g.tree, g);
-
+      g.update_tree();
     }
-  }; // end struct MomentumIntegrator
+  }; // end struct BorisPush
+
 } // end namespace tf::particles
 
 

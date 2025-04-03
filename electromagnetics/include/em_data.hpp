@@ -13,9 +13,12 @@ namespace tf::electromagnetics {
 
     void init_coefficients(compute_t, compute_t);
 
-    compute_t Bx(std::size_t, std::size_t, std::size_t) const;
-    compute_t By(std::size_t, std::size_t, std::size_t) const;
-    compute_t Bz(std::size_t, std::size_t, std::size_t) const;
+    [[nodiscard]] compute_t getEx(std::size_t, std::size_t, std::size_t) const;
+    [[nodiscard]] compute_t getEy(std::size_t, std::size_t, std::size_t) const;
+    [[nodiscard]] compute_t getEz(std::size_t, std::size_t, std::size_t) const;
+    [[nodiscard]] compute_t getBx(std::size_t, std::size_t, std::size_t) const;
+    [[nodiscard]] compute_t getBy(std::size_t, std::size_t, std::size_t) const;
+    [[nodiscard]] compute_t getBz(std::size_t, std::size_t, std::size_t) const;
 
     Array3D<compute_t> Ex;
     Array3D<compute_t> Jx;
@@ -53,6 +56,23 @@ namespace tf::electromagnetics {
     Array3D<compute_t> Chzex;
     Array3D<compute_t> Chzey;
 
+    
+    Array3D<compute_t> Ex_app;
+    Array3D<compute_t> Ey_app;
+    Array3D<compute_t> Ez_app;
+    
+    Array3D<compute_t> Bx_app;
+    Array3D<compute_t> By_app;
+    Array3D<compute_t> Bz_app;
+
+    // Array3D<compute_t> Ex_total;
+    // Array3D<compute_t> Ey_total;
+    // Array3D<compute_t> Ez_total;
+    //
+    // Array3D<compute_t> Bx_total;
+    // Array3D<compute_t> By_total;
+    // Array3D<compute_t> Bz_total;
+    
     std::vector<CurrentSource> srcs{};
 
     Array3D<void> empty{}; // for the shits and possibly also some giggles...

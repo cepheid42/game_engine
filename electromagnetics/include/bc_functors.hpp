@@ -1,17 +1,21 @@
 #ifndef BC_FUNCTORS_HPP
 #define BC_FUNCTORS_HPP
 
+#include "program_params.hpp"
 #include "diff_operators.hpp"
 
 #include <array>
+#include <concepts>
 #include <print>
 
 namespace tf::electromagnetics {
   template<typename CurlFunc, bool Hi, bool Negate>
   struct PMLFunctor {
     using Curl = CurlFunc;
+    static constexpr auto hi = Hi;
+    static constexpr auto negate = Negate;
 
-    static void apply(auto& f1, const auto& f2, const auto& c1, auto& psi, const auto& b, const auto& c, const std::size_t i, const std::size_t j, const std::size_t k, const std::size_t x0)
+    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc, const std::size_t i, const std::size_t j, const std::size_t k, const std::size_t x0)
     requires (Curl::type == Derivative::DX)
     {
       std::size_t ipml;
@@ -19,62 +23,107 @@ namespace tf::electromagnetics {
       else { ipml = i - x0 + Curl::Forward; }
 
       // std::println("({}, {}, {}) -> {}", i, j, k, ipml);
-      psi(ipml, j, k) = b[ipml] * psi(ipml, j, k) + c[ipml] * Curl::apply(f2, i, j, k);
+      bc.psi(ipml, j, k) = bc.b[ipml] * bc.psi(ipml, j, k) + bc.c[ipml] * Curl::apply(f2, i, j, k);
       if constexpr (Negate) {
-        f1(i, j, k) -= c1(i, j, k) * psi(ipml, j, k);
+        f1(i, j, k) -= c1(i, j, k) * bc.psi(ipml, j, k);
       } else {
-        f1(i, j, k) += c1(i, j, k) * psi(ipml, j, k);
+        f1(i, j, k) += c1(i, j, k) * bc.psi(ipml, j, k);
       }
     } // end apply
 
-    static void apply(auto& f1, const auto& f2, const auto& c1, auto& psi, const auto& b, const auto& c, const std::size_t i, const std::size_t j, const std::size_t k, const std::size_t y0)
+    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc, const std::size_t i, const std::size_t j, const std::size_t k, const std::size_t y0)
     requires (Curl::type == Derivative::DY)
     {
       std::size_t jpml;
       if constexpr (!Hi) { jpml = j; }
       else { jpml = j - y0 + Curl::Forward; }
 
-      psi(i, jpml, k) = b[jpml] * psi(i, jpml, k) + c[jpml] * Curl::apply(f2, i, j, k);
+      bc.psi(i, jpml, k) = bc.b[jpml] * bc.psi(i, jpml, k) + bc.c[jpml] * Curl::apply(f2, i, j, k);
       if constexpr (Negate) {
-        f1(i, j, k) -= c1(i, j, k) * psi(i, jpml, k);
+        f1(i, j, k) -= c1(i, j, k) * bc.psi(i, jpml, k);
       } else {
-        f1(i, j, k) += c1(i, j, k) * psi(i, jpml, k);
+        f1(i, j, k) += c1(i, j, k) * bc.psi(i, jpml, k);
       }
     } // end apply
 
-    static void apply(auto& f1, const auto& f2, const auto& c1, auto& psi, const auto& b, const auto& c, const std::size_t i, const std::size_t j, const std::size_t k, const std::size_t z0)
+    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc, const std::size_t i, const std::size_t j, const std::size_t k, const std::size_t z0)
     requires (Curl::type == Derivative::DZ)
     {
       std::size_t kpml;
       if constexpr (!Hi) { kpml = k; }
       else { kpml = k - z0 + Curl::Forward; }
 
-      psi(i, j, kpml) = b[kpml] * psi(i, j, kpml) + c[kpml] * Curl::apply(f2, i, j, k);
+      bc.psi(i, j, kpml) = bc.b[kpml] * bc.psi(i, j, kpml) + bc.c[kpml] * Curl::apply(f2, i, j, k);
       if constexpr (Negate) {
-        f1(i, j, k) -= c1(i, j, k) * psi(i, j, kpml);
+        f1(i, j, k) -= c1(i, j, k) * bc.psi(i, j, kpml);
       } else {
-        f1(i, j, k) += c1(i, j, k) * psi(i, j, kpml);
+        f1(i, j, k) += c1(i, j, k) * bc.psi(i, j, kpml);
       }
     } // end apply
   }; // end struct Pml3DFunctor
 
+  template<EMFace F, bool Add=false>
+  struct PeriodicFunctor {
+    static void apply(auto& f, const auto& bc, const std::size_t i, const std::size_t j, const std::size_t k)
+    {
+      std::size_t idx1, idx2, idx3, idx4;
+      if constexpr (F == EMFace::X) {
+        const auto pm = i % bc.numInterior;
+        idx1 = f.get_scid(nHalo - 1 - i, j, k);
+        idx2 = f.get_scid(bc.hi_idx - pm, j, k);
+        idx3 = f.get_scid(bc.hi_idx + 1 + i, j, k);
+        idx4 = f.get_scid(nHalo + pm, j, k);
+      } else if constexpr (F == EMFace::Y) {
+        const auto pm = j % bc.numInterior;
+        idx1 = f.get_scid(i, nHalo - 1 - j, k);
+        idx2 = f.get_scid(i, bc.hi_idx - pm, k);
+        idx3 = f.get_scid(i, bc.hi_idx + 1 + j, k);
+        idx4 = f.get_scid(i, nHalo + pm, k);
+      } else {
+        const auto pm = k % bc.numInterior;
+        idx1 = f.get_scid(i, j, nHalo - 1 - k);
+        idx2 = f.get_scid(i, j, bc.hi_idx - pm);
+        idx3 = f.get_scid(i, j, bc.hi_idx + 1 + k);
+        idx4 = f.get_scid(i, j, nHalo + pm);
+      }
+
+      if constexpr (Add) {
+        f[idx1] += f[idx2];
+        f[idx3] += f[idx4];
+      } else {
+        f[idx1] = f[idx2];
+        f[idx3] = f[idx4];
+      }
+    } // end apply()
+  }; // end struct PeriodicFunctor
+
   template<typename UpdateFunc>
   struct BCIntegrator {
-    using offset_t = std::array<std::size_t, 6>;
-    static constexpr auto direction = UpdateFunc::Curl::type;
-
     static void operator()(auto& f1, const auto& f2, const auto& c1, auto& bc)
+    requires std::same_as<UpdateFunc, PMLFunctor<typename UpdateFunc::Curl, UpdateFunc::Hi, UpdateFunc::Negate>>
     {
       const auto& [x0, x1, y0, y1, z0, z1] = bc.offsets;
       std::size_t pml_offset;
-      if constexpr      (direction == Derivative::DX) { pml_offset = x0; }
-      else if constexpr (direction == Derivative::DY) { pml_offset = y0; }
-      else                                            { pml_offset = z0; }
-#pragma omp parallel for simd collapse(3) num_threads(nThreads)
+      if constexpr      (UpdateFunc::Curl::type == Derivative::DX) { pml_offset = x0; }
+      else if constexpr (UpdateFunc::Curl::type == Derivative::DY) { pml_offset = y0; }
+      else                                                         { pml_offset = z0; }
+#pragma omp parallel for simd collapse(3) num_threads(nThreads / 4)
       for (std::size_t i = x0; i < x1; ++i) {
         for (std::size_t j = y0; j < y1; ++j) {
           for (std::size_t k = z0; k < z1; ++k) {
-            UpdateFunc::apply(f1, f2, c1, bc.psi, bc.b, bc.c, i, j, k, pml_offset);
+            UpdateFunc::apply(f1, f2, c1, bc, i, j, k, pml_offset);
+          } // end for k
+        } // end for j
+      } // end for i
+    } // end operator()
+
+    static void operator()(auto& f1, const auto&, const auto&, auto& bc) {
+      const auto& [x0, x1, y0, y1, z0, z1] = bc.offsets;
+// #pragma omp parallel for simd collapse(3) num_threads(nThreads / 4)
+      for (std::size_t i = x0; i < x1; ++i) {
+        for (std::size_t j = y0; j < y1; ++j) {
+          for (std::size_t k = z0; k < z1; ++k) {
+            UpdateFunc::apply(f1, bc, i, j, k);
           } // end for k
         } // end for j
       } // end for i
@@ -83,9 +132,8 @@ namespace tf::electromagnetics {
 
   template<>
   struct BCIntegrator<void> {
-    using offset_t = std::array<std::size_t, 6>;
     static void operator()() {}
-    static void operator()(auto&, auto&, auto&, auto&, auto&, auto&, offset_t&) {}
+    static void operator()(const auto&, const auto&, const auto&, const auto&) {}
   };
 } // end namespace tf::electromagnetics
 
