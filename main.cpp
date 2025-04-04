@@ -51,6 +51,8 @@ void add_em_sources(tf::electromagnetics::EMSolver& em) {
 
 
 int main() {
+  std::println("dx, dy, dz = {}, {}, {}", dx, dy, dz);
+  std::println("dt = {}", dt);
 
   tf::electromagnetics::EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
 
@@ -66,24 +68,31 @@ int main() {
 
   tf::metrics::Metrics metrics("/home/cepheid/TriForce/game_engine/data/particle_test");
 
-  // metrics.addMetric(
-  //   std::make_unique<tf::metrics::EMFieldsMetric>(
-  //     std::unordered_map<std::string, array_t*> {
-  //       // {"Ex", &emsolver.emdata.Ex},
-  //       // {"Ey", &emsolver.emdata.Ey},
-  //       {"Ez", &emsolver.emdata.Ez},
-  //       // {"Hx", &emsolver.emdata.Hx},
-  //       // {"Hy", &emsolver.emdata.Hy},
-  //       // {"Hz", &emsolver.emdata.Hz},
-  //     },
-  //     metrics.adios.DeclareIO("EMFields")
-  //   )
-  // );
+  metrics.addMetric(
+    std::make_unique<tf::metrics::EMFieldsMetric>(
+      std::unordered_map<std::string, array_t*> {
+        {"Ex", &emsolver.emdata.Ex},
+        {"Ey", &emsolver.emdata.Ey},
+        {"Ez", &emsolver.emdata.Ez},
+        {"Hx", &emsolver.emdata.Hx},
+        {"Hy", &emsolver.emdata.Hy},
+        {"Hz", &emsolver.emdata.Hz},
+      },
+      metrics.adios.DeclareIO("EMFields")
+    )
+  );
 
   using tf::particles::ParticleInitializer;
   constexpr auto m_e = static_cast<compute_t>(tf::constants::m_e);
   constexpr auto q_e = static_cast<compute_t>(tf::constants::q_e);
-  auto g1 = ParticleInitializer::initializeFromFile("electrons", m_e, -q_e, 0, "/home/cepheid/TriForce/game_engine/data/electrons.dat");
+  auto g1 = ParticleInitializer::initializeFromFile("electrons", m_e, -q_e, 0, "/home/cepheid/TriForce/game_engine/data/periodic_electrons.dat");
+
+  // metrics.addMetric(
+  //   std::make_unique<tf::metrics::ParticleMetric>(
+  //     &g1,
+  //     metrics.adios.DeclareIO("ParticleDump")
+  //   )
+  // );
 
   metrics.addMetric(
     std::make_unique<tf::metrics::ParticleMetric>(
@@ -93,7 +102,7 @@ int main() {
   );
 
   constexpr tf::particles::BorisPush particle_push{};
-  // constexpr tf::particles::CurrentDeposition jdep{};
+  tf::particles::CurrentDeposition jdep{emsolver.emdata};
 
   Timer timer{};
 
@@ -107,7 +116,7 @@ int main() {
 
     particle_push(g1, emsolver.emdata);
 
-    // jdep(g1, emsolver.emdata);
+    jdep(g1, emsolver.emdata);
 
     if (step % save_interval == 0) {
       const auto percent = 100.0_fp * t / total_time;

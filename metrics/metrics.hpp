@@ -12,6 +12,8 @@
 #include <adios2.h>
 
 namespace tf::metrics {
+  // =======================================
+  // ======== Metrics Base Class ===========
   namespace detail {
     struct MetricBase {
       virtual ~MetricBase() = default;
@@ -19,7 +21,8 @@ namespace tf::metrics {
     };
   } // end namespace detail
 
-
+  // =====================================
+  // ======== EM Fields Metric ===========
   struct EMFieldsMetric final : detail::MetricBase {
     using pointer_t = Array3D<compute_t>*;
     using field_map = std::unordered_map<std::string, pointer_t>;
@@ -36,10 +39,12 @@ namespace tf::metrics {
     std::vector<FieldVariable> fields;
   };
 
-  struct ParticleMetric final : detail::MetricBase {
+  // =========================================
+  // ======== Particle Dump Metric ===========
+  struct ParticleDumpMetric final : detail::MetricBase {
     using group_t = particles::ParticleGroup;
 
-    ParticleMetric(const group_t*, adios2::IO&&);
+    ParticleDumpMetric(const group_t*, adios2::IO&&);
     void write(const std::string&, const std::string&) override;
 
     adios2::IO io;
@@ -49,6 +54,25 @@ namespace tf::metrics {
     adios2::Variable<compute_t> var_w;
   };
 
+  // ========================================================
+  // ======== Particle Density/Temperature Metric ===========
+  struct ParticleMetric final : detail::MetricBase {
+    using group_t = particles::ParticleGroup;
+
+    ParticleMetric(const group_t*, adios2::IO&&);
+    void update_metrics();
+    void write(const std::string&, const std::string&) override;
+
+    adios2::IO io;
+    const group_t* group;
+    adios2::Variable<compute_t> var_density;
+    adios2::Variable<compute_t> var_temp;
+    std::vector<compute_t> density;
+    std::vector<compute_t> T_avg;
+  };
+
+  // =======================================
+  // ======== Metrics Superclass ===========
   class Metrics {
     using metrics_vec = std::vector<std::unique_ptr<detail::MetricBase>>;
 

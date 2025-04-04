@@ -23,7 +23,7 @@ namespace tf::particles {
     vec3<compute_t> old_location;
     vec3<compute_t> velocity;
     compute_t weight;
-    // double gamma;
+    double gamma;
     bool active;
   }; // end struct Particle
 

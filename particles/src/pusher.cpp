@@ -95,8 +95,9 @@ namespace tf::particles {
       Bz_c[q] *= g.qdt_over_2m;
     }
 
-    for (auto& particle : particles) {
-      update_particle(particle, Ex_c, Ey_c, Ez_c, Bx_c, By_c, Bz_c);
+#pragma omp parallel for simd num_threads(4)
+    for (std::size_t p = 0; p < particles.size(); p++) {
+      update_particle(particles[p], Ex_c, Ey_c, Ez_c, Bx_c, By_c, Bz_c);
     }
   } // end BorisPush::advance_particles()
 
@@ -130,17 +131,19 @@ namespace tf::particles {
             auto j_new = j - y_offset;
             auto k_new = k - z_offset;
 
-            if (i_new == nHalo or i_new == Nx - nHalo) {
+            if (i_new <= nHalo or i_new >= Nx - nHalo - 1) {
               i_new = Nx - i_new;
             }
-            if (j_new == nHalo or j_new == Nx - nHalo) {
+            if (j_new <= nHalo or j_new >= Nx - nHalo - 1) {
               j_new = Ny - j_new;
             }
-            if (k_new == nHalo or k_new == Nx - nHalo) {
+            if (k_new <= nHalo or k_new >= Nx - nHalo) {
               k_new = Nz - k_new;
             }
 
             const auto new_cid = morton_encode(i_new, j_new, k_new);
+            // std::println("({}, {}, {}) -> ({} - {}, {} - {}, {} - {}) | {} / {}", i_new, j_new, k_new, i, x_offset, j, y_offset, k, z_offset, new_cid, node.cells[c]->cid);
+
             assert(new_cid != node.cells[c]->cid);
             g.cells[new_cid].particles.push_back(p);
             p.active = false;

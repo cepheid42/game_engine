@@ -34,7 +34,7 @@ namespace tf::particles {
         static_cast<std::size_t>(std::abs((location[2] - z_range[0]) / dz))
       };
 
-      // std::println("{}, {}, {}", index[0], index[1], index[2]);
+      // std::println("{}, {}, {} = {}", index[0], index[1], index[2], morton_encode(index[0], index[1], index[2]));
 
       for (std::size_t i = 0; i < 3; ++i) {
         const auto sx = location[i] / deltas[i];
@@ -51,6 +51,7 @@ namespace tf::particles {
           location.as_type<compute_t>(),
           (velocity * gamma).as_type<compute_t>(),
           weight,
+          gamma,
           true
         },
         index);

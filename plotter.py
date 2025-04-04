@@ -215,7 +215,12 @@ def main():
 
     file_dir = '/particle_test'
 
-    plot_particles(start, stop, step, 'electrons', file_dir)
+    with FileReader(data_dir + file_dir + '/electrons_0000004000.bp') as f:
+        # data = f.read("Density")
+        print(f.available_variables())
+
+
+    # plot_particles(start, stop, step, 'electrons', file_dir)
 
     # targs = [(n, 'electrons', 'density', step) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
