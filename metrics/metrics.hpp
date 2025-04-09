@@ -50,8 +50,9 @@ namespace tf::metrics {
     adios2::IO io;
     const group_t* group;
     adios2::Variable<compute_t> var_loc;
-    adios2::Variable<double> var_vel;
+    adios2::Variable<compute_t> var_vel;
     adios2::Variable<compute_t> var_w;
+    adios2::Variable<double> var_gamma;
   };
 
   // ========================================================

@@ -14,17 +14,17 @@
 namespace tf::particles {
   inline std::array<compute_t, 3> quad_shapes(const compute_t v) {
     return {
-      0.5f * math::SQR(0.5f - v),
-      0.75f - math::SQR(v),
-      0.5f * math::SQR(0.5f + v)
+      0.5_fp * math::SQR(0.5_fp - v),
+      0.75_fp - math::SQR(v),
+      0.5_fp * math::SQR(0.5_fp + v)
     };
   }
 
   struct Segment {
     std::array<std::size_t, 3> cids = {0, 0, 0};
-    vec3<compute_t> p0 = {0.0_fp, 0.0_fp, 0.0_fp};
-    vec3<compute_t> p1 = {0.0_fp, 0.0_fp, 0.0_fp};
-    bool active = false;
+    vec3<compute_t> p0{};
+    vec3<compute_t> p1{};
+    bool active{false};
   };
 
   inline std::array<Segment, 2> split_trajectory(const Particle& p, const std::array<std::size_t, 3>& cidx1) {
@@ -79,8 +79,8 @@ namespace tf::particles {
 
   struct CurrentDeposition {
     using emdata_t = electromagnetics::EMData;
-    using group_t = ParticleGroup;;
-    using p_tree = Octree<ParticleCell>;
+    using group_t = ParticleGroup;
+    using CellData = ParticleGroup::CellData;
     using array_t = std::array<std::size_t, 3>;
     using EMFace = electromagnetics::EMFace;
     using EMSide = electromagnetics::EMSide;
@@ -121,48 +121,51 @@ namespace tf::particles {
       }
     } // end updateJ()
 
-    static void updateCell(const std::vector<Particle>& particles, const std::size_t cid, const compute_t charge, emdata_t& emdata) {
-      const auto& [i, j, k] = morton_decode(cid);
-      for (std::size_t pid = 0; pid < particles.size(); pid++) {
-        const auto& p = particles[pid];
+    static void updateCell(const CellData& cell, const compute_t charge, emdata_t& emdata) {
+      const auto& [ci, cj, ck] = cell.idxs;
+      for (const auto& chunk : cell.chunks) {
+        for (std::size_t pid = 0; pid < ParticleChunk::n_particles; pid++) {
+          const auto& p = chunk[pid];
 
-        for (const auto& segment: split_trajectory(p, {i, j, k})) {
-          if (!segment.active) { continue; }
-          const auto& [i, j, k] = segment.cids;
+          for (const auto& segment: split_trajectory(p, {ci, cj, ck})) {
+            // todo: this would be a great place for a small_vector, so I can remove the active flag from segments
+            if (!segment.active) { continue; }
+            const auto& [i, j, k] = segment.cids;
 
-          const auto xs0 = quad_shapes(segment.p0[0]);
-          const auto xs1 = quad_shapes(segment.p1[0]);
+            const auto xs0 = quad_shapes(segment.p0[0]);
+            const auto xs1 = quad_shapes(segment.p1[0]);
 
-          const auto ys0 = quad_shapes(segment.p0[1]);
-          const auto ys1 = quad_shapes(segment.p1[1]);
+            const auto ys0 = quad_shapes(segment.p0[1]);
+            const auto ys1 = quad_shapes(segment.p1[1]);
 
-          const auto zs0 = quad_shapes(segment.p0[2]);
-          const auto zs1 = quad_shapes(segment.p1[2]);
+            const auto zs0 = quad_shapes(segment.p0[2]);
+            const auto zs1 = quad_shapes(segment.p1[2]);
 
-          const auto cx = p.weight * charge / (Ayz * dt);
-          const auto cy = p.weight * charge / (Axz * dt);
-          const auto cz = p.weight * charge / (Axy * dt);
+            const auto cx = p.weight * charge / (Ayz * dt);
+            const auto cy = p.weight * charge / (Axz * dt);
+            const auto cz = p.weight * charge / (Axy * dt);
 
-          updateJ<0>(emdata.Jx, xs0, xs1, ys0, ys1, zs0, zs1, cx, {i, j - 1, k - 1}, {2, 3, 3});
-          updateJ<1>(emdata.Jy, ys0, ys1, xs0, xs1, zs0, zs1, cy, {i - 1, j, k - 1}, {3, 2, 3});
-          updateJ<2>(emdata.Jz, zs0, zs1, xs0, xs1, ys0, ys1, cz, {i - 1, j - 1, k}, {3, 3, 2});
+            updateJ<0>(emdata.Jx, xs0, xs1, ys0, ys1, zs0, zs1, cx, {i, j - 1, k - 1}, {2, 3, 3});
+            updateJ<1>(emdata.Jy, ys0, ys1, xs0, xs1, zs0, zs1, cy, {i - 1, j, k - 1}, {3, 2, 3});
+            updateJ<2>(emdata.Jz, zs0, zs1, xs0, xs1, ys0, ys1, cz, {i - 1, j - 1, k}, {3, 3, 2});
+          }
         }
       }
     } // end update()
 
-    static void update(const p_tree& node, const group_t& g, emdata_t& emdata) {
-      for (std::size_t i = 0; i < 8; i++) {
-        if (!node.active.test(i)) { continue; }
-        if (node.is_leaf) {
-          updateCell(node.cells[i]->particles, node.cells[i]->cid, g.charge, emdata);
-        } else {
-          update(node.children[i], g, emdata);
-        }
-      }
+    static void update(const group_t& g, emdata_t& emdata) {
+      for (std::size_t i = nHalo; i < Ncx - nHalo; i++) {
+        for (std::size_t j = nHalo; j < Ncy - nHalo; j++) {
+          for (std::size_t k = nHalo; k < Ncz - nHalo; k++) {
+            const auto index = get_cid(i, j, k);
+            updateCell(g.cells[index], g.charge, emdata);
+          } // end for(k)
+        } // end for(j)
+      } // end for(i)
     }
 
     void operator()(const group_t& g, emdata_t& emdata) {
-      update(g.tree, g, emdata);
+      update(g, emdata);
       x_bc(emdata.Jy, emdata.Jz);
       y_bc(emdata.Jx, emdata.Jz);
       z_bc(emdata.Jx, emdata.Jy);

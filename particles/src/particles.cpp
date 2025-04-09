@@ -1,6 +1,7 @@
 #include "particles.hpp"
 
 #include "program_params.hpp"
+#include "constants.hpp"
 
 #include <print>
 #include <fstream>
@@ -24,17 +25,11 @@ namespace tf::particles {
     std::string line;
     while (getline(file, line)) {
       std::istringstream buffer(line);
-      buffer >> location >> velocity >> weight;// >> uid;
+      buffer >> location >> velocity >> weight;
 
-      // std::println("{}, {}, {}", location[0], location[1], location[2]);
-
-      std::array<std::size_t, 3> index{
-        static_cast<std::size_t>(std::abs((location[0] - x_range[0]) / dx)),
-        static_cast<std::size_t>(std::abs((location[1] - y_range[0]) / dy)),
-        static_cast<std::size_t>(std::abs((location[2] - z_range[0]) / dz))
-      };
-
-      // std::println("{}, {}, {} = {}", index[0], index[1], index[2], morton_encode(index[0], index[1], index[2]));
+      const auto ix = static_cast<std::size_t>(std::abs((location[0] - x_range[0]) / dx));
+      const auto iy = static_cast<std::size_t>(std::abs((location[1] - y_range[0]) / dy));
+      const auto iz = static_cast<std::size_t>(std::abs((location[2] - z_range[0]) / dz));
 
       for (std::size_t i = 0; i < 3; ++i) {
         const auto sx = location[i] / deltas[i];
@@ -44,22 +39,17 @@ namespace tf::particles {
       // compute Lorentz factor and relativistic momentum
       const auto gamma = 1.0 / std::sqrt(1.0 - velocity.length_squared() * constants::over_c_sqr);
 
+      const auto p = Particle{
+        location.as_type<compute_t>(),
+        location.as_type<compute_t>(),
+        velocity.as_type<compute_t>(),
+        weight,
+        gamma
+      };
       // add particle to group
-      g.add_particle(
-        Particle{
-          location.as_type<compute_t>(),
-          location.as_type<compute_t>(),
-          (velocity * gamma).as_type<compute_t>(),
-          weight,
-          gamma,
-          true
-        },
-        index);
+      g.add_particle(p, ix, iy, iz);
     }
     file.close();
-
-    g.update_tree();
     return g;
   } // end initializeFromFile
-
-}
+} // end namespace tf::particles

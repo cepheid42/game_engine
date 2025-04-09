@@ -15,7 +15,7 @@ EPS0 = 8.8541878188E-12 # F/m
 MU0 = 1.25663706127E-6 # N/A^2
 
 # dt = 1.829541541469147e-11
-dt = 4.5738543e-12
+dt = 5.717318e-12
 
 def load_field(n, name, file_dir):
     filename = f'/fields_{n:010d}.bp'
@@ -126,7 +126,7 @@ def compare_fields(n, name, step):
     plt.close(fig)
 
 
-def plot_particles(start, stop, step, group_name, file_dir):
+def plot_particle_dump(start, stop, step, group_name, file_dir):
     def v_from_KE(KE = 2, mass = constants.m_e, return_rel_v = False):
         rest_mass = mass * constants.c**2
         gamma = gamma_from_KE(KE,mass)
@@ -146,7 +146,7 @@ def plot_particles(start, stop, step, group_name, file_dir):
             'weight': []
         }
         for n in range(start, stop, step):
-            file = f'/{group_name}_{n:010d}.bp'
+            file = f'/{group_name}_dump_{n:010d}.bp'
             # print(file)
             with FileReader(data_dir + file_dir + file) as f:
                 frames['location'].append(f.read('Position'))
@@ -194,37 +194,86 @@ def plot_particles(start, stop, step, group_name, file_dir):
     plt.savefig(f"{filename}.png", bbox_inches="tight", pad_inches=0.05)
     plt.close()
 
-    # fig,ax = plt.subplots(figsize=(12,10))
-    # plt.plot((simulated_gyroradii-gyroradius)/gyroradius)
-    # plt.title("fractional error in gyroradius vs step")
-    # plt.xlabel("step")
-    # plt.ylabel("fractional error")
-    # plt.grid(ls="--")
-    # filename = data_dir + f"/pngs/{group_name}_gyroradius_error"
-    # # plt.savefig(f"{filename}.pdf", bbox_inches="tight", pad_inches=0.05)
-    # plt.savefig(f"{filename}.png", bbox_inches="tight", pad_inches=0.05)
-
     print(f"mean fractional error in gyro orbit: {((simulated_gyroradii-gyroradius)/gyroradius).mean()}")
 
+
+def load_particle_data(n, name, group_name, file_dir):
+    filename = f'/{group_name}_{n:010d}.bp'
+    with FileReader(data_dir + file_dir + filename) as f:
+        return f.read(name)
+
+
+def plot_density(n, step, group_name, file_dir):
+    print(f'Processing density file {n}')
+    vmin, vmax = -0.1, 0.1
+    # norm = Normalize(vmin=vmin, vmax=vmax)
+
+    density = load_particle_data(n, 'Density', group_name, file_dir)
+    # pos = load_particle_data(n, 'Position', group_name + "_dump", file_dir)
+
+    xs = np.linspace(0.0, 4.7e-6, 16)
+    ys = np.linspace(0.0, 4.7e-6, 16)
+    X, Y = np.meshgrid(xs, ys)
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+
+    # im = ax.contourf(density[:, :, density.shape[0] // 2].T, levels=100)
+    im = ax.pcolormesh(density[:, :, density.shape[0] // 2].T)
+    fig.colorbar(ScalarMappable(norm=im.norm), ax=ax)
+    # ax.scatter(pos[:, 0], pos[:, 1], s=1)
+
+    # ax.set_ylim([0, 4.7e-6])
+    # ax.set_xlim([0, 4.7e-6])
+    ax.set_xlabel('x (arb)')
+    ax.set_ylabel('y (arb)')
+    ax.set_title(f'Density[:, :, nz/2]')
+
+    # plt.show()
+    plt.savefig(data_dir + f'/pngs/Density_{n // step:010}.png')
+    plt.clf()
+    plt.close(fig)
+
+def calculate_KE(n, group_name, file_dir):
+    print(f'Processing KE file {n}')
+    weight = load_particle_data(n, 'Weight', group_name + '_dump', file_dir)
+    gamma = load_particle_data(n, 'Gamma', group_name + '_dump', file_dir)
+
+    return (weight * (gamma - 1.0) * constants.c**2 * constants.m_e / constants.e).sum()
+
+def plot_KE(start, stop, step, group_name, file_dir):
+    targs = [(n, group_name, file_dir) for n in range(start, stop + step, step)]
+
+    with mp.Pool(16) as p:
+        energy = p.starmap(calculate_KE, targs)
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+
+    im = ax.plot(energy)
+
+    ax.set_xlabel('x (arb)')
+    ax.set_ylabel('y (arb)')
+    ax.set_title(f'Total KE')
+
+    plt.savefig(data_dir + f'/pngs/totalKE.png')
+    plt.clf()
+    plt.close(fig)
 
 
 def main():
     step = 50
     start = 0
-    stop = 1000
+    stop = 10000
 
     file_dir = '/particle_test'
 
-    with FileReader(data_dir + file_dir + '/electrons_0000004000.bp') as f:
-        # data = f.read("Density")
-        print(f.available_variables())
+    plot_KE(start, stop, step, 'electrons', file_dir)
+    # plot_density(0, 5, 'electrons', file_dir)
 
-
-    # plot_particles(start, stop, step, 'electrons', file_dir)
-
-    # targs = [(n, 'electrons', 'density', step) for n in range(start, stop + step, step)]
+    # targs = [(n, step, 'electrons', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
-    #     p.starmap(plot_metric, targs)
+    #     p.starmap(plot_density, targs)
+
+    # plot_particle_dump(start, stop, step, 'electrons', file_dir)
 
     # field = 'Ez'
     # targs = [(n, field, step, file_dir) for n in range(start, stop + step, step)]

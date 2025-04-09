@@ -45,8 +45,9 @@ namespace tf::metrics {
   : io(io_),
     group(group_),
     var_loc(io.DefineVariable<compute_t>("Position", {group->num_particles, 3}, {0, 0}, {group->num_particles, 3})),
-    var_vel(io.DefineVariable<double>("Velocity", {group->num_particles, 3}, {0, 0}, {group->num_particles, 3})),
-    var_w(io.DefineVariable<compute_t>("Weight", {group->num_particles, 1}, {0, 0}, {group->num_particles, 1}))
+    var_vel(io.DefineVariable<compute_t>("Velocity", {group->num_particles, 3}, {0, 0}, {group->num_particles, 3})),
+    var_w(io.DefineVariable<compute_t>("Weight", {group->num_particles, 1}, {0, 0}, {group->num_particles, 1})),
+    var_gamma(io.DefineVariable<double>("Gamma", {group->num_particles, 1}, {0, 0}, {group->num_particles, 1}))
   {}
 
   void ParticleDumpMetric::write(const std::string& dir, const std::string& step_ext) {
@@ -64,28 +65,39 @@ namespace tf::metrics {
     constexpr vec3 delta{dx, dy, dz};
     constexpr vec3 lb{x_range[0], y_range[0], z_range[0]};
     const auto& nParticles = group->num_particles;
+
     std::vector<compute_t> position{};
-    std::vector<double> velocity{};
+    std::vector<compute_t> velocity{};
     std::vector<compute_t> weight{};
+    std::vector<double> gamma{};
 
     position.reserve(3 * nParticles);
     velocity.reserve(3 * nParticles);
     weight.reserve(nParticles);
+    gamma.reserve(nParticles);
 
-    for (const auto& cell: group->cells) {
-      const auto& idx = particles::morton_decode(cell.cid);
-      for (const auto& p: cell.particles) {
-        for (std::size_t d = 0; d < 3; d++) {
-          position.push_back(lb[d] + delta[d] * (static_cast<compute_t>(idx[d]) + p.location[d]));
-          velocity.push_back(p.velocity[d]);
+    for (const auto& [chunks, idxs]: group->cells) {
+      for (const auto& chunk : chunks) {
+        for (std::size_t pid = 0; pid < particles::ParticleChunk::n_particles; pid++) {
+          if (!chunk.active.test(pid)) { continue; }
+          const auto& p = chunk[pid];
+          for (std::size_t d = 0; d < 3; d++) {
+            position.push_back(lb[d] + delta[d] * (static_cast<compute_t>(idxs[d]) + p.location[d]));
+            velocity.push_back(p.velocity[d]);
+          }
+          weight.push_back(p.weight);
+          gamma.push_back(p.gamma);
         }
-        weight.push_back(p.weight);
       }
     }
 
+    // for (std::size_t pid = 0; pid < nParticles; pid += 3) {
+    //   std::println("{}, {}, {}", position[pid], position[pid + 1], position[pid + 2]);
+    // }
     writer.Put(var_loc, position.data());
     writer.Put(var_vel, velocity.data());
     writer.Put(var_w, weight.data());
+    writer.Put(var_gamma, gamma.data());
 
     writer.EndStep();
     writer.Close();
@@ -94,38 +106,33 @@ namespace tf::metrics {
   ParticleMetric::ParticleMetric(const group_t* g_, adios2::IO&& io_)
   : io(io_),
     group(g_),
-    var_density(io.DefineVariable<compute_t>("Density", {Nx - 1, Ny - 1, Nz - 1}, {0, 0, 0}, {Nx - 1, Ny - 1, Nz - 1}, adios2::ConstantDims)),
-    var_temp(io.DefineVariable<compute_t>("Temperature", {Nx - 1, Ny - 1, Nz - 1}, {0, 0, 0}, {Nx - 1, Ny - 1, Nz - 1}, adios2::ConstantDims)),
+    var_density(io.DefineVariable<compute_t>("Density", {Ncx, Ncy, Ncz}, {0, 0, 0}, {Ncx, Ncy, Ncz}, adios2::ConstantDims)),
+    var_temp(io.DefineVariable<compute_t>("Temperature", {Ncx, Ncy, Ncz}, {0, 0, 0}, {Ncx, Ncy, Ncz}, adios2::ConstantDims)),
     density(g_->cells.size()),
     T_avg(g_->cells.size())
   {}
 
   void ParticleMetric::update_metrics() {
+    using ParticleChunk = particles::ParticleChunk;
     // density = cell_weight / cell_volume
     // Te = dv2sum * (me / (qe * cell_weight)) / 3
-    constexpr auto V_cell_inv = (1.0_fp / dx) + (1.0_fp / dy) + (1.0_fp / dz);
+    constexpr auto V_cell_inv = 1.0_fp / (dx * dy * dz);
 
-    for (std::size_t i = 0; i < group->cells.size(); i++) {
-      const auto& [particles, cid] = group->cells[i];
+    std::ranges::fill(density, 0.0_fp);
 
-      const auto w_cell = std::ranges::fold_left(particles.begin(), particles.end(), 0.0_fp,
-        [](const compute_t init, const particles::Particle& p) { return init + p.weight; }
-      );
+    for (std::size_t cid = 0; cid < Ncx * Ncy * Ncz; cid++) {
+      const auto& cell = group->cells[cid];
+      auto cell_weight = 0.0_fp;
 
-      auto v_avg = std::ranges::fold_left(particles.begin(), particles.end(), vec3{0.0_fp, 0.0_fp, 0.0_fp},
-        [](const vec3<compute_t> init, const particles::Particle& p) { return init + p.weight * (p.velocity / static_cast<compute_t>(p.gamma)); }
-      );
-
-      v_avg /= w_cell;
-
-      const auto dv2_sum = std::ranges::fold_left(particles.begin(), particles.end(), 0.0_fp,
-        [&v_avg](const compute_t init, const particles::Particle& p) { return init + p.weight * ((p.velocity / static_cast<compute_t>(p.gamma)) - v_avg).length_squared(); }
-      );
-
-      // for electrons only
-      T_avg[i] = dv2_sum * group->mass / (3.0_fp * w_cell * static_cast<compute_t>(constants::q_e));
-      density[i] = w_cell * V_cell_inv;
-    } // end for(i)
+      for (const auto& chunk : cell.chunks) {
+        for (std::size_t pid = 0; pid < ParticleChunk::n_particles; pid++) {
+          if (chunk.active.test(pid)) {
+            cell_weight += chunk[pid].weight;
+          }
+        }
+      }
+      density[cid] = cell_weight * V_cell_inv;
+    }
   }
 
   void ParticleMetric::write([[maybe_unused]] const std::string& dir,[[maybe_unused]]  const std::string& step_ext) {

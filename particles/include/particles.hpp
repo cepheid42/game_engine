@@ -4,18 +4,10 @@
 #include "program_params.hpp"
 #include "particle_params.hpp"
 #include "vec3.hpp"
-#include "constants.hpp"
-#include "octree.hpp"
 
-#include <fstream>
+#include <array>
+#include <bitset>
 #include <print>
-
-// template<size_t N>
-// struct std::formatter<std::bitset<N>> : std::formatter<std::string> {
-//   auto format(std::bitset<N> b, format_context& ctx) const {
-//     return formatter<std::string>::format(b.to_string(), N);
-//   }
-// };
 
 namespace tf::particles {
   struct Particle {
@@ -24,16 +16,49 @@ namespace tf::particles {
     vec3<compute_t> velocity;
     compute_t weight;
     double gamma;
-    bool active;
   }; // end struct Particle
 
-  struct ParticleCell {
-    std::vector<Particle> particles;
-    std::size_t cid;
-  };
+  struct alignas(alignof(Particle)) ParticleChunk {
+    static constexpr std::size_t n_particles = 32;
+    // (42 * 48 bytes + 3 * 4 bytes + 8 bytes + 4 bytes) = 2048 exactly
+    //  ^ particles     ^ indices     ^ bitset  ^ padding
+
+    // explicit ParticleChunk(const std::uint32_t i_, const std::uint32_t j_, const std::uint32_t k_) : idxs{i_, j_, k_} {}
+
+    bool add_particle(const Particle& p) {
+      // todo: would disabling this check effect performance? Just loop over and then default false.
+      if (active.all()) { return false; } // chunk is full
+
+      for (std::size_t i = 0; i < n_particles; ++i) {
+        if (!active.test(i)) {
+          particles[i] = p;
+          active.set(i);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    void remove_particle(const std::size_t pid) {
+      active.set(pid, false);
+    }
+
+    Particle& operator[](const size_t pid) { return particles[pid]; }
+    const Particle& operator[](const size_t pid) const { return particles[pid]; }
+
+    [[nodiscard]] std::size_t num_particles() const { return active.count(); }
+
+    std::array<Particle, n_particles> particles{};
+    // std::array<std::uint32_t, 3> idxs{};
+    std::bitset<n_particles> active{};
+  }; // end struct ParticleChunk
+
 
   struct ParticleGroup {
-    using p_vec = std::vector<Particle>;
+    struct CellData {
+      std::vector<ParticleChunk> chunks;
+      std::array<std::uint32_t, 3> idxs{};
+    };
 
     ParticleGroup() = delete;
 
@@ -43,50 +68,35 @@ namespace tf::particles {
       atomic_number(z_),
       mass(mass_),
       charge(charge_),
-      // inv_mass(1.0f / mass),
-      // cm_ratio(charge / mass),
-      // inv_cm_ratio(1.0f / cm_ratio),
       qdt_over_2m(static_cast<compute_t>(0.5 * static_cast<double>(charge) * static_cast<double>(dt) / static_cast<double>(mass))),
-      cells{(Nx - 1) * (Ny - 1) * (Nz - 1)},
-      tree(create_particle_octree(cells))
+      cells{Ncx * Ncy * Ncz}
     {
-      for (std::size_t i = 0; i < Nx - 1; i++) {
-        for (std::size_t j = 0; j < Ny - 1; j++) {
-          for (std::size_t k = 0; k < Nz - 1; k++) {
-            const auto code = morton_encode(i, j, k);
-            cells[code] = {{}, code};
-          }
-        }
-      }
-
+      for (std::uint32_t i = 0; i < Ncx; i++) {
+        for (std::uint32_t j = 0; j < Ncy; j++) {
+          for (std::uint32_t k = 0; k < Ncz; k++) {
+            const auto index = get_cid(i, j, k);
+            cells[index] = {{}, {i, j, k}};
+          } // end for(k)
+        } // end for(j)
+      } // end for(i)
     }
 
-    void add_particle(Particle&& p, const std::size_t cid) {
-      cells[cid].particles.push_back(p);
+    void add_particle(const Particle& p, const std::size_t i, const std::size_t j, const std::size_t k) {
+      const auto cid = get_cid(i, j, k);
       num_particles++;
-    }
-
-    void add_particle(Particle&& p, const std::array<std::size_t, 3>& idx) {
-      add_particle(std::forward<Particle>(p), morton_encode(idx[0], idx[1], idx[2]));
-    }
-
-    static bool update_tree_nodes(auto& node) {
-      for (std::size_t i = 0; i < 8; i++) {
-        if (node.is_leaf) {
-          // check for particles in each cell and set the appropriate active bit
-          node.active.set(i, !node.cells[i]->particles.empty());
-        } else {
-          // recurse
-          const auto has_particles = update_tree_nodes(node.children[i]);
-          node.active.set(i, has_particles);
-        }
+      for (auto& chunk : cells[cid].chunks) {
+        if (chunk.add_particle(p)) {
+          return;
+        } // particle added to chunk
       }
-
-      return node.active.any();
+      // no available spots in current chunks
+      cells[cid].chunks.emplace_back(); // add new chunk
+      cells[cid].chunks.back().add_particle(p); // add particle to new chunk
     }
 
-    void update_tree() {
-      update_tree_nodes(tree);
+    void remove_particle(ParticleChunk& chunk, const std::size_t pid) {
+      chunk.remove_particle(pid);
+      num_particles--;
     }
 
     std::string name;
@@ -94,13 +104,9 @@ namespace tf::particles {
     std::size_t atomic_number;
     compute_t mass;
     compute_t charge;
-    // compute_t inv_mass;
-    // compute_t cm_ratio;
-    // compute_t inv_cm_ratio;
     compute_t qdt_over_2m;
 
-    std::vector<ParticleCell> cells;
-    Octree<ParticleCell> tree;
+    std::vector<CellData> cells;
   }; // end struct ParticleGroup
 
   struct ParticleInitializer {
