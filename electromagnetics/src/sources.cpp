@@ -12,14 +12,6 @@ namespace tf::electromagnetics {
     return (1.0_fp - 2.0_fp * alpha) * std::exp(-alpha);
   }
 
-  [[nodiscard]] compute_t SpatialSource::eval(const compute_t t) const {
-    auto result = amplitude;
-    for (const auto& src : t_srcs) {
-      result *= src->eval(t);
-    }
-    return result;
-  } // end SpatialSource::eval
-
   [[nodiscard]] compute_t BlackmanHarris::eval(const compute_t t) const {
     if (t > duration) { return 1.0_fp; }
 
@@ -31,10 +23,16 @@ namespace tf::electromagnetics {
 
   [[nodiscard]] compute_t ContinuousSource::eval(const compute_t t) const {
     if (t < start or t > stop) { return 0.0_fp; }
-    // return std::sin(omega * t - phase);
     return ramp.eval(t) * std::sin(omega * t - phase);
-    // return std::sin(omega * t - phase);
   }
+
+  [[nodiscard]] compute_t SpatialSource::eval(const compute_t t) const {
+    auto result = amplitude;
+    for (const auto& src : t_srcs) {
+      result *= src->eval(t);
+    }
+    return result;
+  } // end SpatialSource::eval
 
   void CurrentSource::apply(const compute_t t) const {
     const auto& [x0, x1, y0, y1, z0, z1] = src.offsets;
@@ -48,4 +46,36 @@ namespace tf::electromagnetics {
       }
     }
   } // end CurrentSource::apply
+
+  GaussianBeam::GaussianBeam(array_t* const f_,
+                             const compute_t waist_,
+                             const compute_t omega_,
+                             const vec3<compute_t>& waist_pos_,
+                             const offset_t& offsets_,
+                             SpatialSource&& s_)
+  : CurrentSource(f_, std::forward<SpatialSource>(s_)),
+    waist_size(waist_),
+    waist_pos(waist_pos_),
+    coeffs(offsets_[5] - offsets_[4])
+  {
+    const auto z = (10.0_fp * dx) - waist_pos[0]; // +x direction
+    assert(z != 0.0_fp);
+    const auto k = omega_ / static_cast<compute_t>(constants::c);
+    const auto zR = 0.5_fp * k * math::SQR(waist_size);
+    const auto wz = waist_size * std::sqrt(1.0_fp + math::SQR(zR / z));
+
+    const auto RC = z * (1.0_fp + math::SQR(zR / z));
+    const auto gouy = std::atan(z / zR);
+    const auto c1 = waist_size / wz;
+
+    std::vector<compute_t> r(offsets_[5] - offsets_[4]);
+
+    for (std::size_t i = 0; i < r.size(); ++i) {
+      r[i] += dz * static_cast<compute_t>(i);
+    }
+
+    for (std::size_t i = 0; i < r.size(); ++i) {
+      coeffs[i] = c1 * std::exp(-1.0_fp * math::SQR(r[i] / wz)) * std::cos((k * z) + (k * math::SQR(r[i]) / (2.0_fp * RC)) - gouy);
+    }
+  } // end GaussianBeam ctor
 } // end namespace tf::electromagnetics

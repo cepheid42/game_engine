@@ -7,7 +7,7 @@ project(
         'buildtype=debugoptimized',
 #        'buildtype=release',
         'warning_level=3',
-        'werror=true',
+#        'werror=true',
         'cpp_std=c++23',
 #        'b_sanitize=address'
     ]

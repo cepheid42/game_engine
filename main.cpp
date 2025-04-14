@@ -8,6 +8,9 @@
 #include "pusher.hpp"
 #include "current_deposition.hpp"
 
+// #define UTL_PROFILER_DISABLE
+#include "profiler.hpp"
+
 #include <print>
 #include <chrono>
 
@@ -43,15 +46,17 @@ void add_em_sources(tf::electromagnetics::EMSolver& em) {
     tf::electromagnetics::SpatialSource{
       make_srcvec(),
       100.0f,
-      {nx2 + 14, nx2 + 15, nx2 + 14, nx2 + 15, nx2, nx2 + 1}
+      {nx2, nx2 + 1, nx2, nx2 + 1, 0, 1}
     }
   );
 }
 
 
 int main() {
+  UTL_PROFILER_SCOPE("Main");
   std::println("dt: {}", dt);
-  std::println("End time: {}", total_time);
+  std::println("Total time: {}", total_time);
+  std::println("Nt: {}", static_cast<int>(total_time / dt));
 
   tf::electromagnetics::EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
 
@@ -65,31 +70,31 @@ int main() {
   //   e = 1000.0f;
   // }
 
-  tf::metrics::Metrics metrics("/home/cepheid/TriForce/game_engine/data/particle_test_seq");
+  tf::metrics::Metrics metrics("/home/cepheid/TriForce/game_engine/data/lsi_test");
 
-  // metrics.addMetric(
-  //   std::make_unique<tf::metrics::EMFieldsMetric>(
-  //     std::unordered_map<std::string, array_t*> {
-  //       {"Ex", &emsolver.emdata.Ex},
-  //       {"Ey", &emsolver.emdata.Ey},
-  //       {"Ez", &emsolver.emdata.Ez},
-  //       {"Hx", &emsolver.emdata.Hx},
-  //       {"Hy", &emsolver.emdata.Hy},
-  //       {"Hz", &emsolver.emdata.Hz},
-  //     },
-  //     metrics.adios.DeclareIO("EMFields")
-  //   )
-  // );
+  metrics.addMetric(
+    std::make_unique<tf::metrics::EMFieldsMetric>(
+      std::unordered_map<std::string, array_t*> {
+        {"Ex", &emsolver.emdata.Ex},
+        {"Ey", &emsolver.emdata.Ey},
+        {"Ez", &emsolver.emdata.Ez},
+        {"Hx", &emsolver.emdata.Hx},
+        {"Hy", &emsolver.emdata.Hy},
+        {"Hz", &emsolver.emdata.Hz},
+      },
+      metrics.adios.DeclareIO("EMFields")
+    )
+  );
 
   using tf::particles::ParticleInitializer;
   constexpr auto m_e = static_cast<compute_t>(tf::constants::m_e);
   constexpr auto q_e = static_cast<compute_t>(tf::constants::q_e);
-  // constexpr auto particle_file = "/home/cepheid/TriForce/game_engine/data/electrons.dat";
-  constexpr auto particle_file = "/home/cepheid/TriForce/game_engine/data/periodic_electrons.dat";
+  constexpr auto ion_file = "/home/cepheid/TriForce/game_engine/data/ion_slab.dat";
+  constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/electron_slab.dat";
 
 
-  auto g1 = ParticleInitializer::initializeFromFile("electrons", m_e, -q_e, 0, particle_file);
-  auto g2 = ParticleInitializer::initializeFromFile("ions", 1836.0_fp * m_e, q_e, 0, particle_file);
+  auto g1 = ParticleInitializer::initializeFromFile("electrons", m_e, -q_e, 0, electron_file);
+  auto g2 = ParticleInitializer::initializeFromFile("ions", 1836.152674_fp * m_e, q_e, 1, ion_file);
 
   metrics.addMetric(
     std::make_unique<tf::metrics::ParticleDumpMetric>(
@@ -133,24 +138,31 @@ int main() {
 
   main_timer.start_timer();
 
+  std::println("Step {:4} Time: {:8.2e} Complete: {:4.1f}%", step, t, 0.0_fp);
   metrics_timer.start_timer();
   metrics.write(step);
   metrics_timer.stop_timer();
 
   while (t <= total_time) {
+    UTL_PROFILER_BEGIN(em, "Electromagnetics");
     em_timer.start_timer();
     emsolver.advance(t);
     em_timer.stop_timer();
+    UTL_PROFILER_END(em);
 
+    UTL_PROFILER_BEGIN(push, "Particle Push");
     push_timer.start_timer();
     particle_push(g1, emsolver.emdata);
     particle_push(g2, emsolver.emdata);
     push_timer.stop_timer();
+    UTL_PROFILER_END(push);
 
+    UTL_PROFILER_BEGIN(jdep, "Particle Deposition");
     jdep_timer.start_timer();
     jdep(g1, emsolver.emdata);
     jdep(g2, emsolver.emdata);
     jdep_timer.stop_timer();
+    UTL_PROFILER_END(jdep);
 
     t += dt;
     step++;

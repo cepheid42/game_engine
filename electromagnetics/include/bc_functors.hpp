@@ -100,14 +100,14 @@ namespace tf::electromagnetics {
   template<typename UpdateFunc>
   struct BCIntegrator {
     static void operator()(auto& f1, const auto& f2, const auto& c1, auto& bc)
-    requires std::same_as<UpdateFunc, PMLFunctor<typename UpdateFunc::Curl, UpdateFunc::Hi, UpdateFunc::Negate>>
+    requires std::same_as<UpdateFunc, PMLFunctor<typename UpdateFunc::Curl, UpdateFunc::hi, UpdateFunc::negate>>
     {
       const auto& [x0, x1, y0, y1, z0, z1] = bc.offsets;
       std::size_t pml_offset;
       if constexpr      (UpdateFunc::Curl::type == Derivative::DX) { pml_offset = x0; }
       else if constexpr (UpdateFunc::Curl::type == Derivative::DY) { pml_offset = y0; }
       else                                                         { pml_offset = z0; }
-#pragma omp parallel for simd collapse(3) num_threads(nThreads / 4)
+#pragma omp parallel for simd collapse(3) num_threads(nThreads)
       for (std::size_t i = x0; i < x1; ++i) {
         for (std::size_t j = y0; j < y1; ++j) {
           for (std::size_t k = z0; k < z1; ++k) {

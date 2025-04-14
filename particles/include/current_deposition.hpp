@@ -8,6 +8,9 @@
 #include "bc_data.hpp"
 #include "bc_functors.hpp"
 
+#define UTL_PROFILER_DISABLE
+#include "profiler.hpp"
+
 #include <array>
 #include <cmath>
 
@@ -85,15 +88,17 @@ namespace tf::particles {
     using EMFace = electromagnetics::EMFace;
     using EMSide = electromagnetics::EMSide;
 
-    PeriodicBC<EMFace::X> x_bc;
-    PeriodicBC<EMFace::Y> y_bc;
-    PeriodicBC<EMFace::Z> z_bc;
+    // PeriodicBC<EMFace::X> x_bc;
+    // PeriodicBC<EMFace::Y> y_bc;
+    // PeriodicBC<EMFace::Z> z_bc;
 
-    explicit CurrentDeposition(const emdata_t& emdata)
-    : x_bc(emdata.Jy, emdata.Jz),
-      y_bc(emdata.Jx, emdata.Jz),
-      z_bc(emdata.Jx, emdata.Jy)
-    {}
+    // explicit CurrentDeposition(const emdata_t& emdata)
+    // : x_bc(emdata.Jy, emdata.Jz),
+    //   y_bc(emdata.Jx, emdata.Jz),
+    //   z_bc(emdata.Jx, emdata.Jy)
+    // {}
+
+    explicit CurrentDeposition(const emdata_t&) {}
 
     template<int D>
     static void updateJ(auto& J, const auto& as0, const auto& as1, const auto& bs0, const auto& bs1, const auto& cs0, const auto& cs1, const auto& qA, const std::array<std::size_t, 3>& idxs, const std::array<std::size_t, 3>& bounds) {
@@ -115,7 +120,7 @@ namespace tf::particles {
             else                       { wm = ws[kk]; }
             wT = qA * (third * (bs0[jj] * cs0[kk] + bs1[jj] * cs1[kk]) + sixth * (bs1[jj] * cs0[kk] + bs0[jj] * cs1[kk]));
             // todo: need to be concerned about edges of grid here, where j - 1 < 0, j + 2 > Ny,... etc
-// #pragma omp atomic update
+#pragma omp atomic update
             J(i + ii, j + jj, k + kk) += wm * wT;
           }
         }
@@ -155,7 +160,7 @@ namespace tf::particles {
     } // end update()
 
     static void update(const group_t& g, emdata_t& emdata) {
-// #pragma omp parallel for collapse(3) num_threads(4)
+#pragma omp parallel for collapse(3) num_threads(4)
       for (std::size_t i = nHalo; i < Ncx - nHalo; i++) {
         for (std::size_t j = nHalo; j < Ncy - nHalo; j++) {
           for (std::size_t k = nHalo; k < Ncz - nHalo; k++) {
@@ -167,10 +172,10 @@ namespace tf::particles {
     }
 
     void operator()(const group_t& g, emdata_t& emdata) {
-      update(g, emdata);
-      x_bc(emdata.Jy, emdata.Jz);
-      y_bc(emdata.Jx, emdata.Jz);
-      z_bc(emdata.Jx, emdata.Jy);
+      UTL_PROFILER("JDep::update") update(g, emdata);
+      // x_bc(emdata.Jy, emdata.Jz);
+      // y_bc(emdata.Jx, emdata.Jz);
+      // z_bc(emdata.Jx, emdata.Jy);
     }
   }; // end struct CurrentDeposition
 } // end namepsace tf::particles

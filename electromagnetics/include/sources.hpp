@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <vector>
+#include <cassert>
 
 namespace tf::electromagnetics {
   struct TemporalSource {
@@ -90,6 +91,25 @@ namespace tf::electromagnetics {
     array_t* const field;
     SpatialSource src;
   }; // end struct CurrentSource
+
+  struct GaussianBeam : CurrentSource {
+    using array_t = Array3D<compute_t>;
+    using offset_t = std::array<std::size_t, 6>;
+
+    GaussianBeam(array_t*,
+      compute_t,
+      compute_t,
+      const vec3<compute_t>&,
+      const offset_t&,
+      SpatialSource&&);
+
+
+    compute_t waist_size;
+    vec3<compute_t> waist_pos;
+    std::vector<compute_t> coeffs;
+  };
+
+
 } // end namespace tf::electromagnetics
 
 #endif //EM_SOURCES_HPP

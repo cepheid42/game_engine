@@ -3,6 +3,9 @@
 #include "program_params.hpp"
 #include "constants.hpp"
 
+#define UTL_PROFILER_DISABLE
+#include "profiler.hpp"
+
 #include <cassert>
 
 namespace tf::particles {
@@ -51,7 +54,7 @@ namespace tf::particles {
   {
     // Inverse square root intrinsics
     // https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=rsqrt&expand=4804&ig_expand=5653,5653
-
+    UTL_PROFILER_SCOPE("BorisPush::update_particle");
     constexpr vec3 delta_inv{1.0_fp / dx, 1.0_fp / dy, 1.0_fp / dz};
 
     const auto eps = EFieldAtParticle(p.location, Ex_c, Ey_c, Ez_c);
@@ -113,9 +116,9 @@ namespace tf::particles {
   } // end BorisPush::visit()
 
   void BorisPush::update_cells(group_t& group) {
-    constexpr std::size_t alpha_x = (Ncx - 1) - (nHalo + 1);
-    constexpr std::size_t alpha_y = (Ncy - 1) - (nHalo + 1);
-    constexpr std::size_t alpha_z = (Ncz - 1) - (nHalo + 1);
+    // constexpr std::size_t alpha_x = (Ncx - 1) - (nHalo + 1);
+    // constexpr std::size_t alpha_y = (Ncy - 1) - (nHalo + 1);
+    // constexpr std::size_t alpha_z = (Ncz - 1) - (nHalo + 1);
 
     using buffer_t = std::vector<std::tuple<Particle, std::uint32_t, std::uint32_t, std::uint32_t>>;
     buffer_t buffer{};
@@ -130,32 +133,38 @@ namespace tf::particles {
           const int y_offset = static_cast<int>(std::floor(p.old_location[1]));
           const int z_offset = static_cast<int>(std::floor(p.old_location[2]));
 
+          assert(y_offset == 0);
+
           // Did not move out of current cell
           if (x_offset == 0 and y_offset == 0 and z_offset == 0) { continue; }
 
-          // Periodic in X
-          std::size_t inew = i - x_offset;
-          if (inew < nHalo) {
-            inew += alpha_x;
-          } else if (inew > (Ncx - nHalo - 1)) {
-            inew -= alpha_x;
-          }
+          const std::size_t inew = i - x_offset;
+          const std::size_t jnew = j - y_offset;
+          const std::size_t knew = k - z_offset;
 
-          // Periodic in Y
-          std::size_t jnew = j - y_offset;
-          if (jnew < nHalo) {
-            jnew += alpha_y;
-          } else if (jnew > (Ncy - nHalo - 1)) {
-            jnew -= alpha_y;
-          }
-
-          // Periodic in Z
-          std::size_t knew = k - z_offset;
-          if (knew < nHalo) {
-            knew += alpha_z;
-          } else if (knew > (Ncz - nHalo - 1)) {
-            knew -= alpha_z;
-          }
+          // // Periodic in X
+          // std::size_t inew = i - x_offset;
+          // if (inew < nHalo) {
+          //   inew += alpha_x;
+          // } else if (inew > (Ncx - nHalo - 1)) {
+          //   inew -= alpha_x;
+          // }
+          //
+          // // Periodic in Y
+          // std::size_t jnew = j - y_offset;
+          // if (jnew < nHalo) {
+          //   jnew += alpha_y;
+          // } else if (jnew > (Ncy - nHalo - 1)) {
+          //   jnew -= alpha_y;
+          // }
+          //
+          // // Periodic in Z
+          // std::size_t knew = k - z_offset;
+          // if (knew < nHalo) {
+          //   knew += alpha_z;
+          // } else if (knew > (Ncz - nHalo - 1)) {
+          //   knew -= alpha_z;
+          // }
 
           assert(get_cid(inew, jnew, knew) != get_cid(i, j, k));
 

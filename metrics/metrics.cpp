@@ -138,6 +138,9 @@ namespace tf::metrics {
         }
       }
 
+      if (cell_weight == 0.0_fp) {
+        continue;
+      }
       v_avg /= cell_weight;
 
       auto dv2_sum = 0.0_fp;

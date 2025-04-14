@@ -4,6 +4,9 @@
 #include "particles.hpp"
 #include "em_data.hpp"
 
+#define UTL_PROFILER_DISABLE
+#include "profiler.hpp"
+
 #include <cmath>
 
 namespace tf::particles {
@@ -23,8 +26,8 @@ namespace tf::particles {
     static void update_cells(group_t&);
 
     static void operator()(group_t& g, const emdata_t& emdata) {
-      advance(g, emdata);
-      update_cells(g);
+      UTL_PROFILER("BorisPush::advance") advance(g, emdata);
+      UTL_PROFILER("BorisPush::update_cells") update_cells(g);
     }
   }; // end struct BorisPush
 } // end namespace tf::particles
