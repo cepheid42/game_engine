@@ -2,11 +2,13 @@
 
 #include "program_params.hpp"
 #include "particles.hpp"
+#include "constants.hpp"
 
 #include <vector>
 #include <print>
 #include <algorithm>
 #include <adios2.h>
+
 
 namespace tf::metrics {
 
@@ -91,9 +93,6 @@ namespace tf::metrics {
       }
     }
 
-    // for (std::size_t pid = 0; pid < nParticles; pid += 3) {
-    //   std::println("{}, {}, {}", position[pid], position[pid + 1], position[pid + 2]);
-    // }
     writer.Put(var_loc, position.data());
     writer.Put(var_vel, velocity.data());
     writer.Put(var_w, weight.data());
@@ -119,18 +118,39 @@ namespace tf::metrics {
     constexpr auto V_cell_inv = 1.0_fp / (dx * dy * dz);
 
     std::ranges::fill(density, 0.0_fp);
-
+    std::ranges::fill(T_avg, 0.0_fp);
     for (std::size_t cid = 0; cid < Ncx * Ncy * Ncz; cid++) {
       const auto& cell = group->cells[cid];
+
+      if (cell.chunks.empty()) {
+        continue;
+      }
+
       auto cell_weight = 0.0_fp;
+      vec3<compute_t> v_avg{};
 
       for (const auto& chunk : cell.chunks) {
         for (std::size_t pid = 0; pid < ParticleChunk::n_particles; pid++) {
           if (chunk.active.test(pid)) {
             cell_weight += chunk[pid].weight;
+            v_avg += chunk[pid].weight * chunk[pid].velocity;
           }
         }
       }
+
+      v_avg /= cell_weight;
+
+      auto dv2_sum = 0.0_fp;
+      for (const auto& chunk : cell.chunks) {
+        for (std::size_t pid = 0; pid < ParticleChunk::n_particles; pid++) {
+          if (chunk.active.test(pid)) {
+            dv2_sum += chunk[pid].weight * (chunk[pid].velocity - v_avg).length_squared();
+          }
+        }
+      }
+
+      // for electrons only
+      T_avg[cid] = dv2_sum * group->mass / (3.0_fp * cell_weight * static_cast<compute_t>(constants::q_e));
       density[cid] = cell_weight * V_cell_inv;
     }
   }

@@ -27,7 +27,6 @@ namespace tf::particles {
       update_cells(g);
     }
   }; // end struct BorisPush
-
 } // end namespace tf::particles
 
 

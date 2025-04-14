@@ -53,11 +53,11 @@ inline constexpr compute_t Ayz = dy * dz;
 
 
 inline constexpr auto cfl = 0.95_fp / 1.732050807568877_fp;
-inline constexpr auto Nt = 10000.0_fp;
+inline constexpr auto Nt = 1000.0_fp;
 inline constexpr auto dt = cfl * dx / 299792458.0_fp;
 inline constexpr auto total_time = Nt * dt;
 
-inline constexpr std::size_t save_interval = 50;
+inline constexpr std::size_t save_interval = 10;
 
 inline constexpr std::size_t Ncx = Nx - 1;
 inline constexpr std::size_t Ncy = Ny - 1;

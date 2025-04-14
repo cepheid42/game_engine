@@ -51,6 +51,7 @@ void add_em_sources(tf::electromagnetics::EMSolver& em) {
 
 int main() {
   std::println("dt: {}", dt);
+  std::println("End time: {}", total_time);
 
   tf::electromagnetics::EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
 
@@ -64,7 +65,7 @@ int main() {
   //   e = 1000.0f;
   // }
 
-  tf::metrics::Metrics metrics("/home/cepheid/TriForce/game_engine/data/particle_test");
+  tf::metrics::Metrics metrics("/home/cepheid/TriForce/game_engine/data/particle_test_seq");
 
   // metrics.addMetric(
   //   std::make_unique<tf::metrics::EMFieldsMetric>(
@@ -85,19 +86,36 @@ int main() {
   constexpr auto q_e = static_cast<compute_t>(tf::constants::q_e);
   // constexpr auto particle_file = "/home/cepheid/TriForce/game_engine/data/electrons.dat";
   constexpr auto particle_file = "/home/cepheid/TriForce/game_engine/data/periodic_electrons.dat";
+
+
   auto g1 = ParticleInitializer::initializeFromFile("electrons", m_e, -q_e, 0, particle_file);
+  auto g2 = ParticleInitializer::initializeFromFile("ions", 1836.0_fp * m_e, q_e, 0, particle_file);
 
   metrics.addMetric(
     std::make_unique<tf::metrics::ParticleDumpMetric>(
       &g1,
-      metrics.adios.DeclareIO("ParticleDump")
+      metrics.adios.DeclareIO(g1.name + "_dump")
     )
   );
 
   metrics.addMetric(
     std::make_unique<tf::metrics::ParticleMetric>(
       &g1,
-      metrics.adios.DeclareIO("Particles")
+      metrics.adios.DeclareIO(g1.name + "_metrics")
+    )
+  );
+
+  metrics.addMetric(
+    std::make_unique<tf::metrics::ParticleDumpMetric>(
+      &g2,
+      metrics.adios.DeclareIO(g2.name + "_dump")
+    )
+  );
+
+  metrics.addMetric(
+    std::make_unique<tf::metrics::ParticleMetric>(
+      &g2,
+      metrics.adios.DeclareIO(g2.name + "_metrics")
     )
   );
 
@@ -126,10 +144,12 @@ int main() {
 
     push_timer.start_timer();
     particle_push(g1, emsolver.emdata);
+    particle_push(g2, emsolver.emdata);
     push_timer.stop_timer();
 
     jdep_timer.start_timer();
     jdep(g1, emsolver.emdata);
+    jdep(g2, emsolver.emdata);
     jdep_timer.stop_timer();
 
     t += dt;
@@ -143,11 +163,6 @@ int main() {
       metrics_timer.stop_timer();
     }
   }
-  // metrics_timer.start_timer();
-  // const auto percent = 100.0_fp * t / total_time;
-  // std::println("Step {:4} Time: {:7.1e} Complete: {:4.1f}%", step, t, percent);
-  // metrics.write(step);
-  // metrics_timer.stop_timer();
 
   main_timer.stop_timer();
 

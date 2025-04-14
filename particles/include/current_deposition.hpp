@@ -115,6 +115,7 @@ namespace tf::particles {
             else                       { wm = ws[kk]; }
             wT = qA * (third * (bs0[jj] * cs0[kk] + bs1[jj] * cs1[kk]) + sixth * (bs1[jj] * cs0[kk] + bs0[jj] * cs1[kk]));
             // todo: need to be concerned about edges of grid here, where j - 1 < 0, j + 2 > Ny,... etc
+// #pragma omp atomic update
             J(i + ii, j + jj, k + kk) += wm * wT;
           }
         }
@@ -154,6 +155,7 @@ namespace tf::particles {
     } // end update()
 
     static void update(const group_t& g, emdata_t& emdata) {
+// #pragma omp parallel for collapse(3) num_threads(4)
       for (std::size_t i = nHalo; i < Ncx - nHalo; i++) {
         for (std::size_t j = nHalo; j < Ncy - nHalo; j++) {
           for (std::size_t k = nHalo; k < Ncz - nHalo; k++) {
