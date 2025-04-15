@@ -73,7 +73,7 @@ namespace tf::electromagnetics {
     // Array3D<compute_t> By_total;
     // Array3D<compute_t> Bz_total;
     
-    std::vector<CurrentSource> srcs{};
+    std::vector<GaussianBeam> srcs{};
 
     Array3D<void> empty{}; // for the shits and possibly also some giggles...
   };

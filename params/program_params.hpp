@@ -8,11 +8,11 @@ using compute_t = float;
 
 constexpr compute_t operator""_fp(const long double x) { return static_cast<compute_t>(x); }
 
-inline constexpr std::size_t nThreads = 8;
+inline constexpr std::size_t nThreads = 32;
 
-inline constexpr std::size_t Nx = 101;
+inline constexpr std::size_t Nx = 1501;
 inline constexpr std::size_t Ny = 2;
-inline constexpr std::size_t Nz = 101;
+inline constexpr std::size_t Nz = 1501;
 inline constexpr std::size_t nHalo = 0zu;
 
 inline constexpr std::array x_range = {-15.0e-6_fp, 15.0e-6_fp};
@@ -28,7 +28,7 @@ inline constexpr compute_t Axz = dx * dz;
 inline constexpr compute_t Ayz = dy * dz;
 
 inline constexpr auto cfl = 0.848_fp;
-inline constexpr auto Nt = 10000.0_fp;
+inline constexpr auto Nt = 400.0_fp;
 inline constexpr auto dt = 4.0e-17_fp; // 4 fs
 //cfl / (299792458.0_fp * std::sqrt(1.0_fp / (dx * dx) + 1.0_fp / (dy * dy) + 1.0_fp / (dz * dz)));
 inline constexpr auto total_time = 3.0e-13_fp; //Nt * dt;

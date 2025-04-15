@@ -47,10 +47,28 @@ namespace tf::electromagnetics {
     static constexpr compute_t an[4]{0.3588_fp, -0.4882_fp, 0.1413_fp, -0.0116_fp};
     static constexpr compute_t bn[3]{0.6452_fp, 1.2903_fp, 1.9355_fp};
   }; // end struct BlackmanHarris
-  
+
+
+  struct GaussianSource final : TemporalSource {
+    GaussianSource(const compute_t width_, const compute_t power_, const compute_t delay_)
+    : width(width_), power(power_), delay(delay_)
+    {}
+
+    [[nodiscard]] compute_t eval(const compute_t t) const override {
+      constexpr auto tol = 1e-15_fp;
+      const auto val = std::exp(-1.0_fp * std::pow((t - delay) / width, power));
+      return val > tol ? val : 0.0_fp;
+    }
+
+    compute_t width;
+    compute_t power;
+    compute_t delay;
+  }; // end struct GaussianSource
+
+
   struct ContinuousSource final : TemporalSource {
     explicit ContinuousSource(const compute_t omega_, const compute_t phase_, const compute_t start_, const compute_t stop_, const compute_t dx_)
-    : omega(omega_), start(start_), stop(stop_), phase(phase_), ramp{dx_}
+    : omega(omega_), start(start_), stop(stop_), phase(phase_)//, ramp{dx_}
     {}
 
     [[nodiscard]] compute_t eval(compute_t) const override;
@@ -59,7 +77,7 @@ namespace tf::electromagnetics {
     compute_t start;
     compute_t stop;
     compute_t phase;
-    BlackmanHarris ramp;
+    // BlackmanHarris ramp;
   }; // end struct ContinuousSource
 
   struct SpatialSource {
@@ -86,7 +104,7 @@ namespace tf::electromagnetics {
       src(std::move(s))
     {}
 
-    void apply(compute_t) const;
+    // void apply(compute_t) const;
 
     array_t* const field;
     SpatialSource src;
@@ -100,9 +118,9 @@ namespace tf::electromagnetics {
       compute_t,
       compute_t,
       const vec3<compute_t>&,
-      const offset_t&,
       SpatialSource&&);
 
+    void apply(compute_t) const;
 
     compute_t waist_size;
     vec3<compute_t> waist_pos;
