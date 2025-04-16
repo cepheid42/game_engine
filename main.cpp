@@ -21,32 +21,22 @@ using array_t = tf::Array3D<compute_t>;
 void add_gaussianbeam(tf::electromagnetics::EMSolver& em) {
   using temporal_vec = std::vector<std::unique_ptr<tf::electromagnetics::TemporalSource>>;
 
-  // constexpr auto freq = 374.7e14_fp; // Hz -> 800 nm
-  constexpr auto freq = static_cast<compute_t>(tf::constants::c) / (12.0_fp * dx);
-  std::println("Frequency: {}", freq);
-  exit(0);
+  constexpr auto freq = static_cast<compute_t>(tf::constants::c) / 8.0e-7_fp; // Hz -> c / 800 nm
   constexpr auto omega = 2.0_fp * static_cast<compute_t>(tf::constants::pi) * freq;
-  constexpr auto amp = -2.75e13_fp; // V/m
+  constexpr auto amp = 2.75e13_fp; // V/m
   constexpr auto w0 = 2.548e-6_fp; // meters, waste size
 
-  constexpr auto width = 1.274E-14_fp; // seconds, ~12.74 fs
-  constexpr auto delay = 2.0_fp * width;
+  constexpr auto width = 2.548e-14_fp; // seconds, ~25.48 fs
+  constexpr auto delay = 2.0 * width;
 
   vec3 waist_pos{0.0_fp, 0.0_fp, 0.0_fp};
 
-  constexpr auto x0 = 10zu;
-  constexpr auto x1 = 11zu;
+  constexpr auto x0 = 100zu;
+  constexpr auto x1 = x0 + 1;
   constexpr auto y0 = 0zu;
   constexpr auto y1 = 1zu;
-  constexpr auto z0 = 10zu;
-  constexpr auto z1 = Nz - 10zu;
-
-  // constexpr auto x0 =  Nx / 2;
-  // constexpr auto x1 = x0 + 1;
-  // constexpr auto y0 = 0zu;
-  // constexpr auto y1 = 1zu;
-  // constexpr auto z0 = Nz / 2;
-  // constexpr auto z1 = z0 + 1;
+  constexpr auto z0 = 100zu;
+  constexpr auto z1 = Nz - z0;
 
   using continuous_t = tf::electromagnetics::ContinuousSource;
   auto make_continuous = [&](temporal_vec& srcs) {
@@ -61,7 +51,7 @@ void add_gaussianbeam(tf::electromagnetics::EMSolver& em) {
 
   auto make_srcvec = [&]() -> temporal_vec {
     temporal_vec result{};
-    // make_gaussian(result);
+    make_gaussian(result);
     make_continuous(result);
     return result;
   };
@@ -82,9 +72,10 @@ void add_gaussianbeam(tf::electromagnetics::EMSolver& em) {
 
 int main() {
   UTL_PROFILER_SCOPE("Main");
-  std::println("dt: {}", dt);
-  std::println("Total time: {}", total_time);
-  std::println("Nt: {}", static_cast<int>(total_time / dt));
+  // std::println("dx, dy, dz: {}, {}, {}", dx, dy, dz);
+  // std::println("dt: {}", dt);
+  // std::println("Total time: {}", total_time);
+  // std::println("Nt: {}", static_cast<int>(total_time / dt));
 
   tf::electromagnetics::EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
 
@@ -163,18 +154,12 @@ int main() {
   metrics.write(step);
   metrics_timer.stop_timer();
 
-  constexpr auto freq = static_cast<compute_t>(tf::constants::c) / (20.0_fp * dx);
-  constexpr auto omega = 2.0_fp * static_cast<compute_t>(tf::constants::pi) * freq;
-
-  std::println("Frequency: {}", freq);
+  // constexpr auto freq = static_cast<compute_t>(tf::constants::c) / (20.0_fp * dx);
+  // const tf::electromagnetics::RickerSource ricker{freq};
 
   while (t <= total_time) {
     UTL_PROFILER_BEGIN(em, "Electromagnetics");
     em_timer.start_timer();
-
-    // std::println("{}", std::sin(omega * t));
-    // emsolver.emdata.Ez(Nx / 2, 0, Nz / 2) = std::sin(omega * t);
-
     emsolver.advance(t);
     em_timer.stop_timer();
     UTL_PROFILER_END(em);
@@ -196,14 +181,13 @@ int main() {
     t += dt;
     step++;
 
-    // if (step % save_interval == 0) {
-    //   metrics_timer.start_timer();
-    //   const auto percent = 100.0_fp * t / total_time;
-    //   std::println("Step {:4} Time: {:8.2e} Complete: {:4.1f}%", step, t, percent);
-    //   metrics.write(step);
-    //   metrics_timer.stop_timer();
-    // }
-
+    if (step % save_interval == 0) {
+      metrics_timer.start_timer();
+      const auto percent = 100.0_fp * t / total_time;
+      std::println("Step {:4} Time: {:8.2e} Complete: {:4.1f}%", step, t, percent);
+      metrics.write(step);
+      metrics_timer.stop_timer();
+    }
   }
 
   main_timer.stop_timer();

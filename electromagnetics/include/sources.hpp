@@ -54,11 +54,7 @@ namespace tf::electromagnetics {
     : width(width_), power(power_), delay(delay_)
     {}
 
-    [[nodiscard]] compute_t eval(const compute_t t) const override {
-      constexpr auto tol = 1e-15_fp;
-      const auto val = std::exp(-1.0_fp * std::pow((t - delay) / width, power));
-      return val > tol ? val : 0.0_fp;
-    }
+    [[nodiscard]] compute_t eval(compute_t) const override;
 
     compute_t width;
     compute_t power;

@@ -22,8 +22,8 @@ namespace tf::constants
   inline constexpr auto over_c_sqr { 1.0 / (c * c) };    // (s/m)^2
 
   inline constexpr auto eps0 { 8.854187812813e-12 };   // F/m
-  inline constexpr auto mu0 { 1.2566370621219e-6 };        // H/m
-  inline constexpr auto eta0 { 376.73031366686992 };       // Ohms
+  inline constexpr auto mu0 { 1.2566370621219e-6 };    // H/m
+  inline constexpr auto eta0 { 376.73031366686992 };   // Ohms
   // inline constexpr auto sqrt_mueps { 3.3356409519864e-9 }; // sqrt(mu_0 * eps_0)
   // inline constexpr auto four_pi_eps0 { 1.11265005544787e-10 };
 
