@@ -63,7 +63,7 @@ namespace tf::electromagnetics {
 
 
   struct ContinuousSource final : TemporalSource {
-    explicit ContinuousSource(const compute_t omega_, const compute_t phase_, const compute_t start_, const compute_t stop_, const compute_t dx_)
+    explicit ContinuousSource(const compute_t omega_, const compute_t phase_, const compute_t start_, const compute_t stop_, const compute_t)
     : omega(omega_), start(start_), stop(stop_), phase(phase_)//, ramp{dx_}
     {}
 

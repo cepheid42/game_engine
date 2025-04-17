@@ -8,35 +8,37 @@
 
 #include <cassert>
 
+#include "em_params.hpp"
+
 namespace tf::particles {
-  vec3<compute_t> BFieldAtParticle(const vec3<compute_t>& loc,
-                                   const std::array<compute_t, 2>& Bx_c,
-                                   const std::array<compute_t, 2>& By_c,
-                                   const std::array<compute_t, 2>& Bz_c)
+  vec3<double> BFieldAtParticle(const vec3<compute_t>& loc,
+                                const std::array<compute_t, 2>& Bx_c,
+                                const std::array<compute_t, 2>& By_c,
+                                const std::array<compute_t, 2>& Bz_c)
   {
-    return {(1.0_fp - loc[0]) * Bx_c[0] + loc[0] * Bx_c[1],
-            (1.0_fp - loc[1]) * By_c[0] + loc[1] * By_c[1],
-            (1.0_fp - loc[2]) * Bz_c[0] + loc[2] * Bz_c[1]};
+    return {(1.0 - loc[0]) * Bx_c[0] + loc[0] * Bx_c[1],
+            (1.0 - loc[1]) * By_c[0] + loc[1] * By_c[1],
+            (1.0 - loc[2]) * Bz_c[0] + loc[2] * Bz_c[1]};
   } // end BFieldAtParticle()
 
-  vec3<compute_t> EFieldAtParticle(const vec3<compute_t>& loc,
-                                   const std::array<compute_t, 4>& Ex_c,
-                                   const std::array<compute_t, 4>& Ey_c,
-                                   const std::array<compute_t, 4>& Ez_c)
+  vec3<double> EFieldAtParticle(const vec3<compute_t>& loc,
+                                const std::array<compute_t, 4>& Ex_c,
+                                const std::array<compute_t, 4>& Ey_c,
+                                const std::array<compute_t, 4>& Ez_c)
   {
-    const auto xy1 = (1.0_fp - loc[0]) * (1.0_fp - loc[1]);
-    const auto xy2 = (1.0_fp - loc[0]) * loc[1];
-    const auto xy3 = loc[0] * (1.0_fp - loc[1]);
+    const auto xy1 = (1.0 - loc[0]) * (1.0 - loc[1]);
+    const auto xy2 = (1.0 - loc[0]) * loc[1];
+    const auto xy3 = loc[0] * (1.0 - loc[1]);
     const auto xy4 = loc[0] * loc[1];
 
-    const auto xz1 = (1.0_fp - loc[0]) * (1.0_fp - loc[2]);
-    const auto xz2 = (1.0_fp - loc[0]) * loc[2];
-    const auto xz3 = loc[0] * (1.0_fp - loc[2]);
+    const auto xz1 = (1.0 - loc[0]) * (1.0 - loc[2]);
+    const auto xz2 = (1.0 - loc[0]) * loc[2];
+    const auto xz3 = loc[0] * (1.0 - loc[2]);
     const auto xz4 = loc[0] * loc[2];
 
-    const auto yz1 = (1.0_fp - loc[1]) * (1.0_fp - loc[2]);
-    const auto yz2 = (1.0_fp - loc[1]) * loc[2];
-    const auto yz3 = loc[1] * (1.0_fp - loc[2]);
+    const auto yz1 = (1.0 - loc[1]) * (1.0 - loc[2]);
+    const auto yz2 = (1.0 - loc[1]) * loc[2];
+    const auto yz3 = loc[1] * (1.0 - loc[2]);
     const auto yz4 = loc[1] * loc[2];
 
     return {yz1 * Ex_c[0] + yz2 * Ex_c[1] + yz3 * Ex_c[2] + yz4 * Ex_c[3],
@@ -54,23 +56,25 @@ namespace tf::particles {
   {
     // Inverse square root intrinsics
     // https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=rsqrt&expand=4804&ig_expand=5653,5653
-    UTL_PROFILER_SCOPE("BorisPush::update_particle");
-    constexpr vec3 delta_inv{1.0_fp / dx, 1.0_fp / dy, 1.0_fp / dz};
+    constexpr vec3 delta_inv{1.0 / dx, 1.0 / dy, 1.0 / dz};
 
     const auto eps = EFieldAtParticle(p.location, Ex_c, Ey_c, Ez_c);
     const auto bet = BFieldAtParticle(p.location, Bx_c, By_c, Bz_c);
 
-    const auto um = p.velocity + eps;
-    const auto t = bet / static_cast<compute_t>(std::sqrt(1.0 + um.as_type<double>().length_squared() * constants::over_c_sqr));
-    const auto s = 2.0_fp * t / (1.0_fp + t.length_squared());
+    const auto um = p.velocity.as_type<double>() + eps;
+    const auto t = bet / std::sqrt(1.0 + um.as_type<double>().length_squared() * constants::over_c_sqr);
+    const auto s = 2.0 * t / (1.0 + t.length_squared());
 
-    p.velocity = eps + um + cross(um + cross(um, t), s);
-    const auto gamma = std::sqrt(1.0 + p.velocity.as_type<double>().length_squared() * constants::over_c_sqr);
+    // const auto v = eps + um + cross(um + cross(um, t), s);
+    auto v = eps + um + cross_simd_dub(um + cross_simd_dub(um, t), s);
+    v[1] = 0.0_fp;
+    const auto gamma = std::sqrt(1.0 + v.length_squared() * constants::over_c_sqr);
 
     // todo: updating location here, since it seems reasonable
-    const auto new_loc = p.location + static_cast<compute_t>(static_cast<double>(dt) / gamma) * (p.velocity * delta_inv);
-    const vec3<compute_t> offsets = {std::floor(new_loc[0]), std::floor(new_loc[1]), std::floor(new_loc[2])};
+    const auto new_loc = p.location + ((static_cast<double>(dt) / gamma) * (v * delta_inv)).as_type<compute_t>();
+    const vec3 offsets = {std::floor(new_loc[0]), std::floor(new_loc[1]), std::floor(new_loc[2])};
 
+    p.velocity = v.as_type<compute_t>();
     p.old_location = p.location - offsets;
     p.location = new_loc - offsets;
   } // end BorisPush::update_particle()
@@ -135,12 +139,18 @@ namespace tf::particles {
 
           assert(y_offset == 0);
 
-          // Did not move out of current cell
+          // Did not move out of the current cell
           if (x_offset == 0 and y_offset == 0 and z_offset == 0) { continue; }
 
           const std::size_t inew = i - x_offset;
           const std::size_t jnew = j - y_offset;
           const std::size_t knew = k - z_offset;
+
+          // outflow boundary in X/Z
+          if (inew < PMLDepth - 5 or inew > Nx - PMLDepth - 5 or knew < PMLDepth or knew > Nz - PMLDepth) {
+            group.remove_particle(chunk, pid);
+            continue;
+          }
 
           // // Periodic in X
           // std::size_t inew = i - x_offset;

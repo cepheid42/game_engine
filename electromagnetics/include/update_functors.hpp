@@ -5,14 +5,14 @@
 #include <concepts>
 
 namespace tf::electromagnetics {
-  template<typename T, typename UpdateFunc>
+  template<typename UpdateFunc>
   struct FieldIntegrator {
     using offset_t = std::array<std::size_t, 6>;
 
-    // todo: make sure variadic args here don't slow anything down like that one time
-    static constexpr void operator()(auto&...)
-    requires std::same_as<T, void>
-    {}
+    // // todo: make sure variadic args here don't slow anything down like that one time
+    // static constexpr void operator()(auto&...)
+    // requires std::same_as<T, void>
+    // {}
 
     static void operator()(auto& f, const auto& d1, const auto& d2, const auto& src,
                            const auto& c_f, const auto& c_d1, const auto& c_d2, const auto& c_src,

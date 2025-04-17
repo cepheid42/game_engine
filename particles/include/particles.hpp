@@ -49,10 +49,48 @@ namespace tf::particles {
     [[nodiscard]] std::size_t num_particles() const { return active.count(); }
 
     std::array<Particle, n_particles> particles{};
-    // std::array<std::uint32_t, 3> idxs{};
     std::bitset<n_particles> active{};
   }; // end struct ParticleChunk
 
+
+  // struct ParticleChunkSoA {
+  //   static constexpr std::size_t n_particles = 32;
+  //   // (42 * 48 bytes + 3 * 4 bytes + 8 bytes + 4 bytes) = 2048 exactly
+  //   //  ^ particles     ^ indices     ^ bitset  ^ padding
+  //
+  //   template<typename T> using array_t = std::array<T, n_particles>;
+  //
+  //   bool add_particle(const vec3<compute_t>& new_loc, const vec3<compute_t>& old_loc, const vec3<compute_t>& new_vel, const compute_t new_weight, const double new_gamma) {
+  //     // todo: would disabling this check effect performance? Just loop over and then default false.
+  //     if (active.all()) { return false; } // chunk is full
+  //
+  //     for (std::size_t i = 0; i < n_particles; ++i) {
+  //       if (!active.test(i)) {
+  //         location[i]     = new_loc;
+  //         old_location[i] = old_loc;
+  //         velocity[i]     = new_vel;
+  //         weight[i]       = new_weight;
+  //         gamma[i]        = new_gamma;
+  //         active.set(i, true);
+  //         return true;
+  //       }
+  //     }
+  //     return false;
+  //   }
+  //
+  //   void remove_particle(const std::size_t pid) {
+  //     active.set(pid, false);
+  //   }
+  //
+  //   [[nodiscard]] std::size_t num_particles() const { return active.count(); }
+  //
+  //   array_t<vec3<compute_t>> location;
+  //   array_t<vec3<compute_t>> old_location;
+  //   array_t<vec3<compute_t>> velocity;
+  //   array_t<compute_t> weight;
+  //   array_t<double> gamma;
+  //   std::bitset<n_particles> active{};
+  // }; // end struct Particle
 
   struct ParticleGroup {
     struct CellData {

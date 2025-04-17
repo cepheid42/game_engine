@@ -10,19 +10,24 @@
 
 // #define UTL_PROFILER_DISABLE
 #include "profiler.hpp"
+#include "barkeep.h"
 
 #include <print>
 #include <chrono>
+#include <unordered_map>
 
-using tf::particles::ParticleGroup;
-using tf::vec3;
-using array_t = tf::Array3D<compute_t>;
+using namespace tf;
+using namespace tf::electromagnetics;
+using namespace tf::particles;
+using namespace tf::metrics;
 
-void add_gaussianbeam(tf::electromagnetics::EMSolver& em) {
-  using temporal_vec = std::vector<std::unique_ptr<tf::electromagnetics::TemporalSource>>;
+namespace bk = barkeep;
 
-  constexpr auto freq = static_cast<compute_t>(tf::constants::c) / 8.0e-7_fp; // Hz -> c / 800 nm
-  constexpr auto omega = 2.0_fp * static_cast<compute_t>(tf::constants::pi) * freq;
+void add_gaussianbeam(EMSolver& em) {
+  using temporal_vec = std::vector<std::unique_ptr<TemporalSource>>;
+
+  constexpr auto freq = static_cast<compute_t>(constants::c) / 8.0e-7_fp; // Hz -> c / 800 nm
+  constexpr auto omega = 2.0_fp * static_cast<compute_t>(constants::pi) * freq;
   constexpr auto amp = 2.75e13_fp; // V/m
   constexpr auto w0 = 2.548e-6_fp; // meters, waste size
 
@@ -38,12 +43,12 @@ void add_gaussianbeam(tf::electromagnetics::EMSolver& em) {
   constexpr auto z0 = 100zu;
   constexpr auto z1 = Nz - z0;
 
-  using continuous_t = tf::electromagnetics::ContinuousSource;
+  using continuous_t = ContinuousSource;
   auto make_continuous = [&](temporal_vec& srcs) {
     srcs.push_back(std::make_unique<continuous_t>(omega, 0.0f, 0.0f, 1.0e30f, dx));
   };
 
-  using gaussian_t = tf::electromagnetics::GaussianSource;
+  using gaussian_t = GaussianSource;
   auto make_gaussian = [&](temporal_vec& srcs) {
     srcs.push_back(std::make_unique<gaussian_t>(width, 2.0_fp, delay));
   };
@@ -61,7 +66,7 @@ void add_gaussianbeam(tf::electromagnetics::EMSolver& em) {
     w0,
     omega,
     waist_pos,
-    tf::electromagnetics::SpatialSource(
+    SpatialSource(
       make_srcvec(),
       amp,
       {x0, x1, y0, y1, z0, z1}
@@ -69,133 +74,142 @@ void add_gaussianbeam(tf::electromagnetics::EMSolver& em) {
   );
 }
 
-
-int main() {
-  UTL_PROFILER_SCOPE("Main");
-  // std::println("dx, dy, dz: {}, {}, {}", dx, dy, dz);
-  // std::println("dt: {}", dt);
-  // std::println("Total time: {}", total_time);
-  // std::println("Nt: {}", static_cast<int>(total_time / dt));
-
-  tf::electromagnetics::EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
-
-  add_gaussianbeam(emsolver);
-
-  tf::metrics::Metrics metrics("/home/cepheid/TriForce/game_engine/data/lsi_test");
-
+Metrics create_metrics(const std::string& dir, EMSolver& em, const ParticleGroup& g1, const ParticleGroup& g2) {
+  Metrics metrics(dir);
+  
   metrics.addMetric(
-    std::make_unique<tf::metrics::EMFieldsMetric>(
-      std::unordered_map<std::string, array_t*> {
-        {"Ex", &emsolver.emdata.Ex},
-        {"Ey", &emsolver.emdata.Ey},
-        {"Ez", &emsolver.emdata.Ez},
-        {"Hx", &emsolver.emdata.Hx},
-        {"Hy", &emsolver.emdata.Hy},
-        {"Hz", &emsolver.emdata.Hz},
+    std::make_unique<EMFieldsMetric>(
+      std::unordered_map<std::string, Array3D<compute_t>*> {
+        {"Ex", &em.emdata.Ex},
+        {"Ey", &em.emdata.Ey},
+        {"Ez", &em.emdata.Ez},
+        {"Hx", &em.emdata.Hx},
+        {"Hy", &em.emdata.Hy},
+        {"Hz", &em.emdata.Hz},
       },
       metrics.adios.DeclareIO("EMFields")
     )
   );
 
-  // using tf::particles::ParticleInitializer;
-  // constexpr auto m_e = static_cast<compute_t>(tf::constants::m_e);
-  // constexpr auto q_e = static_cast<compute_t>(tf::constants::q_e);
-  // constexpr auto ion_file = "/home/cepheid/TriForce/game_engine/data/ion_slab.dat";
-  // constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/electron_slab.dat";
-  //
-  //
-  // auto g1 = ParticleInitializer::initializeFromFile("electrons", m_e, -q_e, 0, electron_file);
-  // auto g2 = ParticleInitializer::initializeFromFile("ions", 1836.152674_fp * m_e, q_e, 1, ion_file);
-  //
-  // metrics.addMetric(
-  //   std::make_unique<tf::metrics::ParticleDumpMetric>(
-  //     &g1,
-  //     metrics.adios.DeclareIO(g1.name + "_dump")
-  //   )
-  // );
-  //
-  // metrics.addMetric(
-  //   std::make_unique<tf::metrics::ParticleMetric>(
-  //     &g1,
-  //     metrics.adios.DeclareIO(g1.name + "_metrics")
-  //   )
-  // );
-  //
-  // metrics.addMetric(
-  //   std::make_unique<tf::metrics::ParticleDumpMetric>(
-  //     &g2,
-  //     metrics.adios.DeclareIO(g2.name + "_dump")
-  //   )
-  // );
-  //
-  // metrics.addMetric(
-  //   std::make_unique<tf::metrics::ParticleMetric>(
-  //     &g2,
-  //     metrics.adios.DeclareIO(g2.name + "_metrics")
-  //   )
-  // );
-  //
-  // constexpr tf::particles::BorisPush particle_push{};
-  // tf::particles::CurrentDeposition jdep{emsolver.emdata};
+  metrics.addMetric(
+    std::make_unique<ParticleDumpMetric>(
+      &g1,
+      metrics.adios.DeclareIO(g1.name + "_dump")
+    )
+  );
 
-  Timer main_timer{};
-  Timer em_timer{};
-  Timer push_timer{};
-  Timer jdep_timer{};
-  Timer metrics_timer{};
+  metrics.addMetric(
+    std::make_unique<ParticleMetric>(
+      &g1,
+      metrics.adios.DeclareIO(g1.name + "_metrics")
+    )
+  );
+
+  metrics.addMetric(
+    std::make_unique<ParticleDumpMetric>(
+      &g2,
+      metrics.adios.DeclareIO(g2.name + "_dump")
+    )
+  );
+
+  metrics.addMetric(
+    std::make_unique<ParticleMetric>(
+      &g2,
+      metrics.adios.DeclareIO(g2.name + "_metrics")
+    )
+  );
+
+  return metrics;
+}
+
+std::unordered_map<std::string, Timer> create_timers() {
+  std::unordered_map<std::string, Timer> timers{};
+  timers["Main"] = Timer{};
+  timers["EM"] = Timer{};
+  timers["Push"] = Timer{};
+  timers["Jdep"] = Timer{};
+  timers["IO"] = Timer{};
+  return timers;
+}
+
+void print_final_timers(auto& timers) {
+  std::println("   EM: {}", std::chrono::hh_mm_ss(timers["EM"].elapsed));
+  std::println(" Push: {}", std::chrono::hh_mm_ss(timers["Push"].elapsed));
+  std::println(" Jdep: {}", std::chrono::hh_mm_ss(timers["Jdep"].elapsed));
+  std::println("   IO: {}", std::chrono::hh_mm_ss(timers["IO"].elapsed));
+  std::println("Total: {}", std::chrono::hh_mm_ss(timers["Main"].elapsed));
+}
+
+
+int main() {
+  auto timers = create_timers();
+
+  timers["Main"].start_timer();
+  constexpr auto m_e = static_cast<compute_t>(constants::m_e);
+  constexpr auto m_p = static_cast<compute_t>(constants::m_p);
+  constexpr auto q_e = static_cast<compute_t>(constants::q_e);
+  constexpr auto ion_file = "/home/cepheid/TriForce/game_engine/data/ion_slab.dat";
+  constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/electron_slab.dat";
+
+  auto g1 = ParticleInitializer::initializeFromFile("electrons", m_e, -q_e, 0, electron_file);
+  auto g2 = ParticleInitializer::initializeFromFile("ions", m_p, +q_e, 1, ion_file);
+
+  EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
+  add_gaussianbeam(emsolver);
+  CurrentDeposition jdep{emsolver.emdata};
+  constexpr BorisPush particle_push{};
+
+  auto metrics = create_metrics("/home/cepheid/TriForce/game_engine/data/lsi_test", emsolver, g1, g2);
 
   compute_t t = 0.0_fp;
   std::size_t step = 0zu;
 
-  main_timer.start_timer();
+  const auto progress_bar =
+    bk::ProgressBar(&step, {
+      .total = Nt,
+      .message = "Step",
+      .speed = 0.,
+      .speed_unit = "steps/s",
+      .style = bk::ProgressBarStyle::Rich,
+      .interval = 1.,
+      .show = false}
+    );
 
-  std::println("Step {:4} Time: {:8.2e} Complete: {:4.1f}%", step, t, 0.0_fp);
-  metrics_timer.start_timer();
+  // std::println("Step {:4} Time: {:8.2e} Complete: {:4.1f}%", step, t, 0.0_fp);
+  timers["IO"].start_timer();
   metrics.write(step);
-  metrics_timer.stop_timer();
+  timers["IO"].stop_timer();
 
-  // constexpr auto freq = static_cast<compute_t>(tf::constants::c) / (20.0_fp * dx);
-  // const tf::electromagnetics::RickerSource ricker{freq};
-
+  progress_bar->show();
   while (t <= total_time) {
-    UTL_PROFILER_BEGIN(em, "Electromagnetics");
-    em_timer.start_timer();
+    timers["EM"].start_timer();
     emsolver.advance(t);
-    em_timer.stop_timer();
-    UTL_PROFILER_END(em);
+    timers["EM"].stop_timer();
 
-    // UTL_PROFILER_BEGIN(push, "Particle Push");
-    // push_timer.start_timer();
-    // particle_push(g1, emsolver.emdata);
-    // particle_push(g2, emsolver.emdata);
-    // push_timer.stop_timer();
-    // UTL_PROFILER_END(push);
-    //
-    // UTL_PROFILER_BEGIN(jdep, "Particle Deposition");
-    // jdep_timer.start_timer();
-    // jdep(g1, emsolver.emdata);
-    // jdep(g2, emsolver.emdata);
-    // jdep_timer.stop_timer();
-    // UTL_PROFILER_END(jdep);
+    timers["Push"].start_timer();
+    particle_push(g1, emsolver.emdata);
+    particle_push(g2, emsolver.emdata);
+    timers["Push"].stop_timer();
+
+    timers["Jdep"].start_timer();
+    jdep(g1, emsolver.emdata);
+    jdep(g2, emsolver.emdata);
+    timers["Jdep"].stop_timer();
 
     t += dt;
     step++;
 
     if (step % save_interval == 0) {
-      metrics_timer.start_timer();
-      const auto percent = 100.0_fp * t / total_time;
-      std::println("Step {:4} Time: {:8.2e} Complete: {:4.1f}%", step, t, percent);
+      timers["IO"].start_timer();
+      // const auto percent = 100.0_fp * t / total_time;
+      // std::println("Step {:4} Time: {:8.2e} Complete: {:4.1f}%", step, t, percent);
       metrics.write(step);
-      metrics_timer.stop_timer();
+      timers["IO"].stop_timer();
     }
   }
+  progress_bar->done();
+  timers["Main"].stop_timer();
 
-  main_timer.stop_timer();
-
-  std::println("   EM: {}", std::chrono::hh_mm_ss(em_timer.elapsed));
-  std::println(" Push: {}", std::chrono::hh_mm_ss(push_timer.elapsed));
-  std::println(" Jdep: {}", std::chrono::hh_mm_ss(jdep_timer.elapsed));
-  std::println("   IO: {}", std::chrono::hh_mm_ss(metrics_timer.elapsed));
-  std::println("Total: {}", std::chrono::hh_mm_ss(main_timer.elapsed));
+  print_final_timers(timers);
   return 0;
 }

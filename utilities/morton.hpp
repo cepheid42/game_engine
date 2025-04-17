@@ -246,7 +246,7 @@ namespace tf {
 	}
 
 	// DECODE 3D std::uint64_t code : Shifted LUT
-	inline void m3D_d_sLUT(const std::uint64_t m, std::uint32_t& x, std::uint32_t& y, std::uint32_t& z) {
+	inline void morton3D_64_decode(const std::uint64_t m, std::uint32_t& x, std::uint32_t& y, std::uint32_t& z) {
 		x = morton3D_DecodeCoord_LUT256(m, Morton3D_decode_x_512, 0);
 		y = morton3D_DecodeCoord_LUT256(m, Morton3D_decode_y_512, 0);
 		z = morton3D_DecodeCoord_LUT256(m, Morton3D_decode_z_512, 0);

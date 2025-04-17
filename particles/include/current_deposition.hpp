@@ -45,14 +45,14 @@ namespace tf::particles {
     const auto yr0 = y_offset == 0.0_fp ? p.location[1] : std::max(0.0_fp, -y_offset);
     const auto zr0 = z_offset == 0.0_fp ? p.location[2] : std::max(0.0_fp, -z_offset);
 
-    const vec3<compute_t> pr0{xr0, yr0, zr0};
-    const vec3<compute_t> pr1{xr0 + x_offset, yr0 + y_offset, zr0 + z_offset};
+    const vec3 pr0{xr0, yr0, zr0};
+    const vec3 pr1{xr0 + x_offset, yr0 + y_offset, zr0 + z_offset};
 
     // todo: pray to the gods that none of the cell id's are zero...
     const auto xo = static_cast<int>(x_offset);
     const auto yo = static_cast<int>(y_offset);
     const auto zo = static_cast<int>(z_offset);
-    const std::array<std::size_t, 3> cidx0 = {cidx1[0] + xo, cidx1[1] + yo, cidx1[2] + zo};
+    const std::array cidx0 = {cidx1[0] + xo, cidx1[1] + yo, cidx1[2] + zo};
     return {Segment{cidx0, p.old_location, pr0, true},
             Segment{cidx1, pr1, p.location, true}};
   }
@@ -133,19 +133,19 @@ namespace tf::particles {
         for (std::size_t pid = 0; pid < ParticleChunk::n_particles; pid++) {
           const auto& p = chunk[pid];
 
-          for (const auto& segment: split_trajectory(p, {ci, cj, ck})) {
+          for (const auto& [cids, p0, p1, active]: split_trajectory(p, {ci, cj, ck})) {
             // todo: this would be a great place for a small_vector, so I can remove the active flag from segments
-            if (!segment.active) { continue; }
-            const auto& [i, j, k] = segment.cids;
+            if (!active) { continue; }
+            const auto& [i, j, k] = cids;
 
-            const auto xs0 = quad_shapes(segment.p0[0]);
-            const auto xs1 = quad_shapes(segment.p1[0]);
+            const auto xs0 = quad_shapes(p0[0]);
+            const auto xs1 = quad_shapes(p1[0]);
 
-            const auto ys0 = quad_shapes(segment.p0[1]);
-            const auto ys1 = quad_shapes(segment.p1[1]);
+            const auto ys0 = quad_shapes(p0[1]);
+            const auto ys1 = quad_shapes(p1[1]);
 
-            const auto zs0 = quad_shapes(segment.p0[2]);
-            const auto zs1 = quad_shapes(segment.p1[2]);
+            const auto zs0 = quad_shapes(p0[2]);
+            const auto zs1 = quad_shapes(p1[2]);
 
             const auto cx = p.weight * charge / (Ayz * dt);
             const auto cy = p.weight * charge / (Axz * dt);
@@ -160,7 +160,7 @@ namespace tf::particles {
     } // end update()
 
     static void update(const group_t& g, emdata_t& emdata) {
-#pragma omp parallel for collapse(3) num_threads(4)
+#pragma omp parallel for collapse(3) num_threads(nThreads)
       for (std::size_t i = nHalo; i < Ncx - nHalo; i++) {
         for (std::size_t j = nHalo; j < Ncy - nHalo; j++) {
           for (std::size_t k = nHalo; k < Ncz - nHalo; k++) {
@@ -171,8 +171,8 @@ namespace tf::particles {
       } // end for(i)
     }
 
-    void operator()(const group_t& g, emdata_t& emdata) {
-      UTL_PROFILER("JDep::update") update(g, emdata);
+    static void operator()(const group_t& g, emdata_t& emdata) {
+      update(g, emdata);
       // x_bc(emdata.Jy, emdata.Jz);
       // y_bc(emdata.Jx, emdata.Jz);
       // z_bc(emdata.Jx, emdata.Jy);

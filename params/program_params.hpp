@@ -4,7 +4,7 @@
 #include <array>
 #include <cmath>
 
-using compute_t = double;
+using compute_t = float;
 
 constexpr compute_t operator""_fp(const long double x) { return static_cast<compute_t>(x); }
 
@@ -28,9 +28,9 @@ inline constexpr compute_t Axz = dx * dz;
 inline constexpr compute_t Ayz = dy * dz;
 
 inline constexpr auto cfl = 0.848_fp / 1.732050807568877_fp;
-inline constexpr auto Nt = 400.0_fp;
-inline constexpr auto dt = 4.0e-17_fp; // 0.04 fs
 inline constexpr auto total_time = 3.0e-13_fp; // 300 fs
+inline constexpr auto dt = 4.0e-17_fp; // 0.04 fs
+inline constexpr auto Nt = static_cast<int>(total_time / dt) + 1;
 
 inline constexpr std::size_t save_interval = 100;
 

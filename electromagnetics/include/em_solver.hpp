@@ -10,12 +10,12 @@
 
 namespace tf::electromagnetics {
   struct EMSolver {
-    using ex_func = FieldIntegrator<compute_t, ExplicitUpdateFunctor<backward_dy, backward_dz>>;
-    using ey_func = FieldIntegrator<compute_t, ExplicitUpdateFunctor<backward_dz, backward_dx>>;
-    using ez_func = FieldIntegrator<compute_t, ExplicitUpdateFunctor<backward_dx, backward_dy>>;
-    using hx_func = FieldIntegrator<compute_t, ExplicitUpdateFunctor<forward_dz, forward_dy>>;
-    using hy_func = FieldIntegrator<compute_t, ExplicitUpdateFunctor<forward_dx, forward_dz>>;
-    using hz_func = FieldIntegrator<compute_t, ExplicitUpdateFunctor<forward_dy, forward_dx>>;
+    using ex_func = FieldIntegrator<ExplicitUpdateFunctor<backward_dy, backward_dz>>;
+    using ey_func = FieldIntegrator<ExplicitUpdateFunctor<backward_dz, backward_dx>>;
+    using ez_func = FieldIntegrator<ExplicitUpdateFunctor<backward_dx, backward_dy>>;
+    using hx_func = FieldIntegrator<ExplicitUpdateFunctor<forward_dz, forward_dy>>;
+    using hy_func = FieldIntegrator<ExplicitUpdateFunctor<forward_dx, forward_dz>>;
+    using hz_func = FieldIntegrator<ExplicitUpdateFunctor<forward_dy, forward_dx>>;
 
     // // X-Faces
     // using Ey_x0_bc = BCIntegrator<void>;

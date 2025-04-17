@@ -29,7 +29,7 @@ namespace tf::constants
 
   inline constexpr auto q_e { 1.6021766e-19 };        // electron charge, coulombs
   inline constexpr auto m_e { 9.10938370e-31 };       // electron mass, kg
-
+  inline constexpr auto m_p { 1.67262193e-27 };       // proton mass, kg
 }
 
 #endif //EM_CONSTANTS_HPP
