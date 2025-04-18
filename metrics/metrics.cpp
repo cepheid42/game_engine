@@ -61,6 +61,18 @@ namespace tf::metrics {
     // io.DefineAttribute<compute_t>("mass", group->mass);
     // io.DefineAttribute<compute_t>("charge", group->charge);
 
+    var_loc.SetShape({group->num_particles, 3});
+    var_loc.SetSelection({{0, 0}, {group->num_particles, 3}}); // {{start}, {count}}
+
+    var_vel.SetShape({group->num_particles, 3});
+    var_vel.SetSelection({{0, 0}, {group->num_particles, 3}}); // {{start}, {count}}
+
+    var_w.SetShape({group->num_particles, 1});
+    var_w.SetSelection({{0, 0}, {group->num_particles, 1}}); // {{start}, {count}}
+
+    var_gamma.SetShape({group->num_particles, 1});
+    var_gamma.SetSelection({{0, 0}, {group->num_particles, 1}}); // {{start}, {count}}
+
     adios2::Engine writer = io.Open(file, adios2::Mode::Write);
     writer.BeginStep();
 

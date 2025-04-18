@@ -8,7 +8,7 @@ project(
 #        'buildtype=release',
         'warning_level=3',
         'cpp_std=c++23',
-#        'b_sanitize=address'
+        'b_sanitize=address'
     ]
 )
 

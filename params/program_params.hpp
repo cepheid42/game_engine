@@ -10,12 +10,12 @@ constexpr compute_t operator""_fp(const long double x) { return static_cast<comp
 
 inline constexpr std::size_t nThreads = 32;
 
-inline constexpr std::size_t Nx = 1501;
+inline constexpr std::size_t Nx = 751;
 inline constexpr std::size_t Ny = 2;
 inline constexpr std::size_t Nz = 1501;
 inline constexpr std::size_t nHalo = 0zu;
 
-inline constexpr std::array x_range = {-15.0e-6_fp, 15.0e-6_fp};
+inline constexpr std::array x_range = {-3.0e-6_fp, 12.0e-6_fp};
 inline constexpr std::array y_range = {0.0_fp, 2.0e-8_fp}; // 40 nm
 inline constexpr std::array z_range = {-15.0e-6_fp, 15.0e-6_fp};
 

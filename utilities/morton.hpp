@@ -2,6 +2,7 @@
 #define MORTON_HPP
 
 #include <cstdint>
+#include <array>
 
 namespace tf {
 	// LUT for Morton3D encode X
@@ -246,12 +247,12 @@ namespace tf {
 	}
 
 	// DECODE 3D std::uint64_t code : Shifted LUT
-	inline void morton3D_64_decode(const std::uint64_t m, std::uint32_t& x, std::uint32_t& y, std::uint32_t& z) {
-		x = morton3D_DecodeCoord_LUT256(m, Morton3D_decode_x_512, 0);
-		y = morton3D_DecodeCoord_LUT256(m, Morton3D_decode_y_512, 0);
-		z = morton3D_DecodeCoord_LUT256(m, Morton3D_decode_z_512, 0);
+	inline std::array<std::uint32_t, 3> morton3D_64_decode(const std::uint64_t m) {
+		return  { morton3D_DecodeCoord_LUT256(m, Morton3D_decode_x_512, 0),
+							morton3D_DecodeCoord_LUT256(m, Morton3D_decode_y_512, 0),
+							morton3D_DecodeCoord_LUT256(m, Morton3D_decode_z_512, 0)};
 	}
 
-}
+} // end namespace tf
 
 #endif //MORTON_HPP

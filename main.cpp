@@ -156,7 +156,7 @@ int main() {
 
   EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
   add_gaussianbeam(emsolver);
-  CurrentDeposition jdep{emsolver.emdata};
+  const CurrentDeposition jdep{emsolver.emdata};
   constexpr BorisPush particle_push{};
 
   auto metrics = create_metrics("/home/cepheid/TriForce/game_engine/data/lsi_test", emsolver, g1, g2);
@@ -170,12 +170,10 @@ int main() {
       .message = "Step",
       .speed = 0.,
       .speed_unit = "steps/s",
-      .style = bk::ProgressBarStyle::Rich,
       .interval = 1.,
       .show = false}
     );
 
-  // std::println("Step {:4} Time: {:8.2e} Complete: {:4.1f}%", step, t, 0.0_fp);
   timers["IO"].start_timer();
   metrics.write(step);
   timers["IO"].stop_timer();
@@ -201,8 +199,6 @@ int main() {
 
     if (step % save_interval == 0) {
       timers["IO"].start_timer();
-      // const auto percent = 100.0_fp * t / total_time;
-      // std::println("Step {:4} Time: {:8.2e} Complete: {:4.1f}%", step, t, percent);
       metrics.write(step);
       timers["IO"].stop_timer();
     }

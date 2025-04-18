@@ -3,7 +3,9 @@
 import numpy as np
 from functools import cmp_to_key
 
-nx = ny = nz = 8
+nx = 7
+ny = 1
+nz = 6
 
 def mortonEncode(x, y, z):
     answer = 0
@@ -20,13 +22,6 @@ for i in range(nx):
 
 codes = np.asarray(codes)
 
-level_one = []
-for i in range(0, nx * ny * nz, 8):
-    level_one.append(codes[i:i + 8])
-
-# print(codes)
-# print(np.asarray(level_one))
-#
 print(codes.reshape((nx, ny, nz)))
 
 

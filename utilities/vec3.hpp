@@ -19,9 +19,9 @@ namespace tf
   template<typename T>
   struct vec3 {    
     constexpr vec3() = default;
-    constexpr vec3(T e0, T e1, T e2) : data{e0, e1, e2, T(0.0)} {}
-    explicit constexpr vec3(const __m128& e) { _mm_store_ps(data, e); }
-    explicit constexpr vec3(const __m256d& e) { _mm256_store_pd(data, e); }
+    constexpr vec3(T e0, T e1, T e2) : data{e0, e1, e2} {}
+    // explicit constexpr vec3(const __m128& e) { _mm_store_ps(data, e); }
+    // explicit constexpr vec3(const __m256d& e) { _mm256_store_pd(data, e); }
 
     T &operator[](std::size_t i) { return data[i]; }
     const T &operator[](std::size_t i) const { return data[i]; }
@@ -82,7 +82,7 @@ namespace tf
     bool operator==(const vec3 &v) const { return (data[0] == v[0] && data[1] == v[1] && data[2] == v[2]); }
     bool operator!=(const vec3 &v) const { return !(data == v); }
 
-    T data[4];
+    T data[3];
   };// end struct tf::vec3
 } // end namespace tf
 
@@ -142,27 +142,27 @@ tf::vec3<T> cross(const tf::vec3<T>& u, const tf::vec3<T>& v) {
           u[0] * v[1] - u[1] * v[0]};
 }
 
-[[nodiscard]] inline tf::vec3<double> cross_simd_dub(const tf::vec3<double>& u, const tf::vec3<double>& v) noexcept {
-  const auto vec0 = _mm256_load_pd(u.data);
-  const auto vec1 = _mm256_load_pd(v.data);
-  const auto tmp0 = _mm256_shuffle_pd( vec0, vec0, _MM_SHUFFLE(3,0,2,1) );
-  const auto tmp1 = _mm256_shuffle_pd( vec1, vec1, _MM_SHUFFLE(3,1,0,2) );
-  const auto tmp2 = _mm256_mul_pd( tmp0, vec1 );
-  const auto tmp3 = _mm256_mul_pd( tmp0, tmp1 );
-  const auto tmp4 = _mm256_shuffle_pd( tmp2, tmp2, _MM_SHUFFLE(3,0,2,1) );
-  return tf::vec3<double>{ _mm256_sub_pd( tmp3, tmp4 ) };
-}
-
-[[nodiscard]] inline tf::vec3<float> cross_simd_flt(const tf::vec3<float>& u, const tf::vec3<float>& v) noexcept {
-  const auto vec0 = _mm_load_ps(u.data);
-  const auto vec1 = _mm_load_ps(v.data);
-  const auto tmp0 = _mm_shuffle_ps( vec0, vec0, _MM_SHUFFLE(3,0,2,1) );
-  const auto tmp1 = _mm_shuffle_ps( vec1, vec1, _MM_SHUFFLE(3,1,0,2) );
-  const auto tmp2 = _mm_mul_ps( tmp0, vec1 );
-  const auto tmp3 = _mm_mul_ps( tmp0, tmp1 );
-  const auto tmp4 = _mm_shuffle_ps( tmp2, tmp2, _MM_SHUFFLE(3,0,2,1) );
-  return tf::vec3<float>{ _mm_sub_ps( tmp3, tmp4 ) };
-}
+// [[nodiscard]] inline tf::vec3<double> cross_simd_dub(const tf::vec3<double>& u, const tf::vec3<double>& v) noexcept {
+//   const auto vec0 = _mm256_load_pd(u.data);
+//   const auto vec1 = _mm256_load_pd(v.data);
+//   const auto tmp0 = _mm256_shuffle_pd( vec0, vec0, _MM_SHUFFLE(3,0,2,1) );
+//   const auto tmp1 = _mm256_shuffle_pd( vec1, vec1, _MM_SHUFFLE(3,1,0,2) );
+//   const auto tmp2 = _mm256_mul_pd( tmp0, vec1 );
+//   const auto tmp3 = _mm256_mul_pd( tmp0, tmp1 );
+//   const auto tmp4 = _mm256_shuffle_pd( tmp2, tmp2, _MM_SHUFFLE(3,0,2,1) );
+//   return tf::vec3<double>{ _mm256_sub_pd( tmp3, tmp4 ) };
+// }
+//
+// [[nodiscard]] inline tf::vec3<float> cross_simd_flt(const tf::vec3<float>& u, const tf::vec3<float>& v) noexcept {
+//   const auto vec0 = _mm_load_ps(u.data);
+//   const auto vec1 = _mm_load_ps(v.data);
+//   const auto tmp0 = _mm_shuffle_ps( vec0, vec0, _MM_SHUFFLE(3,0,2,1) );
+//   const auto tmp1 = _mm_shuffle_ps( vec1, vec1, _MM_SHUFFLE(3,1,0,2) );
+//   const auto tmp2 = _mm_mul_ps( tmp0, vec1 );
+//   const auto tmp3 = _mm_mul_ps( tmp0, tmp1 );
+//   const auto tmp4 = _mm_shuffle_ps( tmp2, tmp2, _MM_SHUFFLE(3,0,2,1) );
+//   return tf::vec3<float>{ _mm_sub_ps( tmp3, tmp4 ) };
+// }
 
 ///*
 // *  Cartesian:   (x, y, z)

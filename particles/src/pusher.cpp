@@ -65,8 +65,8 @@ namespace tf::particles {
     const auto t = bet / std::sqrt(1.0 + um.as_type<double>().length_squared() * constants::over_c_sqr);
     const auto s = 2.0 * t / (1.0 + t.length_squared());
 
-    // const auto v = eps + um + cross(um + cross(um, t), s);
-    auto v = eps + um + cross_simd_dub(um + cross_simd_dub(um, t), s);
+    auto v = eps + um + cross(um + cross(um, t), s);
+    // auto v = eps + um + cross_simd_dub(um + cross_simd_dub(um, t), s);
     v[1] = 0.0_fp;
     const auto gamma = std::sqrt(1.0 + v.length_squared() * constants::over_c_sqr);
 
