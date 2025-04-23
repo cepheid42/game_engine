@@ -67,7 +67,6 @@ namespace tf::particles {
 
     auto v = eps + um + cross(um + cross(um, t), s);
     // auto v = eps + um + cross_simd_dub(um + cross_simd_dub(um, t), s);
-    v[1] = 0.0_fp;
     const auto gamma = std::sqrt(1.0 + v.length_squared() * constants::over_c_sqr);
 
     // todo: updating location here, since it seems reasonable
@@ -134,16 +133,16 @@ namespace tf::particles {
           auto& p = chunk[pid];
 
           const int x_offset = static_cast<int>(std::floor(p.old_location[0]));
-          const int y_offset = static_cast<int>(std::floor(p.old_location[1]));
+          // const int y_offset = static_cast<int>(std::floor(p.old_location[1]));
           const int z_offset = static_cast<int>(std::floor(p.old_location[2]));
 
-          assert(y_offset == 0);
+          // assert(y_offset == 0);
 
           // Did not move out of the current cell
-          if (x_offset == 0 and y_offset == 0 and z_offset == 0) { continue; }
+          if (x_offset == 0 and z_offset == 0) { continue; }
 
           const std::size_t inew = i - x_offset;
-          const std::size_t jnew = j - y_offset;
+          // const std::size_t jnew = j - y_offset;
           const std::size_t knew = k - z_offset;
 
           // outflow boundary in X/Z
@@ -176,10 +175,10 @@ namespace tf::particles {
           //   knew -= alpha_z;
           // }
 
-          assert(get_cid(inew, jnew, knew) != get_cid(i, j, k));
+          assert(get_cid(inew, j, knew) != get_cid(i, j, k));
 
           // group.add_particle(p, inew, jnew, knew);
-          buffer.emplace_back(p, inew, jnew, knew);
+          buffer.emplace_back(p, inew, j, knew);
           group.remove_particle(chunk, pid);
         } // end for(pid)
       } // end for(chunk)

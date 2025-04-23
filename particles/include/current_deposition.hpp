@@ -131,6 +131,7 @@ namespace tf::particles {
       const auto& [ci, cj, ck] = cell.idxs;
       for (const auto& chunk : cell.chunks) {
         for (std::size_t pid = 0; pid < ParticleChunk::n_particles; pid++) {
+          if (!chunk.active.test(pid)) { continue; }
           const auto& p = chunk[pid];
 
           for (const auto& [cids, p0, p1, active]: split_trajectory(p, {ci, cj, ck})) {

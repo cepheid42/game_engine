@@ -3,12 +3,20 @@
 
 namespace tf::electromagnetics
 {
-  enum class Derivative { DX, DY, DZ };
+  enum class Derivative { DX, DY, DZ, NoOp };
   
   //=================== Array Differencing Functions ========================
   //=========================================================================
   template<Derivative, bool>
   struct Diff;
+
+  template<>
+  struct Diff<Derivative::NoOp, true> {
+    static constexpr Derivative type = Derivative::NoOp;
+    static constexpr std::size_t Forward = 1;
+
+    static auto apply(const auto&, std::size_t, std::size_t, std::size_t) { return 0.0f; }
+  };
 
   // ================= Forward Differences =================
   template<Derivative D>
@@ -48,6 +56,7 @@ namespace tf::electromagnetics
     }
   };
 
+  using noop = Diff<Derivative::NoOp, true>;
   using forward_dx = Diff<Derivative::DX, true>;
   using forward_dy = Diff<Derivative::DY, true>;
   using forward_dz = Diff<Derivative::DZ, true>;

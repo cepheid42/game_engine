@@ -47,4 +47,16 @@ game_engine = executable(
     dependencies: [thread_dep, adios_dep]
 )
 
+scratch = executable(
+    'quad',
+    sources: ['quad.cpp'],
+    cpp_args: gcc_opts
+)
+
+quads = executable(
+    'octs',
+    sources: ['octs.cpp'],
+    cpp_args: gcc_opts
+)
+
 #test('test', game_engine)

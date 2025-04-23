@@ -6,7 +6,7 @@
 
 namespace tf {
 	// LUT for Morton3D encode X
-	static const uint_fast32_t Morton3D_encode_x_256[256] =
+	static const uint_fast32_t Morton3D_encode_z_256[256] =
 	{
 		0x00000000,
 		0x00000001, 0x00000008, 0x00000009, 0x00000040, 0x00000041, 0x00000048, 0x00000049, 0x00000200,
@@ -81,7 +81,7 @@ namespace tf {
 	};
 
 	// LUT for Morton3D encode Z
-	static const uint_fast32_t Morton3D_encode_z_256[256] = {
+	static const uint_fast32_t Morton3D_encode_x_256[256] = {
 		0x00000000,
 		0x00000004, 0x00000020, 0x00000024, 0x00000100, 0x00000104, 0x00000120, 0x00000124, 0x00000800,
 		0x00000804, 0x00000820, 0x00000824, 0x00000900, 0x00000904, 0x00000920, 0x00000924, 0x00004000,
@@ -118,7 +118,7 @@ namespace tf {
 	};
 
 	// LUT for Morton3D decode X
-	static const uint_fast8_t Morton3D_decode_x_512[512] = {
+	static const uint_fast8_t Morton3D_decode_z_512[512] = {
 		0, 1, 0, 1, 0, 1, 0, 1, 2, 3, 2, 3, 2, 3, 2, 3,
 		0, 1, 0, 1, 0, 1, 0, 1, 2, 3, 2, 3, 2, 3, 2, 3,
 		0, 1, 0, 1, 0, 1, 0, 1, 2, 3, 2, 3, 2, 3, 2, 3,
@@ -190,7 +190,7 @@ namespace tf {
 	};
 
 	// LUT for Morton3D decode Z
-	static const uint_fast8_t Morton3D_decode_z_512[512] = {
+	static const uint_fast8_t Morton3D_decode_x_512[512] = {
 		0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1,
 		0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1,
 		2, 2, 2, 2, 3, 3, 3, 3, 2, 2, 2, 2, 3, 3, 3, 3,

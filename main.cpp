@@ -9,7 +9,7 @@
 #include "current_deposition.hpp"
 
 // #define UTL_PROFILER_DISABLE
-#include "profiler.hpp"
+// #include "profiler.hpp"
 #include "barkeep.h"
 
 #include <print>
@@ -36,7 +36,7 @@ void add_gaussianbeam(EMSolver& em) {
 
   vec3 waist_pos{0.0_fp, 0.0_fp, 0.0_fp};
 
-  constexpr auto x0 = 100zu;
+  constexpr auto x0 = 50zu;
   constexpr auto x1 = x0 + 1;
   constexpr auto y0 = 0zu;
   constexpr auto y1 = 1zu;
@@ -86,6 +86,9 @@ Metrics create_metrics(const std::string& dir, EMSolver& em, const ParticleGroup
         {"Hx", &em.emdata.Hx},
         {"Hy", &em.emdata.Hy},
         {"Hz", &em.emdata.Hz},
+        {"Jx", &em.emdata.Jx},
+        {"Jy", &em.emdata.Jy},
+        {"Jz", &em.emdata.Jz}
       },
       metrics.adios.DeclareIO("EMFields")
     )
@@ -171,6 +174,7 @@ int main() {
       .speed = 0.,
       .speed_unit = "steps/s",
       .interval = 1.,
+      // .no_tty = true,
       .show = false}
     );
 
@@ -193,6 +197,9 @@ int main() {
     jdep(g1, emsolver.emdata);
     jdep(g2, emsolver.emdata);
     timers["Jdep"].stop_timer();
+
+    g1.reset_y_positions();
+    g2.reset_y_positions();
 
     t += dt;
     step++;

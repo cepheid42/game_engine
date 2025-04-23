@@ -100,12 +100,6 @@ namespace tf {
     static constexpr auto operator[](const std::size_t) { return 0.0f; }
 
     static constexpr void fill(auto) {}
-
-//    // Dims
-//    [[nodiscard]] tf::types::vec3<std::size_t> dims() const { return {0zu, 0zu, 0zu}; }
-//    [[nodiscard]] std::size_t nx() const { return 0zu; }
-//    [[nodiscard]] std::size_t ny() const { return 0zu; }
-//    [[nodiscard]] std::size_t nz() const { return 0zu; }
   };
 } // end namespace tf
 

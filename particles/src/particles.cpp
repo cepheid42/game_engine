@@ -20,6 +20,7 @@ namespace tf::particles {
     vec3<double> location{};
     vec3<double> velocity{};
     float weight = 0.0;
+    double y_init = 0.0;
 
     std::println("Opened particle file: {}", filename);
     std::string line;
@@ -36,6 +37,7 @@ namespace tf::particles {
         location[i] = sx - std::floor(sx);
       }
 
+      y_init = location[1];
       // compute Lorentz factor and relativistic momentum
       const auto gamma = 1.0 / std::sqrt(1.0 - velocity.length_squared() * constants::over_c_sqr);
 
@@ -50,6 +52,7 @@ namespace tf::particles {
       g.add_particle(p, ix, iy, iz);
     }
     file.close();
+    g.initial_y_position = static_cast<compute_t>(y_init);
     return g;
   } // end initializeFromFile
 } // end namespace tf::particles

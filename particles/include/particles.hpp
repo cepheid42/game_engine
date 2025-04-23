@@ -137,12 +137,24 @@ namespace tf::particles {
       num_particles--;
     }
 
+    void reset_y_positions() {
+#pragma omp parallel for num_threads(nThreads)
+      for (std::size_t i = 0; i < Ncells; i++) {
+        for (auto& [particles, active]: cells[i].chunks) {
+          for (auto& p: particles) {
+            p.location[1] = initial_y_position;
+          }
+        }
+      }
+    }
+
     std::string name;
     std::size_t num_particles;
     std::size_t atomic_number;
     compute_t mass;
     compute_t charge;
     compute_t qdt_over_2m;
+    compute_t initial_y_position;
 
     std::vector<CellData> cells;
   }; // end struct ParticleGroup
