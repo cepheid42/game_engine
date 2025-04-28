@@ -8,8 +8,6 @@
 #include "pusher.hpp"
 #include "current_deposition.hpp"
 
-// #define UTL_PROFILER_DISABLE
-// #include "profiler.hpp"
 #include "barkeep.h"
 
 #include <print>

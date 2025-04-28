@@ -8,14 +8,24 @@ project(
 #        'buildtype=release',
         'warning_level=3',
         'cpp_std=c++23',
-        'b_sanitize=address'
+#        'b_sanitize=address',
+        'b_lto=true',
+#        'b_pgo=generate',
+#        'b_pgo=use'
     ]
 )
+
+debug_opts = [
+#    '-O0', '-g'
+#    '-fopt-info-vec-missed=missed.txt',
+]
 
 gcc_opts = [
     '-fuse-ld=mold',
     '-march=native',
-    '-Wconversion'
+    '-Wconversion',
+    '-ftree-vectorize',
+#    '-ffast-math',
 ]
 
 includes = include_directories(
@@ -42,21 +52,8 @@ adios_dep = dependency('adios2', required: true)
 game_engine = executable(
     'game_engine',
     sources: sources,
-    cpp_args: gcc_opts,
+    cpp_args: gcc_opts + debug_opts,
     include_directories: includes,
     dependencies: [thread_dep, adios_dep]
 )
-
-scratch = executable(
-    'quad',
-    sources: ['quad.cpp'],
-    cpp_args: gcc_opts
-)
-
-quads = executable(
-    'octs',
-    sources: ['octs.cpp'],
-    cpp_args: gcc_opts
-)
-
 #test('test', game_engine)

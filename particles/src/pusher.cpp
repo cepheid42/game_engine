@@ -1,14 +1,11 @@
 #include "pusher.hpp"
 
 #include "program_params.hpp"
+#include "em_params.hpp"
 #include "constants.hpp"
-
-#define UTL_PROFILER_DISABLE
-#include "profiler.hpp"
 
 #include <cassert>
 
-#include "em_params.hpp"
 
 namespace tf::particles {
   vec3<double> BFieldAtParticle(const vec3<compute_t>& loc,

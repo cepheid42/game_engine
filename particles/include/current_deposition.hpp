@@ -8,9 +8,6 @@
 #include "bc_data.hpp"
 #include "bc_functors.hpp"
 
-#define UTL_PROFILER_DISABLE
-#include "profiler.hpp"
-
 #include <array>
 #include <cmath>
 
