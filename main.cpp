@@ -24,8 +24,8 @@ namespace bk = barkeep;
 void add_gaussianbeam(EMSolver& em) {
   using temporal_vec = std::vector<std::unique_ptr<TemporalSource>>;
 
-  constexpr auto freq = static_cast<compute_t>(constants::c) / 8.0e-7_fp; // Hz -> c / 800 nm
-  constexpr auto omega = 2.0_fp * static_cast<compute_t>(constants::pi) * freq;
+  constexpr auto freq = constants::c<compute_t> / 8.0e-7_fp; // Hz -> c / 800 nm
+  constexpr auto omega = 2.0_fp * constants::pi<compute_t> * freq;
   constexpr auto amp = 2.75e13_fp; // V/m
   constexpr auto w0 = 2.548e-6_fp; // meters, waste size
 
@@ -146,9 +146,9 @@ int main() {
   auto timers = create_timers();
 
   timers["Main"].start_timer();
-  constexpr auto m_e = static_cast<compute_t>(constants::m_e);
-  constexpr auto m_p = static_cast<compute_t>(constants::m_p);
-  constexpr auto q_e = static_cast<compute_t>(constants::q_e);
+  constexpr auto m_e = constants::m_e<compute_t>;
+  constexpr auto m_p = constants::m_p<compute_t>;
+  constexpr auto q_e = constants::q_e<compute_t>;
   constexpr auto ion_file = "/home/cepheid/TriForce/game_engine/data/ion_slab.dat";
   constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/electron_slab.dat";
 
@@ -158,7 +158,7 @@ int main() {
   EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
   add_gaussianbeam(emsolver);
   const CurrentDeposition jdep{emsolver.emdata};
-  constexpr BorisPush particle_push{};
+  BorisPush particle_push{};
 
   auto metrics = create_metrics("/home/cepheid/TriForce/game_engine/data/lsi_test", emsolver, g1, g2);
 

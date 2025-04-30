@@ -115,7 +115,7 @@ namespace tf::electromagnetics {
         for (auto& x: d) { x -= hstep; }
       }
 
-      constexpr auto eta0 = static_cast<compute_t>(constants::eta0);
+      constexpr auto eta0 = constants::eta0<compute_t>;
       constexpr auto pml_grade = static_cast<compute_t>(PMLGrade);
       constexpr auto sigma_max = (0.8_fp * (pml_grade + 1.0_fp)) / (dx * eta0);
 
@@ -146,7 +146,7 @@ namespace tf::electromagnetics {
     }
 
     void calculate_coeffs(const std::vector<compute_t>& sigma, const std::vector<compute_t>& alpha) {
-      constexpr auto coef1 = -dt / static_cast<compute_t>(constants::eps0);
+      constexpr auto coef1 = -dt / constants::eps0<compute_t>;
 
       for (auto i = 0zu; i < PMLDepth; i++) {
         constexpr auto kappa_bc = 1.0_fp;

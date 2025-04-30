@@ -20,10 +20,9 @@ namespace tf::electromagnetics {
   }
 
   void EMData::init_coefficients(const compute_t cfl, const compute_t dt) {
-    constexpr auto eta0 = static_cast<compute_t>(constants::eta0);
-    const auto e_coeff = cfl * eta0;
-    const auto h_coeff = cfl / eta0;
-    const auto j_coeff = dt / static_cast<compute_t>(constants::eps0);
+    const auto e_coeff = cfl * constants::eta0<compute_t>;
+    const auto h_coeff = cfl / constants::eta0<compute_t>;
+    const auto j_coeff = dt / constants::eps0<compute_t>;
 
     // todo: add loss terms
     Cexe.fill(1.0_fp);
@@ -65,15 +64,15 @@ namespace tf::electromagnetics {
   }
 
   compute_t EMData::getBx(const std::size_t i, const std::size_t j, const std::size_t k) const {
-    return static_cast<compute_t>(constants::mu0) * Hx(i, j, k) + Bx_app(i, j, k);
+    return static_cast<compute_t>(constants::mu0<compute_t>) * Hx(i, j, k) + Bx_app(i, j, k);
   }
 
   compute_t EMData::getBy(const std::size_t i, const std::size_t j, const std::size_t k) const {
-    return static_cast<compute_t>(constants::mu0) * Hy(i, j, k) + By_app(i, j, k);
+    return static_cast<compute_t>(constants::mu0<compute_t>) * Hy(i, j, k) + By_app(i, j, k);
   }
 
   compute_t EMData::getBz(const std::size_t i, const std::size_t j, const std::size_t k) const {
-    return static_cast<compute_t>(constants::mu0) * Hz(i, j, k) + Bz_app(i, j, k);
+    return static_cast<compute_t>(constants::mu0<compute_t>) * Hz(i, j, k) + Bz_app(i, j, k);
   }
 
 } // end namespace tf::electromagnetics

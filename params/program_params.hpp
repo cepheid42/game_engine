@@ -4,7 +4,7 @@
 #include <array>
 #include <cmath>
 
-using compute_t = float;
+using compute_t = double;
 
 constexpr compute_t operator""_fp(const long double x) { return static_cast<compute_t>(x); }
 

@@ -14,21 +14,24 @@ namespace tf::particles {
     using cell_data = ParticleGroup::CellData;
     using efield = std::array<compute_t, 4>;
     using bfield = std::array<compute_t, 2>;
+    using buffer_t = std::vector<std::tuple<Particle, std::size_t>>;
 
-    static void update_particle(Particle&,
+    buffer_t buffer{};
+
+    static void update_velocity(Particle&,
                                 const efield&, const efield&, const efield&,
                                 const bfield&, const bfield&, const bfield&);
-    static void advance_cell(cell_data&, const emdata_t&, compute_t, std::size_t, std::size_t, std::size_t);
+    static bool update_position(Particle&);
+    static void advance_cell(cell_data&, const emdata_t&, compute_t);
     static void advance(group_t&, const emdata_t&);
-    static void update_cells(group_t&);
+    void update_cells(group_t&);
 
-    static void operator()(group_t& g, const emdata_t& emdata) {
+    void operator()(group_t& g, const emdata_t& emdata) {
       advance(g, emdata);
       update_cells(g);
     }
   }; // end struct BorisPush
 } // end namespace tf::particles
-
 
 
 #endif //PUSHER_HPP

@@ -2,12 +2,11 @@
 #define PARTICLE_HPP
 
 #include "program_params.hpp"
-#include "particle_params.hpp"
 #include "vec3.hpp"
 
 #include <array>
 #include <bitset>
-#include <print>
+// #include <print>
 
 namespace tf::particles {
   struct Particle {
@@ -22,8 +21,6 @@ namespace tf::particles {
     static constexpr std::size_t n_particles = 32;
     // (42 * 48 bytes + 3 * 4 bytes + 8 bytes + 4 bytes) = 2048 exactly
     //  ^ particles     ^ indices     ^ bitset  ^ padding
-
-    // explicit ParticleChunk(const std::uint32_t i_, const std::uint32_t j_, const std::uint32_t k_) : idxs{i_, j_, k_} {}
 
     bool add_particle(const Particle& p) {
       // todo: would disabling this check effect performance? Just loop over and then default false.
@@ -50,47 +47,8 @@ namespace tf::particles {
 
     std::array<Particle, n_particles> particles{};
     std::bitset<n_particles> active{};
+    std::bitset<n_particles> moves{};
   }; // end struct ParticleChunk
-
-
-  // struct ParticleChunkSoA {
-  //   static constexpr std::size_t n_particles = 32;
-  //   // (42 * 48 bytes + 3 * 4 bytes + 8 bytes + 4 bytes) = 2048 exactly
-  //   //  ^ particles     ^ indices     ^ bitset  ^ padding
-  //
-  //   template<typename T> using array_t = std::array<T, n_particles>;
-  //
-  //   bool add_particle(const vec3<compute_t>& new_loc, const vec3<compute_t>& old_loc, const vec3<compute_t>& new_vel, const compute_t new_weight, const double new_gamma) {
-  //     // todo: would disabling this check effect performance? Just loop over and then default false.
-  //     if (active.all()) { return false; } // chunk is full
-  //
-  //     for (std::size_t i = 0; i < n_particles; ++i) {
-  //       if (!active.test(i)) {
-  //         location[i]     = new_loc;
-  //         old_location[i] = old_loc;
-  //         velocity[i]     = new_vel;
-  //         weight[i]       = new_weight;
-  //         gamma[i]        = new_gamma;
-  //         active.set(i, true);
-  //         return true;
-  //       }
-  //     }
-  //     return false;
-  //   }
-  //
-  //   void remove_particle(const std::size_t pid) {
-  //     active.set(pid, false);
-  //   }
-  //
-  //   [[nodiscard]] std::size_t num_particles() const { return active.count(); }
-  //
-  //   array_t<vec3<compute_t>> location;
-  //   array_t<vec3<compute_t>> old_location;
-  //   array_t<vec3<compute_t>> velocity;
-  //   array_t<compute_t> weight;
-  //   array_t<double> gamma;
-  //   std::bitset<n_particles> active{};
-  // }; // end struct Particle
 
   struct ParticleGroup {
     struct CellData {
@@ -106,22 +64,25 @@ namespace tf::particles {
       atomic_number(z_),
       mass(mass_),
       charge(charge_),
-      qdt_over_2m(static_cast<compute_t>(0.5 * static_cast<double>(charge) * static_cast<double>(dt) / static_cast<double>(mass))),
+      qdt_over_2m(calculate_qdt_over_2m()),
       cells{Ncx * Ncy * Ncz}
     {
       for (std::uint32_t i = 0; i < Ncx; i++) {
         for (std::uint32_t j = 0; j < Ncy; j++) {
           for (std::uint32_t k = 0; k < Ncz; k++) {
-            const auto index = get_cid(i, j, k);
-            cells[index] = {{}, {i, j, k}};
+            cells[get_cid(i, j, k)] = {{}, {i, j, k}};
           } // end for(k)
         } // end for(j)
       } // end for(i)
     }
 
-    void add_particle(const Particle& p, const std::size_t i, const std::size_t j, const std::size_t k) {
-      const auto cid = get_cid(i, j, k);
-      num_particles++;
+    [[nodiscard]] compute_t calculate_qdt_over_2m() const {
+      return static_cast<compute_t>(0.5 * static_cast<double>(charge) * static_cast<double>(dt) / static_cast<double>(mass));
+    }
+
+    // void add_particle(const Particle& p, const std::size_t cid)
+    void add_particle(const Particle& p, const std::size_t cid) {
+;      num_particles++;
       for (auto& chunk : cells[cid].chunks) {
         if (chunk.add_particle(p)) {
           return;
@@ -139,10 +100,11 @@ namespace tf::particles {
 
     void reset_y_positions() {
 #pragma omp parallel for num_threads(nThreads)
-      for (std::size_t i = 0; i < Ncells; i++) {
-        for (auto& [particles, active]: cells[i].chunks) {
-          for (auto& p: particles) {
-            p.location[1] = initial_y_position;
+      for (auto& [chunks, idxs] : cells) {
+        if (chunks.empty()) { continue; }
+        for (auto& chunk : chunks) {
+          for (std::size_t i = 0; i < ParticleChunk::n_particles; ++i) {
+            chunk[i].location[1] = initial_y_position;
           }
         }
       }
@@ -154,7 +116,7 @@ namespace tf::particles {
     compute_t mass;
     compute_t charge;
     compute_t qdt_over_2m;
-    compute_t initial_y_position;
+    compute_t initial_y_position{};
 
     std::vector<CellData> cells;
   }; // end struct ParticleGroup

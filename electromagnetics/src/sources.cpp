@@ -9,7 +9,7 @@
 namespace tf::electromagnetics {
   [[nodiscard]] compute_t RickerSource::eval(const compute_t t) const {
     constexpr auto Md = 2.0_fp;
-    const auto alpha = math::SQR(static_cast<compute_t>(constants::pi) * freq * (t - Md / freq));
+    const auto alpha = math::SQR(static_cast<compute_t>(constants::pi<compute_t>) * freq * (t - Md / freq));
     return (1.0_fp - 2.0_fp * alpha) * std::exp(-alpha);
   }
 
@@ -76,7 +76,7 @@ namespace tf::electromagnetics {
     const auto z = xpos - waist_pos[0]; // -x direction
 
     assert(z != 0.0_fp);
-    const auto k = omega_ / static_cast<compute_t>(constants::c);
+    const auto k = omega_ / static_cast<compute_t>(constants::c<compute_t>);
     const auto zR = 0.5_fp * k * math::SQR(waist_size);
     const auto wz = waist_size * std::sqrt(1.0_fp + math::SQR(z / zR));
 

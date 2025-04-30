@@ -70,6 +70,7 @@ namespace tf::metrics {
     adios2::Variable<compute_t> var_temp;
     std::vector<compute_t> density;
     std::vector<compute_t> T_avg;
+    std::vector<compute_t> KE_total;
   };
 
   // =======================================
@@ -81,7 +82,7 @@ namespace tf::metrics {
     explicit Metrics(std::string data_dir_) : data_dir(std::move(data_dir_)) {}
     void addMetric(std::unique_ptr<detail::MetricBase>&& m) { metrics.push_back(std::move(m)); }
 
-    void write(std::size_t);
+    void write(std::size_t) const;
 
   public:
     adios2::ADIOS adios{};

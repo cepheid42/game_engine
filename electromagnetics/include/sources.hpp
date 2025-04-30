@@ -36,7 +36,7 @@ namespace tf::electromagnetics {
      *    so the array is {1/1.55, 2/1.55, 3/1.55}
      *
      */
-    explicit BlackmanHarris(const compute_t dx_) : omega(static_cast<compute_t>(constants::pi2 * constants::c) / (Nl * dx_)), duration{cutoff_factor / omega} {}
+    explicit BlackmanHarris(const compute_t dx_) : omega((constants::pi2<compute_t> * constants::c<compute_t>) / (Nl * dx_)), duration{cutoff_factor / omega} {}
 
     [[nodiscard]] compute_t eval(compute_t) const override;
 

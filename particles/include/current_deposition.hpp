@@ -2,11 +2,10 @@
 #define CURRENT_DEPOSITION_HPP
 
 #include "math_utils.hpp"
-
 #include "particles.hpp"
 #include "em_data.hpp"
 #include "bc_data.hpp"
-#include "bc_functors.hpp"
+#include "small_vector.hpp"
 
 #include <array>
 #include <cmath>
@@ -28,54 +27,31 @@ namespace tf::particles {
   };
 
   inline std::array<Segment, 2> split_trajectory(const Particle& p, const std::array<std::size_t, 3>& cidx1) {
-    const auto x_offset = std::floor(p.old_location[0]);
-    const auto y_offset = std::floor(p.old_location[1]);
-    const auto z_offset = std::floor(p.old_location[2]);
+    const auto xoff = std::floor(p.old_location[0]);
+    const auto yoff = std::floor(p.old_location[1]);
+    const auto zoff = std::floor(p.old_location[2]);
 
-    if (x_offset == 0.0 and y_offset == 0.0 and z_offset == 0.0) {
+    if (xoff == 0.0 and yoff == 0.0 and zoff == 0.0) {
       // Particle did not leave current cell
       return {Segment{cidx1, p.old_location, p.location, true},
               Segment{cidx1, p.old_location, p.location, false}};
     }
 
-    const auto xr0 = x_offset == 0.0_fp ? p.location[0] : std::max(0.0_fp, -x_offset);
-    const auto yr0 = y_offset == 0.0_fp ? p.location[1] : std::max(0.0_fp, -y_offset);
-    const auto zr0 = z_offset == 0.0_fp ? p.location[2] : std::max(0.0_fp, -z_offset);
+    const auto xr0 = xoff == 0.0_fp ? p.location[0] : std::max(0.0_fp, -xoff);
+    const auto yr0 = yoff == 0.0_fp ? p.location[1] : std::max(0.0_fp, -yoff);
+    const auto zr0 = zoff == 0.0_fp ? p.location[2] : std::max(0.0_fp, -zoff);
 
     const vec3 pr0{xr0, yr0, zr0};
-    const vec3 pr1{xr0 + x_offset, yr0 + y_offset, zr0 + z_offset};
+    const vec3 pr1{xr0 + xoff, yr0 + yoff, zr0 + zoff};
 
     // todo: pray to the gods that none of the cell id's are zero...
-    const auto xo = static_cast<int>(x_offset);
-    const auto yo = static_cast<int>(y_offset);
-    const auto zo = static_cast<int>(z_offset);
+    const auto xo = static_cast<int>(xoff);
+    const auto yo = static_cast<int>(yoff);
+    const auto zo = static_cast<int>(zoff);
     const std::array cidx0 = {cidx1[0] + xo, cidx1[1] + yo, cidx1[2] + zo};
     return {Segment{cidx0, p.old_location, pr0, true},
             Segment{cidx1, pr1, p.location, true}};
   }
-
-  template<electromagnetics::EMFace F>
-  struct PeriodicBC {
-    using PeriodicData = electromagnetics::PeriodicData<F, electromagnetics::EMSide::Lo>;
-    using PeriodicFunctor = electromagnetics::PeriodicFunctor<F, true>;
-    using BCIntegrator = electromagnetics::BCIntegrator<PeriodicFunctor>;
-
-    static constexpr Array3D<void> empty{};
-
-    BCIntegrator updater_func{};
-    PeriodicData J0;
-    PeriodicData J1;
-
-    explicit PeriodicBC(const auto& j0, const auto& j1)
-    : J0(j0), J1(j1)
-    {}
-
-    void operator()(auto& j0, auto& j1) {
-      updater_func(j0, empty, empty, J0);
-      updater_func(j1, empty, empty, J1);
-    }
-  };
-
 
   struct CurrentDeposition {
     using emdata_t = electromagnetics::EMData;
@@ -85,22 +61,12 @@ namespace tf::particles {
     using EMFace = electromagnetics::EMFace;
     using EMSide = electromagnetics::EMSide;
 
-    // PeriodicBC<EMFace::X> x_bc;
-    // PeriodicBC<EMFace::Y> y_bc;
-    // PeriodicBC<EMFace::Z> z_bc;
-
-    // explicit CurrentDeposition(const emdata_t& emdata)
-    // : x_bc(emdata.Jy, emdata.Jz),
-    //   y_bc(emdata.Jx, emdata.Jz),
-    //   z_bc(emdata.Jx, emdata.Jy)
-    // {}
-
     explicit CurrentDeposition(const emdata_t&) {}
 
     template<int D>
     static void updateJ(auto& J, const auto& as0, const auto& as1, const auto& bs0, const auto& bs1, const auto& cs0, const auto& cs1, const auto& qA, const std::array<std::size_t, 3>& idxs, const std::array<std::size_t, 3>& bounds) {
-      static constexpr auto third = 1.0f / 3.0f;
-      static constexpr auto sixth = 1.0f / 6.0f;
+      static constexpr auto third = 1.0_fp / 3.0_fp;
+      static constexpr auto sixth = 1.0_fp / 6.0_fp;
 
       const auto& [i, j, k] = idxs;
       const auto& [i1, j1, k1] = bounds;
@@ -132,7 +98,6 @@ namespace tf::particles {
           const auto& p = chunk[pid];
 
           for (const auto& [cids, p0, p1, active]: split_trajectory(p, {ci, cj, ck})) {
-            // todo: this would be a great place for a small_vector, so I can remove the active flag from segments
             if (!active) { continue; }
             const auto& [i, j, k] = cids;
 
@@ -152,28 +117,21 @@ namespace tf::particles {
             updateJ<0>(emdata.Jx, xs0, xs1, ys0, ys1, zs0, zs1, cx, {i, j - 1, k - 1}, {2, 3, 3});
             updateJ<1>(emdata.Jy, ys0, ys1, xs0, xs1, zs0, zs1, cy, {i - 1, j, k - 1}, {3, 2, 3});
             updateJ<2>(emdata.Jz, zs0, zs1, xs0, xs1, ys0, ys1, cz, {i - 1, j - 1, k}, {3, 3, 2});
-          }
-        }
-      }
+          } // end for(trajectory)
+        } // end for(pid)
+      } // end for(chunk)
     } // end update()
 
     static void update(const group_t& g, emdata_t& emdata) {
-#pragma omp parallel for collapse(3) num_threads(nThreads)
-      for (std::size_t i = nHalo; i < Ncx - nHalo; i++) {
-        for (std::size_t j = nHalo; j < Ncy - nHalo; j++) {
-          for (std::size_t k = nHalo; k < Ncz - nHalo; k++) {
-            const auto index = get_cid(i, j, k);
-            updateCell(g.cells[index], g.charge, emdata);
-          } // end for(k)
-        } // end for(j)
+#pragma omp parallel for num_threads(nThreads)
+      for (std::size_t i = 0; i < Ncells; i++) {
+            if (g.cells[i].chunks.empty()) { continue; }
+            updateCell(g.cells[i], g.charge, emdata);
       } // end for(i)
     }
 
     static void operator()(const group_t& g, emdata_t& emdata) {
       update(g, emdata);
-      // x_bc(emdata.Jy, emdata.Jz);
-      // y_bc(emdata.Jx, emdata.Jz);
-      // z_bc(emdata.Jx, emdata.Jy);
     }
   }; // end struct CurrentDeposition
 } // end namepsace tf::particles

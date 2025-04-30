@@ -16,7 +16,7 @@ namespace tf::particles {
 
     ParticleGroup g(name, mass, charge, z);
 
-    vec3<double> deltas{dx, dy, dz};
+    vec3 deltas{dx, dy, dz};
     vec3<double> location{};
     vec3<double> velocity{};
     float weight = 0.0;
@@ -39,7 +39,7 @@ namespace tf::particles {
 
       y_init = location[1];
       // compute Lorentz factor and relativistic momentum
-      const auto gamma = 1.0 / std::sqrt(1.0 - velocity.length_squared() * constants::over_c_sqr);
+      const auto gamma = 1.0 / std::sqrt(1.0 - velocity.length_squared() * constants::over_c_sqr<double>);
 
       const auto p = Particle{
         location.as_type<compute_t>(),
@@ -49,7 +49,8 @@ namespace tf::particles {
         gamma
       };
       // add particle to group
-      g.add_particle(p, ix, iy, iz);
+      g.add_particle(p, get_cid(ix, iy, iz));
+      // g.add_particle(p, get_cid(ix, iy, iz));
     }
     file.close();
     g.initial_y_position = static_cast<compute_t>(y_init);

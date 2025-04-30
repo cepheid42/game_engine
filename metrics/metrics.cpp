@@ -5,7 +5,7 @@
 #include "constants.hpp"
 
 #include <vector>
-#include <print>
+// #include <print>
 #include <algorithm>
 #include <adios2.h>
 
@@ -120,53 +120,41 @@ namespace tf::metrics {
     var_density(io.DefineVariable<compute_t>("Density", {Ncx, Ncy, Ncz}, {0, 0, 0}, {Ncx, Ncy, Ncz}, adios2::ConstantDims)),
     var_temp(io.DefineVariable<compute_t>("Temperature", {Ncx, Ncy, Ncz}, {0, 0, 0}, {Ncx, Ncy, Ncz}, adios2::ConstantDims)),
     density(g_->cells.size()),
-    T_avg(g_->cells.size())
+    T_avg(g_->cells.size()),
+    KE_total(g_->cells.size())
   {}
 
   void ParticleMetric::update_metrics() {
-    using ParticleChunk = particles::ParticleChunk;
-    // density = cell_weight / cell_volume
-    // Te = dv2sum * (me / (qe * cell_weight)) / 3
+    using Chunk = particles::ParticleChunk;
     constexpr auto V_cell_inv = 1.0_fp / (dx * dy * dz);
+    constexpr auto temp_coef = 2.0_fp / (3.0_fp * constants::q_e<compute_t>);
+
+    const auto mc2 = group->mass * constants::c_sqr<compute_t>;
 
     std::ranges::fill(density, 0.0_fp);
     std::ranges::fill(T_avg, 0.0_fp);
-    for (std::size_t cid = 0; cid < Ncx * Ncy * Ncz; cid++) {
-      const auto& cell = group->cells[cid];
+    std::ranges::fill(KE_total, 0.0_fp);
 
-      if (cell.chunks.empty()) {
-        continue;
-      }
-
-      auto cell_weight = 0.0_fp;
-      vec3<compute_t> v_avg{};
-
-      for (const auto& chunk : cell.chunks) {
-        for (std::size_t pid = 0; pid < ParticleChunk::n_particles; pid++) {
-          if (chunk.active.test(pid)) {
-            cell_weight += chunk[pid].weight;
-            v_avg += chunk[pid].weight * chunk[pid].velocity;
-          }
+    for (const auto& [chunks, idxs] : group->cells) {
+      if (chunks.empty()) { continue; }
+      const auto cid = get_cid(idxs[0], idxs[1], idxs[2]);
+      for (const auto& [particles, active, moves] : chunks) {
+        for (std::size_t pid = 0; pid < Chunk::n_particles; pid++) {
+          if (!active.test(pid)) { continue; }
+          const auto& p = particles[pid];
+          density[cid] += p.weight;
+          KE_total[cid] += p.weight * mc2 * (p.gamma - 1.0);
         }
       }
+    }
 
-      if (cell_weight == 0.0_fp) {
-        continue;
-      }
-      v_avg /= cell_weight;
+    for (std::size_t i = 0; i < T_avg.size(); i++) {
+      if (density[i] == 0.0_fp) { continue; }
+      T_avg[i] = temp_coef * KE_total[i] / density[i];
+    }
 
-      auto dv2_sum = 0.0_fp;
-      for (const auto& chunk : cell.chunks) {
-        for (std::size_t pid = 0; pid < ParticleChunk::n_particles; pid++) {
-          if (chunk.active.test(pid)) {
-            dv2_sum += chunk[pid].weight * (chunk[pid].velocity - v_avg).length_squared();
-          }
-        }
-      }
-
-      // for electrons only
-      T_avg[cid] = dv2_sum * group->mass / (3.0_fp * cell_weight * static_cast<compute_t>(constants::q_e));
-      density[cid] = cell_weight * V_cell_inv;
+    for (auto& x: density) {
+      x *= V_cell_inv;
     }
   }
 
@@ -184,7 +172,7 @@ namespace tf::metrics {
     writer.Close();
   } // end write()
 
-  void Metrics::write(const std::size_t step) {
+  void Metrics::write(const std::size_t step) const {
     static constexpr size_t padding = 10;
     std::string count_padded = std::to_string(step);
     count_padded.insert(count_padded.begin(), padding - count_padded.length(), '0');
