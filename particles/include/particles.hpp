@@ -4,6 +4,7 @@
 #include "program_params.hpp"
 #include "vec3.hpp"
 
+#include <vector>
 #include <array>
 #include <bitset>
 // #include <print>
@@ -19,8 +20,6 @@ namespace tf::particles {
 
   struct alignas(alignof(Particle)) ParticleChunk {
     static constexpr std::size_t n_particles = 32;
-    // (42 * 48 bytes + 3 * 4 bytes + 8 bytes + 4 bytes) = 2048 exactly
-    //  ^ particles     ^ indices     ^ bitset  ^ padding
 
     bool add_particle(const Particle& p) {
       // todo: would disabling this check effect performance? Just loop over and then default false.
@@ -36,10 +35,7 @@ namespace tf::particles {
       return false;
     }
 
-    void remove_particle(const std::size_t pid) {
-      active.set(pid, false);
-    }
-
+    void remove_particle(const std::size_t pid) { active.set(pid, false); }
     Particle& operator[](const size_t pid) { return particles[pid]; }
     const Particle& operator[](const size_t pid) const { return particles[pid]; }
 
@@ -58,18 +54,24 @@ namespace tf::particles {
 
     ParticleGroup() = delete;
 
-    ParticleGroup(std::string name_, const compute_t mass_, const compute_t charge_, const std::size_t z_)
+    ParticleGroup(std::string name_,
+                  const compute_t mass_,
+                  const compute_t charge_,
+                  const std::size_t z_,
+                  const std::size_t ncx,
+                  const std::size_t ncy,
+                  const std::size_t ncz)
     : name(std::move(name_)),
       num_particles(0zu),
       atomic_number(z_),
       mass(mass_),
       charge(charge_),
       qdt_over_2m(calculate_qdt_over_2m()),
-      cells{Ncx * Ncy * Ncz}
+      cells{ncx * ncy * ncz}
     {
-      for (std::uint32_t i = 0; i < Ncx; i++) {
-        for (std::uint32_t j = 0; j < Ncy; j++) {
-          for (std::uint32_t k = 0; k < Ncz; k++) {
+      for (std::uint32_t i = 0; i < ncx; i++) {
+        for (std::uint32_t j = 0; j < ncy; j++) {
+          for (std::uint32_t k = 0; k < ncz; k++) {
             cells[get_cid(i, j, k)] = {{}, {i, j, k}};
           } // end for(k)
         } // end for(j)
@@ -80,7 +82,6 @@ namespace tf::particles {
       return static_cast<compute_t>(0.5 * static_cast<double>(charge) * static_cast<double>(dt) / static_cast<double>(mass));
     }
 
-    // void add_particle(const Particle& p, const std::size_t cid)
     void add_particle(const Particle& p, const std::size_t cid) {
 ;      num_particles++;
       for (auto& chunk : cells[cid].chunks) {
@@ -122,7 +123,7 @@ namespace tf::particles {
   }; // end struct ParticleGroup
 
   struct ParticleInitializer {
-    static ParticleGroup initializeFromFile(const std::string&, compute_t, compute_t, std::size_t , const std::string&);
+    static ParticleGroup initializeFromFile(const std::string&, compute_t, compute_t, std::size_t, const std::string&);
   };
 } // end namespace tf::particles
 

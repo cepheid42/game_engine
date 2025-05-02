@@ -6,3 +6,4 @@ meson-build-debug/
 
 *.png
 *.csv
+*.data

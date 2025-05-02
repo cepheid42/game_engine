@@ -14,7 +14,7 @@ namespace tf::particles {
       throw std::runtime_error("Particle initialization from file failed: " + filename);
     }
 
-    ParticleGroup g(name, mass, charge, z);
+    ParticleGroup g(name, mass, charge, z, Ncx, Ncy, Ncz);
 
     vec3 deltas{dx, dy, dz};
     vec3<double> location{};

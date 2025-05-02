@@ -114,11 +114,15 @@ namespace tf::metrics {
     writer.Close();
   }
 
-  ParticleMetric::ParticleMetric(const group_t* g_, adios2::IO&& io_)
+  ParticleMetric::ParticleMetric(const group_t* g_,
+                                 adios2::IO&& io_,
+                                 const std::size_t ncx,
+                                 const std::size_t ncy,
+                                 const std::size_t ncz)
   : io(io_),
     group(g_),
-    var_density(io.DefineVariable<compute_t>("Density", {Ncx, Ncy, Ncz}, {0, 0, 0}, {Ncx, Ncy, Ncz}, adios2::ConstantDims)),
-    var_temp(io.DefineVariable<compute_t>("Temperature", {Ncx, Ncy, Ncz}, {0, 0, 0}, {Ncx, Ncy, Ncz}, adios2::ConstantDims)),
+    var_density(io.DefineVariable<compute_t>("Density", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz}, adios2::ConstantDims)),
+    var_temp(io.DefineVariable<compute_t>("Temperature", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz}, adios2::ConstantDims)),
     density(g_->cells.size()),
     T_avg(g_->cells.size()),
     KE_total(g_->cells.size())

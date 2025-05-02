@@ -2,12 +2,9 @@
 #define TRIFORCE_VECTOR_H
 
 #include <cmath>
-#include <functional>
 #include <sstream>
 #include <string>
-#include <format>
 #include <print>
-#include <x86intrin.h>
 
 
 // ===== Vector Types =====
@@ -73,7 +70,7 @@ namespace tf
     }
 
     template<typename U>
-    vec3<U> as_type() const {
+    constexpr vec3<U> as_type() const {
       return {static_cast<U>(data[0]),
               static_cast<U>(data[1]),
               static_cast<U>(data[2])};

@@ -22,7 +22,6 @@ namespace tf::electromagnetics {
       if constexpr (!Hi) { ipml = i; }
       else { ipml = i - x0 + Curl::Forward; }
 
-      // std::println("({}, {}, {}) -> {}", i, j, k, ipml);
       bc.psi(ipml, j, k) = bc.b[ipml] * bc.psi(ipml, j, k) + bc.c[ipml] * Curl::apply(f2, i, j, k);
       if constexpr (Negate) {
         f1(i, j, k) -= c1(i, j, k) * bc.psi(ipml, j, k);

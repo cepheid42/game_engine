@@ -18,12 +18,17 @@ project(
 debug_opts = [
 #    '-O0', '-g'
 #    '-fopt-info-vec-missed=missed.txt',
+#    '-DNDEBUG',
+#    '-fno-omit-frame-pointer',
+#    '-fno-inline-functions',
+#    '-fno-inline-functions-called-once',
+#    '-fno-optimize-sibling-calls'
 ]
 
 gcc_opts = [
+    '-Wconversion',
     '-fuse-ld=mold',
     '-march=native',
-    '-Wconversion',
     '-ftree-vectorize',
 #    '-ffast-math',
 ]
@@ -38,7 +43,6 @@ includes = include_directories(
 
 sources = [
     'main.cpp',
-    'electromagnetics/src/em_data.cpp',
     'electromagnetics/src/em_solver.cpp',
     'electromagnetics/src/sources.cpp',
     'metrics/metrics.cpp',
@@ -46,14 +50,17 @@ sources = [
     'particles/src/pusher.cpp'
 ]
 
-thread_dep = dependency('OpenMP')
-adios_dep = dependency('adios2', required: true)
+
+deps = [
+    dependency('adios2', required: true),
+    dependency('OpenMP')
+]
 
 game_engine = executable(
     'game_engine',
     sources: sources,
     cpp_args: gcc_opts + debug_opts,
     include_directories: includes,
-    dependencies: [thread_dep, adios_dep]
+    dependencies: deps
 )
 #test('test', game_engine)

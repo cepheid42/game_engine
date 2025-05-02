@@ -34,11 +34,11 @@ void add_gaussianbeam(EMSolver& em) {
 
   vec3 waist_pos{0.0_fp, 0.0_fp, 0.0_fp};
 
-  constexpr auto x0 = 50zu;
+  constexpr auto x0 = PMLDepth + 5zu;
   constexpr auto x1 = x0 + 1;
   constexpr auto y0 = 0zu;
   constexpr auto y1 = 1zu;
-  constexpr auto z0 = 100zu;
+  constexpr auto z0 = PMLDepth + 20zu;
   constexpr auto z1 = Nz - z0;
 
   using continuous_t = ContinuousSource;
@@ -102,7 +102,8 @@ Metrics create_metrics(const std::string& dir, EMSolver& em, const ParticleGroup
   metrics.addMetric(
     std::make_unique<ParticleMetric>(
       &g1,
-      metrics.adios.DeclareIO(g1.name + "_metrics")
+      metrics.adios.DeclareIO(g1.name + "_metrics"),
+      Ncx, Ncy, Ncz
     )
   );
 
@@ -116,7 +117,8 @@ Metrics create_metrics(const std::string& dir, EMSolver& em, const ParticleGroup
   metrics.addMetric(
     std::make_unique<ParticleMetric>(
       &g2,
-      metrics.adios.DeclareIO(g2.name + "_metrics")
+      metrics.adios.DeclareIO(g2.name + "_metrics"),
+      Ncx, Ncy, Ncz
     )
   );
 

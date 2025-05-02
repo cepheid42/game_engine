@@ -60,7 +60,7 @@ namespace tf::metrics {
   struct ParticleMetric final : detail::MetricBase {
     using group_t = particles::ParticleGroup;
 
-    ParticleMetric(const group_t*, adios2::IO&&);
+    ParticleMetric(const group_t*, adios2::IO&&, std::size_t, std::size_t, std::size_t);
     void update_metrics();
     void write(const std::string&, const std::string&) override;
 

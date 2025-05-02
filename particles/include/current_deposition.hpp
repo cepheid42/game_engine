@@ -5,7 +5,6 @@
 #include "particles.hpp"
 #include "em_data.hpp"
 #include "bc_data.hpp"
-#include "small_vector.hpp"
 
 #include <array>
 #include <cmath>
@@ -123,8 +122,8 @@ namespace tf::particles {
     } // end update()
 
     static void update(const group_t& g, emdata_t& emdata) {
-#pragma omp parallel for num_threads(nThreads)
-      for (std::size_t i = 0; i < Ncells; i++) {
+#pragma omp parallel for num_threads(nThreads) schedule(dynamic, chunkSize)
+      for (std::size_t i = 0; i < g.cells.size(); i++) {
             if (g.cells[i].chunks.empty()) { continue; }
             updateCell(g.cells[i], g.charge, emdata);
       } // end for(i)

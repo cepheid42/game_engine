@@ -25,17 +25,12 @@ namespace tf::electromagnetics {
   [[nodiscard]] compute_t GaussianSource::eval(const compute_t t) const {
     constexpr auto tol = 1e-15_fp;
     const auto val = std::exp(-1.0_fp * std::pow((t - delay) / width, power));
-    // std::println("{}", val);
     return val > tol ? val : 0.0_fp;
   }
 
   [[nodiscard]] compute_t ContinuousSource::eval(const compute_t t) const {
     if (t < start or t > stop) { return 0.0_fp; }
-    const auto val = std::sin(omega * t - phase);
-    // std::println("{}", val);
-    return val;
-
-    // return ramp.eval(t) * std::sin(omega * t - phase);
+    return std::sin(omega * t - phase);
   }
 
   [[nodiscard]] compute_t SpatialSource::eval(const compute_t t) const {
@@ -72,7 +67,6 @@ namespace tf::electromagnetics {
     const auto& [x0, x1, y0, y1, z0, z1] = src.offsets;
 
     const auto xpos = x_range[0] + (static_cast<compute_t>(x0) * dx);
-    // const auto z = waist_pos[0] - xpos; // +x direction
     const auto z = xpos - waist_pos[0]; // -x direction
 
     assert(z != 0.0_fp);
@@ -84,8 +78,6 @@ namespace tf::electromagnetics {
     const auto gouy = std::atan(z / zR);
     const auto c1 = waist_size / wz;
 
-    // std::println("k: {}\nz: {}\nzR: {}\nw(z): {}\nRC: {}\nGouy: {}\nc1: {}", k, z, zR, wz, RC, gouy, c1);
-
     std::vector<compute_t> r(z1 - z0);
 
     for (std::size_t i = z0; i < z1; ++i) {
@@ -93,7 +85,6 @@ namespace tf::electromagnetics {
     }
 
     for (std::size_t i = 0; i < r.size(); ++i) {
-      // std::println("{}, {}",std::exp(-1.0_fp * math::SQR(r[i] / wz)), std::cos((k * z) + (k * math::SQR(r[i]) / (2.0_fp * RC)) - gouy));
       coeffs[i] = c1 * std::exp(-1.0_fp * math::SQR(r[i] / wz)) * std::cos((k * z) + (k * math::SQR(r[i]) / (2.0_fp * RC)) - gouy);
     }
   } // end GaussianBeam ctor
@@ -105,7 +96,6 @@ namespace tf::electromagnetics {
       for (size_t j = y0; j < y1; ++j) {
         for (size_t k = z0; k < z1; ++k) {
           (*field)(i, j, k) = coeffs[k - z0] * val;
-          // (*field)(i, j, k) = val;
         }
       }
     }

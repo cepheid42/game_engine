@@ -1,6 +1,7 @@
 #ifndef PUSHER_HPP
 #define PUSHER_HPP
 
+#include "em_params.hpp"
 #include "particles.hpp"
 #include "em_data.hpp"
 
@@ -12,15 +13,14 @@ namespace tf::particles {
     using emdata_t = electromagnetics::EMData;
     using group_t = ParticleGroup;
     using cell_data = ParticleGroup::CellData;
-    using efield = std::array<compute_t, 4>;
-    using bfield = std::array<compute_t, 2>;
     using buffer_t = std::vector<std::tuple<Particle, std::size_t>>;
 
+    static constexpr std::size_t BC_DEPTH = PMLDepth - 5;
     buffer_t buffer{};
 
     static void update_velocity(Particle&,
-                                const efield&, const efield&, const efield&,
-                                const bfield&, const bfield&, const bfield&);
+                                const auto&, const auto&, const auto&,
+                                const auto&, const auto&, const auto&, auto);
     static bool update_position(Particle&);
     static void advance_cell(cell_data&, const emdata_t&, compute_t);
     static void advance(group_t&, const emdata_t&);
