@@ -4,6 +4,8 @@
 #include "update_functors.hpp"
 #include "bc_functors.hpp"
 
+#include <algorithm>
+
 namespace tf::electromagnetics {
   EMSolver::EMSolver(const std::size_t nx, const std::size_t ny, const std::size_t nz, const compute_t cfl, const compute_t dt)
   : emdata(nx, ny, nz, cfl, dt),
@@ -24,10 +26,10 @@ namespace tf::electromagnetics {
   }
 
   void EMSolver::updateBhalf() {
-    // todo: This doesn't work great, since Bx will be missing updates for half the steps
-    //       alternatives are to copy Hx->Bx every time, then run this
-    //       because otherwise it will need an entirely separate update function that doesn't write to the same field
-    //       e.g. b = h + curl, instead of h = h + curl...
+    std::ranges::copy(emdata.Hx.begin(), emdata.Hx.end(), emdata.Bx.begin());
+    std::ranges::copy(emdata.Hy.begin(), emdata.Hy.end(), emdata.By.begin());
+    std::ranges::copy(emdata.Hz.begin(), emdata.Hz.end(), emdata.Bz.begin());
+
     hx_update(emdata.Bx, emdata.Ey, emdata.Ez, emdata.empty, emdata.Chxh, emdata.Chxey2, emdata.Chxez2, emdata.empty, {0, 0, 0, 0, 0, 0});
     hy_update(emdata.By, emdata.Ez, emdata.Ex, emdata.empty, emdata.Chyh, emdata.Chyez2, emdata.Chyex2, emdata.empty, {0, 0, 0, 0, 0, 0});
     hz_update(emdata.Bz, emdata.Ex, emdata.Ey, emdata.empty, emdata.Chzh, emdata.Chzex2, emdata.Chzey2, emdata.empty, {0, 0, 0, 0, 0, 0});
@@ -81,5 +83,7 @@ namespace tf::electromagnetics {
 
     updateE();
     updateEBCs();
+
+    updateBhalf(); // for the particles and shit
   }
 } // end namespace tf::electromagnetics

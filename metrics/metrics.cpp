@@ -11,7 +11,6 @@
 
 
 namespace tf::metrics {
-
   EMFieldsMetric::EMFieldsMetric(const field_map& fields_, adios2::IO&& io_)
   : io(io_)
   {

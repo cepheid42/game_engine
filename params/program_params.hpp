@@ -29,7 +29,7 @@ inline constexpr auto Axz = dx * dz;
 inline constexpr auto Ayz = dy * dz;
 
 inline constexpr auto cfl = 0.848_fp / 1.732050807568877_fp;
-inline constexpr auto total_time = 2.0e-14_fp; //3.0e-13_fp; // 300 fs
+inline constexpr auto total_time = 3.0e-13_fp; // 2.0e-14_fp;// 300 fs
 inline constexpr auto dt = 4.0e-17_fp; // 0.04 fs
 inline constexpr auto Nt = static_cast<int>(total_time / dt) + 1;
 

@@ -73,7 +73,6 @@ namespace tf::particles {
       compute_t wm;
       auto wT = 0.0_fp;
       const std::array<compute_t, 2> ws = {as0[0] - as1[0], as1[2] - as0[2]};
-
       for (std::size_t ii = 0; ii < i1; ii++) {
         for (std::size_t jj = 0; jj < j1; jj++) {
           for (std::size_t kk = 0; kk < k1; kk++) {
@@ -124,8 +123,8 @@ namespace tf::particles {
     static void update(const group_t& g, emdata_t& emdata) {
 #pragma omp parallel for num_threads(nThreads) schedule(dynamic, chunkSize)
       for (std::size_t i = 0; i < g.cells.size(); i++) {
-            if (g.cells[i].chunks.empty()) { continue; }
-            updateCell(g.cells[i], g.charge, emdata);
+        if (g.cells[i].chunks.empty()) { continue; }
+        updateCell(g.cells[i], g.charge, emdata);
       } // end for(i)
     }
 

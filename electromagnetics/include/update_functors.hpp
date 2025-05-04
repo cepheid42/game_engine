@@ -37,38 +37,6 @@ namespace tf::electromagnetics {
       f(i, j, k) = self + (diff1 - diff2) - current;
     } // end apply
   }; // end struct ExplicitUpdateFunctor
-
-//  struct ImplicitUpdateFunctor {
-//    static void apply() {
-//      // todo : tridiagonal solve here
-//    }
-//  };
-//
-//  template<typename CurlA, typename CurlB>
-//  struct ExplicitFieldUpdate {
-//    static void apply(auto& f, const auto& d1, const auto& d2, const auto& src,
-//                      const auto& c_f, const auto& c_d1, const auto& c_d2, const auto& c_src,
-//                      const std::size_t i, const std::size_t j, const std::size_t k)
-//    {
-//      ExplicitUpdateFunctor<CurlA, CurlB>::apply(f, d1, d2, src, c_f, c_d1, c_d2, c_src, i, j, k);
-//    }
-//  };
-//
-//  template<typename CurlA, typename CurlB>
-//  struct ImplicitFieldUpdate {
-//    static void apply(auto& f, auto& f_aux, const auto& d1, const auto& d2, const auto& src,
-//                      const auto& c_f, const auto& c_d1, const auto& c_d2, const auto& c_src,
-//                      const std::size_t i, const std::size_t j, const std::size_t k)
-//    {
-//      // RHS
-//      ExplicitUpdateFunctor<CurlA, CurlB>::apply(f_aux, d1, d2, src, c_f, c_d1, c_d2, c_src, i, j, k);
-//
-//      // LHS
-//      ImplicitUpdateFunctor::apply();
-//
-//      // rest of the update
-//    }
-//  };
 }
 
 
