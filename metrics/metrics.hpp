@@ -5,7 +5,6 @@
 #include "array.hpp"
 #include "particles.hpp"
 
-#include <print>
 #include <unordered_map>
 #include <memory>
 

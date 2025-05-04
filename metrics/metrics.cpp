@@ -3,6 +3,7 @@
 #include "program_params.hpp"
 #include "particles.hpp"
 #include "constants.hpp"
+#include "morton.hpp"
 
 #include <vector>
 // #include <print>
@@ -45,10 +46,10 @@ namespace tf::metrics {
   ParticleDumpMetric::ParticleDumpMetric(const group_t* group_, adios2::IO&& io_)
   : io(io_),
     group(group_),
-    var_loc(io.DefineVariable<compute_t>("Position", {group->num_particles, 3}, {0, 0}, {group->num_particles, 3})),
-    var_vel(io.DefineVariable<compute_t>("Velocity", {group->num_particles, 3}, {0, 0}, {group->num_particles, 3})),
-    var_w(io.DefineVariable<compute_t>("Weight", {group->num_particles, 1}, {0, 0}, {group->num_particles, 1})),
-    var_gamma(io.DefineVariable<double>("Gamma", {group->num_particles, 1}, {0, 0}, {group->num_particles, 1}))
+    var_loc(io.DefineVariable<compute_t>("Position", {group->num_particles(), 3}, {0, 0}, {group->num_particles(), 3})),
+    var_vel(io.DefineVariable<compute_t>("Velocity", {group->num_particles(), 3}, {0, 0}, {group->num_particles(), 3})),
+    var_w(io.DefineVariable<compute_t>("Weight", {group->num_particles(), 1}, {0, 0}, {group->num_particles(), 1})),
+    var_gamma(io.DefineVariable<double>("Gamma", {group->num_particles(), 1}, {0, 0}, {group->num_particles(), 1}))
   {}
 
   void ParticleDumpMetric::write(const std::string& dir, const std::string& step_ext) {
@@ -59,25 +60,25 @@ namespace tf::metrics {
     // io.DefineAttribute<std::size_t>("atomic_number", group->atomic_number);
     // io.DefineAttribute<compute_t>("mass", group->mass);
     // io.DefineAttribute<compute_t>("charge", group->charge);
+    const auto& nParticles = group->num_particles();
 
-    var_loc.SetShape({group->num_particles, 3});
-    var_loc.SetSelection({{0, 0}, {group->num_particles, 3}}); // {{start}, {count}}
+    var_loc.SetShape({nParticles, 3});
+    var_loc.SetSelection({{0, 0}, {nParticles, 3}}); // {{start}, {count}}
 
-    var_vel.SetShape({group->num_particles, 3});
-    var_vel.SetSelection({{0, 0}, {group->num_particles, 3}}); // {{start}, {count}}
+    var_vel.SetShape({nParticles, 3});
+    var_vel.SetSelection({{0, 0}, {nParticles, 3}}); // {{start}, {count}}
 
-    var_w.SetShape({group->num_particles, 1});
-    var_w.SetSelection({{0, 0}, {group->num_particles, 1}}); // {{start}, {count}}
+    var_w.SetShape({nParticles, 1});
+    var_w.SetSelection({{0, 0}, {nParticles, 1}}); // {{start}, {count}}
 
-    var_gamma.SetShape({group->num_particles, 1});
-    var_gamma.SetSelection({{0, 0}, {group->num_particles, 1}}); // {{start}, {count}}
+    var_gamma.SetShape({nParticles, 1});
+    var_gamma.SetSelection({{0, 0}, {nParticles, 1}}); // {{start}, {count}}
 
     adios2::Engine writer = io.Open(file, adios2::Mode::Write);
     writer.BeginStep();
 
     constexpr vec3 delta{dx, dy, dz};
     constexpr vec3 lb{x_range[0], y_range[0], z_range[0]};
-    const auto& nParticles = group->num_particles;
 
     std::vector<compute_t> position{};
     std::vector<compute_t> velocity{};
@@ -89,19 +90,14 @@ namespace tf::metrics {
     weight.reserve(nParticles);
     gamma.reserve(nParticles);
 
-    for (const auto& [chunks, idxs]: group->cells) {
-      for (const auto& chunk : chunks) {
-        for (std::size_t pid = 0; pid < particles::ParticleChunk::n_particles; pid++) {
-          if (!chunk.active.test(pid)) { continue; }
-          const auto& p = chunk[pid];
-          for (std::size_t d = 0; d < 3; d++) {
-            position.push_back(lb[d] + delta[d] * (static_cast<compute_t>(idxs[d]) + p.location[d]));
-            velocity.push_back(p.velocity[d]);
-          }
-          weight.push_back(p.weight);
-          gamma.push_back(p.gamma);
-        }
+    for (const auto& p : group->particles) {
+      const auto idxs = morton_decode(p.code);
+      for (std::size_t d = 0; d < 3; d++) {
+        position.push_back(lb[d] + delta[d] * (static_cast<compute_t>(idxs[d]) + p.location[d]));
+        velocity.push_back(p.velocity[d]);
       }
+      weight.push_back(p.weight);
+      gamma.push_back(p.gamma);
     }
 
     writer.Put(var_loc, position.data());
@@ -122,13 +118,12 @@ namespace tf::metrics {
     group(g_),
     var_density(io.DefineVariable<compute_t>("Density", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz}, adios2::ConstantDims)),
     var_temp(io.DefineVariable<compute_t>("Temperature", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz}, adios2::ConstantDims)),
-    density(g_->cells.size()),
-    T_avg(g_->cells.size()),
-    KE_total(g_->cells.size())
+    density(Ncx * Ncy * Ncz),
+    T_avg(Ncx * Ncy * Ncz),
+    KE_total(Ncx * Ncy * Ncz)
   {}
 
   void ParticleMetric::update_metrics() {
-    using Chunk = particles::ParticleChunk;
     constexpr auto V_cell_inv = 1.0_fp / (dx * dy * dz);
     constexpr auto temp_coef = 2.0_fp / (3.0_fp * constants::q_e<compute_t>);
 
@@ -138,17 +133,11 @@ namespace tf::metrics {
     std::ranges::fill(T_avg, 0.0_fp);
     std::ranges::fill(KE_total, 0.0_fp);
 
-    for (const auto& [chunks, idxs] : group->cells) {
-      if (chunks.empty()) { continue; }
-      const auto cid = get_cid(idxs[0], idxs[1], idxs[2]);
-      for (const auto& [particles, active, moves] : chunks) {
-        for (std::size_t pid = 0; pid < Chunk::n_particles; pid++) {
-          if (!active.test(pid)) { continue; }
-          const auto& p = particles[pid];
-          density[cid] += p.weight;
-          KE_total[cid] += p.weight * mc2 * (p.gamma - 1.0);
-        }
-      }
+    for (const auto& p : group->particles) {
+      const auto [i, j, k] = morton_decode(p.code);
+      const auto cid = get_cid(i, j, k);
+      density[cid] += p.weight;
+      KE_total[cid] += p.weight * mc2 * (p.gamma - 1.0);
     }
 
     for (std::size_t i = 0; i < T_avg.size(); i++) {

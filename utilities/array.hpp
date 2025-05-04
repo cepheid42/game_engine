@@ -39,46 +39,46 @@ namespace tf {
     [[nodiscard]] std::size_t ny() const { return ny_; }
     [[nodiscard]] std::size_t nz() const { return nz_; }
 
-    // Unary Negation
-    auto operator-() const {
-      Array3D out(*this);
-      for (std::size_t i = 0; i < data_.size(); i++) { out[i] = -data_[i]; }
-      return out;
-    }
-    
-    // Augmented Assignment
-    auto& operator+=(const Array3D& other) {
-      assert(nx_ == other.nx() && ny_ == other.ny() && nz_ == other.nz());
-      for (std::size_t i = 0; i < data_.size(); i++) { (*this)[i] += other.data_[i]; }
-      return *this;
-    }
-    
-    auto& operator-=(const Array3D& other) {
-      assert(nx_ == other.nx() && ny_ == other.ny() && nz_ == other.nz());
-      for (std::size_t i = 0; i < data_.size(); i++) { (*this)[i] -= other.data_[i]; }
-      return *this;
-    }
-    
-    // Array-Scalar Operators
-    auto& operator+=(const T s) {
-      for (auto& value : data_) { value += s; }
-      return *this;
-    }
-    
-    auto& operator-=(const T s) {
-      for (auto& value : data_) { value -= s; }
-      return *this;
-    }
-    
-    auto& operator*=(const T s) {
-      for (auto& value : data_) { value *= s; }
-      return *this;
-    }
-    
-    auto& operator/=(const T s) {
-      for (auto& value : data_) { value /= s; }
-      return *this;
-    }
+    // // Unary Negation
+    // auto operator-() const {
+    //   Array3D out(*this);
+    //   for (std::size_t i = 0; i < data_.size(); i++) { out[i] = -data_[i]; }
+    //   return out;
+    // }
+    //
+    // // Augmented Assignment
+    // auto& operator+=(const Array3D& other) {
+    //   assert(nx_ == other.nx() && ny_ == other.ny() && nz_ == other.nz());
+    //   for (std::size_t i = 0; i < data_.size(); i++) { (*this)[i] += other.data_[i]; }
+    //   return *this;
+    // }
+    //
+    // auto& operator-=(const Array3D& other) {
+    //   assert(nx_ == other.nx() && ny_ == other.ny() && nz_ == other.nz());
+    //   for (std::size_t i = 0; i < data_.size(); i++) { (*this)[i] -= other.data_[i]; }
+    //   return *this;
+    // }
+    //
+    // // Array-Scalar Operators
+    // auto& operator+=(const T s) {
+    //   for (auto& value : data_) { value += s; }
+    //   return *this;
+    // }
+    //
+    // auto& operator-=(const T s) {
+    //   for (auto& value : data_) { value -= s; }
+    //   return *this;
+    // }
+    //
+    // auto& operator*=(const T s) {
+    //   for (auto& value : data_) { value *= s; }
+    //   return *this;
+    // }
+    //
+    // auto& operator/=(const T s) {
+    //   for (auto& value : data_) { value /= s; }
+    //   return *this;
+    // }
 
   private:
     // Stride data_

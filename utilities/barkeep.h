@@ -384,7 +384,7 @@ class AnimationDisplay : public BaseDisplay {
 
   long render_(bool redraw = false, const std::string& end = " ") override {
     long nls = render_message_();
-    if (not redraw) { frame_ = (frame_ + 1) % stills_.size(); }
+    if (not redraw) { frame_ = static_cast<decltype(frame_)>((frame_ + 1) % static_cast<decltype(frame_)>(stills_.size())); }
     out() << stills_[frame_] << end;
     return nls; // assuming no newlines in stills
   }
@@ -408,7 +408,7 @@ class AnimationDisplay : public BaseDisplay {
       auto& stills_pair = animation_stills_[idx];
       stills_ = stills_pair.first;
       def_interval_ = Duration(stills_pair.second);
-      frame_ = stills_.size() - 1; // start at the last frame,
+      frame_ = static_cast<decltype(frame_)>(stills_.size()) - 1; // start at the last frame,
                                    // it will be incremented
     }
     displayer_->interval(as_duration(cfg.interval) == Duration{0}
@@ -439,7 +439,7 @@ class StatusDisplay : public AnimationDisplay {
       std::lock_guard lock(message_mutex_);
       nls = render_message_();
     }
-    if (not redraw) { frame_ = (frame_ + 1) % stills_.size(); }
+    if (not redraw) { frame_ = static_cast<decltype(frame_)>((frame_ + 1) % static_cast<decltype(frame_)>(stills_.size())); }
     out() << stills_[frame_] << end;
     return nls; // assuming no newlines in stills
   }
@@ -624,7 +624,7 @@ class Speedometer {
     last_progress_ = progress_copy;
 
     progress_increment_sum_ =
-        (1 - discount_) * progress_increment_sum_ + progress_increment;
+        (1 - discount_) * progress_increment_sum_ + static_cast<double>(progress_increment);
     duration_increment_sum_ = (1 - discount_) * duration_increment_sum_ + dur;
     return duration_increment_sum_.count() == 0
                ? 0
@@ -949,7 +949,7 @@ class ProgressBarDisplay : public BaseDisplay {
     std::stringstream ss;
     ss << std::fixed << std::setprecision(2);
     ss.width(6);
-    ss << std::right << progress_provider_.load() * 100. / total_ << "%" << end;
+    ss << std::right << static_cast<double>(progress_provider_.load()) * 100. / static_cast<double>(total_) << "%" << end;
     out() << ss.str();
   }
 

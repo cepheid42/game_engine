@@ -5,12 +5,13 @@
 #include "particles.hpp"
 #include "em_data.hpp"
 #include "bc_data.hpp"
+#include "morton.hpp"
 
 #include <array>
 #include <cmath>
 
 namespace tf::particles {
-  inline std::array<compute_t, 3> quad_shapes(const compute_t v) {
+  static std::array<compute_t, 3> quad_shapes(const compute_t v) {
     return {
       0.5_fp * math::SQR(0.5_fp - v),
       0.75_fp - math::SQR(v),
@@ -25,7 +26,7 @@ namespace tf::particles {
     bool active{false};
   };
 
-  inline std::array<Segment, 2> split_trajectory(const Particle& p, const std::array<std::size_t, 3>& cidx1) {
+  static std::array<Segment, 2> split_trajectory(const Particle& p, const std::array<std::size_t, 3>& cidx1) {
     const auto xoff = std::floor(p.old_location[0]);
     const auto yoff = std::floor(p.old_location[1]);
     const auto zoff = std::floor(p.old_location[2]);
@@ -55,7 +56,6 @@ namespace tf::particles {
   struct CurrentDeposition {
     using emdata_t = electromagnetics::EMData;
     using group_t = ParticleGroup;
-    using CellData = ParticleGroup::CellData;
     using array_t = std::array<std::size_t, 3>;
     using EMFace = electromagnetics::EMFace;
     using EMSide = electromagnetics::EMSide;
@@ -88,48 +88,36 @@ namespace tf::particles {
       }
     } // end updateJ()
 
-    static void updateCell(const CellData& cell, const compute_t charge, emdata_t& emdata) {
-      const auto& [ci, cj, ck] = cell.idxs;
-      for (const auto& chunk : cell.chunks) {
-        for (std::size_t pid = 0; pid < ParticleChunk::n_particles; pid++) {
-          if (!chunk.active.test(pid)) { continue; }
-          const auto& p = chunk[pid];
+    static void update_particle(const Particle& p, emdata_t& emdata, const compute_t charge) {
+      const auto [ci, cj, ck] = morton_decode(p.code);
+      for (const auto& [cids, p0, p1, active]: split_trajectory(p, {ci, cj, ck})) {
+        if (!active) { continue; }
+        const auto& [i, j, k] = cids;
 
-          for (const auto& [cids, p0, p1, active]: split_trajectory(p, {ci, cj, ck})) {
-            if (!active) { continue; }
-            const auto& [i, j, k] = cids;
+        const auto xs0 = quad_shapes(p0[0]);
+        const auto xs1 = quad_shapes(p1[0]);
 
-            const auto xs0 = quad_shapes(p0[0]);
-            const auto xs1 = quad_shapes(p1[0]);
+        const auto ys0 = quad_shapes(p0[1]);
+        const auto ys1 = quad_shapes(p1[1]);
 
-            const auto ys0 = quad_shapes(p0[1]);
-            const auto ys1 = quad_shapes(p1[1]);
+        const auto zs0 = quad_shapes(p0[2]);
+        const auto zs1 = quad_shapes(p1[2]);
 
-            const auto zs0 = quad_shapes(p0[2]);
-            const auto zs1 = quad_shapes(p1[2]);
+        const auto cx = p.weight * charge / (Ayz * dt);
+        const auto cy = p.weight * charge / (Axz * dt);
+        const auto cz = p.weight * charge / (Axy * dt);
 
-            const auto cx = p.weight * charge / (Ayz * dt);
-            const auto cy = p.weight * charge / (Axz * dt);
-            const auto cz = p.weight * charge / (Axy * dt);
-
-            updateJ<0>(emdata.Jx, xs0, xs1, ys0, ys1, zs0, zs1, cx, {i, j - 1, k - 1}, {2, 3, 3});
-            updateJ<1>(emdata.Jy, ys0, ys1, xs0, xs1, zs0, zs1, cy, {i - 1, j, k - 1}, {3, 2, 3});
-            updateJ<2>(emdata.Jz, zs0, zs1, xs0, xs1, ys0, ys1, cz, {i - 1, j - 1, k}, {3, 3, 2});
-          } // end for(trajectory)
-        } // end for(pid)
-      } // end for(chunk)
-    } // end update()
-
-    static void update(const group_t& g, emdata_t& emdata) {
-#pragma omp parallel for num_threads(nThreads) schedule(dynamic, chunkSize)
-      for (std::size_t i = 0; i < g.cells.size(); i++) {
-        if (g.cells[i].chunks.empty()) { continue; }
-        updateCell(g.cells[i], g.charge, emdata);
-      } // end for(i)
+        updateJ<0>(emdata.Jx, xs0, xs1, ys0, ys1, zs0, zs1, cx, {i, j - 1, k - 1}, {2, 3, 3});
+        updateJ<1>(emdata.Jy, ys0, ys1, xs0, xs1, zs0, zs1, cy, {i - 1, j, k - 1}, {3, 2, 3});
+        updateJ<2>(emdata.Jz, zs0, zs1, xs0, xs1, ys0, ys1, cz, {i - 1, j - 1, k}, {3, 3, 2});
+      } // end for(trajectory)
     }
 
     static void operator()(const group_t& g, emdata_t& emdata) {
-      update(g, emdata);
+#pragma omp parallel for num_threads(nThreads) schedule(dynamic, chunkSize)
+      for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
+        update_particle(g.particles[pid], emdata, g.charge);
+      }
     }
   }; // end struct CurrentDeposition
 } // end namepsace tf::particles

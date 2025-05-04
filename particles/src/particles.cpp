@@ -2,6 +2,7 @@
 
 #include "program_params.hpp"
 #include "constants.hpp"
+#include "morton_lut.hpp"
 
 #include <print>
 #include <fstream>
@@ -22,7 +23,7 @@ namespace tf::particles {
     float weight = 0.0;
     double y_init = 0.0;
 
-    std::println("Opened particle file: {}", filename);
+    std::print("Loading particle file: {}... ", filename);
     std::string line;
     while (getline(file, line)) {
       std::istringstream buffer(line);
@@ -41,19 +42,20 @@ namespace tf::particles {
       // compute Lorentz factor and relativistic momentum
       const auto gamma = 1.0 / std::sqrt(1.0 - velocity.length_squared() * constants::over_c_sqr<double>);
 
-      const auto p = Particle{
+      // add particle to group
+      g.particles.emplace_back(
         location.as_type<compute_t>(),
         location.as_type<compute_t>(),
         velocity.as_type<compute_t>(),
         weight,
-        gamma
-      };
-      // add particle to group
-      g.add_particle(p, get_cid(ix, iy, iz));
-      // g.add_particle(p, get_cid(ix, iy, iz));
+        gamma,
+        morton_encode(ix, iy, iz)
+      );
     }
     file.close();
+    g.sort_particles();
     g.initial_y_position = static_cast<compute_t>(y_init);
+    std::println("Done");
     return g;
   } // end initializeFromFile
 } // end namespace tf::particles

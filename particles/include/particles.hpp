@@ -3,11 +3,15 @@
 
 #include "program_params.hpp"
 #include "vec3.hpp"
+#include "morton.hpp"
+#include "constants.hpp"
+
+#include <gfx/timsort.hpp>
 
 #include <vector>
-#include <array>
-#include <bitset>
-// #include <print>
+#include <algorithm>
+#include <print>
+#include <fstream>
 
 namespace tf::particles {
   struct Particle {
@@ -16,114 +20,107 @@ namespace tf::particles {
     vec3<compute_t> velocity;
     compute_t weight;
     double gamma;
+    std::size_t code;
   }; // end struct Particle
 
-  struct alignas(alignof(Particle)) ParticleChunk {
-    static constexpr std::size_t n_particles = 32;
-
-    bool add_particle(const Particle& p) {
-      // todo: would disabling this check effect performance? Just loop over and then default false.
-      if (active.all()) { return false; } // chunk is full
-
-      for (std::size_t i = 0; i < n_particles; ++i) {
-        if (!active.test(i)) {
-          particles[i] = p;
-          active.set(i);
-          return true;
-        }
-      }
-      return false;
-    }
-
-    void remove_particle(const std::size_t pid) { active.set(pid, false); }
-    Particle& operator[](const size_t pid) { return particles[pid]; }
-    const Particle& operator[](const size_t pid) const { return particles[pid]; }
-
-    [[nodiscard]] std::size_t num_particles() const { return active.count(); }
-
-    std::array<Particle, n_particles> particles{};
-    std::bitset<n_particles> active{};
-    std::bitset<n_particles> moves{};
-  }; // end struct ParticleChunk
 
   struct ParticleGroup {
-    struct CellData {
-      std::vector<ParticleChunk> chunks;
-      std::array<std::uint32_t, 3> idxs{};
-    };
+    static constexpr std::size_t SORT_INTERVAL = 50;
+    static constexpr std::size_t DISABLED = morton_encode(Nx + 1, Ny + 1, Nz + 1);
 
     ParticleGroup() = delete;
 
     ParticleGroup(std::string name_,
                   const compute_t mass_,
                   const compute_t charge_,
-                  const std::size_t z_,
-                  const std::size_t ncx,
-                  const std::size_t ncy,
-                  const std::size_t ncz)
+                  const std::size_t z_)
     : name(std::move(name_)),
-      num_particles(0zu),
       atomic_number(z_),
       mass(mass_),
       charge(charge_),
-      qdt_over_2m(calculate_qdt_over_2m()),
-      cells{ncx * ncy * ncz}
-    {
-      for (std::uint32_t i = 0; i < ncx; i++) {
-        for (std::uint32_t j = 0; j < ncy; j++) {
-          for (std::uint32_t k = 0; k < ncz; k++) {
-            cells[get_cid(i, j, k)] = {{}, {i, j, k}};
-          } // end for(k)
-        } // end for(j)
-      } // end for(i)
-    }
+      qdt_over_2m(calculate_qdt_over_2m())
+    {}
 
     [[nodiscard]] compute_t calculate_qdt_over_2m() const {
       return static_cast<compute_t>(0.5 * static_cast<double>(charge) * static_cast<double>(dt) / static_cast<double>(mass));
     }
 
-    void add_particle(const Particle& p, const std::size_t cid) {
-;      num_particles++;
-      for (auto& chunk : cells[cid].chunks) {
-        if (chunk.add_particle(p)) {
-          return;
-        } // particle added to chunk
-      }
-      // no available spots in current chunks
-      cells[cid].chunks.emplace_back(); // add new chunk
-      cells[cid].chunks.back().add_particle(p); // add particle to new chunk
-    }
-
-    void remove_particle(ParticleChunk& chunk, const std::size_t pid) {
-      chunk.remove_particle(pid);
-      num_particles--;
-    }
+    std::size_t num_particles() const { return particles.size(); }
 
     void reset_y_positions() {
-#pragma omp parallel for num_threads(nThreads)
-      for (auto& [chunks, idxs] : cells) {
-        if (chunks.empty()) { continue; }
-        for (auto& chunk : chunks) {
-          for (std::size_t i = 0; i < ParticleChunk::n_particles; ++i) {
-            chunk[i].location[1] = initial_y_position;
-          }
-        }
+#pragma omp parallel for simd num_threads(nThreads)
+      for (std::size_t pid = 0; pid < particles.size(); pid++) {
+        particles[pid].location[1] = initial_y_position;
       }
+    }
+
+    void sort_particles() {
+      gfx::timsort(particles, {}, &Particle::code);
+      // std::ranges::sort(particles, {}, &Particle::code);
+      // std::ranges::stable_sort(particles, {}, &Particle::code);
     }
 
     std::string name;
-    std::size_t num_particles;
     std::size_t atomic_number;
     compute_t mass;
     compute_t charge;
     compute_t qdt_over_2m;
     compute_t initial_y_position{};
 
-    std::vector<CellData> cells;
+    std::vector<Particle> particles{};
   }; // end struct ParticleGroup
 
   struct ParticleInitializer {
-    static ParticleGroup initializeFromFile(const std::string&, compute_t, compute_t, std::size_t, const std::string&);
+    static ParticleGroup initializeFromFile(const std::string& name, const compute_t mass, const compute_t charge, const std::size_t z, const std::string& filename) {
+      std::ifstream file(filename);
+
+      if (!file.is_open()) {
+        throw std::runtime_error("Particle initialization from file failed: " + filename);
+      }
+
+      ParticleGroup g(name, mass, charge, z);
+
+      vec3 deltas{dx, dy, dz};
+      vec3<double> location{};
+      vec3<double> velocity{};
+      float weight = 0.0;
+      double y_init = 0.0;
+
+      std::print("Loading particle file: {}... ", filename);
+      std::string line;
+      while (getline(file, line)) {
+        std::istringstream buffer(line);
+        buffer >> location >> velocity >> weight;
+
+        const auto ix = static_cast<std::size_t>(std::abs((location[0] - x_range[0]) / dx));
+        const auto iy = static_cast<std::size_t>(std::abs((location[1] - y_range[0]) / dy));
+        const auto iz = static_cast<std::size_t>(std::abs((location[2] - z_range[0]) / dz));
+
+        for (std::size_t i = 0; i < 3; ++i) {
+          const auto sx = location[i] / deltas[i];
+          location[i] = sx - std::floor(sx);
+        }
+
+        y_init = location[1];
+        // compute Lorentz factor and relativistic momentum
+        const auto gamma = 1.0 / std::sqrt(1.0 - velocity.length_squared() * constants::over_c_sqr<double>);
+
+        // add particle to group
+        g.particles.emplace_back(
+          location.as_type<compute_t>(),
+          location.as_type<compute_t>(),
+          velocity.as_type<compute_t>(),
+          weight,
+          gamma,
+          morton_encode(ix, iy, iz)
+        );
+      }
+      file.close();
+      g.sort_particles();
+      g.initial_y_position = static_cast<compute_t>(y_init);
+      std::println("Done");
+      return g;
+    } // end initializeFromFile
   };
 } // end namespace tf::particles
 

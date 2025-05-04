@@ -4,13 +4,14 @@ project(
     version : '0.0.1',
     default_options : [
 #        'buildtype=debug',
-        'buildtype=debugoptimized',
+#        'buildtype=debugoptimized',
+        'buildtype=release',
         'warning_level=3',
         'cpp_std=c++23',
 #        'b_sanitize=address',
         'b_lto=true',
 #        'b_pgo=generate',
-        'b_pgo=use'
+#        'b_pgo=use'
     ]
 )
 
@@ -28,8 +29,7 @@ gcc_opts = [
     '-Wconversion',
     '-fuse-ld=mold',
     '-march=native',
-    '-ftree-vectorize',
-#    '-ffast-math',
+#    '-ftree-vectorize',
 ]
 
 includes = include_directories(
@@ -45,8 +45,8 @@ sources = [
     'electromagnetics/src/em_solver.cpp',
     'electromagnetics/src/sources.cpp',
     'metrics/metrics.cpp',
-    'particles/src/particles.cpp',
-    'particles/src/pusher.cpp'
+#    'particles/src/particles.cpp',
+#    'particles/src/pusher.cpp'
 ]
 
 

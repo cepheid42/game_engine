@@ -189,8 +189,8 @@ int main() {
     timers["EM"].stop_timer();
 
     timers["Push"].start_timer();
-    particle_push(g1, emsolver.emdata);
-    particle_push(g2, emsolver.emdata);
+    particle_push(g1, emsolver.emdata, step);
+    particle_push(g2, emsolver.emdata, step);
     timers["Push"].stop_timer();
 
     timers["Jdep"].start_timer();
