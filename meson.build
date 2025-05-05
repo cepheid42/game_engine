@@ -29,26 +29,20 @@ gcc_opts = [
     '-Wconversion',
     '-fuse-ld=mold',
     '-march=native',
-#    '-ftree-vectorize',
+    '-ftree-vectorize',
 ]
 
 includes = include_directories(
-    'electromagnetics/include',
+    'electromagnetics',
     'metrics',
     'params',
-    'particles/include',
+    'particles',
     'utilities'
 )
 
 sources = [
-    'main.cpp',
-    'electromagnetics/src/em_solver.cpp',
-    'electromagnetics/src/sources.cpp',
-    'metrics/metrics.cpp',
-#    'particles/src/particles.cpp',
-#    'particles/src/pusher.cpp'
+    'main.cpp'
 ]
-
 
 deps = [
     dependency('adios2', required: true),

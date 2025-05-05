@@ -45,10 +45,10 @@ namespace tf::particles {
       return static_cast<compute_t>(0.5 * static_cast<double>(charge) * static_cast<double>(dt) / static_cast<double>(mass));
     }
 
-    std::size_t num_particles() const { return particles.size(); }
+    [[nodiscard]] std::size_t num_particles() const { return particles.size(); }
 
     void reset_y_positions() {
-#pragma omp parallel for simd num_threads(nThreads)
+      #pragma omp parallel for simd num_threads(nThreads)
       for (std::size_t pid = 0; pid < particles.size(); pid++) {
         particles[pid].location[1] = initial_y_position;
       }
@@ -66,7 +66,6 @@ namespace tf::particles {
     compute_t charge;
     compute_t qdt_over_2m;
     compute_t initial_y_position{};
-
     std::vector<Particle> particles{};
   }; // end struct ParticleGroup
 

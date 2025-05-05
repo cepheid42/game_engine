@@ -4,20 +4,22 @@
 #include "math_utils.hpp"
 #include "particles.hpp"
 #include "em_data.hpp"
-#include "bc_data.hpp"
+#include "../electromagnetics/bc_data.hpp"
 #include "morton.hpp"
 
 #include <array>
 #include <cmath>
 
 namespace tf::particles {
-  static std::array<compute_t, 3> quad_shapes(const compute_t v) {
+  static std::array<compute_t, 3> quadShapes(const compute_t v) {
     return {
       0.5_fp * math::SQR(0.5_fp - v),
       0.75_fp - math::SQR(v),
       0.5_fp * math::SQR(0.5_fp + v)
     };
   }
+
+
 
   struct Segment {
     std::array<std::size_t, 3> cids = {0, 0, 0};
@@ -48,8 +50,11 @@ namespace tf::particles {
     const auto xo = static_cast<int>(xoff);
     const auto yo = static_cast<int>(yoff);
     const auto zo = static_cast<int>(zoff);
+    // Have to offset old_location so that p0 is normalized to the old cell, since p1 already is
+    // e.g. old={-1.5,...} -> pr0[{1.0,...} instead of pold={0.5,...} -> pr0{1.0,...}
+    const vec3 pold{p.old_location[0] - xo, p.old_location[1] - yo, p.old_location[2] - zo};
     const std::array cidx0 = {cidx1[0] + xo, cidx1[1] + yo, cidx1[2] + zo};
-    return {Segment{cidx0, p.old_location, pr0, true},
+    return {Segment{cidx0, pold, pr0, true},
             Segment{cidx1, pr1, p.location, true}};
   }
 
@@ -73,16 +78,16 @@ namespace tf::particles {
       compute_t wm;
       auto wT = 0.0_fp;
       const std::array<compute_t, 2> ws = {as0[0] - as1[0], as1[2] - as0[2]};
-      for (std::size_t ii = 0; ii < i1; ii++) {
-        for (std::size_t jj = 0; jj < j1; jj++) {
-          for (std::size_t kk = 0; kk < k1; kk++) {
-            if constexpr      (D == 0) { wm = ws[ii]; }
-            else if constexpr (D == 1) { wm = ws[jj]; }
-            else                       { wm = ws[kk]; }
-            wT = qA * (third * (bs0[jj] * cs0[kk] + bs1[jj] * cs1[kk]) + sixth * (bs1[jj] * cs0[kk] + bs0[jj] * cs1[kk]));
+      for (std::size_t p = 0; p < i1; p++) {
+        for (std::size_t q = 0; q < j1; q++) {
+          for (std::size_t r = 0; r < k1; r++) {
+            if constexpr      (D == 0) { wm = ws[p]; }
+            else if constexpr (D == 1) { wm = ws[q]; }
+            else                       { wm = ws[r]; }
+            wT = qA * (third * (bs0[q] * cs0[r] + bs1[q] * cs1[r]) + sixth * (bs1[q] * cs0[r] + bs0[q] * cs1[r]));
             // todo: need to be concerned about edges of grid here, where j - 1 < 0, j + 2 > Ny,... etc
-#pragma omp atomic update
-            J(i + ii, j + jj, k + kk) += wm * wT;
+            #pragma omp atomic update
+            J(i + p, j + q, k + r) += wm * wT;
           }
         }
       }
@@ -94,27 +99,27 @@ namespace tf::particles {
         if (!active) { continue; }
         const auto& [i, j, k] = cids;
 
-        const auto xs0 = quad_shapes(p0[0]);
-        const auto xs1 = quad_shapes(p1[0]);
+        const auto xs0 = quadShapes(p0[0]);
+        const auto ys0 = quadShapes(p0[1]);
+        const auto zs0 = quadShapes(p0[2]);
 
-        const auto ys0 = quad_shapes(p0[1]);
-        const auto ys1 = quad_shapes(p1[1]);
-
-        const auto zs0 = quad_shapes(p0[2]);
-        const auto zs1 = quad_shapes(p1[2]);
+        const auto xs1 = quadShapes(p1[0]);
+        const auto ys1 = quadShapes(p1[1]);
+        const auto zs1 = quadShapes(p1[2]);
 
         const auto cx = p.weight * charge / (Ayz * dt);
         const auto cy = p.weight * charge / (Axz * dt);
         const auto cz = p.weight * charge / (Axy * dt);
 
-        updateJ<0>(emdata.Jx, xs0, xs1, ys0, ys1, zs0, zs1, cx, {i, j - 1, k - 1}, {2, 3, 3});
-        updateJ<1>(emdata.Jy, ys0, ys1, xs0, xs1, zs0, zs1, cy, {i - 1, j, k - 1}, {3, 2, 3});
-        updateJ<2>(emdata.Jz, zs0, zs1, xs0, xs1, ys0, ys1, cz, {i - 1, j - 1, k}, {3, 3, 2});
+        // todo: j is fixed at 0 for 2d, 3d will require j-1 in x and z
+        updateJ<0>(emdata.Jx, xs0, xs1, ys0, ys1, zs0, zs1, cx, {    i, j, k - 1}, {2, 1, 3});
+        updateJ<1>(emdata.Jy, ys0, ys1, xs0, xs1, zs0, zs1, cy, {i - 1, j, k - 1}, {3, 1, 3});
+        updateJ<2>(emdata.Jz, zs0, zs1, xs0, xs1, ys0, ys1, cz, {i - 1, j,     k}, {3, 1, 2});
       } // end for(trajectory)
     }
 
     static void operator()(const group_t& g, emdata_t& emdata) {
-#pragma omp parallel for num_threads(nThreads) schedule(dynamic, chunkSize)
+      #pragma omp parallel for num_threads(nThreads)
       for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
         update_particle(g.particles[pid], emdata, g.charge);
       }

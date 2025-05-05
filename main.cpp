@@ -1,12 +1,12 @@
 #include "program_params.hpp"
 #include "constants.hpp"
-#include "em_solver.hpp"
+#include "electromagnetics/em_solver.hpp"
 #include "metrics.hpp"
 #include "array.hpp"
 #include "timers.hpp"
-#include "particles.hpp"
-#include "pusher.hpp"
-#include "current_deposition.hpp"
+#include "particles/particles.hpp"
+#include "particles/pusher.hpp"
+#include "particles/current_deposition.hpp"
 
 #include "barkeep.h"
 
@@ -32,9 +32,9 @@ void add_gaussianbeam(EMSolver& em) {
   constexpr auto width = 2.548e-14_fp; // seconds, ~25.48 fs
   constexpr auto delay = 2.0 * width;
 
-  vec3 waist_pos{0.0_fp, 0.0_fp, 0.0_fp};
+  vec3 waist_pos{15.0e-6_fp, 0.0_fp, 0.0_fp};
 
-  constexpr auto x0 = PMLDepth + 5zu;
+  constexpr auto x0 = PMLDepth + 20zu;
   constexpr auto x1 = x0 + 1;
   constexpr auto y0 = 0zu;
   constexpr auto y1 = 1zu;
@@ -143,7 +143,6 @@ void print_final_timers(auto& timers) {
   std::println("Total: {}", std::chrono::hh_mm_ss(timers["Main"].elapsed));
 }
 
-
 int main() {
   auto timers = create_timers();
 
@@ -160,9 +159,9 @@ int main() {
   EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
   add_gaussianbeam(emsolver);
   const CurrentDeposition jdep{emsolver.emdata};
-  BorisPush particle_push{};
+  constexpr BorisPush particle_push{};
 
-  auto metrics = create_metrics("/home/cepheid/TriForce/game_engine/data/lsi_test", emsolver, g1, g2);
+  const auto metrics = create_metrics("/home/cepheid/TriForce/game_engine/data/lsi_test", emsolver, g1, g2);
 
   compute_t t = 0.0_fp;
   std::size_t step = 0zu;

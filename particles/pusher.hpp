@@ -4,7 +4,7 @@
 #include "program_params.hpp"
 #include "em_params.hpp"
 #include "particles.hpp"
-#include "em_data.hpp"
+#include "../electromagnetics/em_data.hpp"
 #include "constants.hpp"
 #include "morton.hpp"
 
@@ -40,7 +40,7 @@ namespace tf::particles {
       std::array<double, nx*ny*nz> fields{};
       int idx = 0;
       for (int i = offsets[0]; i <= offsets[1]; i++) {
-        for (int j = offsets[2]; j < offsets[3]; j++) { // should only run once
+        for (int j = offsets[2]; j < offsets[3]; j++) { // todo: should only run once for 2d, won't work for 3d
           for (int k = offsets[4]; k <= offsets[5]; k++) {
             fields[idx] = emdata.template get<F>(idxs[0] + i, idxs[1] + j, idxs[2] + k);
             idx++;
@@ -59,6 +59,8 @@ namespace tf::particles {
       return result;
     }
 
+
+
     static std::array<double, 6> FieldAtParticle(Particle& p, const auto& emdata)
     {
       const auto xr_shapes = shapesCIC(p.location[0]);
@@ -68,6 +70,7 @@ namespace tf::particles {
       const auto y_shapes = shapesQuad(p.location[1]);
       const auto z_shapes = shapesQuad(p.location[2]);
 
+      // todo: these shapes are for 2d only, for 3d the 1's need to be replaced
       const auto ex_shapes = computeTotalShape<2, 1, 3>(xr_shapes, y_shapes, z_shapes);
       const auto ey_shapes = computeTotalShape<3, 1, 3>(x_shapes, yr_shapes, z_shapes);
       const auto ez_shapes = computeTotalShape<3, 1, 2>(x_shapes, y_shapes, zr_shapes);
@@ -115,7 +118,7 @@ namespace tf::particles {
       p.velocity = v.as_type<compute_t>();
     } // end update_velocity()
 
-#pragma omp declare simd notinbranch
+    #pragma omp declare simd notinbranch
     static void update_position(Particle& p) {
       static constexpr vec3 delta_inv{dt / dx, dt / dy, dt / dz};
       const auto new_loc = p.location + delta_inv * p.velocity / p.gamma;
@@ -126,21 +129,21 @@ namespace tf::particles {
 
 
     static void advance_velocity(group_t& g, const emdata_t& emdata) {
-#pragma omp parallel for num_threads(nThreads) schedule(dynamic, chunkSize)
+      #pragma omp parallel for num_threads(nThreads)
       for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
         update_velocity(g.particles[pid], emdata, g.qdt_over_2m);
       }
     } // end advance_velocity
 
     static void advance_position(group_t& g) {
-#pragma omp parallel for simd num_threads(nThreads) schedule(dynamic, chunkSize)
+      #pragma omp parallel for simd num_threads(nThreads)
       for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
         update_position(g.particles[pid]);
       }
     } // end advance_position
 
     static void update_particles(group_t& g) {
-#pragma omp parallel for simd num_threads(nThreads) schedule(dynamic, chunkSize)
+      #pragma omp parallel for simd num_threads(nThreads)
       for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
         auto& p = g.particles[pid];
         const auto [i, j, k] = morton_decode(p.code);
@@ -166,7 +169,7 @@ namespace tf::particles {
       advance_position(g);
       update_particles(g);
 
-      if (step % g.SORT_INTERVAL == 0) {
+      if (step % group_t::SORT_INTERVAL == 0) {
         g.sort_particles();
       }
     } // end operator()
