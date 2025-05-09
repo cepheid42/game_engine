@@ -107,20 +107,20 @@ Metrics create_metrics(const std::string& dir, EMSolver& em, const ParticleGroup
       )
    );
 
-   metrics.addMetric(
-      std::make_unique<ParticleDumpMetric>(
-         &g2,
-         metrics.adios.DeclareIO(g2.name + "_dump")
-      )
-   );
-
-   metrics.addMetric(
-      std::make_unique<ParticleMetric>(
-         &g2,
-         metrics.adios.DeclareIO(g2.name + "_metrics"),
-         Ncx, Ncy, Ncz
-      )
-   );
+   // metrics.addMetric(
+   //    std::make_unique<ParticleDumpMetric>(
+   //       &g2,
+   //       metrics.adios.DeclareIO(g2.name + "_dump")
+   //    )
+   // );
+   //
+   // metrics.addMetric(
+   //    std::make_unique<ParticleMetric>(
+   //       &g2,
+   //       metrics.adios.DeclareIO(g2.name + "_metrics"),
+   //       Ncx, Ncy, Ncz
+   //    )
+   // );
 
    return metrics;
 }
@@ -150,8 +150,8 @@ int main() {
    constexpr auto m_e = constants::m_e<compute_t>;
    constexpr auto m_p = constants::m_p<compute_t>;
    constexpr auto q_e = constants::q_e<compute_t>;
-   constexpr auto ion_file = "/home/cepheid/TriForce/game_engine/data/ion_slab.dat";
    constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/electron_slab.dat";
+   constexpr auto ion_file = "/home/cepheid/TriForce/game_engine/data/ion_slab.dat";
 
    auto g1 = ParticleInitializer::initializeFromFile("electrons", m_e, -q_e, 0, electron_file);
    auto g2 = ParticleInitializer::initializeFromFile("ions", m_p, +q_e, 1, ion_file);
@@ -180,6 +180,9 @@ int main() {
    metrics.write(step);
    timers["IO"].stop_timer();
 
+   BorisPush::backstep_velocity(g1, emsolver.emdata);
+   // BorisPush::backstep_velocity(g2, emsolver.emdata);
+
    progress_bar->show();
    while (t <= total_time) {
       timers["EM"].start_timer();
@@ -188,19 +191,20 @@ int main() {
 
       timers["Push"].start_timer();
       particle_push(g1, emsolver.emdata, step);
-      particle_push(g2, emsolver.emdata, step);
+      // particle_push(g2, emsolver.emdata, step);
       timers["Push"].stop_timer();
 
-      timers["Jdep"].start_timer();
+      // timers["Jdep"].start_timer();
       jdep(g1, emsolver.emdata);
-      jdep(g2, emsolver.emdata);
-      timers["Jdep"].stop_timer();
+      // jdep(g2, emsolver.emdata);
+      // timers["Jdep"].stop_timer();
 
       g1.reset_y_positions();
-      g2.reset_y_positions();
+      // g2.reset_y_positions();
 
       t += dt;
       step++;
+      std::println("Step {}", step);
 
       if (step % save_interval == 0) {
          timers["IO"].start_timer();

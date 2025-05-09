@@ -4,11 +4,12 @@
 #include "math_utils.hpp"
 #include "particles.hpp"
 #include "em_data.hpp"
-#include "../electromagnetics/bc_data.hpp"
+#include "bc_data.hpp"
 #include "morton.hpp"
 
 #include <array>
 #include <cmath>
+#include <cassert>
 
 namespace tf::particles {
    static std::array<compute_t, 3> quadShapes(const compute_t v) {
@@ -23,40 +24,27 @@ namespace tf::particles {
       std::array<std::size_t, 3> cids = {0, 0, 0};
       vec3<compute_t> p0{};
       vec3<compute_t> p1{};
-      bool active{false};
+      // bool active{false};
    };
 
    static std::array<Segment, 2> split_trajectory(const Particle& p, const std::array<std::size_t, 3>& cidx1) {
-      const auto xoff = std::floor(p.old_location[0]);
-      const auto yoff = std::floor(p.old_location[1]);
-      const auto zoff = std::floor(p.old_location[2]);
+      const auto xold = std::floor(p.old_location[0] / dx + 0.5);
+      const auto yold = std::floor(p.old_location[1] / dy + 0.5);
+      const auto zold = std::floor(p.old_location[2] / dz + 0.5);
+      const auto xnew = std::floor(p.location[0] / dx + 0.5);
+      const auto ynew = std::floor(p.location[1] / dy + 0.5);
+      const auto znew = std::floor(p.location[2] / dz + 0.5);
 
-      if (xoff == 0.0 and yoff == 0.0 and zoff == 0.0) {
-         // Particle did not leave current cell
-         return {
-            Segment{cidx1, p.old_location, p.location, true},
-            Segment{cidx1, p.old_location, p.location, false}
-         };
-      }
+      const auto xr = x_range[0] + dx * (std::max(xold, xnew) - 0.5);
+      const auto yr = y_range[0] + dy * (std::max(yold, ynew) - 0.5);
+      const auto zr = z_range[0] + dz * (std::max(zold, znew) - 0.5);
 
-      const auto xr0 = xoff == 0.0_fp ? p.location[0] : std::max(0.0_fp, -xoff);
-      const auto yr0 = yoff == 0.0_fp ? p.location[1] : std::max(0.0_fp, -yoff);
-      const auto zr0 = zoff == 0.0_fp ? p.location[2] : std::max(0.0_fp, -zoff);
+      const auto ix = static_cast<std::size_t>((p.old_location[0] - x_range[0]) / dx);
+      const auto iz = static_cast<std::size_t>((p.old_location[2] - z_range[0]) / dz);
 
-      const vec3 pr0{xr0, yr0, zr0};
-      const vec3 pr1{xr0 + xoff, yr0 + yoff, zr0 + zoff};
-
-      // todo: pray to the gods that none of the cell id's are zero...
-      const auto xo = static_cast<int>(xoff);
-      const auto yo = static_cast<int>(yoff);
-      const auto zo = static_cast<int>(zoff);
-      // Have to offset old_location so that p0 is normalized to the old cell, since p1 already is
-      // e.g. old={-1.5,...} -> pr0[{1.0,...} instead of pold={0.5,...} -> pr0{1.0,...}
-      const vec3 pold{p.old_location[0] - xo, p.old_location[1] - yo, p.old_location[2] - zo};
-      const std::array cidx0 = {cidx1[0] + xo, cidx1[1] + yo, cidx1[2] + zo};
       return {
-         Segment{cidx0, pold, pr0, true},
-         Segment{cidx1, pr1, p.location, true}
+         Segment{{ix, cidx1[1], iz}, p.old_location, {xr, yr, zr}},
+         Segment{cidx1, {xr, yr, zr}, p.location}
       };
    }
 
@@ -68,83 +56,82 @@ namespace tf::particles {
       using EMSide = electromagnetics::EMSide;
 
       template<int D>
-      static void updateJ(auto& J, const auto& xs0, const auto& xs1, const auto& ys0, const auto& ys1, const auto& zs0,
-                          const auto& zs1, const auto& qA, const std::array<std::size_t, 3>& idxs,
-                          const std::array<std::size_t, 3>& bounds) {
+      static void updateJ(auto& J, const auto& qA,
+                          const std::array<double, 2>& ws,
+                          const std::array<double, 3>& bs0,
+                          const std::array<double, 3>& bs1,
+                          const std::array<double, 3>& cs0,
+                          const std::array<double, 3>& cs1,
+                          const std::array<std::size_t, 3>& idxs,
+                          const std::array<int, 6>& bounds)
+      {
          static constexpr auto third = 1.0_fp / 3.0_fp;
          static constexpr auto sixth = 1.0_fp / 6.0_fp;
 
          const auto& [i, j, k] = idxs;
-         const auto& [i1, j1, k1] = bounds;
+         const auto& [x0, x1, y0, y1, z0, z1] = bounds;
 
-         if constexpr (D == 0) {
-            const std::array<compute_t, 2> ws = {xs0[0] - xs1[0], xs1[2] - xs0[2]};
-            for (std::size_t p = 0; p < i1; p++) {
-               for (std::size_t q = 0; q < j1; q++) {
-                  for (std::size_t r = 0; r < k1; r++) {
-                     const auto wT = third * (ys0[q] * zs0[r] + ys1[q] * zs1[r])
-                                   + sixth * (ys1[q] * zs0[r] + ys0[q] * zs1[r]);
-                     #pragma omp atomic update
-                     J(i + p, j + q, k + r) += qA * ws[p] * wT;
-                  } // end for(p)
-               } // end for(q)
-            } // end for(r)
-         } // end if(D == 0)
-         else if constexpr (D == 1) {
-            const std::array<compute_t, 2> ws = {ys0[0] - ys1[0], ys1[2] - ys0[2]};
-            for (std::size_t p = 0; p < i1; p++) {
-               for (std::size_t q = 0; q < j1; q++) {
-                  for (std::size_t r = 0; r < k1; r++) {
-                     const auto wT = third * (xs0[p] * zs0[r] + xs1[p] * zs1[r])
-                                   + sixth * (xs1[p] * zs0[r] + xs0[p] * zs1[r]);
-                     #pragma omp atomic update
-                     J(i + p, j + q, k + r) += qA * ws[q] * wT;
-                  } // end for(p)
-               } // end for(q)
-            } // end for(r)
-         } // end if(D == 1)
-         else {
-            const std::array<compute_t, 2> ws = {zs0[0] - zs1[0], zs1[2] - zs0[2]};
-            for (std::size_t p = 0; p < i1; p++) {
-               for (std::size_t q = 0; q < j1; q++) {
-                  for (std::size_t r = 0; r < k1; r++) {
-                     const auto wT = third * (xs0[p] * ys0[q] + xs1[p] * ys1[q])
-                                   + sixth * (xs1[p] * ys0[q] + xs0[q] * ys1[q]);
-                     #pragma omp atomic update
-                     J(i + p, j + q, k + r) += qA * ws[r] * wT;
-                  } // end for(p)
-               } // end for(q)
-            } // end for(r)
-         } // end if
+         //       x     y     z         p     q     r
+         // Jx: {0, 2, 1, 3, 0, 3} -> {0, 2, 1, 3, 0, 3} (x, y, z)
+         // Jy: {0, 3, 0, 1, 0, 3} -> {0, 1, 0, 3, 0, 3} (y, x, z)
+         // Jz: {0, 3, 1, 3, 0, 2} -> {0, 2, 0, 3, 1, 3} (z, x, y)
+         // Jx/Jz: ws = {as0[0] - as1[0, as1[2] - as0[2]]}
+         // Jy:    ws = {vy / c}
+         std::size_t x, y, z;
+         for (int p = x0; p < x1; ++p) {
+            for (int q = y0; q < y1; ++q) {
+               for (int r = z0; r < z1; ++r) {
+                  if constexpr (D == 0) {
+                     x = i + p;
+                     y = j + q - 1;
+                     z = k + r - 1;
+                  }
+                  else if constexpr (D == 1) {
+                     x = i + q - 1;
+                     y = j + p;
+                     z = k + r - 1;
+                  }
+                  else {
+                     x = i + q - 1;
+                     y = j + r - 1,
+                     z = k + p;
+                  }
+
+                  const auto wT = third * (bs0[q] * cs0[r] + bs1[q] * cs1[r])
+                                + sixth * (bs1[q] * cs0[r] + bs0[q] * cs1[r]);
+
+                  // Jx(i + p, j + q - 1, k + r - 1)
+                  // Jy(i + q - 1, j + p, k + r - 1)
+                  // Jz(i + q - 1, j + r - 1, k + p)
+                  J(x, y, z) += qA * ws[p] * wT;
+               } // end for(r)
+            } // end for(q)
+         } // end for(p)
       } // end updateJ()
 
       static void update_particle(const Particle& p, emdata_t& emdata, const compute_t charge) {
          const auto [ci, cj, ck] = morton_decode(p.code);
-         for (const auto& [cids, p0, p1, active]: split_trajectory(p, {ci, cj, ck})) {
-            if (!active) { continue; }
-            const auto& [i, j, k] = cids;
+         const auto cx = p.weight * charge / (Ayz * dt);
+         const auto cy = p.weight * charge / (Axz * dt);
+         const auto cz = p.weight * charge / (Axy * dt);
 
+         for (const auto& [cids, p0, p1]: split_trajectory(p, {ci, cj, ck})) {
             const auto xs0 = quadShapes(p0[0]);
-            const auto ys0 = quadShapes(p0[1]);
+            constexpr std::array ys0 = {1.0, 1.0, 1.0};
             const auto zs0 = quadShapes(p0[2]);
 
             const auto xs1 = quadShapes(p1[0]);
-            const auto ys1 = quadShapes(p1[1]);
+            constexpr std::array ys1 = {1.0, 1.0, 1.0};
             const auto zs1 = quadShapes(p1[2]);
 
-            const auto cx = p.weight * charge / (Ayz * dt);
-            const auto cy = p.weight * charge / (Axz * dt);
-            const auto cz = p.weight * charge / (Axy * dt);
-
-            // todo: j is fixed at 0 for 2d, 3d will require j-1 in x and z
-            updateJ<0>(emdata.Jx, xs0, xs1, ys0, ys1, zs0, zs1, cx, {    i, j, k - 1}, {2, 1, 3});
-            updateJ<1>(emdata.Jy, xs0, xs1, ys0, ys1, zs0, zs1, cy, {i - 1, j, k - 1}, {3, 1, 3});
-            updateJ<2>(emdata.Jz, xs0, xs1, ys0, ys1, zs0, zs1, cz, {i - 1, j, k    }, {3, 1, 2});
+            updateJ<0>(emdata.Jx, cx, {xs0[0] - xs1[0], xs1[2] - xs0[2]}, ys0, ys1, zs0, zs1, cids, {0, 2, 1, 3, 0, 3});
+            updateJ<1>(emdata.Jy, cy, {p.velocity[1] / constants::c<compute_t>, 0.0_fp}, xs0, xs1, zs0, zs1, cids, {0, 1, 0, 3, 0, 3});
+            updateJ<2>(emdata.Jz, cz, {zs0[0] - zs1[0], zs1[2] - zs0[2]}, xs0, xs1, ys0, ys1, cids, {0, 2, 0, 3, 1, 3});
          } // end for(trajectory)
       }
 
       static void operator()(const group_t& g, emdata_t& emdata) {
-         #pragma omp parallel for num_threads(nThreads)
+         // #pragma omp parallel for num_threads(nThreads)
          for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
             update_particle(g.particles[pid], emdata, g.charge);
          }

@@ -73,10 +73,10 @@ namespace tf::electromagnetics {
 
     void advance(const compute_t t) {
       updateH();
-      updateHBCs();
+      // updateHBCs();
       apply_srcs(t);
       updateE();
-      updateEBCs();
+      // updateEBCs();
       updateBhalf(); // for the particles and shit
       zero_currents(); // also for the particles, don't need last weeks currents
     }
@@ -151,7 +151,7 @@ namespace tf::electromagnetics {
     }
 
     EMData emdata;
-    BCData<BoundaryType> bcdata;
+    BCData bcdata;
     
     ex_func ex_update{};
     ey_func ey_update{};

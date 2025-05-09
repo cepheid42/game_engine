@@ -48,15 +48,15 @@ namespace tf::particles {
     [[nodiscard]] std::size_t num_particles() const { return particles.size(); }
 
     void reset_y_positions() {
-      #pragma omp parallel for simd num_threads(nThreads)
+      // #pragma omp parallel for simd num_threads(nThreads)
       for (std::size_t pid = 0; pid < particles.size(); pid++) {
         particles[pid].location[1] = initial_y_position;
       }
     }
 
     void sort_particles() {
-      gfx::timsort(particles, {}, &Particle::code);
-      // std::ranges::sort(particles, {}, &Particle::code);
+      // gfx::timsort(particles, {}, &Particle::code);
+      std::ranges::sort(particles, {}, &Particle::code);
       // std::ranges::stable_sort(particles, {}, &Particle::code);
     }
 
@@ -85,7 +85,7 @@ namespace tf::particles {
       float weight = 0.0;
       double y_init = 0.0;
 
-      std::print("Loading particle file: {}... ", filename);
+      std::println("Loading particle file: {}... ", filename);
       std::string line;
       while (getline(file, line)) {
         std::istringstream buffer(line);
@@ -95,10 +95,12 @@ namespace tf::particles {
         const auto iy = static_cast<std::size_t>(std::abs((location[1] - y_range[0]) / dy));
         const auto iz = static_cast<std::size_t>(std::abs((location[2] - z_range[0]) / dz));
 
-        for (std::size_t i = 0; i < 3; ++i) {
-          const auto sx = location[i] / deltas[i];
-          location[i] = sx - std::floor(sx);
-        }
+        std::println("{}, {}, {}", ix, iy, iz);
+
+        // for (std::size_t i = 0; i < 3; ++i) {
+        //   const auto sx = location[i] / deltas[i];
+        //   location[i] = sx - std::floor(sx);
+        // }
 
         y_init = location[1];
         // compute Lorentz factor and relativistic momentum
@@ -117,7 +119,6 @@ namespace tf::particles {
       file.close();
       g.sort_particles();
       g.initial_y_position = static_cast<compute_t>(y_init);
-      std::println("Done");
       return g;
     } // end initializeFromFile
   };

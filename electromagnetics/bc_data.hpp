@@ -160,39 +160,6 @@ namespace tf::electromagnetics {
     coeffs_t b{};
     coeffs_t c{};
   };
-
-  template<EMFace F, EMSide S>
-  struct PeriodicData {
-    explicit PeriodicData(const Array3D<compute_t>& f)
-    : numInterior(getNumInterior(f.nx(), f.ny(), f.nz())),
-      hi_idx(getHiIndex(f.nx(), f.ny(), f.nz())),
-      offsets(getOffsets<F, S, nHalo>(f))
-    {}
-
-    static std::size_t getNumInterior(const std::size_t nx, const std::size_t ny, const std::size_t nz) {
-      if constexpr (F == EMFace::X) {
-        return nx - (2zu * nHalo);
-      } else if constexpr (F == EMFace::Y) {
-        return ny - (2zu * nHalo);
-      } else {
-        return nz - (2zu * nHalo);
-      }
-    }
-
-    static std::size_t getHiIndex(const std::size_t nx, const std::size_t ny, const std::size_t nz) {
-      if constexpr (F == EMFace::X) {
-        return nx - 1 - nHalo;
-      } else if constexpr (F == EMFace::Y) {
-        return ny - 1 - nHalo;
-      } else {
-        return nz - 1 - nHalo;
-      }
-    }
-
-    std::size_t numInterior;
-    std::size_t hi_idx;
-    std::array<std::size_t, 6> offsets;
-  };
   
   template<EMFace F, EMSide S>
   struct PMLFaceBC {
@@ -215,32 +182,7 @@ namespace tf::electromagnetics {
     PMLData<F, S> Hz;
   };
 
-  template<EMFace F, EMSide S>
-  struct PeriodicFaceBC {
-    explicit PeriodicFaceBC() = delete;
-
-    explicit PeriodicFaceBC(const auto& emdata)
-    : Ex{emdata.Ex},
-      Ey{emdata.Ey},
-      Ez{emdata.Ez},
-      Hx{emdata.Hx},
-      Hy{emdata.Hy},
-      Hz{emdata.Hz}
-    {}
-
-    PeriodicData<F, S> Ex;
-    PeriodicData<F, S> Ey;
-    PeriodicData<F, S> Ez;
-    PeriodicData<F, S> Hx;
-    PeriodicData<F, S> Hy;
-    PeriodicData<F, S> Hz;
-  };
-
-  template<BCType BC>
-  struct BCData;
-  
-  template<>
-  struct BCData<BCType::PML> {
+  struct BCData {
     explicit BCData(const auto& emdata)
     : x0(emdata),
       y0(emdata),
@@ -256,25 +198,6 @@ namespace tf::electromagnetics {
     PMLFaceBC<EMFace::X, EMSide::Hi> x1;
     PMLFaceBC<EMFace::Y, EMSide::Hi> y1;
     PMLFaceBC<EMFace::Z, EMSide::Hi> z1;
-  };
-
-  template<>
-  struct BCData<BCType::Periodic> {
-    explicit BCData(const auto& emdata)
-    : x0(emdata),
-      y0(emdata),
-      z0(emdata),
-      x1(emdata),
-      y1(emdata),
-      z1(emdata)
-    {}
-
-    PeriodicFaceBC<EMFace::X, EMSide::Lo> x0;
-    PeriodicFaceBC<EMFace::Y, EMSide::Lo> y0;
-    PeriodicFaceBC<EMFace::Z, EMSide::Lo> z0;
-    PeriodicFaceBC<EMFace::X, EMSide::Hi> x1;
-    PeriodicFaceBC<EMFace::Y, EMSide::Hi> y1;
-    PeriodicFaceBC<EMFace::Z, EMSide::Hi> z1;
   };
 }
 

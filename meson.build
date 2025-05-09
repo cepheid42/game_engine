@@ -5,7 +5,7 @@ project(
     default_options : [
 #        'buildtype=debug',
 #        'buildtype=debugoptimized',
-        'buildtype=release',
+#        'buildtype=release',
         'warning_level=3',
         'cpp_std=c++23',
 #        'b_sanitize=address',
@@ -16,7 +16,7 @@ project(
 )
 
 debug_opts = [
-#    '-O0', '-g'
+    '-O0', '-g'
 #    '-fopt-info-vec-missed=missed.txt',
 #    '-DNDEBUG',
 #    '-fno-omit-frame-pointer',
