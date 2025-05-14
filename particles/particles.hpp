@@ -91,16 +91,16 @@ namespace tf::particles {
         std::istringstream buffer(line);
         buffer >> location >> velocity >> weight;
 
-        const auto ix = static_cast<std::size_t>(std::abs((location[0] - x_range[0]) / dx));
-        const auto iy = static_cast<std::size_t>(std::abs((location[1] - y_range[0]) / dy));
-        const auto iz = static_cast<std::size_t>(std::abs((location[2] - z_range[0]) / dz));
+        const auto ix = static_cast<std::size_t>((location[0] - x_range[0]) / dx);
+        const auto iy = static_cast<std::size_t>((location[1] - y_range[0]) / dy);
+        const auto iz = static_cast<std::size_t>((location[2] - z_range[0]) / dz);
 
-        std::println("{}, {}, {}", ix, iy, iz);
+        // std::println("{}, {}, {}", ix, iy, iz);
 
-        // for (std::size_t i = 0; i < 3; ++i) {
-        //   const auto sx = location[i] / deltas[i];
-        //   location[i] = sx - std::floor(sx);
-        // }
+        for (std::size_t i = 0; i < 3; ++i) {
+          const auto sx = location[i] / deltas[i];
+          location[i] = sx - std::floor(sx);
+        }
 
         y_init = location[1];
         // compute Lorentz factor and relativistic momentum

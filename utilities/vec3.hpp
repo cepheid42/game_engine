@@ -75,14 +75,14 @@ namespace tf
     }
 
     bool operator==(const vec3 &v) const { return (data[0] == v[0] && data[1] == v[1] && data[2] == v[2]); }
-    bool operator!=(const vec3 &v) const { return !(data == v); }
+    bool operator!=(const vec3 &v) const { return !(*this == v); }
 
     T data[3];
   };// end struct tf::vec3
 } // end namespace tf
 
-// ===== vec3 Operators =====
-// ==========================
+// ===== vec3-scalar Operators =====
+// =================================
 template<typename T>
 tf::vec3<T> operator*(T s, const tf::vec3<T>& u)  {
   return {s * u[0], s * u[1], s * u[2]};
@@ -98,6 +98,28 @@ tf::vec3<T> operator/(const tf::vec3<T>& u, T s) {
   return (T(1) / s) * u;
 }
 
+template<typename T>
+tf::vec3<T> operator+(const tf::vec3<T>& u, const T& v) {
+  return {u[0] + v, u[1] + v, u[2] + v};
+}
+
+template<typename T>
+tf::vec3<T> operator+(const T& v, const tf::vec3<T>& u) {
+  return u + v;
+}
+
+template<typename T>
+tf::vec3<T> operator-(const tf::vec3<T>& u, const T& v) {
+ return {u[0] - v, u[1] - v, u[2] - v};
+}
+
+template<typename T>
+tf::vec3<T> operator-(const T& v, const tf::vec3<T>& u) {
+ return {v - u[0], v - u[1], v - u[2]};
+}
+
+// ===== vec3-vec3 Operators =====
+// =================================
 template<typename T>
 tf::vec3<T> operator+(const tf::vec3<T>& u, const tf::vec3<T>& v) {
   return {u[0] + v[0], u[1] + v[1], u[2] + v[2]};

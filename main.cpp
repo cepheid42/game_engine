@@ -204,7 +204,7 @@ int main() {
 
       t += dt;
       step++;
-      std::println("Step {}", step);
+      // std::println("Step {}", step);
 
       if (step % save_interval == 0) {
          timers["IO"].start_timer();

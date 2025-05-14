@@ -5,7 +5,7 @@ enum class BCType { PML, Periodic };
 
 inline constexpr auto BoundaryType = BCType::PML;
 
-inline constexpr auto PMLDepth = 30zu;
+inline constexpr auto PMLDepth = 10zu;
 inline constexpr auto PMLGrade = 3.5;
 inline constexpr auto PMLAlphaMax = 0.2;
 inline constexpr auto PMLKappaMax = 1.0;
