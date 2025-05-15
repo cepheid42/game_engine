@@ -2,7 +2,7 @@
 #define TRIFORCE_VECTOR_H
 
 #include <cmath>
-#include <sstream>
+#include <utility>
 #include <string>
 #include <print>
 
@@ -77,9 +77,19 @@ namespace tf
     bool operator==(const vec3 &v) const { return (data[0] == v[0] && data[1] == v[1] && data[2] == v[2]); }
     bool operator!=(const vec3 &v) const { return !(*this == v); }
 
+    template<std::size_t I> auto& get()& { return data[I]; }
+    template<std::size_t I> const auto& get() const& { return data[I]; }
+
     T data[3];
   };// end struct tf::vec3
 } // end namespace tf
+
+namespace std {
+  template<typename T> struct tuple_size<tf::vec3<T>> : std::integral_constant<std::size_t, 3> {};
+  template<typename T> struct tuple_element<0, tf::vec3<T>> { using type = T; };
+  template<typename T> struct tuple_element<1, tf::vec3<T>> { using type = T; };
+  template<typename T> struct tuple_element<2, tf::vec3<T>> { using type = T; };
+}
 
 // ===== vec3-scalar Operators =====
 // =================================

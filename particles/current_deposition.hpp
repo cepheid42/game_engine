@@ -4,126 +4,24 @@
 #include "math_utils.hpp"
 #include "particles.hpp"
 #include "em_data.hpp"
-#include "bc_data.hpp"
+#include "../electromagnetics/bc_data.hpp"
 #include "morton.hpp"
 
 #include <array>
 #include <cmath>
-#include <cassert>
 
 namespace tf::particles {
-   struct TSC {
-      static auto inner_shape(const compute_t x) {
-         return 0.75_fp - math::SQR(std::abs(x));
-      }
-
-      static auto outer_shape(const compute_t x) {
-         return 0.5_fp * math::SQR(1.5_fp - std::abs(x));
-      }
-
-      static auto operator()(const compute_t x) {
-         if (std::abs(x) < 0.5_fp) {
-            return inner_shape(x);
-         }
-         return outer_shape(x);
-      }
-   };
-
-   template<bool isJ>
-   struct ShapeFunctorJIT {
-      compute_t particle_start{};
-      compute_t particle_end{};
-      TSC shape{};
-
-      explicit ShapeFunctorJIT(const compute_t start_, const compute_t end_)
-      : particle_start(start_), particle_end(end_)
-      {}
-
-      [[nodiscard]] auto S0(const int gridPoint) const {
-         if constexpr (isJ) {
-            return 1.0_fp;
-         } else {
-            return shape(gridPoint - particle_start);
-         }
-      }
-
-      [[nodiscard]] auto S1(const int gridPoint) const {
-         if constexpr (isJ) {
-            return 1.0_fp;
-         } else {
-            return shape(gridPoint - particle_end);
-         }
-      }
-
-      [[nodiscard]] auto DS(const int gridPoint) const {
-         return S1(gridPoint) - S0(gridPoint);
-      }
-   };
-
-   template<bool isJ>
-   struct ShapeFunctorCached {
-      std::array<compute_t, 3> shape0{};
-      std::array<compute_t, 3> shape1{};
-      TSC shape{};
-
-      explicit ShapeFunctorCached(const compute_t x0, const compute_t x1)
-      : shape0{TSC::outer_shape(x0), TSC::inner_shape(x0), 1.0_fp - (TSC::outer_shape(x0) + TSC::inner_shape(x0))},
-        shape1{TSC::outer_shape(x1), TSC::inner_shape(x1), 1.0_fp - (TSC::outer_shape(x1) + TSC::inner_shape(x1))}
-      {}
-
-      [[nodiscard]] auto S0(const int gridPoint) const {
-         if constexpr (isJ) {
-            return 1.0;
-         } else {
-            return shape0[gridPoint + 1];
-         }
-      }
-
-      [[nodiscard]] auto S1(const int gridPoint) const {
-         if constexpr (isJ) {
-            return 1.0;
-         } else {
-            return shape1[gridPoint + 1];
-         }
-      }
-
-      [[nodiscard]] auto DS(const int gridPoint) const {
-         return S1(gridPoint) - S0(gridPoint);
-      }
-   };
-
-   template<int newX, int newY, int newZ>
-   constexpr auto rotateOrigin(const auto& vec) {
-      return decltype(vec){vec[newX], vec[newY], vec[newZ]};
-   }
 
    template<int D>
-   void applyJ(auto& J, const auto& acc, const std::array<std::size_t, 3>& cids, std::array<int, 3>&& ids) {
-      const auto& [ci, cj, ck] = cids;
-
+   auto rotateOrigin(const auto& p) {
       if constexpr (D == 0) {
-         auto [i, j, k] = rotateOrigin<2, 0, 1>(ids); // unrotates (1,2,0)->(0,1,2)
-         if (j == -1) {
-            j = 0;
-         }
-         // #pragma omp atomic update
-         J(i + ci, j + cj, k + ck) += acc;
+         return decltype(p){p[1], p[2], p[0]};
       }
-      if constexpr (D == 1) {
-         auto [i, j, k] = rotateOrigin<1, 2, 0>(ids); // unrotates (2,0,1)->(0,1,2)
-         if (j == -1) {
-            j = 0;
-         }
-         // #pragma omp atomic update
-         J(i + ci, j + cj, k + ck) += acc;
+      else if constexpr (D == 1) {
+         return decltype(p){p[2], p[0], p[1]};
       }
-      if constexpr (D == 2) {
-         auto [i, j, k] = ids;
-         if (j == -1) {
-            j = 0;
-         }
-         // #pragma omp atomic update
-         J(i + ci, j + cj, k + ck) += acc;
+      else {
+         return p;
       }
    }
 
@@ -134,111 +32,104 @@ namespace tf::particles {
       using EMFace = electromagnetics::EMFace;
       using EMSide = electromagnetics::EMSide;
 
+      static constexpr compute_t third = 1.0_fp / 3.0_fp;
+
+      static auto shape(auto x) {
+         const auto absx = std::abs(x);
+         if (absx < 0.5) {
+            return 0.75 - math::SQR(x);
+         }
+         return 0.5 * math::SQR(1.5 - absx);
+      }
+
       template<int D>
-      static void updateJ(auto& J, const auto qA,
-                          auto& p0, auto& p1,
-                          const std::array<std::size_t, 3>& idxs)
-      {
-         if (p0[D] == p1[D]) { return; }
+      static void deposit(auto& J, const auto& p0, const auto& p1, const auto& cids, const auto qA) {
+         static constexpr int i0 = D == 0 ? 0 : -1;
+         static constexpr int i1 = 1;
 
-         int i0, i1, j0, j1, k0, k1;
-         if constexpr (D == 0) {
-            p0 = rotateOrigin<1, 2, 0>(p0);
-            p1 = rotateOrigin<1, 2, 0>(p1);
-            i0 = 0;
-            i1 = 2;
-            j0 = -1;
-            j1 = 2;
-            k0 = -1;
-            k1 = 1;
-         } else {
-            i0 = -1;
-            i1 = 2;
-            j0 = 0;
-            j1 = 2;
-            k0 = -1;
-            k1 = 1;
-         }
+         static constexpr int j0 = -1;
+         static constexpr int j1 = 1;
 
-         const ShapeFunctorJIT<D==0>    shapeI(p0[0], p1[0]);
-         const ShapeFunctorCached<D==2> shapeJ(p0[1], p1[1]); // template makes j-comp return 1.0
-         const ShapeFunctorCached<false> shapeK(p0[2], p1[2]);
+         static constexpr int k0 = -1;
+         static constexpr int k1 = 1;
 
-         for (int i = i0; i < i1; i++) {
-            const auto s0i = shapeI.S0(i);
-            const auto dsi = shapeI.S1(i) - s0i;
-            for (int j = j0; j < j1; j++) {
-               const auto s0j = shapeJ.S0(j);
-               const auto dsj = shapeJ.S1(j) - s0j;
-               const auto temp = qA * (s0i * s0j + 0.5_fp * (dsi * s0j + s0i * dsj) + (1.0_fp / 3.0_fp) * dsj * dsi);
-               auto acc = 0.0_fp;
-               for (int k = k0; k < k1; k++) {
-                  acc += shapeK.DS(k) * temp;
-                  applyJ<D>(J, acc, idxs, {i, j, k});
+         if (p0[D] == p1[D]) { return; /* no deposition in this direction */ }
+
+         // rotate elements to match loop structure
+         const auto [ci, cj, ck] = rotateOrigin<D>(cids);
+         const auto [x0, y0, z0] = rotateOrigin<D>(p0);
+         const auto [x1, y1, z1] = rotateOrigin<D>(p1);
+
+         for (int i = i0; i <= i1; ++i) {
+            const auto s0i = shape(x0 - i);
+            const auto dsi = shape(x1 - i) - s0i;
+
+            for (int j = j0; j <= j1; ++j) {
+               const auto s0j = shape(y0 - j);
+               const auto dsj = shape(y1 - j) - s0j;
+
+               for (int k = k0; k <= k1; ++k) {
+                  const auto s0k = shape(z0 - k);
+                  const auto dsk = shape(z1 - k) - s0k;
+
+                  // undo the rotation to get proper indices back
+                  const auto [x, y, z] = rotateOrigin<D == 2 ? D : !D>(vec3{i + ci, j + cj, k + ck});
+                  J(x, y, z) += -qA * dsk * (s0i * s0j + 0.5_fp * (dsi * s0j + s0i * dsj) + third * dsj * dsi);
                }
-            }
-         }
-      } // end updateJ()
-
-      static void updateJy(auto& Jy, const auto qA,
-                           auto& p0, auto& p1,
-                           const std::array<std::size_t, 3>& idxs)
-      {
-         if (qA == 0.0) { return; }
-
-         // p0 = rotateOrigin<2, 0, 1>(p0);
-         // p1 = rotateOrigin<2, 0, 1>(p1);
-
-         const auto shapeI = ShapeFunctorCached<false>(p0[0], p1[0]);
-         const auto shapeK = ShapeFunctorCached<false>(p0[2], p1[2]);
-
-         for (int i = -1; i < 2; i++) {
-            const auto s0i = shapeI.S0(i);
-            const auto dsi = shapeI.S1(i) - s0i;
-            for (int k = -1; k < 2; k++) {
-               const auto s0k = shapeK.S0(k);
-               const auto dsk = shapeK.S1(k) - s0k;
-
-               const auto W = s0i * s0k + 0.5_fp * (dsi * s0k + s0i * dsk) + (1.0_fp / 3.0_fp) * dsi * dsk;
-               applyJ<1>(Jy, W * qA, idxs, {i, k, 0});
             }
          }
       }
 
+      static void depositJy(auto& Jy, const auto& p0, const auto& p1, const auto& cids, const auto qA) {
+         if (p0[1] == p1[1]) { return; }
 
-      static void update_particle(const Particle& p, emdata_t& emdata, const compute_t charge) {
-         constexpr auto dtAyz = 1.0_fp / (Ayz * dt);
-         // constexpr auto dtAxz = 1.0_fp / (Axz * dt);
-         constexpr auto dtAxy = 1.0_fp / (Axy * dt);
+         const auto& [ci, cj, ck] = cids;
+         for (int i = -1; i <= 1; i++) {
+            const auto s0i = shape(p0[0] - i);
+            const auto dsi = shape(p1[0] - i) - s0i;
+            for (int k = -1; k <= 1; k++) {
+               const auto s0k = shape(p0[2] - k);
+               const auto dsk = shape(p1[2] - k) - s0k;
 
-         auto relayPoint = [](const auto& a, const auto& b, const auto& x) { return (a == b) ? x : (a + b) / 2.0_fp; };
-         const auto idxs = morton_decode(p.code);
+               Jy(ci + i, cj, ck + k) += qA * third * (s0i * s0k + 0.5_fp * (dsi * s0k + s0i * dsk) + third * dsk * dsi);
+            }
+         }
+      }
+
+      static void updateJ(const Particle& p, emdata_t& emdata, const compute_t charge) {
+         const auto cids = morton_decode(p.code);
+
+         const vec3 off = {std::floor(p.old_location[0]),
+                           std::floor(p.old_location[1]),
+                           std::floor(p.old_location[2])};
+
+         assert(off[1] == 0);
 
          vec3<compute_t> i1{}, i2{}, p0{}, p1{};
-         for (std::size_t d = 0; d < 3; ++d) {
+
+         for (int d = 0; d < 3; d++) {
             i1[d] = std::floor(p.old_location[d] + 0.5_fp);
             i2[d] = std::floor(p.location[d] + 0.5_fp);
-            p0[d] = p.old_location[d] - i1[d];
-            p1[d] = relayPoint(i1[d], i1[d], p.location[d]) - i1[d];
+
+            p0[d] = p.old_location[d] - off[d];
+            p1[d] = (i1 == i2) ? p.location[0] : 0.5_fp * (i1[d] + i2[d]);
          }
 
-         updateJ<0>(emdata.Jx, p.weight * charge * dtAyz, p0, p1, idxs);
-         updateJy(emdata.Jy, p.velocity[1] * p.weight * charge, p0, p1, idxs); // 2D: y is done different
-         updateJ<2>(emdata.Jz, p.weight * charge * dtAxy, p0, p1, idxs);
+         deposit<0>(emdata.Jx, p0, p1, cids, p.weight * charge / (Ayz * dt));
+         deposit<2>(emdata.Jz, p0, p1, cids, p.weight * charge / (Axy * dt));
 
          if (i1 != i2) {
-            vec3 p2 = p1 - i2;
-            vec3 p3 = p.location - i2;
-
-            updateJ<0>(emdata.Jx, p.weight * charge * dtAyz, p2, p3, idxs);
-            updateJ<2>(emdata.Jz, p.weight * charge * dtAxy, p2, p3, idxs);
+            deposit<0>(emdata.Jx, p1, p.location, cids, p.weight * charge / (Ayz * dt));
+            deposit<2>(emdata.Jz, p1, p.location, cids, p.weight * charge / (Axy * dt));
          }
+
+         depositJy(emdata.Jy, p.old_location - off, p.location, cids, p.weight * charge * p.velocity[1] / cellVolume);
       }
 
       static void operator()(const group_t& g, emdata_t& emdata) {
          // #pragma omp parallel for num_threads(nThreads)
          for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
-            update_particle(g.particles[pid], emdata, g.charge);
+            updateJ(g.particles[pid], emdata, g.charge);
          }
       }
    }; // end struct CurrentDeposition

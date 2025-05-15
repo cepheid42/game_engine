@@ -102,6 +102,10 @@ namespace tf::electromagnetics {
       hx_update(emdata.Bx, emdata.Ey, emdata.Ez, emdata.empty, emdata.Chxh, emdata.Chxey2, emdata.Chxez2, emdata.empty, {0, 0, 0, 0, 0, 0});
       hy_update(emdata.By, emdata.Ez, emdata.Ex, emdata.empty, emdata.Chyh, emdata.Chyez2, emdata.Chyex2, emdata.empty, {0, 0, 0, 0, 0, 0});
       hz_update(emdata.Bz, emdata.Ex, emdata.Ey, emdata.empty, emdata.Chzh, emdata.Chzex2, emdata.Chzey2, emdata.empty, {0, 0, 0, 0, 0, 0});
+
+      std::ranges::for_each(emdata.Bx.begin(), emdata.Bx.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
+      std::ranges::for_each(emdata.By.begin(), emdata.By.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
+      std::ranges::for_each(emdata.Bz.begin(), emdata.Bz.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
     }
 
     void updateEBCs() {

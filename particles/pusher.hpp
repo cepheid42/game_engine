@@ -11,91 +11,104 @@
 #include <cmath>
 
 namespace tf::particles {
-  static std::array<double, 2> shapesCIC(const auto x) {
-    return {1.0 - x, x};
+  template<int D>
+  auto rotateOrigin(const auto& p) {
+    if constexpr (D == 0) {
+      return decltype(p){p[1], p[2], p[0]};
+    }
+    else if constexpr (D == 1) {
+      return decltype(p){p[2], p[0], p[1]};
+    }
+    else {
+      return p;
+    }
   }
 
-  static std::array<double, 3> shapesQuad(const auto x) {
-    return {
-      0.5 * math::SQR(0.5 - x),
-      0.75 - math::SQR(x),
-      0.5 * math::SQR(0.5 + x)
-    };
+  auto shapesQuad(const auto x) {
+      const auto absx = std::abs(x);
+    if (absx < 0.5) {
+      return 0.75 - math::SQR(x);
+    }
+    return 0.5 * math::SQR(1.5 - absx);
   }
 
-  template<std::size_t nx, std::size_t ny, std::size_t nz>
-  static std::array<double, nx * ny * nz> computeTotalShape(const auto& xs, const auto& ys, const auto& zs) {
-    std::array<double, nx * ny * nz> shapes{};
-    for (std::size_t i = 0; i < nx; i++) {
-      for (std::size_t j = 0; j < ny; j++) {
-        for (std::size_t k = 0; k < nz; k++) {
-          const auto idx = k + (nz * j) + (ny * nz * i);
-          shapes[idx] = xs[i] * ys[j] * zs[k];
+  template<int D>
+  auto EFieldToParticle(const auto& E, const auto& p0, const auto& cids) {
+    static constexpr int i0 = D == 0 ? 0 : -1;
+    static constexpr int i1 = 1;
+
+    static constexpr int j0 = -1;
+    static constexpr int j1 = 1;
+
+    static constexpr int k0 = -1;
+    static constexpr int k1 = 1;
+
+    // rotate elements to match loop structure
+    const auto [ci, cj, ck] = rotateOrigin<D>(cids);
+    const auto [x0, y0, z0] = rotateOrigin<D>(p0);
+
+    auto result = 0.0_fp;
+    for (int i = i0; i <= i1; ++i) {
+      const auto s0i = shape(x0 - i);
+
+      for (int j = j0; j <= j1; ++j) {
+        const auto s0j = shape(y0 - j);
+
+        for (int k = k0; k <= k1; ++k) {
+          const auto s0k = shape(z0 - k);
+
+          // undo the rotation to get proper indices back
+          const auto [x, y, z] = rotateOrigin<D == 2 ? D : !D>(vec3{i + ci, j + cj, k + ck});
+
+          result += s0i * s0j * s0k * E.template get<D>(ci + i, cj + j, ck + k);
         }
       }
     }
-    return shapes;
+    return result;
   }
 
-  template<std::size_t F, std::size_t nx, std::size_t ny, std::size_t nz>
-  static auto getField(const auto& emdata, const auto& idxs, const std::array<int, 6>& offsets) {
-    std::array<double, nx * ny * nz> fields{};
-    int idx = 0;
-    for (int i = offsets[0]; i < offsets[1]; i++) {
-      for (int j = offsets[2]; j < offsets[3]; j++) {
-        // todo: should only run once for 2d, won't work for 3d
-        for (int k = offsets[4]; k < offsets[5]; k++) {
-          fields[idx] = emdata.template get<F>(idxs[0] + i, idxs[1] + j, idxs[2] + k);
-          idx++;
+  template<int D>
+  auto BFieldToParticle(const auto& B, const auto& p0, const auto& cids) {
+    static constexpr int i0 = D == 0 ? 0 : -1;
+    static constexpr int i1 = 1;
+
+    static constexpr int j0 = -1;
+    static constexpr int j1 = 1;
+
+    static constexpr int k0 = -1;
+    static constexpr int k1 = 1;
+
+    // rotate elements to match loop structure
+    const auto [ci, cj, ck] = rotateOrigin<D>(cids);
+    const auto [x0, y0, z0] = rotateOrigin<D>(p0);
+
+    auto result = 0.0_fp;
+    for (int i = i0; i <= i1; ++i) {
+      const auto s0i = shape(x0 - i);
+
+      for (int j = j0; j <= j1; ++j) {
+        const auto s0j = shape(y0 - j);
+
+        for (int k = k0; k <= k1; ++k) {
+          const auto s0k = shape(z0 - k);
+
+          // undo the rotation to get proper indices back
+          const auto [x, y, z] = rotateOrigin<D == 2 ? D : !D>(vec3{i + ci, j + cj, k + ck});
+
+          result += s0i * s0j * s0k * E(ci + i, cj + j, ck + k);
         }
       }
-    }
-    return fields;
-  }
-
-  template<std::size_t N>
-  static auto calculateShape(const auto& field, const auto& shape) -> double {
-    double result = 0.0;
-    for (std::size_t i = 0; i < N; i++) {
-      result += field[i] * shape[i];
     }
     return result;
   }
 
   static std::array<double, 6> FieldAtParticle(Particle& p, const auto& emdata) {
-    const auto xr_shapes = shapesCIC(p.location[0]);
-    const auto yr_shapes = shapesCIC(p.location[1]);
-    const auto zr_shapes = shapesCIC(p.location[2]);
-    const auto x_shapes = shapesQuad(p.location[0]);
-    // const auto y_shapes = shapesQuad(p.location[1]);
-    const auto z_shapes = shapesQuad(p.location[2]);
-    constexpr std::array noy = { 1.0 };
+    const auto cids = morton_decode(p.code);
+    const auto exc = EFieldToParticle<0>(emdata.Ex, p.location, cids);
 
-    // todo: these shapes are for 2d only, for 3d the 1's need to be replaced
-    const auto ex_shapes = computeTotalShape<2, 2, 3>(xr_shapes, yr_shapes, z_shapes);
-    const auto ey_shapes = computeTotalShape<3, 1, 3>(x_shapes, noy, z_shapes);
-    const auto ez_shapes = computeTotalShape<3, 2, 2>(x_shapes, yr_shapes, zr_shapes);
-    const auto bx_shapes = computeTotalShape<2, 1, 3>(xr_shapes, noy, z_shapes);
-    const auto by_shapes = computeTotalShape<3, 2, 3>(x_shapes, yr_shapes, z_shapes);
-    const auto bz_shapes = computeTotalShape<3, 1, 2>(x_shapes, noy, zr_shapes);
+    const auto bxc = BFieldToParticle<0>(emdata.Bx, p.location, cids);
 
-    const auto idxs = morton_decode(p.code);
-    const auto Ex_c = getField<0, 2, 2, 3>(emdata, idxs, {0, 2, 0, 2, -1, 2});
-    const auto Ey_c = getField<1, 3, 1, 3>(emdata, idxs, {-1, 2, 0, 1, -1, 2});
-    const auto Ez_c = getField<2, 3, 2, 2>(emdata, idxs, {-1, 2, 0, 2, 0, 2});
-
-    const auto Bx_c = getField<3, 2, 1, 3>(emdata, idxs, {0, 2, 0, 1, -1, 2});
-    const auto By_c = getField<4, 3, 2, 3>(emdata, idxs, {-1, 2, 0, 2, -1, 2});
-    const auto Bz_c = getField<5, 3, 1, 2>(emdata, idxs, {-1, 2, 0, 1, 0, 2});
-
-    return {
-      calculateShape<12>(Ex_c, ex_shapes),
-      calculateShape<9>(Ey_c, ey_shapes),
-      calculateShape<12>(Ez_c, ez_shapes),
-      calculateShape<6>(Bx_c, bx_shapes),
-      calculateShape<18>(By_c, by_shapes),
-      calculateShape<6>(Bz_c, bz_shapes)
-    };
+    return {};
   } // end FieldAtParticle
 
   struct BorisPush {

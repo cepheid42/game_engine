@@ -32,6 +32,7 @@ inline constexpr auto dz = (z_range[1] - z_range[0]) / static_cast<compute_t>(Nz
 inline constexpr auto Axy = dx * dy;
 inline constexpr auto Axz = dx * dz;
 inline constexpr auto Ayz = dy * dz;
+inline constexpr auto cellVolume = dx * dy * dz;
 
 inline constexpr auto cfl = 0.848_fp / 1.732050807568877_fp;
 inline constexpr auto total_time = 2.0e-14_fp; // 30 fs

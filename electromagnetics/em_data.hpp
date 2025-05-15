@@ -66,29 +66,29 @@ namespace tf::electromagnetics {
       Chzey2.fill(h_coeff / 2.0);
     }
 
-    template<std::size_t F>
-    auto get(const std::size_t i, const std::size_t j, const std::size_t k) const {
-      if constexpr (F == 0) {
-        return Ex(i, j, k) + Ex_app(i, j, k);
-      }
-      else if constexpr (F == 1) {
-        return Ey(i, j, k) + Ey_app(i, j, k);
-      }
-      else if constexpr (F == 2) {
-        return Ez(i, j, k) + Ez_app(i, j, k);
-      }
-      else if constexpr (F == 3) {
-        return constants::mu0<compute_t> * Bx(i, j, k) + Bx_app(i, j, k);
-      }
-      else if constexpr (F == 4) {
-        return constants::mu0<compute_t> * By(i, j, k) + By_app(i, j, k);
-      }
-      else if constexpr (F == 5) {
-        return constants::mu0<compute_t> * Bz(i, j, k) + Bz_app(i, j, k);
-      } else {
-        assert(false);
-      }
-    }
+    // template<std::size_t F>
+    // auto get(const std::size_t i, const std::size_t j, const std::size_t k) const {
+    //   if constexpr (F == 0) {
+    //     return Ex(i, j, k);// + Ex_app(i, j, k);
+    //   }
+    //   else if constexpr (F == 1) {
+    //     return Ey(i, j, k);// + Ey_app(i, j, k);
+    //   }
+    //   else if constexpr (F == 2) {
+    //     return Ez(i, j, k);// + Ez_app(i, j, k);
+    //   }
+    //   else if constexpr (F == 3) {
+    //     return constants::mu0<compute_t> * Bx(i, j, k);// + Bx_app(i, j, k);
+    //   }
+    //   else if constexpr (F == 4) {
+    //     return constants::mu0<compute_t> * By(i, j, k);// + By_app(i, j, k);
+    //   }
+    //   else if constexpr (F == 5) {
+    //     return constants::mu0<compute_t> * Bz(i, j, k);// + Bz_app(i, j, k);
+    //   } else {
+    //     assert(false);
+    //   }
+    // }
 
     Array3D<compute_t> Ex;
     Array3D<compute_t> Jx;

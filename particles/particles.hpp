@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <print>
 #include <fstream>
+#include <sstream>
 
 namespace tf::particles {
   struct Particle {
