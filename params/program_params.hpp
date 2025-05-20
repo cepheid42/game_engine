@@ -4,10 +4,12 @@
 #include <array>
 #include <cmath>
 
+#define DBG_MACRO_DISABLE
+
 using compute_t = double;
 constexpr compute_t operator""_fp(const long double x) { return static_cast<compute_t>(x); }
 
-inline constexpr std::size_t nThreads = 8;
+inline constexpr std::size_t nThreads = 1;
 
 inline constexpr std::size_t Nx = 101;
 inline constexpr std::size_t Ny = 2;
@@ -41,9 +43,9 @@ inline constexpr auto dt = 4.0e-17_fp; // 0.04 fs
 // inline constexpr auto cfl = 0.848_fp / 1.732050807568877_fp;
 // inline constexpr auto total_time = 3.0e-13_fp; // 300 fs
 // inline constexpr auto dt = 4.0e-17_fp; // 0.04 fs
-inline constexpr auto Nt = static_cast<int>(total_time / dt) + 1;
+inline constexpr auto Nt = static_cast<std::size_t>(std::floor(total_time / dt)) + 1;
 
-inline constexpr std::size_t save_interval = 5;
+inline constexpr std::size_t save_interval = 1;
 
 inline constexpr std::size_t Ncx = Nx - 1;
 inline constexpr std::size_t Ncy = Ny - 1;
@@ -53,6 +55,6 @@ constexpr std::size_t get_cid(const std::size_t i, const std::size_t j, const st
   return k + (Ncz * j) + (Ncz * Ncy * i);
 }
 
-#define assertm(exp, msg) assert((void(msg), exp))
+#define assertm(exp, msg) assert((void(msg), (exp)))
 
 #endif //PROGRAM_PARAM_HPP

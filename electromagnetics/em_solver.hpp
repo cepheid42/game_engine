@@ -103,9 +103,34 @@ namespace tf::electromagnetics {
       hy_update(emdata.By, emdata.Ez, emdata.Ex, emdata.empty, emdata.Chyh, emdata.Chyez2, emdata.Chyex2, emdata.empty, {0, 0, 0, 0, 0, 0});
       hz_update(emdata.Bz, emdata.Ex, emdata.Ey, emdata.empty, emdata.Chzh, emdata.Chzex2, emdata.Chzey2, emdata.empty, {0, 0, 0, 0, 0, 0});
 
-      std::ranges::for_each(emdata.Bx.begin(), emdata.Bx.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
-      std::ranges::for_each(emdata.By.begin(), emdata.By.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
-      std::ranges::for_each(emdata.Bz.begin(), emdata.Bz.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
+
+      for (std::size_t i = 0; i < emdata.Bx.dims()[0]; i++) {
+        for (std::size_t j = 0; j < emdata.Bx.dims()[1]; j++) {
+          for (std::size_t k = 0; k < emdata.Bx.dims()[2]; k++) {
+            emdata.Bx(i, j, k) = emdata.Bx(i, j, k) * constants::mu0<compute_t> + emdata.Bx_app(i, j, k);
+          }
+        }
+      }
+
+      for (std::size_t i = 0; i < emdata.By.dims()[0]; i++) {
+        for (std::size_t j = 0; j < emdata.By.dims()[1]; j++) {
+          for (std::size_t k = 0; k < emdata.By.dims()[2]; k++) {
+            emdata.By(i, j, k) = emdata.By(i, j, k) * constants::mu0<compute_t> + emdata.By_app(i, j, k);
+          }
+        }
+      }
+
+      for (std::size_t i = 0; i < emdata.Bz.dims()[0]; i++) {
+        for (std::size_t j = 0; j < emdata.Bz.dims()[1]; j++) {
+          for (std::size_t k = 0; k < emdata.Bz.dims()[2]; k++) {
+            emdata.Bz(i, j, k) = emdata.Bz(i, j, k) * constants::mu0<compute_t> + emdata.Bz_app(i, j, k);
+          }
+        }
+      }
+
+      // std::ranges::for_each(emdata.Bx.begin(), emdata.Bx.end(), [](auto& x) { x = constants::mu0<compute_t> * x + Bx_app; });
+      // std::ranges::for_each(emdata.By.begin(), emdata.By.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
+      // std::ranges::for_each(emdata.Bz.begin(), emdata.Bz.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
     }
 
     void updateEBCs() {

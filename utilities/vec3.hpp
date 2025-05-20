@@ -5,7 +5,7 @@
 #include <utility>
 #include <string>
 #include <print>
-
+#include <iostream>
 
 // ===== Vector Types =====
 // ========================
@@ -14,12 +14,12 @@ namespace tf
   // ===== vec3 =====
   // ================
   template<typename T>
-  struct vec3 {    
+  struct vec3 {
     constexpr vec3() = default;
     constexpr vec3(T e0, T e1, T e2) : data{e0, e1, e2} {}
 
-    T &operator[](std::size_t i) { return data[i]; }
-    const T &operator[](std::size_t i) const { return data[i]; }
+    constexpr T &operator[](std::size_t i) { return data[i]; }
+    constexpr const T &operator[](std::size_t i) const { return data[i]; }
       
     [[nodiscard]] auto length_squared() const {
       auto sum = T(0.0);
@@ -77,8 +77,8 @@ namespace tf
     bool operator==(const vec3 &v) const { return (data[0] == v[0] && data[1] == v[1] && data[2] == v[2]); }
     bool operator!=(const vec3 &v) const { return !(*this == v); }
 
-    template<std::size_t I> auto& get()& { return data[I]; }
-    template<std::size_t I> const auto& get() const& { return data[I]; }
+    template<std::size_t I> constexpr auto& get()& { return data[I]; }
+    template<std::size_t I> constexpr const auto& get() const& { return data[I]; }
 
     T data[3];
   };// end struct tf::vec3
@@ -231,6 +231,13 @@ std::istringstream& operator>>(std::istringstream& in, tf::vec3<T>& v)
     in >> v[i];
   }
   return in;
+}
+
+template<typename T>
+std::ostream& operator<<(std::ostream& os, const tf::vec3<T>& v)
+{
+  os << "[" << v[0] << ", " << v[1] << ", " << v[2] << "]";
+  return os;
 }
 
 template <typename T>

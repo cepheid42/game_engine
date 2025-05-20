@@ -7,6 +7,10 @@ namespace tf::constants
   template<typename T> constexpr T pi = static_cast<T>(3.141592653589793);
   template<typename T> constexpr T pi2 = static_cast<T>(2.0 * pi<T>);
 
+  // Numeric values
+  template<typename T> constexpr T third = static_cast<T>(1.0 / 3.0);
+
+
   // Useful
   template<typename T> constexpr T kB = static_cast<T>(1.380649e-23); // J/K
   // template<typename T> constexpr T root2 = 1.414213562373095);

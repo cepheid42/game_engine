@@ -6,7 +6,8 @@
 #include "morton.hpp"
 #include "constants.hpp"
 
-#include <gfx/timsort.hpp>
+// #include <gfx/timsort.hpp>
+#include "dbg.h"
 
 #include <vector>
 #include <algorithm>
@@ -21,13 +22,21 @@ namespace tf::particles {
     vec3<compute_t> velocity;
     compute_t weight;
     double gamma;
-    std::size_t code;
+    bool disabled{false};
   }; // end struct Particle
 
+  template<typename T = std::size_t>
+  constexpr vec3<T> getCIDs(const vec3<compute_t>& loc) {
+    return {
+      static_cast<T>(std::floor(loc[0])),
+      static_cast<T>(std::floor(loc[1])),
+      static_cast<T>(std::floor(loc[2]))
+    };
+  }
 
   struct ParticleGroup {
     static constexpr std::size_t SORT_INTERVAL = 50;
-    static constexpr std::size_t DISABLED = morton_encode(Nx + 1, Ny + 1, Nz + 1);
+    // static constexpr std::size_t DISABLED = morton_encode(Nx + 1, Ny + 1, Nz + 1);
 
     ParticleGroup() = delete;
 
@@ -49,7 +58,7 @@ namespace tf::particles {
     [[nodiscard]] std::size_t num_particles() const { return particles.size(); }
 
     void reset_y_positions() {
-      // #pragma omp parallel for simd num_threads(nThreads)
+      #pragma omp parallel for simd num_threads(nThreads)
       for (std::size_t pid = 0; pid < particles.size(); pid++) {
         particles[pid].location[1] = initial_y_position;
       }
@@ -57,8 +66,12 @@ namespace tf::particles {
 
     void sort_particles() {
       // gfx::timsort(particles, {}, &Particle::code);
-      std::ranges::sort(particles, {}, &Particle::code);
-      // std::ranges::stable_sort(particles, {}, &Particle::code);
+      std::ranges::sort(particles,
+        [](const Particle& a, const Particle& b) {
+          return morton_encode(getCIDs<std::size_t>(a.location)) < morton_encode(getCIDs<std::size_t>(b.location));
+        }
+      );
+      std::erase_if(particles, [](const Particle& p) { return p.disabled; });
     }
 
     std::string name;
@@ -80,11 +93,12 @@ namespace tf::particles {
 
       ParticleGroup g(name, mass, charge, z);
 
-      vec3 deltas{dx, dy, dz};
+      constexpr vec3 deltas{dx, dy, dz};
+      constexpr vec3 mins{x_range[0], y_range[0], z_range[0]};
+
       vec3<double> location{};
       vec3<double> velocity{};
       float weight = 0.0;
-      double y_init = 0.0;
 
       std::println("Loading particle file: {}... ", filename);
       std::string line;
@@ -92,18 +106,7 @@ namespace tf::particles {
         std::istringstream buffer(line);
         buffer >> location >> velocity >> weight;
 
-        const auto ix = static_cast<std::size_t>((location[0] - x_range[0]) / dx);
-        const auto iy = static_cast<std::size_t>((location[1] - y_range[0]) / dy);
-        const auto iz = static_cast<std::size_t>((location[2] - z_range[0]) / dz);
-
-        // std::println("{}, {}, {}", ix, iy, iz);
-
-        for (std::size_t i = 0; i < 3; ++i) {
-          const auto sx = location[i] / deltas[i];
-          location[i] = sx - std::floor(sx);
-        }
-
-        y_init = location[1];
+        location = (location - mins) / deltas;
         // compute Lorentz factor and relativistic momentum
         const auto gamma = 1.0 / std::sqrt(1.0 - velocity.length_squared() * constants::over_c_sqr<double>);
 
@@ -111,15 +114,15 @@ namespace tf::particles {
         g.particles.emplace_back(
           location.as_type<compute_t>(),
           location.as_type<compute_t>(),
-          velocity.as_type<compute_t>(),
+          velocity.as_type<compute_t>() * gamma,
           weight,
           gamma,
-          morton_encode(ix, iy, iz)
+          false
         );
       }
       file.close();
       g.sort_particles();
-      g.initial_y_position = static_cast<compute_t>(y_init);
+      g.initial_y_position = g.particles[0].location[1];
       return g;
     } // end initializeFromFile
   };

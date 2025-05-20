@@ -21,6 +21,11 @@ namespace tf {
     return morton3D_SplitBy3bits(z) | (morton3D_SplitBy3bits(y) << 1) | (morton3D_SplitBy3bits(x) << 2);
   }
 
+  constexpr std::size_t morton_encode(const auto& vec) {
+    return morton3D_SplitBy3bits(vec[2]) | (morton3D_SplitBy3bits(vec[1]) << 1) | (morton3D_SplitBy3bits(vec[0]) << 2);
+  }
+
+
   // HELPER METHOD for Magic bits decoding
   static constexpr std::size_t morton3D_GetThirdBits(const std::size_t m) {
     std::size_t x = m & 0x1249249249249249;
