@@ -6,44 +6,52 @@
 
 namespace tf::math
 {
-  template<typename T> constexpr T SQR(T x) { return x * x; }
-  template<typename T> constexpr T CUBE(T x) { return x * x * x; }
+template<typename T>
+constexpr T SQR(T x) { return x * x; }
 
-  // This function create a uniform spread of points over a given range
-  // This should mimic Numpy's linspace function exactly.
-  template<typename T>
-  std::vector<T> linspace(T start, T stop, std::size_t n_points, const bool endpoint=true) {
-    std::vector<T> result(n_points);
-    if (endpoint) {
+template<typename T>
+constexpr T CUBE(T x) { return x * x * x; }
+
+// This function create a uniform spread of points over a given range
+// This should mimic Numpy's linspace function exactly.
+template<typename T>
+std::vector<T> linspace(T start, T stop, std::size_t n_points, const bool endpoint = true)
+{
+   std::vector<T> result(n_points);
+   if (endpoint)
+   {
       n_points -= 1;
       result[result.size() - 1] = stop;
-    }
-    auto delta = (stop - start) / static_cast<T>(n_points);
-    T val = start;
-    for (size_t i = 0; i < n_points; ++i) {
+   }
+   auto delta = (stop - start) / static_cast<T>(n_points);
+   T    val   = start;
+   for (size_t i = 0; i < n_points; ++i)
+   {
       result[i] = val;
       val += delta;
-    }
-    return result;
-  }
+   }
+   return result;
+}
 
-  template<typename T>
-  std::size_t findIndex(const T loc, const std::vector<T>& vec, const bool right = false) {
-    if (loc <= vec[0]) { return 0; }
-    const auto last = vec.size() - 1;
-    if (loc >= vec[last]) { return last; }
+template<typename T>
+std::size_t findIndex(const T loc, const std::vector<T>& vec, const bool right = false)
+{
+   if (loc <= vec[0]) { return 0; }
+   const auto last = vec.size() - 1;
+   if (loc >= vec[last]) { return last; }
 
-    // Branchless Binary Search to find index for a given location on the full grid
-    const T *base = vec.data();
-    int n = vec.size();
+   // Branchless Binary Search to find index for a given location on the full grid
+   const T* base = vec.data();
+   int      n    = vec.size();
 
-    while (n > 1) {
+   while (n > 1)
+   {
       const auto half = n / 2;
-      base = (base[half] < loc) ? &base[half] : base;
+      base            = (base[half] < loc) ? &base[half] : base;
       n -= half;
-    }
-    return (*base < loc) + base - vec.data() - 1 + right;
-  }
+   }
+   return (*base < loc) + base - vec.data() - 1 + right;
+}
 
 //  /*
 //   * a - first input value

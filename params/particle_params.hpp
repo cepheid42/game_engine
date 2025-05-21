@@ -3,5 +3,4 @@
 
 inline constexpr auto max_ppc = 100zu;
 
-
 #endif //PARTICLE_PARAMS_HPP
