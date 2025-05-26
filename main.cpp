@@ -147,8 +147,7 @@ void print_final_timers(auto& timers)
    std::println("Total: {}", std::chrono::hh_mm_ss(timers["Main"].elapsed));
 }
 
-int main()
-{
+int main() {
    auto timers = create_timers();
 
    timers["Main"].start_timer();
@@ -158,7 +157,7 @@ int main()
    // constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/electron_slab.dat";
    // constexpr auto ion_file = "/home/cepheid/TriForce/game_engine/data/ion_slab.dat";
 
-   constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/single_electron.dat";
+   constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/gyro_electron.dat";
    // auto g2 = ParticleInitializer::initializeFromFile("electrons", m_e, q_e, 0, electron_file);
 
    auto g1 = ParticleInitializer::initializeFromFile("electrons", m_e, -q_e, 0, electron_file);
@@ -169,7 +168,7 @@ int main()
 
    EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
 
-   // emsolver.emdata.By_app.fill(4000);
+   emsolver.emdata.By_app.fill(400.0);
 
    // add_gaussianbeam(emsolver);
    constexpr BorisPush particle_push{};
@@ -210,10 +209,10 @@ int main()
       // particle_push(g2, emsolver.emdata, step);
       timers["Push"].stop_timer();
 
-      timers["Jdep"].start_timer();
-      deposit_current(emsolver.emdata, g1);
-      // deposit_current(emsolver.emdata, g2);
-      timers["Jdep"].stop_timer();
+      // timers["Jdep"].start_timer();
+      // deposit_current(emsolver.emdata, g1);
+      // // deposit_current(emsolver.emdata, g2);
+      // timers["Jdep"].stop_timer();
 
       g1.reset_y_positions();
       // g2.reset_y_positions();
@@ -221,7 +220,7 @@ int main()
       t += dt;
       step++;
 
-      // if (step == 10) {
+      // if (step == 1) {
       //    exit(0);
       // }
 

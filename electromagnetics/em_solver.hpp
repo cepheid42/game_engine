@@ -75,8 +75,7 @@ struct EMSolver
      bcdata(this->emdata)
    {}
 
-   void advance(const compute_t t)
-   {
+   void advance(const compute_t t) {
       updateH();
       updateHBCs();
       apply_srcs(t);
@@ -86,8 +85,7 @@ struct EMSolver
       zero_currents(); // also for the particles, don't need last weeks currents
    }
 
-   void updateE()
-   {
+   void updateE() {
       // todo: changed y-limits to {0, 0} otherwise y-loop never executes, Dy is now a NoOp
       ex_update(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexhz, emdata.Cexhy, emdata.Cjx,
                 {0, 0, 0, 0, 1, 1});
@@ -97,8 +95,7 @@ struct EMSolver
                 {1, 1, 0, 0, 0, 0});
    }
 
-   void updateH()
-   {
+   void updateH() {
       hx_update(emdata.Hx, emdata.Ey, emdata.Ez, emdata.empty, emdata.Chxh, emdata.Chxey, emdata.Chxez, emdata.empty,
                 {0, 0, 0, 0, 0, 0});
       hy_update(emdata.Hy, emdata.Ez, emdata.Ex, emdata.empty, emdata.Chyh, emdata.Chyez, emdata.Chyex, emdata.empty,
@@ -107,8 +104,7 @@ struct EMSolver
                 {0, 0, 0, 0, 0, 0});
    }
 
-   void updateBhalf()
-   {
+   void updateBhalf() {
       std::ranges::copy(emdata.Hx.begin(), emdata.Hx.end(), emdata.Bx.begin());
       std::ranges::copy(emdata.Hy.begin(), emdata.Hy.end(), emdata.By.begin());
       std::ranges::copy(emdata.Hz.begin(), emdata.Hz.end(), emdata.Bz.begin());
@@ -120,46 +116,36 @@ struct EMSolver
       hz_update(emdata.Bz, emdata.Ex, emdata.Ey, emdata.empty, emdata.Chzh, emdata.Chzex2, emdata.Chzey2, emdata.empty,
                 {0, 0, 0, 0, 0, 0});
 
-      std::ranges::for_each(emdata.Bx.begin(), emdata.Bx.end(), [](auto& x) { x *= constants::mu0<compute_t>;});
-      std::ranges::for_each(emdata.By.begin(), emdata.By.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
-      std::ranges::for_each(emdata.Bz.begin(), emdata.Bz.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
+      // std::ranges::for_each(emdata.Bx.begin(), emdata.Bx.end(), [](auto& x) { x *= constants::mu0<compute_t>;});
+      // std::ranges::for_each(emdata.By.begin(), emdata.By.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
+      // std::ranges::for_each(emdata.Bz.begin(), emdata.Bz.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
 
-      // for (std::size_t i = 0; i < emdata.Bx.dims()[0]; i++)
-      // {
-      //    for (std::size_t j = 0; j < emdata.Bx.dims()[1]; j++)
-      //    {
-      //       for (std::size_t k = 0; k < emdata.Bx.dims()[2]; k++)
-      //       {
-      //          emdata.Bx(i, j, k) = emdata.Bx(i, j, k) * constants::mu0<compute_t> + emdata.Bx_app(i, j, k);
-      //       }
-      //    }
-      // }
-      //
-      // for (std::size_t i = 0; i < emdata.By.dims()[0]; i++)
-      // {
-      //    for (std::size_t j = 0; j < emdata.By.dims()[1]; j++)
-      //    {
-      //       for (std::size_t k = 0; k < emdata.By.dims()[2]; k++)
-      //       {
-      //          emdata.By(i, j, k) = emdata.By(i, j, k) * constants::mu0<compute_t> + emdata.By_app(i, j, k);
-      //       }
-      //    }
-      // }
-      //
-      // for (std::size_t i = 0; i < emdata.Bz.dims()[0]; i++)
-      // {
-      //    for (std::size_t j = 0; j < emdata.Bz.dims()[1]; j++)
-      //    {
-      //       for (std::size_t k = 0; k < emdata.Bz.dims()[2]; k++)
-      //       {
-      //          emdata.Bz(i, j, k) = emdata.Bz(i, j, k) * constants::mu0<compute_t> + emdata.Bz_app(i, j, k);
-      //       }
-      //    }
-      // }
+      for (std::size_t i = 0; i < emdata.Bx.dims()[0]; i++) {
+         for (std::size_t j = 0; j < emdata.Bx.dims()[1]; j++) {
+            for (std::size_t k = 0; k < emdata.Bx.dims()[2]; k++) {
+               emdata.Bx(i, j, k) = emdata.Bx(i, j, k) * constants::mu0<compute_t> + emdata.Bx_app(i, j, k);
+            }
+         }
+      }
+
+      for (std::size_t i = 0; i < emdata.By.dims()[0]; i++) {
+         for (std::size_t j = 0; j < emdata.By.dims()[1]; j++) {
+            for (std::size_t k = 0; k < emdata.By.dims()[2]; k++) {
+               emdata.By(i, j, k) = emdata.By(i, j, k) * constants::mu0<compute_t> + emdata.By_app(i, j, k);
+            }
+         }
+      }
+
+      for (std::size_t i = 0; i < emdata.Bz.dims()[0]; i++) {
+         for (std::size_t j = 0; j < emdata.Bz.dims()[1]; j++) {
+            for (std::size_t k = 0; k < emdata.Bz.dims()[2]; k++) {
+               emdata.Bz(i, j, k) = emdata.Bz(i, j, k) * constants::mu0<compute_t> + emdata.Bz_app(i, j, k);
+            }
+         }
+      }
    }
 
-   void updateEBCs()
-   {
+   void updateEBCs() {
       Ey_x0(emdata.Ey, emdata.Hz, emdata.Ceyhz, bcdata.x0.Ey);
       Ey_x1(emdata.Ey, emdata.Hz, emdata.Ceyhz, bcdata.x1.Ey);
       Ez_x0(emdata.Ez, emdata.Hy, emdata.Cezhy, bcdata.x0.Ez);
@@ -176,8 +162,7 @@ struct EMSolver
       Ey_z1(emdata.Ey, emdata.Hx, emdata.Ceyhx, bcdata.z1.Ey);
    }
 
-   void updateHBCs()
-   {
+   void updateHBCs() {
       Hy_x0(emdata.Hy, emdata.Ez, emdata.Chyez, bcdata.x0.Hy);
       Hy_x1(emdata.Hy, emdata.Ez, emdata.Chyez, bcdata.x1.Hy);
       Hz_x0(emdata.Hz, emdata.Ey, emdata.Chzey, bcdata.x0.Hz);
@@ -194,16 +179,14 @@ struct EMSolver
       Hy_z1(emdata.Hy, emdata.Ex, emdata.Chyex, bcdata.z1.Hy);
    }
 
-   void apply_srcs(const compute_t t) const
-   {
+   void apply_srcs(const compute_t t) const {
       for (const auto& src: emdata.srcs)
       {
          src.apply(t);
       }
    }
 
-   void zero_currents()
-   {
+   void zero_currents() {
       std::ranges::fill(emdata.Jx, 0.0_fp);
       std::ranges::fill(emdata.Jy, 0.0_fp);
       std::ranges::fill(emdata.Jz, 0.0_fp);

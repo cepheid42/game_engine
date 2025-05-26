@@ -14,6 +14,7 @@
 #include <print>
 #include <fstream>
 #include <sstream>
+#include <limits>
 
 namespace tf::particles
 {
@@ -32,7 +33,7 @@ constexpr vec3<T> getCIDs(const vec3<compute_t>& loc)
 {
    return {
       static_cast<T>(std::floor(loc[0])),
-      static_cast<T>(std::floor(loc[1])),
+      static_cast<T>(std::floor(loc[1])), // - std::numeric_limits<compute_t>::epsilon())),
       static_cast<T>(std::floor(loc[2]))
    };
 }
@@ -81,13 +82,12 @@ struct ParticleGroup
    void sort_particles()
    {
       // gfx::timsort(particles, {}, &Particle::code);
-      std::ranges::sort(particles,
-                        [](const Particle& a, const Particle& b) {
-                           return morton_encode(getCIDs<std::size_t>(a.location)) < morton_encode(
-                                     getCIDs<std::size_t>(b.location));
-                        }
-      );
       std::erase_if(particles, [](const Particle& p) { return p.disabled; });
+      std::ranges::sort(particles,
+         [](const Particle& a, const Particle& b) {
+            return morton_encode(getCIDs<std::size_t>(a.location)) < morton_encode(getCIDs<std::size_t>(b.location));
+         }
+      );
    }
 }; // end struct ParticleGroup
 

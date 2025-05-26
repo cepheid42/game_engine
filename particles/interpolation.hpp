@@ -37,13 +37,15 @@ struct TSC
    static constexpr auto innerRadius(const compute_t x)
    {
       const auto val = 0.75_fp - math::SQR(x);
-      return val; // < 1.0e-18 ? 0.0 : val;
+      // return val < 1.0e-18 ? 0.0 : val;
+      return val;
    }
 
    static constexpr auto outerRadius(const compute_t x)
    {
       const auto val = 0.5_fp * math::SQR(1.5_fp - x);
-      return val; // < 1.0e-18 ? 0.0 : val;
+      // return val < 1.0e-18 ? 0.0 : val;
+      return val;
    }
 
    static constexpr auto operator()(const compute_t x)
@@ -65,7 +67,9 @@ struct CIC
 
    static constexpr auto operator()(const compute_t x)
    {
-      return 1.0_fp - std::abs(x);
+      const auto val =  1.0_fp - std::abs(x);
+      // return val < 1.0e-18 ? 0.0 : val;
+      return val;
    }
 };
 
@@ -78,9 +82,9 @@ struct Jit
    : particle_position(pos)
    {}
 
-   constexpr auto operator()(const compute_t grid_point) const
+   constexpr auto operator()(const compute_t offset) const
    {
-      return ParticleAssignFunctor()(grid_point - particle_position);
+      return ParticleAssignFunctor()(particle_position - offset);
    }
 };
 

@@ -4,7 +4,7 @@ project(
     version : '0.0.1',
     default_options : [
 #        'buildtype=debug',
-#        'buildtype=debugoptimized',
+        'buildtype=debugoptimized',
 #        'buildtype=release',
         'warning_level=3',
         'cpp_std=c++23',
@@ -16,7 +16,7 @@ project(
 )
 
 debug_opts = [
-    '-O0', '-g'
+#    '-O0', '-g'
 #    '-fopt-info-vec-missed=missed.txt',
 #    '-DNDEBUG',
 #    '-fno-omit-frame-pointer',
@@ -31,7 +31,7 @@ gcc_opts = [
     '-Wconversion',
     '-fuse-ld=mold',
     '-march=native',
-    '-ftree-vectorize',
+#    '-ftree-vectorize',
 ]
 
 includes = include_directories(
@@ -48,7 +48,8 @@ sources = [
 
 deps = [
     dependency('adios2', required: true),
-    dependency('OpenMP')
+    dependency('OpenMP'),
+    dependency('cuda')
 ]
 
 game_engine = executable(
