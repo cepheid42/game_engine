@@ -7,17 +7,14 @@
 #include <concepts>
 // #include <print>
 
-namespace tf::electromagnetics
-{
+namespace tf::electromagnetics {
 template<typename CurlFunc, bool Hi, bool Negate>
-struct PMLFunctor
-{
+struct PMLFunctor {
    using Curl                   = CurlFunc;
    static constexpr auto hi     = Hi;
    static constexpr auto negate = Negate;
 
-   static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc, const std::size_t i, const std::size_t j,
-                     const std::size_t k, const std::size_t x0)
+   static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc, const std::size_t i, const std::size_t j, const std::size_t k, const std::size_t x0)
       requires (Curl::type == Derivative::DX)
    {
       std::size_t ipml;
@@ -25,18 +22,15 @@ struct PMLFunctor
       else { ipml = i - x0 + Curl::Forward; }
 
       bc.psi(ipml, j, k) = bc.b[ipml] * bc.psi(ipml, j, k) + bc.c[ipml] * Curl::apply(f2, i, j, k);
-      if constexpr (Negate)
-      {
+      if constexpr (Negate) {
          f1(i, j, k) -= c1(i, j, k) * bc.psi(ipml, j, k);
       }
-      else
-      {
+      else {
          f1(i, j, k) += c1(i, j, k) * bc.psi(ipml, j, k);
       }
    } // end apply
 
-   static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc, const std::size_t i, const std::size_t j,
-                     const std::size_t k, const std::size_t y0)
+   static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc, const std::size_t i, const std::size_t j, const std::size_t k, const std::size_t y0)
       requires (Curl::type == Derivative::DY)
    {
       std::size_t jpml;
@@ -44,18 +38,15 @@ struct PMLFunctor
       else { jpml = j - y0 + Curl::Forward; }
 
       bc.psi(i, jpml, k) = bc.b[jpml] * bc.psi(i, jpml, k) + bc.c[jpml] * Curl::apply(f2, i, j, k);
-      if constexpr (Negate)
-      {
+      if constexpr (Negate) {
          f1(i, j, k) -= c1(i, j, k) * bc.psi(i, jpml, k);
       }
-      else
-      {
+      else {
          f1(i, j, k) += c1(i, j, k) * bc.psi(i, jpml, k);
       }
    } // end apply
 
-   static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc, const std::size_t i, const std::size_t j,
-                     const std::size_t k, const std::size_t z0)
+   static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc, const std::size_t i, const std::size_t j, const std::size_t k, const std::size_t z0)
       requires (Curl::type == Derivative::DZ)
    {
       std::size_t kpml;
@@ -63,12 +54,10 @@ struct PMLFunctor
       else { kpml = k - z0 + Curl::Forward; }
 
       bc.psi(i, j, kpml) = bc.b[kpml] * bc.psi(i, j, kpml) + bc.c[kpml] * Curl::apply(f2, i, j, k);
-      if constexpr (Negate)
-      {
+      if constexpr (Negate) {
          f1(i, j, k) -= c1(i, j, k) * bc.psi(i, j, kpml);
       }
-      else
-      {
+      else {
          f1(i, j, k) += c1(i, j, k) * bc.psi(i, j, kpml);
       }
    } // end apply
@@ -76,8 +65,7 @@ struct PMLFunctor
 
 
 template<typename UpdateFunc>
-struct BCIntegrator
-{
+struct BCIntegrator {
    static void operator()(auto& f1, const auto& f2, const auto& c1, auto& bc)
       requires std::same_as<UpdateFunc, PMLFunctor<typename UpdateFunc::Curl, UpdateFunc::hi, UpdateFunc::negate>>
    {
@@ -88,12 +76,9 @@ struct BCIntegrator
       else { pml_offset = z0; }
 
       #pragma omp parallel for simd collapse(3) num_threads(nThreads)
-      for (std::size_t i = x0; i < x1; ++i)
-      {
-         for (std::size_t j = y0; j < y1; ++j)
-         {
-            for (std::size_t k = z0; k < z1; ++k)
-            {
+      for (std::size_t i = x0; i < x1; ++i) {
+         for (std::size_t j = y0; j < y1; ++j) {
+            for (std::size_t k = z0; k < z1; ++k) {
                UpdateFunc::apply(f1, f2, c1, bc, i, j, k, pml_offset);
             } // end for k
          }    // end for j
@@ -102,8 +87,7 @@ struct BCIntegrator
 };            // end struct BCIntegrator
 
 template<>
-struct BCIntegrator<void>
-{
+struct BCIntegrator<void> {
    static constexpr void operator()() {}
    static constexpr void operator()(const auto&, const auto&, const auto&, const auto&) {}
 };

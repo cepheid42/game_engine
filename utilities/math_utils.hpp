@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <vector>
+#include <cassert>
 
 namespace tf::math
 {
@@ -53,30 +54,30 @@ std::size_t findIndex(const T loc, const std::vector<T>& vec, const bool right =
    return (*base < loc) + base - vec.data() - 1 + right;
 }
 
-//  /*
-//   * a - first input value
-//   * b - second input value
-//   * epsilon - maximum difference allowed, e.g. std::numeric_limits<T>::epsilon()
-//   * abs_th - minimum finite value representable, e.g. std::numeric_limits<T>::min()
-//   */
-//  template<std::floating_point T>
-//  bool nearly_equal(T a, T b,
-//                    T epsilon = T(128.) * std::numeric_limits<T>::epsilon(),
-//                    T abs_th = std::numeric_limits<T>::min())
-//  {
-//    // Brought to you by StackOverflow
-//    // https://stackoverflow.com/questions/4915462/how-should-i-do-floating-point-comparison
-//    assert(std::numeric_limits<T>::epsilon() <= epsilon);
-//    assert(epsilon < T(1.0));
-//
-//    if (a == b) { return true; }
-//    auto diff = std::abs(a - b);
-//    auto norm = std::min((std::abs(a) + std::abs(b)), std::numeric_limits<T>::max());
-////  auto norm = std::min(std::abs(a + b), std::numeric_limits<T>::max());
-//
-//    return diff < std::max(abs_th, epsilon * norm);
-//  }
-//
+  /*
+   * a - first input value
+   * b - second input value
+   * epsilon - maximum difference allowed, e.g. std::numeric_limits<T>::epsilon()
+   * abs_th - minimum finite value representable, e.g. std::numeric_limits<T>::min()
+   */
+  template<std::floating_point T>
+  bool nearly_equal(T a, T b,
+                    T epsilon = T(128.) * std::numeric_limits<T>::epsilon(),
+                    T abs_th = std::numeric_limits<T>::min())
+  {
+    // Brought to you by StackOverflow
+    // https://stackoverflow.com/questions/4915462/how-should-i-do-floating-point-comparison
+    assert(std::numeric_limits<T>::epsilon() <= epsilon);
+    assert(epsilon < T(1.0));
+
+    if (a == b) { return true; }
+    auto diff = std::abs(a - b);
+    auto norm = std::min((std::abs(a) + std::abs(b)), std::numeric_limits<T>::max());
+//  auto norm = std::min(std::abs(a + b), std::numeric_limits<T>::max());
+
+    return diff < std::max(abs_th, epsilon * norm);
+  }
+
 //  // This function checks if two values are within tolerance of each other
 //  template<class T>
 //  bool approximatelyEqual(T a, T b, T tol = static_cast<T>(1.0e-10)) { return std::abs(a - b) <= tol; }

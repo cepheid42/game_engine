@@ -33,7 +33,7 @@ constexpr vec3<T> getCIDs(const vec3<compute_t>& loc)
 {
    return {
       static_cast<T>(std::floor(loc[0])),
-      static_cast<T>(std::floor(loc[1])), // - std::numeric_limits<compute_t>::epsilon())),
+      static_cast<T>(std::floor(loc[1])),
       static_cast<T>(std::floor(loc[2]))
    };
 }
@@ -120,6 +120,7 @@ struct ParticleInitializer
          buffer >> location >> velocity >> weight;
 
          location = (location - mins) / deltas;
+
          // compute Lorentz factor and relativistic momentum
          const auto gamma = 1.0 / std::sqrt(1.0 - velocity.length_squared() * constants::over_c_sqr<double>);
 

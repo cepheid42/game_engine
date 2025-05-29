@@ -10,33 +10,27 @@
 #include <vector>
 #include <cassert>
 
-namespace tf::electromagnetics
-{
-struct TemporalSource
-{
+namespace tf::electromagnetics {
+struct TemporalSource {
    virtual ~TemporalSource() = default;
-
    [[nodiscard]] virtual compute_t eval(compute_t) const = 0;
 };
 
 
-struct RickerSource final : TemporalSource
-{
+struct RickerSource final : TemporalSource {
    explicit RickerSource(const compute_t freq_)
    : freq(freq_) {}
 
-   [[nodiscard]] compute_t eval(const compute_t t) const override
-   {
-      constexpr auto Md    = 2.0_fp;
-      const auto     alpha = math::SQR(static_cast<compute_t>(constants::pi<compute_t>) * freq * (t - Md / freq));
+   [[nodiscard]] compute_t eval(const compute_t t) const override {
+      constexpr auto Md = 2.0_fp;
+      const auto alpha = math::SQR(static_cast<compute_t>(constants::pi<compute_t>) * freq * (t - Md / freq));
       return (1.0_fp - 2.0_fp * alpha) * std::exp(-alpha);
    }
 
    compute_t freq;
 }; // end struct RickerSource
 
-struct BlackmanHarris final : TemporalSource
-{
+struct BlackmanHarris final : TemporalSource {
    /*
     * https://en.wikipedia.org/wiki/Window_function#Blackman%E2%80%93Harris_window
     * Blackman-Harris Window is similar to a Gaussian except having better frequency
@@ -49,10 +43,10 @@ struct BlackmanHarris final : TemporalSource
     */
    explicit BlackmanHarris(const compute_t dx_)
    : omega((constants::pi2<compute_t> * constants::c<compute_t>) / (Nl * dx_)),
-     duration{cutoff_factor / omega} {}
+     duration{cutoff_factor / omega}
+   {}
 
-   [[nodiscard]] compute_t eval(const compute_t t) const override
-   {
+   [[nodiscard]] compute_t eval(const compute_t t) const override {
       if (t > duration) { return 1.0_fp; }
 
       const auto c1 = std::cos(bn[0] * omega * t);
@@ -70,16 +64,14 @@ struct BlackmanHarris final : TemporalSource
 }; // end struct BlackmanHarris
 
 
-struct GaussianSource final : TemporalSource
-{
+struct GaussianSource final : TemporalSource {
    GaussianSource(const compute_t width_, const compute_t power_, const compute_t delay_)
    : width(width_),
      power(power_),
      delay(delay_)
    {}
 
-   [[nodiscard]] compute_t eval(const compute_t t) const override
-   {
+   [[nodiscard]] compute_t eval(const compute_t t) const override {
       constexpr auto tol = 1e-15_fp;
       const auto     val = std::exp(-1.0_fp * std::pow((t - delay) / width, power));
       return val > tol ? val : 0.0_fp;
@@ -91,8 +83,7 @@ struct GaussianSource final : TemporalSource
 }; // end struct GaussianSource
 
 
-struct ContinuousSource final : TemporalSource
-{
+struct ContinuousSource final : TemporalSource {
    explicit ContinuousSource(const compute_t omega_, const compute_t phase_, const compute_t start_,
                              const compute_t stop_, const compute_t)
    : omega(omega_),
@@ -101,8 +92,7 @@ struct ContinuousSource final : TemporalSource
      phase(phase_) //, ramp{dx_}
    {}
 
-   [[nodiscard]] compute_t eval(const compute_t t) const override
-   {
+   [[nodiscard]] compute_t eval(const compute_t t) const override {
       if (t < start or t > stop) { return 0.0_fp; }
       return std::sin(omega * t - phase);
    }
@@ -114,8 +104,7 @@ struct ContinuousSource final : TemporalSource
    // BlackmanHarris ramp;
 }; // end struct ContinuousSource
 
-struct SpatialSource
-{
+struct SpatialSource {
    using temporal_vec = std::vector<std::unique_ptr<TemporalSource>>;
    using offset_t     = std::array<std::size_t, 6>;
 
@@ -125,11 +114,9 @@ struct SpatialSource
      t_srcs{std::move(ts)}
    {}
 
-   [[nodiscard]] compute_t eval(const compute_t t) const
-   {
+   [[nodiscard]] compute_t eval(const compute_t t) const {
       auto result = amplitude;
-      for (const auto& src: t_srcs)
-      {
+      for (const auto& src: t_srcs) {
          result *= src->eval(t);
       }
       return result;
@@ -140,8 +127,7 @@ struct SpatialSource
    temporal_vec t_srcs;
 }; // end struct SpatialSource
 
-struct CurrentSource
-{
+struct CurrentSource {
    using array_t = Array3D<compute_t>;
 
    CurrentSource(array_t* const f, SpatialSource&& s)
@@ -155,8 +141,7 @@ struct CurrentSource
    SpatialSource  src;
 }; // end struct CurrentSource
 
-struct GaussianBeam : CurrentSource
-{
+struct GaussianBeam : CurrentSource {
    using array_t  = Array3D<compute_t>;
    using offset_t = std::array<std::size_t, 6>;
 
@@ -186,28 +171,22 @@ struct GaussianBeam : CurrentSource
 
       std::vector<compute_t> r(z1 - z0);
 
-      for (std::size_t i = z0; i < z1; ++i)
-      {
+      for (std::size_t i = z0; i < z1; ++i) {
          r[i - z0] = z_range[0] + dz * static_cast<compute_t>(i);
       }
 
-      for (std::size_t i = 0; i < r.size(); ++i)
-      {
+      for (std::size_t i = 0; i < r.size(); ++i) {
          coeffs[i] = c1 * std::exp(-1.0_fp * math::SQR(r[i] / wz)) * std::cos(
                         (k * z) + (k * math::SQR(r[i]) / (2.0_fp * RC)) - gouy);
       }
    } // end GaussianBeam ctor
 
-   void apply(const compute_t t) const
-   {
+   void apply(const compute_t t) const {
       const auto& [x0, x1, y0, y1, z0, z1] = src.offsets;
       const auto  val                      = src.eval(t);
-      for (size_t i = x0; i < x1; ++i)
-      {
-         for (size_t j = y0; j < y1; ++j)
-         {
-            for (size_t k = z0; k < z1; ++k)
-            {
+      for (size_t i = x0; i < x1; ++i) {
+         for (size_t j = y0; j < y1; ++j) {
+            for (size_t k = z0; k < z1; ++k) {
                (*field)(i, j, k) = coeffs[k - z0] * val;
             }
          }
@@ -217,7 +196,7 @@ struct GaussianBeam : CurrentSource
    compute_t              waist_size;
    vec3<compute_t>        waist_pos;
    std::vector<compute_t> coeffs;
-};
+}; // end struct GaussianBeam
 } // end namespace tf::electromagnetics
 
 #endif //EM_SOURCES_HPP

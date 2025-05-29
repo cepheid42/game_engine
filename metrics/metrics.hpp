@@ -10,29 +10,23 @@
 
 #include <adios2.h>
 
-namespace tf::metrics
-{
+namespace tf::metrics {
 // =======================================
 // ======== Metrics Base Class ===========
-namespace detail
-{
-   struct MetricBase
-   {
+namespace detail {
+   struct MetricBase {
       virtual ~MetricBase() = default;
-
       virtual void write(const std::string&, const std::string&) = 0;
    };
 } // end namespace detail
 
 // =====================================
 // ======== EM Fields Metric ===========
-struct EMFieldsMetric final : detail::MetricBase
-{
+struct EMFieldsMetric final : detail::MetricBase {
    using pointer_t = Array3D<compute_t>*;
    using field_map = std::unordered_map<std::string, pointer_t>;
 
-   struct FieldVariable
-   {
+   struct FieldVariable {
       pointer_t                   field;
       adios2::Variable<compute_t> variable;
    };
@@ -40,8 +34,7 @@ struct EMFieldsMetric final : detail::MetricBase
    EMFieldsMetric(const field_map& fields_, adios2::IO&& io_)
    : io(io_)
    {
-      for (const auto& [name, field]: fields_)
-      {
+      for (const auto& [name, field]: fields_) {
          fields.push_back({
             .field = field,
             .variable = io.DefineVariable<compute_t>(
@@ -55,15 +48,13 @@ struct EMFieldsMetric final : detail::MetricBase
       }
    }
 
-   void write(const std::string& dir, const std::string& step_ext) override
-   {
+   void write(const std::string& dir, const std::string& step_ext) override {
       const std::string file{dir + "/fields_" + step_ext};
       adios2::Engine    writer = io.Open(file, adios2::Mode::Write);
       writer.BeginStep();
 
       // ReSharper disable once CppUseElementsView
-      for (auto& [field, variable]: fields)
-      {
+      for (auto& [field, variable]: fields) {
          writer.Put(variable, field->data());
       }
 
@@ -77,8 +68,7 @@ struct EMFieldsMetric final : detail::MetricBase
 
 // =========================================
 // ======== Particle Dump Metric ===========
-struct ParticleDumpMetric final : detail::MetricBase
-{
+struct ParticleDumpMetric final : detail::MetricBase {
    using group_t = particles::ParticleGroup;
 
    ParticleDumpMetric(const group_t* group_, adios2::IO&& io_)
@@ -89,11 +79,10 @@ struct ParticleDumpMetric final : detail::MetricBase
      var_vel(
         io.DefineVariable<compute_t>("Velocity", {group->num_particles(), 3}, {0, 0}, {group->num_particles(), 3})),
      var_w(io.DefineVariable<compute_t>("Weight", {group->num_particles(), 1}, {0, 0}, {group->num_particles(), 1})),
-     var_gamma(io.DefineVariable<double>("Gamma", {group->num_particles(), 1}, {0, 0}, {group->num_particles(), 1})) {
-   }
+     var_gamma(io.DefineVariable<double>("Gamma", {group->num_particles(), 1}, {0, 0}, {group->num_particles(), 1}))
+   {}
 
-   void write(const std::string& dir, const std::string& step_ext) override
-   {
+   void write(const std::string& dir, const std::string& step_ext) override {
       const std::string file{dir + "/" + group->name + "_dump_" + step_ext};
 
       // io.DefineAttribute<std::string>("name", group->name);
@@ -131,11 +120,9 @@ struct ParticleDumpMetric final : detail::MetricBase
       weight.reserve(nParticles);
       gamma.reserve(nParticles);
 
-      for (const auto& p: group->particles)
-      {
+      for (const auto& p: group->particles) {
          // const auto idxs = particles::getCIDs(p.location);
-         for (std::size_t d = 0; d < 3; d++)
-         {
+         for (std::size_t d = 0; d < 3; d++) {
             position.push_back(lb[d] + delta[d] * p.location[d]);
             velocity.push_back(p.velocity[d]);
          }
@@ -162,8 +149,7 @@ struct ParticleDumpMetric final : detail::MetricBase
 
 // ========================================================
 // ======== Particle Density/Temperature Metric ===========
-struct ParticleMetric final : detail::MetricBase
-{
+struct ParticleMetric final : detail::MetricBase {
    using group_t = particles::ParticleGroup;
 
    ParticleMetric(const group_t*    g_,
@@ -179,11 +165,10 @@ struct ParticleMetric final : detail::MetricBase
                                            adios2::ConstantDims)),
      density(Ncx * Ncy * Ncz),
      T_avg(Ncx * Ncy * Ncz),
-     KE_total(Ncx * Ncy * Ncz) {
-   }
+     KE_total(Ncx * Ncy * Ncz)
+   {}
 
-   void update_metrics()
-   {
+   void update_metrics() {
       static constexpr auto V_cell_inv = 1.0_fp / (dx * dy * dz);
       static constexpr auto temp_coef  = 2.0_fp / (3.0_fp * constants::q_e<compute_t>);
 
@@ -196,8 +181,7 @@ struct ParticleMetric final : detail::MetricBase
       #pragma omp parallel num_threads(nThreads)
       {
          #pragma omp for
-         for (std::size_t pid = 0; pid < group->num_particles(); pid++)
-         {
+         for (std::size_t pid = 0; pid < group->num_particles(); pid++) {
             const auto& p         = group->particles[pid];
             const auto  [i, j, k] = particles::getCIDs(p.location);
             const auto  cid       = get_cid(i, j, k);
@@ -208,22 +192,19 @@ struct ParticleMetric final : detail::MetricBase
          }
 
          #pragma omp for
-         for (std::size_t i = 0; i < T_avg.size(); i++)
-         {
+         for (std::size_t i = 0; i < T_avg.size(); i++) {
             if (density[i] == 0.0_fp) { continue; }
             T_avg[i] = temp_coef * KE_total[i] / density[i];
          }
 
          #pragma omp for
-         for (std::size_t i = 0; i < density.size(); i++)
-         {
+         for (std::size_t i = 0; i < density.size(); i++) {
             density[i] *= V_cell_inv;
          }
       }
    }
 
-   void write(const std::string& dir, const std::string& step_ext) override
-   {
+   void write(const std::string& dir, const std::string& step_ext) override {
       update_metrics();
 
       const std::string file{dir + "/" + group->name + "_" + step_ext};
@@ -248,26 +229,23 @@ struct ParticleMetric final : detail::MetricBase
 
 // =======================================
 // ======== Metrics Superclass ===========
-class Metrics
-{
+class Metrics {
    using metrics_vec = std::vector<std::unique_ptr<detail::MetricBase>>;
 
 public:
    explicit Metrics(std::string data_dir_)
-   : data_dir(std::move(data_dir_)) {
-   }
+   : data_dir(std::move(data_dir_))
+   {}
 
    void addMetric(std::unique_ptr<detail::MetricBase>&& m) { metrics.push_back(std::move(m)); }
 
-   void write(const std::size_t step) const
-   {
+   void write(const std::size_t step) const {
       static constexpr size_t padding      = 10;
       std::string             count_padded = std::to_string(step);
       count_padded.insert(count_padded.begin(), padding - count_padded.length(), '0');
       count_padded += file_ext; // default extension is .bp
 
-      for (const auto& m: metrics)
-      {
+      for (const auto& m: metrics) {
          m->write(data_dir, count_padded);
       }
    }

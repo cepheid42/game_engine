@@ -4,20 +4,20 @@ project(
     version : '0.0.1',
     default_options : [
 #        'buildtype=debug',
-        'buildtype=debugoptimized',
-#        'buildtype=release',
+#        'buildtype=debugoptimized',
+        'buildtype=release',
         'warning_level=3',
         'cpp_std=c++23',
 #        'b_sanitize=address',
-#        'b_lto=true',
+        'b_lto=true',
 #        'b_pgo=generate',
 #        'b_pgo=use'
     ]
 )
 
 debug_opts = [
-#    '-O0', '-g'
-#    '-fopt-info-vec-missed=missed.txt',
+#    '-O0', '-g',
+#    '-fopt-info-note-vec-missed=missed.txt',
 #    '-DNDEBUG',
 #    '-fno-omit-frame-pointer',
 #    '-fno-inline-functions',
@@ -31,7 +31,7 @@ gcc_opts = [
     '-Wconversion',
     '-fuse-ld=mold',
     '-march=native',
-#    '-ftree-vectorize',
+    '-ftree-vectorize',
 ]
 
 includes = include_directories(

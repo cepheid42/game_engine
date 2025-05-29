@@ -37,11 +37,7 @@ public:
 
    // Specialized accessors
    T& operator()(const std::size_t i, const std::size_t j, const std::size_t k) { return data_[get_scid(i, j, k)]; }
-
-   const T& operator()(const std::size_t i, const std::size_t j, const std::size_t k) const
-   {
-      return data_[get_scid(i, j, k)];
-   }
+   const T& operator()(const std::size_t i, const std::size_t j, const std::size_t k) const { return data_[get_scid(i, j, k)]; }
 
    T&       operator[](const std::size_t i) { return data_[i]; }
    const T& operator[](const std::size_t i) const { return data_[i]; }

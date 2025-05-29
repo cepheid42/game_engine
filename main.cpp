@@ -73,7 +73,7 @@ void add_gaussianbeam(EMSolver& em)
    );
 }
 
-Metrics create_metrics(const std::string& dir, EMSolver& em, const ParticleGroup& g1)//, const ParticleGroup& g2)
+Metrics create_metrics(const std::string& dir, EMSolver& em, const ParticleGroup& g1, const ParticleGroup& g2)
 {
    Metrics metrics(dir);
 
@@ -109,20 +109,20 @@ Metrics create_metrics(const std::string& dir, EMSolver& em, const ParticleGroup
       )
    );
 
-   // metrics.addMetric(
-   //    std::make_unique<ParticleDumpMetric>(
-   //       &g2,
-   //       metrics.adios.DeclareIO(g2.name + "_dump")
-   //    )
-   // );
-   //
-   // metrics.addMetric(
-   //    std::make_unique<ParticleMetric>(
-   //       &g2,
-   //       metrics.adios.DeclareIO(g2.name + "_metrics"),
-   //       Ncx, Ncy, Ncz
-   //    )
-   // );
+   metrics.addMetric(
+      std::make_unique<ParticleDumpMetric>(
+         &g2,
+         metrics.adios.DeclareIO(g2.name + "_dump")
+      )
+   );
+
+   metrics.addMetric(
+      std::make_unique<ParticleMetric>(
+         &g2,
+         metrics.adios.DeclareIO(g2.name + "_metrics"),
+         Ncx, Ncy, Ncz
+      )
+   );
 
    return metrics;
 }
@@ -152,50 +152,49 @@ int main() {
 
    timers["Main"].start_timer();
    constexpr auto m_e = constants::m_e<compute_t>;
-   // constexpr auto m_p = constants::m_p<compute_t>;
+   constexpr auto m_p = constants::m_p<compute_t>;
    constexpr auto q_e           = constants::q_e<compute_t>;
-   // constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/electron_slab.dat";
-   // constexpr auto ion_file = "/home/cepheid/TriForce/game_engine/data/ion_slab.dat";
+   constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/electron_slab.dat";
+   constexpr auto ion_file = "/home/cepheid/TriForce/game_engine/data/ion_slab.dat";
 
-   constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/gyro_electron.dat";
-   // auto g2 = ParticleInitializer::initializeFromFile("electrons", m_e, q_e, 0, electron_file);
+   // constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/gyro_electron.dat";
 
    auto g1 = ParticleInitializer::initializeFromFile("electrons", m_e, -q_e, 0, electron_file);
-   // auto g2 = ParticleInitializer::initializeFromFile("ions", m_p, +q_e, 1, ion_file);
+   auto g2 = ParticleInitializer::initializeFromFile("ions", m_p, +q_e, 1, ion_file);
 
    std::println("# of Electrons: {}", g1.num_particles());
-   // std::println("# of Ions: {}", g2.num_particles());
+   std::println("# of Ions: {}", g2.num_particles());
 
    EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
 
-   emsolver.emdata.By_app.fill(400.0);
+   // emsolver.emdata.By_app.fill(400.0);
 
    // add_gaussianbeam(emsolver);
    constexpr BorisPush particle_push{};
 
-   const auto metrics = create_metrics("/home/cepheid/TriForce/game_engine/data/lsi_test", emsolver, g1);
+   const auto metrics = create_metrics("/home/cepheid/TriForce/game_engine/data/lsi_test", emsolver, g1, g2);
 
    compute_t   t    = 0.0_fp;
    std::size_t step = 0zu;
 
    const auto progress_bar =
-         bk::ProgressBar(&step, {
-                            .total = Nt,
-                            .message = "Step",
-                            .speed = 0.,
-                            .speed_unit = "steps/s",
-                            .interval = 1.,
-                            .no_tty = true,
-                            .show = false
-                         });
+         bk::ProgressBar(
+            &step,
+            {.total = Nt,
+             .message = "Step",
+             .speed = 0.,
+             .speed_unit = "steps/s",
+             .interval = 1.,
+             // .no_tty = true,
+             .show = false});
 
    timers["IO"].start_timer();
    metrics.write(step);
    timers["IO"].stop_timer();
 
-   emsolver.updateBhalf();
+   // emsolver.updateB();
    BorisPush::backstep_velocity(g1, emsolver.emdata);
-   // BorisPush::backstep_velocity(g2, emsolver.emdata);
+   BorisPush::backstep_velocity(g2, emsolver.emdata);
 
    progress_bar->show();
    while (t < total_time)
@@ -206,21 +205,21 @@ int main() {
 
       timers["Push"].start_timer();
       particle_push(g1, emsolver.emdata, step);
-      // particle_push(g2, emsolver.emdata, step);
+      particle_push(g2, emsolver.emdata, step);
       timers["Push"].stop_timer();
 
-      // timers["Jdep"].start_timer();
-      // deposit_current(emsolver.emdata, g1);
-      // // deposit_current(emsolver.emdata, g2);
-      // timers["Jdep"].stop_timer();
+      timers["Jdep"].start_timer();
+      deposit_current(emsolver.emdata, g1);
+      deposit_current(emsolver.emdata, g2);
+      timers["Jdep"].stop_timer();
 
       g1.reset_y_positions();
-      // g2.reset_y_positions();
+      g2.reset_y_positions();
 
       t += dt;
       step++;
 
-      // if (step == 1) {
+      // if (step == 3) {
       //    exit(0);
       // }
 
