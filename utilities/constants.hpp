@@ -1,13 +1,12 @@
 #ifndef EM_CONSTANTS_HPP
 #define EM_CONSTANTS_HPP
 
-namespace tf::constants
-{
+namespace tf::constants {
 // Pi values
 template<typename T>
-constexpr T pi = static_cast<T>(3.141592653589793);
+constexpr T pi{3.141592653589793};
 template<typename T>
-constexpr T pi2 = static_cast<T>(2.0 * pi<T>);
+constexpr T pi2{2.0 * pi<T>};
 
 // Numeric values
 template<typename T>

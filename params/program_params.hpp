@@ -46,13 +46,12 @@ inline constexpr std::size_t Ncx = Nx - 1;
 inline constexpr std::size_t Ncy = Ny - 1;
 inline constexpr std::size_t Ncz = Nz - 1;
 
-inline constexpr auto dtAxy      = 1.0_fp / (dt * dx * dy);
-inline constexpr auto dtAxz      = 1.0_fp / (dt * dx * dz);
-inline constexpr auto dtAyz      = 1.0_fp / (dt * dy * dz);
+inline constexpr auto dtAxy = 1.0_fp / (dt * dx * dy);
+inline constexpr auto dtAxz = 1.0_fp / (dt * dx * dz);
+inline constexpr auto dtAyz = 1.0_fp / (dt * dy * dz);
 // inline constexpr auto cellVolume = dx * dy * dz;
 
-constexpr std::size_t get_cid(const std::size_t i, const std::size_t j, const std::size_t k)
-{
+constexpr std::size_t get_cid(const std::size_t i, const std::size_t j, const std::size_t k){
    return k + (Ncz * j) + (Ncz * Ncy * i);
 }
 

@@ -4,8 +4,8 @@ project(
     version : '0.0.1',
     default_options : [
 #        'buildtype=debug',
-#        'buildtype=debugoptimized',
-        'buildtype=release',
+        'buildtype=debugoptimized',
+#        'buildtype=release',
         'warning_level=3',
         'cpp_std=c++23',
 #        'b_sanitize=address',
@@ -49,7 +49,7 @@ sources = [
 deps = [
     dependency('adios2', required: true),
     dependency('OpenMP'),
-    dependency('cuda')
+#    dependency('cuda')
 ]
 
 game_engine = executable(
@@ -59,4 +59,3 @@ game_engine = executable(
     include_directories: includes,
     dependencies: deps
 )
-#test('test', game_engine)

@@ -5,8 +5,6 @@
 #include "sources.hpp"
 #include "array.hpp"
 
-#include <cassert>
-
 namespace tf::electromagnetics {
    struct EMData {
       EMData() = delete;
@@ -63,7 +61,7 @@ namespace tf::electromagnetics {
 
       void init_coefficients(const compute_t cfl, const compute_t dt) {
          const auto e_coeff = cfl * constants::eta0<compute_t>;
-         const auto h_coeff = cfl / (2.0_fp * constants::eta0<compute_t>);
+         const auto h_coeff = cfl / constants::eta0<compute_t>;
          const auto j_coeff = dt / constants::eps0<compute_t>;
 
          // todo: add loss terms

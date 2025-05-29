@@ -153,21 +153,13 @@ struct PMLData {
       return alpha_bc;
    }
 
-   // template<bool isB>
-   void calculate_coeffs(const std::vector<compute_t>& sigma, const std::vector<compute_t>& alpha) {
-      // constexpr auto coef1 = -dt / constants::eps0<compute_t>;
-      constexpr auto kappa_bc = 1.0_fp;
+    void calculate_coeffs(const std::vector<compute_t>& sigma, const std::vector<compute_t>& alpha) {
+      constexpr auto coef1 = -dt / constants::eps0<compute_t>;
 
       for (auto i = 0zu; i < PMLDepth; i++) {
-         if constexpr (isB) {
-            constexpr auto coef1 = -0.5 * dt / constants::eps0<compute_t>;
-            b[i] = std::exp(coef1 * ((sigma[i] / kappa_bc) + alpha[i]));
-         } else {
-            constexpr auto coef1 = -dt / constants::eps0<compute_t>;
-            b[i] = std::exp(coef1 * ((sigma[i] / kappa_bc) + alpha[i]));
-         }
-
-         c[i] = (sigma[i] * (b[i] - 1.0_fp)) / (kappa_bc * (sigma[i] + (kappa_bc * alpha[i])));
+        constexpr auto kappa_bc = 1.0_fp;
+        b[i] = std::exp(coef1 * ((sigma[i] / kappa_bc) + alpha[i]));
+        c[i] = (sigma[i] * (b[i] - 1.0_fp)) / (kappa_bc * (sigma[i] + (kappa_bc * alpha[i])));
       }
    }
 

@@ -2,6 +2,7 @@
 #define EM_CURL_HPP
 
 namespace tf::electromagnetics {
+
 enum class Derivative { DX, DY, DZ, NoOp };
 
 //=================== Array Differencing Functions ========================
@@ -13,7 +14,6 @@ template<>
 struct Diff<Derivative::NoOp, true> {
    static constexpr auto        type    = Derivative::NoOp;
    static constexpr std::size_t Forward = 1;
-
    static auto apply(const auto&, std::size_t, std::size_t, std::size_t) { return 0.0f; }
 };
 
@@ -22,7 +22,6 @@ template<Derivative D>
 struct Diff<D, true> {
    static constexpr Derivative  type    = D;
    static constexpr std::size_t Forward = 1;
-
    static auto apply(const auto& f, std::size_t i, std::size_t j, std::size_t k) {
       if constexpr (D == Derivative::DX) {
          return f(i + 1, j, k) - f(i, j, k);
@@ -41,7 +40,6 @@ template<Derivative D>
 struct Diff<D, false> {
    static constexpr Derivative  type    = D;
    static constexpr std::size_t Forward = 0;
-
    static auto apply(const auto& f, std::size_t i, std::size_t j, std::size_t k) {
       if constexpr (D == Derivative::DX) {
          return f(i, j, k) - f(i - 1, j, k);

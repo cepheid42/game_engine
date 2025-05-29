@@ -8,183 +8,18 @@
 #include "constants.hpp"
 #include "interpolation.hpp"
 
-#include "dbg.h"
+// #include "dbg.h"
 
 #include <cmath>
 
 namespace tf::particles {
-   auto ExInterp(const auto& Ex, const auto& p0, const auto& cids) {
-      using jitTSC = interp::Jit<interp::TSC>;
-
-      const auto [x0, y0, z0] = p0;
-      const auto [ci, cj, ck] = cids;
-      const jitTSC shapeI(x0 - ci);
-      const jitTSC shapeJ(y0 - cj);
-      const jitTSC shapeK(z0 - ck);
-
-      auto result = 0.0_fp;
-      for (int i = -1; i <= 1; ++i) {
-         const auto s0i = shapeI(i);
-         for (int j = -1; j <= 0; ++j) {
-            const auto s0j = shapeJ(j);
-            for (int k = -1; k <= 1; ++k) {
-               const auto s0k = shapeK(k);
-               result += s0i * s0j * s0k * Ex(ci + i, cj + j, ck + k);
-            } // end for(k)
-         } // end for(j)
-      } // end for(i)
-      return result;
-   }
-
-   auto EyInterp(const auto& Ey, const auto& p0, const auto& cids) {
-      using jitTSC = interp::Jit<interp::TSC>;
-      using jitCIC = interp::Jit<interp::CIC>;
-
-      const auto [x0, y0, z0] = p0;
-      const auto [ci, cj, ck] = cids;
-      const jitTSC shapeI(x0 - ci);
-      const jitCIC shapeJ(y0 - cj);
-      const jitTSC shapeK(z0 - ck);
-
-      auto result = 0.0_fp;
-      for (int i = -1; i <= 1; ++i) {
-         const auto s0i = shapeI(i);
-         for (int j = -1; j <= -1; ++j) {
-            const auto s0j = shapeJ(j);
-            for (int k = -1; k <= 1; ++k) {
-               const auto s0k = shapeK(k);
-               result += s0i * s0j * s0k * Ey(ci + i, cj + j, ck + k);
-            } // end for(k)
-         } // end for(j)
-      } // end for(i)
-
-      return result;
-   }
-
-   auto EzInterp(const auto& Ez, const auto& p0, const auto& cids) {
-      using cachedTSC = interp::Cached<interp::TSC>;
-      using cachedCIC = interp::Cached<interp::CIC>;
-
-      const auto [x0, y0, z0] = p0;
-      const auto [ci, cj, ck] = cids;
-
-      const cachedTSC shapeI(x0 - ci);
-      const cachedCIC shapeJ(y0 - cj);
-      const cachedTSC shapeK(z0 - ck);
-
-      auto result = 0.0_fp;
-      for (int i = -1; i <= 1; ++i) {
-         const auto s0i = shapeI(i);
-         for (int j = -1; j <= 0; ++j) {
-            const auto s0j = shapeJ(j);
-            for (int k = -1; k <= 1; ++k) {
-               const auto s0k = shapeK(k);
-               result += s0i * s0j * s0k * Ez(ci + i, cj + j, ck + k);
-            } // end for(k)
-         } // end for(j)
-      } // end for(i)
-      return result;
-   }
-
-   auto BxInterp(const auto& Bx, const auto& p0, const auto& cids) {
-      using jitTSC = interp::Jit<interp::TSC>;
-      using jitCIC = interp::Jit<interp::CIC>;
-
-      const auto [x0, y0, z0] = p0;
-      const auto [ci, cj, ck] = cids;
-      const jitTSC shapeI(x0 - ci);
-      const jitCIC shapeJ(y0 - cj);
-      const jitTSC shapeK(z0 - ck);
-
-      auto result = 0.0_fp;
-      for (int i = -1; i <= 1; ++i) {
-         const auto s0i = shapeI(i);
-         for (int j = -1; j <= -1; ++j) {
-            const auto s0j = shapeJ(j);
-            for (int k = -1; k <= 1; ++k) {
-               const auto s0k = shapeK(k);
-               result += s0i * s0j * s0k * Bx(ci + i, cj + j, ck + k);
-            } // end for(k)
-         } // end for(j)
-      } // end for(i)
-
-      // assert(result == tmp);
-      return result;
-   }
-
-   auto ByInterp(const auto& By, const auto& p0, const auto& cids) {
-      using jitTSC = interp::Jit<interp::TSC>;
-      using jitCIC = interp::Jit<interp::CIC>;
-      using cachedTSC = interp::Cached<interp::TSC>;
-
-      const auto [x0, y0, z0] = p0;
-      const auto [ci, cj, ck] = cids;
-
-      const jitTSC shapeI(x0 - ci);
-      const jitCIC shapeJ(y0 - cj);
-      const jitTSC shapeK(z0 - ck);
-
-      auto result = 0.0_fp;
-      for (int i = -1; i <= 1; ++i) {
-         const auto s0i = shapeI(i);
-         // assert(s0i == rshapeI(i));
-
-         for (int j = -1; j <= 0; ++j) {
-            const auto s0j = shapeJ(j);
-            // assert(s0j == rshapeJ(j));
-
-            for (int k = -1; k <= 1; ++k) {
-               const auto s0k = shapeK(k);
-               // assert(s0k == rshapeK(k));
-               result += s0i * s0j * s0k * By(ci + i, cj + j, ck + k);
-            } // end for(k)
-         } // end for(j)
-      } // end for(i)
-
-      return result;
-   }
-
-   auto BzInterp(const auto& Bz, const auto& p0, const auto& cids) {
-      using jitTSC = interp::Jit<interp::TSC>;
-      using jitCIC = interp::Jit<interp::CIC>;
-
-      const auto [x0, y0, z0] = p0;
-      const auto [ci, cj, ck] = cids;
-
-      const jitTSC shapeI(x0 - ci);
-      const jitCIC shapeJ(y0 - cj);
-      const jitTSC shapeK(z0 - ck);
-
-      auto result = 0.0_fp;
-      for (int i = -1; i <= 1; ++i) {
-         const auto s0i = shapeI(i);
-         for (int j = -1; j <= -1; ++j) {
-            const auto s0j = shapeJ(j);
-            for (int k = -1; k <= 1; ++k) {
-               const auto s0k = shapeK(k);
-               result += s0i * s0j * s0k * Bz(ci + i, cj + j, ck + k);
-            } // end for(k)
-         } // end for(j)
-      } // end for(i)
-
-      // assert(result == tmp);
-      return result;
-   }
-
    template<int D, bool isB>
-   auto FieldToParticleInterp(const auto& F, const auto& p0, const auto& cids) {
-      using ShapeFunc = interp::Cached<interp::TSC>;
-
+   auto FieldToParticleInterp(const auto& F, const auto& cids, const auto& shapeI, const auto& shapeJ, const auto& shapeK) {
       static constexpr vec3 b0{-1, -1, -1};
-      static constexpr vec3 b1 = interp::rotateOrigin<D>(vec3{1, (D == 1) != isB ? -1 : 0, 1});
+      static constexpr vec3 b1 = interp::rotateOrigin<D>(1, (D == 1) != isB ? -1 : 0, 1);
 
-      // rotate elements to match loop structure
+      // // rotate elements to match loop structure
       const auto [ci, cj, ck] = interp::rotateOrigin<D>(cids);
-      const auto [x0, y0, z0] = interp::rotateOrigin<D>(p0);
-
-      const ShapeFunc shapeI(x0);
-      const ShapeFunc shapeJ(y0);
-      const ShapeFunc shapeK(z0);
 
       auto result = 0.0_fp;
       for (int i = b0[0]; i <= b1[0]; ++i) {
@@ -194,7 +29,7 @@ namespace tf::particles {
             for (int k = b0[2]; k <= b1[2]; ++k) {
                const auto s0k = shapeK(k);
                // undo the rotation to get proper indices back
-               const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(vec3{i + ci, j + cj, k + ck});
+               const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(i + ci, j + cj, k + ck);
                result += s0i * s0j * s0k * F(x, y, z);
             } // end for(k)
          } // end for(j)
@@ -203,17 +38,24 @@ namespace tf::particles {
    } // end FieldToParticle()
 
    static std::array<double, 6> FieldAtParticle(Particle& p, const auto& emdata) {
+      using ShapeFunc = interp::Cached<interp::TSC>;
+
       const auto cids = getCIDs(p.location + 0.5);
       const auto p0 = p.location - cids.as_type<compute_t>();
 
-      const auto exc = FieldToParticleInterp<0, 0>(emdata.Ex, p0, cids);
-      const auto eyc = FieldToParticleInterp<1, 0>(emdata.Ey, p0, cids);
-      const auto ezc = FieldToParticleInterp<2, 0>(emdata.Ez, p0, cids);
-      const auto bxc = FieldToParticleInterp<0, 1>(emdata.Bx, p0, cids);
-      const auto byc = FieldToParticleInterp<1, 1>(emdata.By, p0, cids);
-      const auto bzc = FieldToParticleInterp<2, 1>(emdata.Bz, p0, cids);
+      const ShapeFunc shapeI(p0[0]);
+      const ShapeFunc shapeJ(p0[1]);
+      const ShapeFunc shapeK(p0[2]);
+
+      const auto exc = FieldToParticleInterp<0, 0>(emdata.Ex, cids, shapeJ, shapeK, shapeI); // 1, 2, 0
+      const auto eyc = FieldToParticleInterp<1, 0>(emdata.Ey, cids, shapeK, shapeI, shapeJ); // 2, 0, 1
+      const auto ezc = FieldToParticleInterp<2, 0>(emdata.Ez, cids, shapeI, shapeJ, shapeK); // 0, 1, 2
+      const auto bxc = FieldToParticleInterp<0, 1>(emdata.Bx, cids, shapeJ, shapeK, shapeI); // 1, 2, 0
+      const auto byc = FieldToParticleInterp<1, 1>(emdata.By, cids, shapeK, shapeI, shapeJ); // 2, 0, 1
+      const auto bzc = FieldToParticleInterp<2, 1>(emdata.Bz, cids, shapeI, shapeJ, shapeK); // 0, 1, 2
 
       return {exc, eyc, ezc, bxc, byc, bzc};
+
    } // end FieldAtParticle
 
    struct BorisPush {

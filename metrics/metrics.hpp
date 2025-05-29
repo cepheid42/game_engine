@@ -5,10 +5,11 @@
 #include "array.hpp"
 #include "particles.hpp"
 
+#include <adios2.h>
+
 #include <unordered_map>
 #include <memory>
 
-#include <adios2.h>
 
 namespace tf::metrics {
 // =======================================

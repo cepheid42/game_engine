@@ -6,20 +6,18 @@
 #include "morton.hpp"
 #include "constants.hpp"
 
+// #include "dbg.h"
+
 // #include <gfx/timsort.hpp>
-#include "dbg.h"
 
 #include <vector>
 #include <algorithm>
-#include <print>
+// #include <print>
 #include <fstream>
 #include <sstream>
-#include <limits>
 
-namespace tf::particles
-{
-struct Particle
-{
+namespace tf::particles {
+struct Particle {
    vec3<compute_t> location; // todo: use normalized locations here
    vec3<compute_t> old_location;
    vec3<compute_t> velocity;
@@ -29,8 +27,7 @@ struct Particle
 }; // end struct Particle
 
 template<typename T = std::size_t>
-constexpr vec3<T> getCIDs(const vec3<compute_t>& loc)
-{
+constexpr vec3<T> getCIDs(const vec3<compute_t>& loc) {
    return {
       static_cast<T>(std::floor(loc[0])),
       static_cast<T>(std::floor(loc[1])),
@@ -38,8 +35,7 @@ constexpr vec3<T> getCIDs(const vec3<compute_t>& loc)
    };
 }
 
-struct ParticleGroup
-{
+struct ParticleGroup {
    static constexpr std::size_t SORT_INTERVAL = 50;
    std::string           name;
    std::size_t           atomic_number;
@@ -62,25 +58,20 @@ struct ParticleGroup
      qdt_over_2m(calculate_qdt_over_2m())
    {}
 
-   [[nodiscard]] compute_t calculate_qdt_over_2m() const
-   {
-      return static_cast<compute_t>(0.5 * static_cast<double>(charge) * static_cast<double>(dt) / static_cast<double>(
-                                       mass));
+   [[nodiscard]] compute_t calculate_qdt_over_2m() const {
+      return static_cast<compute_t>(0.5 * static_cast<double>(charge) * static_cast<double>(dt) / static_cast<double>(mass));
    }
 
    [[nodiscard]] std::size_t num_particles() const { return particles.size(); }
 
-   void reset_y_positions()
-   {
+   void reset_y_positions() {
       #pragma omp parallel for simd num_threads(nThreads)
-      for (std::size_t pid = 0; pid < particles.size(); pid++)
-      {
+      for (std::size_t pid = 0; pid < particles.size(); pid++) {
          particles[pid].location[1] = initial_y_position;
       }
    }
 
-   void sort_particles()
-   {
+   void sort_particles() {
       // gfx::timsort(particles, {}, &Particle::code);
       std::erase_if(particles, [](const Particle& p) { return p.disabled; });
       std::ranges::sort(particles,
@@ -91,15 +82,13 @@ struct ParticleGroup
    }
 }; // end struct ParticleGroup
 
-struct ParticleInitializer
-{
+struct ParticleInitializer {
    static ParticleGroup initializeFromFile(const std::string& name, const compute_t mass, const compute_t charge,
                                            const std::size_t  z, const std::string& filename)
    {
       std::ifstream file(filename);
 
-      if (!file.is_open())
-      {
+      if (!file.is_open()) {
          throw std::runtime_error("Particle initialization from file failed: " + filename);
       }
 
@@ -114,8 +103,7 @@ struct ParticleInitializer
 
       std::println("Loading particle file: {}... ", filename);
       std::string line;
-      while (getline(file, line))
-      {
+      while (getline(file, line)) {
          std::istringstream buffer(line);
          buffer >> location >> velocity >> weight;
 
@@ -139,7 +127,7 @@ struct ParticleInitializer
       g.initial_y_position = g.particles[0].location[1];
       return g;
    } // end initializeFromFile
-};
+}; // end struct ParticleInitializer
 } // end namespace tf::particles
 
 #endif //PARTICLE_HPP

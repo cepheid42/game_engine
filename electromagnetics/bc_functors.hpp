@@ -81,10 +81,10 @@ struct BCIntegrator {
             for (std::size_t k = z0; k < z1; ++k) {
                UpdateFunc::apply(f1, f2, c1, bc, i, j, k, pml_offset);
             } // end for k
-         }    // end for j
-      }       // end for i
-   }          // end operator()
-};            // end struct BCIntegrator
+         } // end for j
+      } // end for i
+   } // end operator()
+}; // end struct BCIntegrator
 
 template<>
 struct BCIntegrator<void> {

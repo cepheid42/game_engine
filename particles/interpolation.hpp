@@ -3,12 +3,24 @@
 
 #include "program_params.hpp"
 #include "math_utils.hpp"
-#include "dbg.h"
+// #include "dbg.h"
 
 #include <cmath>
 #include <type_traits>
 
 namespace tf::interp {
+template<int D>
+constexpr auto rotateOrigin(const auto& x0, const auto& y0, const auto& z0) {
+   if constexpr (D == 0) {
+      return vec3{y0, z0, x0};
+   }
+   else if constexpr (D == 1) {
+      return vec3{z0, x0, y0};
+   }
+   else {
+      return vec3{x0, y0, z0};
+   }
+}
 
 template<int D>
 constexpr auto rotateOrigin(const auto& p) {

@@ -64,7 +64,6 @@ struct EMSolver {
    using Hz_z0_bc = BCIntegrator<void>;
    using Hz_z1_bc = BCIntegrator<void>;
 
-
    explicit EMSolver() = delete;
 
    explicit EMSolver(const std::size_t nx, const std::size_t ny, const std::size_t nz, const compute_t cfl, const compute_t dt)
@@ -73,13 +72,12 @@ struct EMSolver {
    {}
 
    void advance(const compute_t t) {
-      updateHhalf();
+      updateH();
       updateHBCs();
       apply_srcs(t);
       updateE();
       updateEBCs();
-      updateHhalf();
-      updateB();
+      updateBhalf();   // for the particles and shit
       zero_currents(); // also for the particles, don't need last weeks currents
    }
 
@@ -90,23 +88,53 @@ struct EMSolver {
       ez_update(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezhy, emdata.Cezhx, emdata.Cjz, {1, 1, 0, 0, 0, 0});
    }
 
-   void updateHhalf() {
+   void updateH() {
       hx_update(emdata.Hx, emdata.Ey, emdata.Ez, emdata.empty, emdata.Chxh, emdata.Chxey, emdata.Chxez, emdata.empty, {0, 0, 0, 0, 0, 0});
       hy_update(emdata.Hy, emdata.Ez, emdata.Ex, emdata.empty, emdata.Chyh, emdata.Chyez, emdata.Chyex, emdata.empty, {0, 0, 0, 0, 0, 0});
       hz_update(emdata.Hz, emdata.Ex, emdata.Ey, emdata.empty, emdata.Chzh, emdata.Chzex, emdata.Chzey, emdata.empty, {0, 0, 0, 0, 0, 0});
    }
 
-   void updateB() {
-      auto mult = [](const auto& x){ return x * constants::mu0<compute_t>; };
-      std::ranges::transform(emdata.Hx.begin(), emdata.Hx.end(), emdata.Bx.begin(), mult);
-      std::ranges::transform(emdata.Hy.begin(), emdata.Hy.end(), emdata.By.begin(), mult);
-      std::ranges::transform(emdata.Hz.begin(), emdata.Hz.end(), emdata.Bz.begin(), mult);
+   void updateBhalf() {
+      std::ranges::copy(emdata.Hx.begin(), emdata.Hx.end(), emdata.Bx.begin());
+      std::ranges::copy(emdata.Hy.begin(), emdata.Hy.end(), emdata.By.begin());
+      std::ranges::copy(emdata.Hz.begin(), emdata.Hz.end(), emdata.Bz.begin());
 
-      // Using applied fields
+      hx_update(emdata.Bx, emdata.Ey, emdata.Ez, emdata.empty, emdata.Chxh, emdata.Chxey2, emdata.Chxez2, emdata.empty, {0, 0, 0, 0, 0, 0});
+      hy_update(emdata.By, emdata.Ez, emdata.Ex, emdata.empty, emdata.Chyh, emdata.Chyez2, emdata.Chyex2, emdata.empty, {0, 0, 0, 0, 0, 0});
+      hz_update(emdata.Bz, emdata.Ex, emdata.Ey, emdata.empty, emdata.Chzh, emdata.Chzex2, emdata.Chzey2, emdata.empty, {0, 0, 0, 0, 0, 0});
+
+      std::ranges::for_each(emdata.Bx.begin(), emdata.Bx.end(), [](auto& x) { x *= constants::mu0<compute_t>;});
+      std::ranges::for_each(emdata.By.begin(), emdata.By.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
+      std::ranges::for_each(emdata.Bz.begin(), emdata.Bz.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
+
       // auto saxpy = [](const auto& x, const auto& y) { return constants::mu0<compute_t> * x + y; };
-      // std::ranges::transform(emdata.Hx.begin(), emdata.Hx.end(), emdata.Bx_app.begin(), emdata.Bx_app.end(), emdata.Bx.begin(), saxpy);
-      // std::ranges::transform(emdata.Hy.begin(), emdata.Hy.end(), emdata.By_app.begin(), emdata.By_app.end(), emdata.By.begin(), saxpy);
-      // std::ranges::transform(emdata.Hz.begin(), emdata.Hz.end(), emdata.Bz_app.begin(), emdata.Bz_app.end(), emdata.Bz.begin(), saxpy);
+      // std::ranges::transform(emdata.Bx.begin(), emdata.Bx.end(), emdata.Bx_app.begin(), emdata.Bx_app.end(), emdata.Bx.begin(), saxpy);
+      // std::ranges::transform(emdata.By.begin(), emdata.By.end(), emdata.By_app.begin(), emdata.By_app.end(), emdata.By.begin(), saxpy);
+      // std::ranges::transform(emdata.Bz.begin(), emdata.Bz.end(), emdata.Bz_app.begin(), emdata.Bz_app.end(), emdata.Bz.begin(), saxpy);
+
+      // for (std::size_t i = 0; i < emdata.Bx.dims()[0]; i++) {
+      //    for (std::size_t j = 0; j < emdata.Bx.dims()[1]; j++) {
+      //       for (std::size_t k = 0; k < emdata.Bx.dims()[2]; k++) {
+      //          emdata.Bx(i, j, k) = emdata.Bx(i, j, k) * constants::mu0<compute_t> + emdata.Bx_app(i, j, k);
+      //       }
+      //    }
+      // }
+      //
+      // for (std::size_t i = 0; i < emdata.By.dims()[0]; i++) {
+      //    for (std::size_t j = 0; j < emdata.By.dims()[1]; j++) {
+      //       for (std::size_t k = 0; k < emdata.By.dims()[2]; k++) {
+      //          emdata.By(i, j, k) = emdata.By(i, j, k) * constants::mu0<compute_t> + emdata.By_app(i, j, k);
+      //       }
+      //    }
+      // }
+      //
+      // for (std::size_t i = 0; i < emdata.Bz.dims()[0]; i++) {
+      //    for (std::size_t j = 0; j < emdata.Bz.dims()[1]; j++) {
+      //       for (std::size_t k = 0; k < emdata.Bz.dims()[2]; k++) {
+      //          emdata.Bz(i, j, k) = emdata.Bz(i, j, k) * constants::mu0<compute_t> + emdata.Bz_app(i, j, k);
+      //       }
+      //    }
+      // }
    }
 
    void updateEBCs() {
