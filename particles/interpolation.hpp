@@ -54,8 +54,7 @@ struct TSC {
 
    static constexpr auto operator()(const compute_t x) {
       const auto absx = std::abs(x);
-      if (absx < 0.5_fp)
-      {
+      if (absx < 0.5_fp) {
          return innerRadius(x);
       }
       return outerRadius(absx);

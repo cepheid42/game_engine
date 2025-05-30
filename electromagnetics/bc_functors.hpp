@@ -75,7 +75,7 @@ struct BCIntegrator {
       else if constexpr (UpdateFunc::Curl::type == Derivative::DY) { pml_offset = y0; }
       else { pml_offset = z0; }
 
-      #pragma omp parallel for simd collapse(3) num_threads(nThreads)
+      // #pragma omp parallel for simd collapse(3) num_threads(nThreads)
       for (std::size_t i = x0; i < x1; ++i) {
          for (std::size_t j = y0; j < y1; ++j) {
             for (std::size_t k = z0; k < z1; ++k) {

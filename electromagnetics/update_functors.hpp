@@ -13,7 +13,7 @@ struct FieldIntegrator {
                           const offset_t& offsets)
    {
       const auto& [x0, x1, y0, y1, z0, z1] = offsets;
-      #pragma omp parallel for simd collapse(3) num_threads(nThreads)
+      // #pragma omp parallel for simd collapse(3) num_threads(nThreads)
       for (std::size_t i = x0; i < f.nx() - x1; ++i) {
          for (std::size_t j = y0; j < f.ny() - y1; ++j) {
             for (std::size_t k = z0; k < f.nz() - z1; ++k) {

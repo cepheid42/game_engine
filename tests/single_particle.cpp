@@ -18,61 +18,10 @@ using namespace tf;
 using namespace tf::electromagnetics;
 using namespace tf::particles;
 using namespace tf::metrics;
-
 namespace bk = barkeep;
 
-void add_gaussianbeam(EMSolver& em) {
-   using temporal_vec = std::vector<std::unique_ptr<TemporalSource>>;
 
-   constexpr auto freq = constants::c<compute_t> / 8.0e-7_fp; // Hz -> c / 800 nm
-   constexpr auto omega = 2.0_fp * constants::pi<compute_t> * freq;
-   constexpr auto amp = 2.75e13_fp; // V/m
-   constexpr auto w0 = 2.548e-6_fp; // meters, waste size
-
-   constexpr auto width = 2.548e-14_fp; // seconds, ~25.48 fs
-   constexpr auto delay = 2.0 * width;
-
-   vec3 waist_pos{15.0e-6_fp, 0.0_fp, 0.0_fp};
-
-   constexpr auto x0 = PMLDepth + 20zu;
-   constexpr auto x1 = x0 + 1;
-   constexpr auto y0 = 0zu;
-   constexpr auto y1 = 1zu;
-   constexpr auto z0 = PMLDepth + 20zu;
-   constexpr auto z1 = Nz - z0;
-
-   using continuous_t = ContinuousSource;
-   auto make_continuous = [&](temporal_vec& srcs) {
-      srcs.push_back(std::make_unique<continuous_t>(omega, 0.0f, 0.0f, 1.0e30f, dx));
-   };
-
-   using gaussian_t = GaussianSource;
-   auto make_gaussian = [&](temporal_vec& srcs) {
-      srcs.push_back(std::make_unique<gaussian_t>(width, 2.0_fp, delay));
-   };
-
-
-   auto make_srcvec = [&]() -> temporal_vec {
-      temporal_vec result{};
-      make_gaussian(result);
-      make_continuous(result);
-      return result;
-   };
-
-   em.emdata.srcs.emplace_back(
-      &em.emdata.Ey,
-      w0,
-      omega,
-      waist_pos,
-      SpatialSource(
-         make_srcvec(),
-         amp,
-         {x0, x1, y0, y1, z0, z1}
-      )
-   );
-}
-
-Metrics create_metrics(const std::string& dir, EMSolver& em, const ParticleGroup& g1, const ParticleGroup& g2) {
+Metrics create_metrics(const std::string& dir, EMSolver& em, const ParticleGroup& g1) {
    Metrics metrics(dir);
 
    metrics.addMetric(
@@ -106,22 +55,6 @@ Metrics create_metrics(const std::string& dir, EMSolver& em, const ParticleGroup
          Ncx, Ncy, Ncz
       )
    );
-
-   metrics.addMetric(
-      std::make_unique<ParticleDumpMetric>(
-         &g2,
-         metrics.adios.DeclareIO(g2.name + "_dump")
-      )
-   );
-
-   metrics.addMetric(
-      std::make_unique<ParticleMetric>(
-         &g2,
-         metrics.adios.DeclareIO(g2.name + "_metrics"),
-         Ncx, Ncy, Ncz
-      )
-   );
-
    return metrics;
 }
 
@@ -148,36 +81,31 @@ int main() {
 
    timers["Main"].start_timer();
    constexpr auto m_e = constants::m_e<compute_t>;
-   constexpr auto m_p = constants::m_p<compute_t>;
    constexpr auto q_e = constants::q_e<compute_t>;
-   constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/electron_slab.dat";
-   constexpr auto ion_file = "/home/cepheid/TriForce/game_engine/data/ion_slab.dat";
 
-   // constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/gyro_electron.dat";
-
-   auto g1 = ParticleInitializer::initializeFromFile("electrons", m_e, -q_e, 0, electron_file);
-   auto g2 = ParticleInitializer::initializeFromFile("ions", m_p, +q_e, 1, ion_file);
-
-   std::println("# of Electrons: {}", g1.num_particles());
-   std::println("# of Ions: {}", g2.num_particles());
+   ParticleGroup g1("electrons", m_e, -q_e, 0);
+   g1.particles.emplace_back(
+      vec3{15.5_fp, 0.5_fp, 50.5_fp}, // location
+      vec3{15.5_fp, 0.5_fp, 50.5_fp}, // old location
+      vec3{3.0e6_fp, 0.0_fp, 0.0_fp}, // velocity
+      1.0_fp,                         // weight
+      1.0_fp,                         // gamma
+      false                           // disabled
+   );
 
    EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
-   // add_gaussianbeam(emsolver);
-
-   // emsolver.emdata.By_app.fill(400.0);
-   // emsolver.updateB();
 
    constexpr BorisPush particle_push{};
+   BorisPush::backstep_velocity(g1, emsolver.emdata);
 
-   const auto metrics = create_metrics("/home/cepheid/TriForce/game_engine/data/lsi_test", emsolver, g1, g2);
+   const auto metrics = create_metrics("/home/cepheid/TriForce/game_engine/data/single_particle_test", emsolver, g1);
 
    compute_t t = 0.0_fp;
    std::size_t step = 0zu;
 
    const auto progress_bar =
       bk::ProgressBar(
-         &step,
-         {
+         &step, {
             .total = Nt,
             .message = "Step",
             .speed = 0.,
@@ -191,9 +119,6 @@ int main() {
    metrics.write(step);
    timers["IO"].stop_timer();
 
-   BorisPush::backstep_velocity(g1, emsolver.emdata);
-   BorisPush::backstep_velocity(g2, emsolver.emdata);
-
    progress_bar->show();
    while (t < total_time) {
       timers["EM"].start_timer();
@@ -202,16 +127,13 @@ int main() {
 
       timers["Push"].start_timer();
       particle_push(g1, emsolver.emdata, step);
-      particle_push(g2, emsolver.emdata, step);
       timers["Push"].stop_timer();
 
-      // timers["Jdep"].start_timer();
-      // deposit_current(emsolver.emdata, g1);
-      // deposit_current(emsolver.emdata, g2);
-      // timers["Jdep"].stop_timer();
+      timers["Jdep"].start_timer();
+      deposit_current(emsolver.emdata, g1);
+      timers["Jdep"].stop_timer();
 
       g1.reset_y_positions();
-      g2.reset_y_positions();
 
       t += dt;
       step++;
@@ -222,8 +144,8 @@ int main() {
          timers["IO"].stop_timer();
       }
    }
-   progress_bar->done();
    timers["Main"].stop_timer();
+   progress_bar->done();
 
    print_final_timers(timers);
    return 0;

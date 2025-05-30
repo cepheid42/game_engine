@@ -76,7 +76,7 @@ namespace tf::particles {
                   acc += shapeK.DS(k) * tmp;
 
                   const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
-                  #pragma omp atomic update
+                  // #pragma omp atomic update
                   J(x, y, z) += acc;
                } // end for(k)
             } // end for(j)
@@ -133,7 +133,7 @@ namespace tf::particles {
    } // namespace detail
 
    void deposit_current(auto& emdata, const auto& g) {
-      #pragma omp parallel for num_threads(nThreads)
+      // #pragma omp parallel for num_threads(nThreads)
       for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
          detail::updateJ(g.particles[pid], emdata, g.charge);
       }

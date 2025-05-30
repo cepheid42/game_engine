@@ -16,15 +16,15 @@ project(
 )
 
 debug_opts = [
-#    '-O0', '-g',
-#    '-fopt-info-note-vec-missed=missed.txt',
-#    '-DNDEBUG',
-#    '-fno-omit-frame-pointer',
-#    '-fno-inline-functions',
-#    '-fno-inline-functions-called-once',
-#    '-fno-optimize-sibling-calls',
-#    '-fno-default-inline',
-#    '-fno-inline'
+#        '-O0', '-g',
+#        '-fopt-info-note-vec-missed=missed.txt',
+#        '-DNDEBUG',
+#        '-fno-omit-frame-pointer',
+#        '-fno-inline-functions',
+#        '-fno-inline-functions-called-once',
+#        '-fno-optimize-sibling-calls',
+#        '-fno-default-inline',
+#        '-fno-inline'
 ]
 
 gcc_opts = [
@@ -47,15 +47,23 @@ sources = [
 ]
 
 deps = [
-    dependency('adios2', required: true),
+    dependency('adios2', required : true),
     dependency('OpenMP'),
-#    dependency('cuda')
+    #    dependency('cuda')
 ]
 
 game_engine = executable(
     'game_engine',
-    sources: sources,
-    cpp_args: gcc_opts + debug_opts,
-    include_directories: includes,
-    dependencies: deps
+    sources : sources,
+    cpp_args : gcc_opts + debug_opts,
+    include_directories : includes,
+    dependencies : deps
+)
+
+single_test = executable(
+    'single_particle',
+    sources: ['./tests/single_particle.cpp'],
+    cpp_args : gcc_opts + debug_opts,
+    include_directories : includes,
+    dependencies : deps
 )
