@@ -1,53 +1,38 @@
-#ifndef SINGLE_PARTICLE_PARAMS_H
-#define SINGLE_PARTICLE_PARAMS_H
+#ifndef PROGRAM_PARAM_HPP
+#define PROGRAM_PARAM_HPP
+
+#include "compute_type.hpp"
 
 #include <array>
-#include <cmath>
 
-/*
- *
- *
- *       This file is for the single particle test setup
- *
- *
- */
+inline constexpr auto nThreads = 1;
 
-using compute_t = double;
-constexpr compute_t operator""_fp(const long double x) { return static_cast<compute_t>(x); }
+inline constexpr auto Nx = 11zu;
+inline constexpr auto Ny = 2zu;
+inline constexpr auto Nz = 11zu;
 
-inline constexpr std::size_t nThreads = 8;
+inline constexpr std::array x_range = {0.0_fp, 8e-05_fp};
+inline constexpr std::array y_range = {0.0_fp, 8e-06_fp};
+inline constexpr std::array z_range = {0.0_fp, 8e-05_fp};
 
-inline constexpr std::size_t Nx = 101;
-inline constexpr std::size_t Ny = 2;
-inline constexpr std::size_t Nz = 101;
+inline constexpr auto dx = 8.000000000000001e-06_fp;
+inline constexpr auto dy = 8e-06_fp;
+inline constexpr auto dz = 8.000000000000001e-06_fp;
 
-inline constexpr std::array x_range = {0.0_fp, 1.5e-7_fp};
-inline constexpr std::array y_range = {0.0_fp, 1.5e-9_fp}; // 1.5 nm
-inline constexpr std::array z_range = {0.0_fp, 1.5e-7_fp};
+inline constexpr auto cfl   = 0.5484827557301445_fp;
+inline constexpr auto dt    = 1.4636e-14_fp;
+inline constexpr auto t_end = 8e-10_fp;
+inline constexpr auto Nt    = 54660zu;
 
-inline constexpr auto dx = (x_range[1] - x_range[0]) / static_cast<compute_t>(Nx - 1zu);
-inline constexpr auto dy = (y_range[1] - y_range[0]) / static_cast<compute_t>(Ny - 1zu);
-inline constexpr auto dz = (z_range[1] - z_range[0]) / static_cast<compute_t>(Nz - 1zu);
+inline constexpr auto save_interval = 1zu;
 
-inline constexpr auto cfl        = 0.85_fp / 1.732050807568877_fp;
-inline constexpr auto dt         = 5.0e-17_fp; // 0.05 fs
-inline constexpr auto total_time = 50.0_fp * dt;
-inline constexpr auto Nt = static_cast<std::size_t>(std::floor(total_time / dt)) + 1;
+inline constexpr auto Ncx = Nx - 1zu;
+inline constexpr auto Ncy = Ny - 1zu;
+inline constexpr auto Ncz = Nz - 1zu;
 
-inline constexpr std::size_t save_interval = 1;
+inline constexpr auto PMLDepth    = 1zu;
+inline constexpr auto PMLGrade    = 3.5_fp;
+inline constexpr auto PMLAlphaMax = 0.2_fp;
+//inline constexpr auto PMLKappaMax = 1.0_fp;
 
-inline constexpr std::size_t Ncx = Nx - 1;
-inline constexpr std::size_t Ncy = Ny - 1;
-inline constexpr std::size_t Ncz = Nz - 1;
-
-inline constexpr auto dtAxy = 1.0_fp / (dt * dx * dy);
-inline constexpr auto dtAxz = 1.0_fp / (dt * dx * dz);
-inline constexpr auto dtAyz = 1.0_fp / (dt * dy * dz);
-
-constexpr std::size_t get_cid(const std::size_t i, const std::size_t j, const std::size_t k){
-   return k + (Ncz * j) + (Ncz * Ncy * i);
-}
-
-#define assertm(exp, msg) assert((void(msg), (exp)))
-
-#endif //SINGLE_PARTICLE_PARAMS_H
+#endif //PROGRAM_PARAM_HPP

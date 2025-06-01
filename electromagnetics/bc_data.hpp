@@ -2,7 +2,6 @@
 #define EM_BOUNDARIES_HPP
 
 #include "program_params.hpp"
-#include "em_params.hpp"
 #include "array.hpp"
 #include "constants.hpp"
 #include "math_utils.hpp"
@@ -146,18 +145,19 @@ struct PMLData {
    }
 
    static std::vector<compute_t> calculate_alpha(const std::vector<compute_t>& d) {
+      static constexpr auto m = 1.0_fp; // alpha power
       auto alpha_bc(d);
       for (auto& x: alpha_bc) {
-         x = static_cast<compute_t>(PMLAlphaMax) * std::pow(1.0_fp - x, 1.0_fp);
+         x = static_cast<compute_t>(PMLAlphaMax) * std::pow(1.0_fp - x, m);
       }
       return alpha_bc;
    }
 
     void calculate_coeffs(const std::vector<compute_t>& sigma, const std::vector<compute_t>& alpha) {
-      constexpr auto coef1 = -dt / constants::eps0<compute_t>;
+       static constexpr auto kappa_bc = 1.0_fp;
+       constexpr auto coef1 = -dt / constants::eps0<compute_t>;
 
-      for (auto i = 0zu; i < PMLDepth; i++) {
-        constexpr auto kappa_bc = 1.0_fp;
+       for (auto i = 0zu; i < PMLDepth; i++) {
         b[i] = std::exp(coef1 * ((sigma[i] / kappa_bc) + alpha[i]));
         c[i] = (sigma[i] * (b[i] - 1.0_fp)) / (kappa_bc * (sigma[i] + (kappa_bc * alpha[i])));
       }

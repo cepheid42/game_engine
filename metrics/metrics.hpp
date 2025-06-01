@@ -185,7 +185,7 @@ struct ParticleMetric final : detail::MetricBase {
          for (std::size_t pid = 0; pid < group->num_particles(); pid++) {
             const auto& p         = group->particles[pid];
             const auto  [i, j, k] = particles::getCIDs(p.location);
-            const auto  cid       = get_cid(i, j, k);
+            const auto  cid       = k + (Ncz * j) + (Ncy * Ncz * i);;
             #pragma omp atomic update
             density[cid] += p.weight;
             #pragma omp atomic update

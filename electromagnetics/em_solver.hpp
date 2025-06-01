@@ -73,10 +73,10 @@ struct EMSolver {
 
    void advance(const compute_t t) {
       updateH();
-      updateHBCs();
+      // updateHBCs();
       apply_srcs(t);
       updateE();
-      updateEBCs();
+      // updateEBCs();
       updateBhalf();   // for the particles and shit
       zero_currents(); // also for the particles, don't need last weeks currents
    }
@@ -106,6 +106,8 @@ struct EMSolver {
       std::ranges::for_each(emdata.Bx.begin(), emdata.Bx.end(), [](auto& x) { x *= constants::mu0<compute_t>;});
       std::ranges::for_each(emdata.By.begin(), emdata.By.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
       std::ranges::for_each(emdata.Bz.begin(), emdata.Bz.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
+
+      std::ranges::transform(emdata.Ex.begin(), emdata.Ex.end(), emdata.Ex_app.begin(), emdata.Ex_app.end(), emdata.Ex_total.begin(), [](const auto& x, const auto& y){ return x + y; });
 
       // auto saxpy = [](const auto& x, const auto& y) { return constants::mu0<compute_t> * x + y; };
       // std::ranges::transform(emdata.Bx.begin(), emdata.Bx.end(), emdata.Bx_app.begin(), emdata.Bx_app.end(), emdata.Bx.begin(), saxpy);

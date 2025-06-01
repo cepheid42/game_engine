@@ -2,7 +2,6 @@
 #define PUSHER_HPP
 
 #include "program_params.hpp"
-#include "em_params.hpp"
 #include "particles.hpp"
 #include "em_data.hpp"
 #include "constants.hpp"
@@ -19,7 +18,7 @@ auto FieldToParticleInterp(const auto& F, const auto& cids, const auto& shapeI, 
    static constexpr vec3 b0{-1, -1, -1};
    static constexpr vec3 b1 = interp::rotateOrigin<D>(1, (D == 1) != isB ? -1 : 0, 1);
 
-   // // rotate elements to match loop structure
+   // // rotate elements to match the loop structure
    const auto [ci, cj, ck] = interp::rotateOrigin<D>(cids);
 
    auto result = 0.0_fp;
@@ -39,16 +38,17 @@ auto FieldToParticleInterp(const auto& F, const auto& cids, const auto& shapeI, 
 } // end FieldToParticle()
 
 static std::array<double, 6> FieldAtParticle(Particle& p, const auto& emdata) {
-   using ShapeFunc = interp::Cached<interp::TSC>;
+   using TSCShape = interp::Cached<interp::TSC>;
+   using CICShape = interp::Cached<interp::CIC>;
 
    const auto cids = getCIDs(p.location + 0.5);
    const auto p0 = p.location - cids.as_type<compute_t>();
 
-   const ShapeFunc shapeI(p0[0]);
-   const ShapeFunc shapeJ(p0[1]);
-   const ShapeFunc shapeK(p0[2]);
+   const TSCShape shapeI(p0[0]);
+   const CICShape shapeJ(p0[1]);
+   const TSCShape shapeK(p0[2]);
 
-   const auto exc = FieldToParticleInterp<0, 0>(emdata.Ex, cids, shapeJ, shapeK, shapeI); // 1, 2, 0
+   const auto exc = FieldToParticleInterp<0, 0>(emdata.Ex_total, cids, shapeJ, shapeK, shapeI); // 1, 2, 0
    const auto eyc = FieldToParticleInterp<1, 0>(emdata.Ey, cids, shapeK, shapeI, shapeJ); // 2, 0, 1
    const auto ezc = FieldToParticleInterp<2, 0>(emdata.Ez, cids, shapeI, shapeJ, shapeK); // 0, 1, 2
    const auto bxc = FieldToParticleInterp<0, 1>(emdata.Bx, cids, shapeJ, shapeK, shapeI); // 1, 2, 0
@@ -79,7 +79,6 @@ struct BorisPush {
       p.velocity = v.as_type<compute_t>();
    } // end update_velocity()
 
-   // #pragma omp declare simd notinbranch
    static void update_position(Particle& p) {
       static constexpr vec3 delta_inv{dt / dx, dt / dy, dt / dz};
       if (p.disabled) { return; }
@@ -94,14 +93,14 @@ struct BorisPush {
 
 
    static void advance_velocity(group_t& g, const emdata_t& emdata) {
-      // #pragma omp parallel for num_threads(nThreads)
+      #pragma omp parallel for num_threads(nThreads)
       for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
          update_velocity(g.particles[pid], emdata, g.qdt_over_2m);
       }
    } // end advance_velocity
 
    static void advance_position(group_t& g) {
-      // #pragma omp parallel for num_threads(nThreads)
+      #pragma omp parallel for num_threads(nThreads)
       for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
          update_position(g.particles[pid]);
       }
@@ -109,7 +108,7 @@ struct BorisPush {
 
    static void backstep_velocity(group_t& g, const emdata_t& emdata) {
       // Easiest way is to just copy the velocity update and make qdt negative
-      // #pragma omp parallel for num_threads(nThreads)
+      #pragma omp parallel for num_threads(nThreads)
       for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
          update_velocity(g.particles[pid], emdata, -0.5 * g.qdt_over_2m);
       }

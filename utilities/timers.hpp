@@ -2,7 +2,11 @@
 #define TRIFORCE_TIMER_H
 
 #include <chrono>
+#include <unordered_map>
+#include <string>
+#include <print>
 
+namespace tf::utilities {
 //========== Timer Classes =========
 //==================================
 struct Timer
@@ -16,30 +20,46 @@ struct Timer
 
    Timer()
    : start{clock::now()},
-     elapsed{duration_t::zero()} {}
+     elapsed{duration_t::zero()}
+   {}
 
-   void start_timer()
-   {
+   void start_timer() {
       start = clock::now();
    }
 
    // For class timers that accumulate time spent class functions
-   void stop_timer()
-   {
+   void stop_timer() {
       elapsed += clock::now() - start;
    }
 
    // For main timers that accumulates total runtime (t_start is never reset)
-   void update_duration()
-   {
+   void update_duration() {
       elapsed = clock::now() - start;
    }
 
-   void reset()
-   {
+   void reset() {
       start   = clock::now();
       elapsed = duration_t::zero();
    }
-};
+}; // end struct Timer
 
+inline auto create_timers() {
+   std::unordered_map<std::string, Timer> timers{};
+   timers["Main"] = Timer{};
+   timers["EM"] = Timer{};
+   timers["Push"] = Timer{};
+   timers["Jdep"] = Timer{};
+   timers["IO"] = Timer{};
+   return timers;
+} // end create_timers()
+
+void print_final_timers(auto& timers) {
+   std::println("   EM: {}", std::chrono::hh_mm_ss(timers["EM"].elapsed));
+   std::println(" Push: {}", std::chrono::hh_mm_ss(timers["Push"].elapsed));
+   std::println(" Jdep: {}", std::chrono::hh_mm_ss(timers["Jdep"].elapsed));
+   std::println("   IO: {}", std::chrono::hh_mm_ss(timers["IO"].elapsed));
+   std::println("Total: {}", std::chrono::hh_mm_ss(timers["Main"].elapsed));
+}
+
+} // end namespace tf::utilities
 #endif //TRIFORCE_TIMER_H

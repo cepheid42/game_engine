@@ -4,19 +4,19 @@ project(
     version : '0.0.1',
     default_options : [
 #        'buildtype=debug',
-        'buildtype=debugoptimized',
+#        'buildtype=debugoptimized',
 #        'buildtype=release',
         'warning_level=3',
         'cpp_std=c++23',
 #        'b_sanitize=address',
-        'b_lto=true',
+#        'b_lto=true',
 #        'b_pgo=generate',
 #        'b_pgo=use'
     ]
 )
 
 debug_opts = [
-#        '-O0', '-g',
+        '-O0', '-g',
 #        '-fopt-info-note-vec-missed=missed.txt',
 #        '-DNDEBUG',
 #        '-fno-omit-frame-pointer',
@@ -31,7 +31,7 @@ gcc_opts = [
     '-Wconversion',
     '-fuse-ld=mold',
     '-march=native',
-    '-ftree-vectorize',
+#    '-ftree-vectorize',
 ]
 
 includes = include_directories(
@@ -60,10 +60,4 @@ game_engine = executable(
     dependencies : deps
 )
 
-single_test = executable(
-    'single_particle',
-    sources: ['./tests/single_particle.cpp'],
-    cpp_args : gcc_opts + debug_opts,
-    include_directories : includes,
-    dependencies : deps
-)
+subdir('tests')

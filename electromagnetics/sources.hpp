@@ -197,6 +197,57 @@ struct GaussianBeam : CurrentSource {
    vec3<compute_t>        waist_pos;
    std::vector<compute_t> coeffs;
 }; // end struct GaussianBeam
+
+void add_gaussianbeam(auto& em) {
+   using temporal_vec = std::vector<std::unique_ptr<TemporalSource>>;
+
+   constexpr auto freq = constants::c<compute_t> / 8.0e-7_fp; // Hz -> c / 800 nm
+   constexpr auto omega = 2.0_fp * constants::pi<compute_t> * freq;
+   constexpr auto amp = 2.75e13_fp; // V/m
+   constexpr auto w0 = 2.548e-6_fp; // meters, waste size
+
+   constexpr auto width = 2.548e-14_fp; // seconds, ~25.48 fs
+   constexpr auto delay = 2.0 * width;
+
+   vec3 waist_pos{15.0e-6_fp, 0.0_fp, 0.0_fp};
+
+   constexpr auto x0 = PMLDepth + 20zu;
+   constexpr auto x1 = x0 + 1;
+   constexpr auto y0 = 0zu;
+   constexpr auto y1 = 1zu;
+   constexpr auto z0 = PMLDepth + 20zu;
+   constexpr auto z1 = Nz - z0;
+
+   using continuous_t = ContinuousSource;
+   auto make_continuous = [&](temporal_vec& srcs) {
+      srcs.push_back(std::make_unique<continuous_t>(omega, 0.0f, 0.0f, 1.0e30f, dx));
+   };
+
+   using gaussian_t = GaussianSource;
+   auto make_gaussian = [&](temporal_vec& srcs) {
+      srcs.push_back(std::make_unique<gaussian_t>(width, 2.0_fp, delay));
+   };
+
+
+   auto make_srcvec = [&]() -> temporal_vec {
+      temporal_vec result{};
+      make_gaussian(result);
+      make_continuous(result);
+      return result;
+   };
+
+   em.emdata.srcs.emplace_back(
+      &em.emdata.Ey,
+      w0,
+      omega,
+      waist_pos,
+      SpatialSource(
+         make_srcvec(),
+         amp,
+         {x0, x1, y0, y1, z0, z1}
+      )
+   );
+}
 } // end namespace tf::electromagnetics
 
 #endif //EM_SOURCES_HPP

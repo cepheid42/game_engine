@@ -54,7 +54,13 @@ namespace tf::electromagnetics {
         Ez_app(nx, ny, nz - 1),
         Bx_app(nx, ny - 1, nz - 1),
         By_app(nx - 1, ny, nz - 1),
-        Bz_app(nx - 1, ny - 1, nz)
+        Bz_app(nx - 1, ny - 1, nz),
+        Ex_total(nx - 1, ny, nz)
+        // Ey_total(nx, ny - 1, nz),
+        // Ez_total(nx, ny, nz - 1),
+        // Bx_total(nx, ny - 1, nz - 1),
+        // By_total(nx - 1, ny, nz - 1),
+        // Bz_total(nx - 1, ny - 1, nz)
       {
          init_coefficients(cfl, dt);
       }
@@ -153,6 +159,14 @@ namespace tf::electromagnetics {
       Array3D<compute_t> Bx_app;
       Array3D<compute_t> By_app;
       Array3D<compute_t> Bz_app;
+
+      Array3D<compute_t> Ex_total;
+      // Array3D<compute_t> Ey_total;
+      // Array3D<compute_t> Ez_total;
+      //
+      // Array3D<compute_t> Bx_total;
+      // Array3D<compute_t> By_total;
+      // Array3D<compute_t> Bz_total;
 
       std::vector<GaussianBeam> srcs{};
 

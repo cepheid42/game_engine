@@ -65,7 +65,7 @@ struct ParticleGroup {
    [[nodiscard]] std::size_t num_particles() const { return particles.size(); }
 
    void reset_y_positions() {
-      // #pragma omp parallel for simd num_threads(nThreads)
+      #pragma omp parallel for simd num_threads(nThreads)
       for (std::size_t pid = 0; pid < particles.size(); pid++) {
          particles[pid].location[1] = initial_y_position;
       }
