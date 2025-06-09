@@ -39,9 +39,6 @@ auto FieldToParticleInterp(const auto& F, const auto& cids,
 
 
 static std::array<double, 6> FieldAtParticle(Particle& p, const auto& emdata) {
-   // using TSCShape = interp::Jit<interp::TSC>;
-   // using CICShape = interp::Jit<interp::CIC>;
-
    using TSCCache = interp::Jit<interp::TSC>;
    using CICCache = interp::Jit<interp::CIC>;
 
@@ -88,7 +85,6 @@ struct BorisPush {
       // const auto s = 2.0 * t / (1.0 + t.length_squared());
       // const auto v_prime = vminus + cross(vminus, t);
       // const auto vplus = vminus + cross(v_prime, s);
-      //
       // p.velocity = vplus + eps;
       // p.gamma = std::sqrt(1.0 + p.velocity.length_squared() * constants::over_c_sqr<double>);
    } // end update_velocity()

@@ -38,13 +38,13 @@ namespace tf::particles {
       constexpr auto makeTrajectoryFunction(const auto x0, const auto x1) {
          using CachedTSC = interp::Jit<interp::TSC>;
          using CachedCIC = interp::Jit<interp::CIC>;
-         using CachedTrajectory = TrajectoryShapeFunc<CachedTSC, CachedTSC>;
-         using ReducedTrajectory = TrajectoryShapeFunc<CachedCIC, CachedCIC>;
+         using TSCTrajectory = TrajectoryShapeFunc<CachedTSC, CachedTSC>;
+         using CICTrajectory = TrajectoryShapeFunc<CachedCIC, CachedCIC>;
 
          if constexpr (C == 0 or C == 3) {
-            return ReducedTrajectory(CachedCIC{x0}, CachedCIC{x1});
+            return CICTrajectory(CachedCIC{x0}, CachedCIC{x1});
          } else {
-            return CachedTrajectory(CachedTSC{x0}, CachedTSC{x1});
+            return TSCTrajectory(CachedTSC{x0}, CachedTSC{x1});
          }
       }
    } // end namespace tf::particles::detail
@@ -74,7 +74,7 @@ struct CurrentDeposition {
          for (int j = b0[1]; j <= b1[1]; ++j) {
             const auto s0j = shapeJ.S0(j);
             const auto dsj = shapeJ.S1(j) - s0j;
-            const auto tmp = -qA * (s0i * s0j + 0.5_fp * (dsi * s0j + s0i * dsj) + third * dsi * dsj);
+            const auto tmp = -qA * (s0i * s0j + 0.5_fp * (dsi * s0j + s0i * dsj) + third * dsj * dsi);
             auto acc = 0.0;
             for (int k = b0[2]; k <= b1[2]; ++k) {
                acc += shapeK.DS(k) * tmp;
@@ -120,8 +120,8 @@ struct CurrentDeposition {
 
       const auto hcid0 = old_hcids.template as_type<std::size_t>();
       deposit<0>(emdata.Jx, p0, p1, hcid0, x_coeff);
-      deposit<1>(emdata.Jy, p0, p1, hcid0, y_coeff);
-      deposit<2>(emdata.Jz, p0, p1, hcid0, z_coeff);
+      // deposit<1>(emdata.Jy, p0, p1, hcid0, y_coeff);
+      // deposit<2>(emdata.Jz, p0, p1, hcid0, z_coeff);
 
       if (old_hcids != new_hcids) {
          p0 = relay - new_hcids;
@@ -130,7 +130,7 @@ struct CurrentDeposition {
 
          deposit<0>(emdata.Jx, p0, p1, hcid1, x_coeff);
          // deposit<1>(emdata.Jy, p0, p1, hcid1, y_coeff);
-         deposit<2>(emdata.Jz, p0, p1, hcid1, z_coeff);
+         // deposit<2>(emdata.Jz, p0, p1, hcid1, z_coeff);
       }
    } // end updateJ()
 

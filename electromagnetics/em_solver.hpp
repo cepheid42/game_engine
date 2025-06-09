@@ -115,24 +115,39 @@ struct EMSolver {
       #pragma omp parallel num_threads(nThreads)
       {
          #pragma omp for
+         for (std::size_t i = 0; i < emdata.Ex.size(); i++) {
+            emdata.Ex_total[i] = emdata.Ex[i] + emdata.Ex_app[i];
+         }
+
+         #pragma omp for
+         for (std::size_t i = 0; i < emdata.Ey.size(); i++) {
+            emdata.Ey_total[i] = emdata.Ey[i] + emdata.Ey_app[i];
+         }
+
+         #pragma omp for
+         for (std::size_t i = 0; i < emdata.Ez.size(); i++) {
+            emdata.Ez_total[i] = emdata.Ez[i] + emdata.Ez_app[i];
+         }
+
+         #pragma omp for
          for (std::size_t i = 0; i < emdata.Bx.size(); i++) {
-            emdata.Bx_total[i] = emdata.Bx[i] / constants::mu0<compute_t>;
+            emdata.Bx_total[i] = emdata.Bx[i] / constants::mu0<compute_t> + emdata.Bx_app[i];
          }
 
          #pragma omp for
          for (std::size_t i = 0; i < emdata.By.size(); i++) {
-            emdata.By_total[i] = emdata.By[i] / constants::mu0<compute_t>;
+            emdata.By_total[i] = emdata.By[i] / constants::mu0<compute_t> + emdata.By_app[i];
          }
 
          #pragma omp for
          for (std::size_t i = 0; i < emdata.Bz.size(); i++) {
-            emdata.Bz_total[i] = emdata.Bz[i] / constants::mu0<compute_t>;
+            emdata.Bz_total[i] = emdata.Bz[i] / constants::mu0<compute_t> + emdata.By_app[i];
          }
       } // end omp parallel
 
-      std::ranges::copy(emdata.Ex, emdata.Ex_total.begin());
-      std::ranges::copy(emdata.Ey, emdata.Ey_total.begin());
-      std::ranges::copy(emdata.Ez, emdata.Ez_total.begin());
+      // std::ranges::copy(emdata.Ex, emdata.Ex_total.begin());
+      // std::ranges::copy(emdata.Ey, emdata.Ey_total.begin());
+      // std::ranges::copy(emdata.Ez, emdata.Ez_total.begin());
 
       // std::ranges::transform(emdata.Bx.begin(), emdata.Bx.end(), emdata.Bx_app.begin(), emdata.Bx_app.end(), emdata.Bx_total.begin(), [](const auto& x, const auto& y){ return over_mu * x + y; });
       // std::ranges::transform(emdata.By.begin(), emdata.By.end(), emdata.By_app.begin(), emdata.By_app.end(), emdata.By_total.begin(), [](const auto& x, const auto& y){ return over_mu * x + y; });

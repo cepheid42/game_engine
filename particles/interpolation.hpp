@@ -96,15 +96,17 @@ struct Jit {
    : particle_position(pos)
    {}
 
-   constexpr auto operator()(const compute_t offset) const {
-      return ParticleAssignFunctor()(offset - particle_position + 0.5);
+   constexpr auto operator()(const compute_t offset) const
+      requires std::same_as<ParticleAssignFunctor, CIC>
+   {
+      return ParticleAssignFunctor()(offset - particle_position);
    }
 
-   // constexpr auto operator()(const compute_t offset) const
-   // requires std::same_as<ParticleAssignFunctor, TSC>
-   // {
-   //    return ParticleAssignFunctor()(particle_position - offset);
-   // }
+   constexpr auto operator()(const compute_t offset) const
+   requires std::same_as<ParticleAssignFunctor, TSC>
+   {
+      return ParticleAssignFunctor()(offset - particle_position + 0.5);
+   }
 };
 
 // template<typename ParticleAssignFunctor>
