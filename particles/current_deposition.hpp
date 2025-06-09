@@ -53,8 +53,8 @@ struct CurrentDeposition {
    template<int D>
    static void deposit(auto& J, const auto& p0, const auto& p1, const auto& cids, const auto qA) {
       static constexpr auto third = constants::third<compute_t>;
-      static constexpr vec3 b0{-1, -1, -1};
-      static constexpr vec3 b1 = interp::rotateOrigin<D>(1, D == 1 ? -1 : 0, 1);
+      static constexpr vec3 b0 = interp::rotateOrigin<D>(-1, 0, -1);
+      static constexpr vec3 b1 = interp::rotateOrigin<D>(1, 0, 1);
 
       if (p0[D] == p1[D]) {
          return;
@@ -71,15 +71,17 @@ struct CurrentDeposition {
       for (int i = b0[0]; i <= b1[0]; ++i) {
          const auto s0i = shapeI.S0(i);
          const auto dsi = shapeI.S1(i) - s0i;
+
          for (int j = b0[1]; j <= b1[1]; ++j) {
             const auto s0j = shapeJ.S0(j);
             const auto dsj = shapeJ.S1(j) - s0j;
+
             const auto tmp = -qA * (s0i * s0j + 0.5_fp * (dsi * s0j + s0i * dsj) + third * dsj * dsi);
             auto acc = 0.0;
             for (int k = b0[2]; k <= b1[2]; ++k) {
                acc += shapeK.DS(k) * tmp;
                const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
-               #pragma omp atomic update
+               // #pragma omp atomic update
                J(x, y, z) += acc;
             } // end for(k)
          } // end for(j)
@@ -108,9 +110,6 @@ struct CurrentDeposition {
       auto old_loc_half = p.old_location + 0.5_fp;
       auto new_loc_half = p.location + 0.5_fp;
 
-      old_loc_half[1] -= 0.5_fp;
-      new_loc_half[1] -= 0.5_fp;
-
       const auto old_hcids = getCellIndices<compute_t>(old_loc_half);
       const auto new_hcids = getCellIndices<compute_t>(new_loc_half);
       const auto relay = findRelayPoint(old_hcids, new_hcids, new_loc_half);
@@ -118,19 +117,20 @@ struct CurrentDeposition {
       auto p0 = old_loc_half - old_hcids;
       auto p1 = relay - old_hcids;
 
-      const auto hcid0 = old_hcids.template as_type<std::size_t>();
-      deposit<0>(emdata.Jx, p0, p1, hcid0, x_coeff);
-      // deposit<1>(emdata.Jy, p0, p1, hcid0, y_coeff);
-      // deposit<2>(emdata.Jz, p0, p1, hcid0, z_coeff);
+      p0[1] -= 0.5_fp;
+      p1[1] -= 0.5_fp;
+
+      deposit<0>(emdata.Jx, p0, p1, old_hcids.template as_type<std::size_t>(), x_coeff);
+      deposit<1>(emdata.Jy, p0, p1, old_hcids.template as_type<std::size_t>(), y_coeff);
+      deposit<2>(emdata.Jz, p0, p1, old_hcids.template as_type<std::size_t>(), z_coeff);
 
       if (old_hcids != new_hcids) {
          p0 = relay - new_hcids;
          p1 = new_loc_half - new_hcids;
-         const auto hcid1 = new_hcids.template as_type<std::size_t>();
 
-         deposit<0>(emdata.Jx, p0, p1, hcid1, x_coeff);
-         // deposit<1>(emdata.Jy, p0, p1, hcid1, y_coeff);
-         // deposit<2>(emdata.Jz, p0, p1, hcid1, z_coeff);
+         deposit<0>(emdata.Jx, p0, p1, new_hcids.template as_type<std::size_t>(), x_coeff);
+         // deposit<1>(emdata.Jy, p0, p1, new_hcids, y_coeff);
+         deposit<2>(emdata.Jz, p0, p1, new_hcids.template as_type<std::size_t>(), z_coeff);
       }
    } // end updateJ()
 

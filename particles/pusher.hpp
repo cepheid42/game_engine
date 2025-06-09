@@ -42,20 +42,25 @@ static std::array<double, 6> FieldAtParticle(Particle& p, const auto& emdata) {
    using TSCCache = interp::Jit<interp::TSC>;
    using CICCache = interp::Jit<interp::CIC>;
 
-   const auto fcids = getCellIndices(p.location);
-   auto p0 = p.location - fcids.as_type<compute_t>();
+   // const auto new_loc = p.location + 0.5;
+   // const auto cids = getCellIndices(new_loc);
+   // const auto p0 = new_loc - cids.as_type<compute_t>();
+   // // todo: does p0[1] need to be corrected?
+
+   const auto cids = getCellIndices(p.location);
+   auto p0 = p.location - cids.as_type<compute_t>();
    p0[1] -= 0.5_fp;
 
    const TSCCache shapeI(p0[0]);
    const CICCache shapeJ(p0[1]);
    const TSCCache shapeK(p0[2]);
 
-   const auto exc = FieldToParticleInterp<0, 0>(emdata.Ex_total, fcids, shapeJ, shapeK, shapeI); // 1, 2, 0
-   const auto eyc = FieldToParticleInterp<1, 0>(emdata.Ey_total, fcids, shapeK, shapeI, shapeJ); // 2, 0, 1
-   const auto ezc = FieldToParticleInterp<2, 0>(emdata.Ez_total, fcids, shapeI, shapeJ, shapeK); // 0, 1, 2
-   const auto bxc = FieldToParticleInterp<0, 1>(emdata.Bx_total, fcids, shapeJ, shapeK, shapeI); // 1, 2, 0
-   const auto byc = FieldToParticleInterp<1, 1>(emdata.By_total, fcids, shapeK, shapeI, shapeJ); // 2, 0, 1
-   const auto bzc = FieldToParticleInterp<2, 1>(emdata.Bz_total, fcids, shapeI, shapeJ, shapeK); // 0, 1, 2
+   const auto exc = FieldToParticleInterp<0, 0>(emdata.Ex_total, cids, shapeJ, shapeK, shapeI); // 1, 2, 0
+   const auto eyc = FieldToParticleInterp<1, 0>(emdata.Ey_total, cids, shapeK, shapeI, shapeJ); // 2, 0, 1
+   const auto ezc = FieldToParticleInterp<2, 0>(emdata.Ez_total, cids, shapeI, shapeJ, shapeK); // 0, 1, 2
+   const auto bxc = FieldToParticleInterp<0, 1>(emdata.Bx_total, cids, shapeJ, shapeK, shapeI); // 1, 2, 0
+   const auto byc = FieldToParticleInterp<1, 1>(emdata.By_total, cids, shapeK, shapeI, shapeJ); // 2, 0, 1
+   const auto bzc = FieldToParticleInterp<2, 1>(emdata.Bz_total, cids, shapeI, shapeJ, shapeK); // 0, 1, 2
 
    return {exc, eyc, ezc, bxc, byc, bzc};
 } // end FieldAtParticle

@@ -46,7 +46,6 @@ void electron_test() {
    for (std::size_t n = 0; n < Nt; n++) {
       particle_push(g1, emsolver.emdata, 1zu);
       g1.reset_y_positions();
-
       pos[n] = x_range[0] + dx * g1.particles[0].location[0];
    }
 

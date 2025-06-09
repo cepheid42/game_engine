@@ -59,15 +59,16 @@ void electron_test() {
    std::vector<compute_t> xs(Nt);
    std::vector<compute_t> zs(Nt);
 
-   std::size_t step = 0zu;
-
    for (std::size_t n = 0; n < Nt; n++) {
-      particle_push(g1, emsolver.emdata, step);
+      particle_push(g1, emsolver.emdata, n);
       g1.reset_y_positions();
-      step++;
       xs[n] = x_range[0] + dx * g1.particles[0].location[0];
       zs[n] = z_range[0] + dz * g1.particles[0].location[2];
    }
+
+   // for (int i = 0; i < Nt; i++) {
+   //    std::println("[{}, {}],", xs[i], zs[i]);
+   // }
 
    constexpr auto Te = 46424.0;
    const auto v_eth = std::sqrt(2.0 * constants::kB<compute_t> * Te / m_e);
@@ -83,8 +84,6 @@ void electron_test() {
       error += std::abs(gyro_radius - radius[i]);
    }
    error /= static_cast<compute_t>(Nt);
-
-
    std::println("Electron Gyroradius Test: MAE = {:.4e} <= 9.5e-9", error);
    assert(error <= 9.0e-9);
 }
