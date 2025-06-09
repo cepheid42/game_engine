@@ -184,6 +184,8 @@ struct GaussianBeam : CurrentSource {
    void apply(const compute_t t) const {
       const auto& [x0, x1, y0, y1, z0, z1] = src.offsets;
       const auto  val                      = src.eval(t);
+      if (val == 0.0_fp) { return; }
+
       for (size_t i = x0; i < x1; ++i) {
          for (size_t j = y0; j < y1; ++j) {
             for (size_t k = z0; k < z1; ++k) {

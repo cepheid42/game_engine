@@ -13,8 +13,8 @@
 
 namespace tf::particles {
 template <int D, bool isB>
-auto FieldToParticleInterp(const auto& F, const auto& cids, const auto& shapeI, const auto& shapeJ,
-                           const auto& shapeK) {
+auto FieldToParticleInterp(const auto& F, const auto& cids,
+                           const auto& shapeI, const auto& shapeJ, const auto& shapeK) {
    static constexpr vec3 b0{-1, -1, -1};
    static constexpr vec3 b1 = interp::rotateOrigin<D>(1, (D == 1) != isB ? -1 : 0, 1);
 
@@ -37,23 +37,28 @@ auto FieldToParticleInterp(const auto& F, const auto& cids, const auto& shapeI, 
    return result;
 } // end FieldToParticle()
 
+
 static std::array<double, 6> FieldAtParticle(Particle& p, const auto& emdata) {
-   using TSCShape = interp::Cached<interp::TSC>;
-   using CICShape = interp::Cached<interp::CIC>;
+   // using TSCShape = interp::Jit<interp::TSC>;
+   // using CICShape = interp::Jit<interp::CIC>;
 
-   const auto cids = getCIDs(p.location + 0.5);
-   const auto p0 = p.location - cids.as_type<compute_t>();
+   using TSCCache = interp::Jit<interp::TSC>;
+   using CICCache = interp::Jit<interp::CIC>;
 
-   const TSCShape shapeI(p0[0]);
-   const CICShape shapeJ(p0[1]);
-   const TSCShape shapeK(p0[2]);
+   const auto fcids = getCellIndices(p.location);
+   auto p0 = p.location - fcids.as_type<compute_t>();
+   p0[1] -= 0.5_fp;
 
-   const auto exc = FieldToParticleInterp<0, 0>(emdata.Ex_total, cids, shapeJ, shapeK, shapeI); // 1, 2, 0
-   const auto eyc = FieldToParticleInterp<1, 0>(emdata.Ey, cids, shapeK, shapeI, shapeJ); // 2, 0, 1
-   const auto ezc = FieldToParticleInterp<2, 0>(emdata.Ez, cids, shapeI, shapeJ, shapeK); // 0, 1, 2
-   const auto bxc = FieldToParticleInterp<0, 1>(emdata.Bx, cids, shapeJ, shapeK, shapeI); // 1, 2, 0
-   const auto byc = FieldToParticleInterp<1, 1>(emdata.By, cids, shapeK, shapeI, shapeJ); // 2, 0, 1
-   const auto bzc = FieldToParticleInterp<2, 1>(emdata.Bz, cids, shapeI, shapeJ, shapeK); // 0, 1, 2
+   const TSCCache shapeI(p0[0]);
+   const CICCache shapeJ(p0[1]);
+   const TSCCache shapeK(p0[2]);
+
+   const auto exc = FieldToParticleInterp<0, 0>(emdata.Ex_total, fcids, shapeJ, shapeK, shapeI); // 1, 2, 0
+   const auto eyc = FieldToParticleInterp<1, 0>(emdata.Ey_total, fcids, shapeK, shapeI, shapeJ); // 2, 0, 1
+   const auto ezc = FieldToParticleInterp<2, 0>(emdata.Ez_total, fcids, shapeI, shapeJ, shapeK); // 0, 1, 2
+   const auto bxc = FieldToParticleInterp<0, 1>(emdata.Bx_total, fcids, shapeJ, shapeK, shapeI); // 1, 2, 0
+   const auto byc = FieldToParticleInterp<1, 1>(emdata.By_total, fcids, shapeK, shapeI, shapeJ); // 2, 0, 1
+   const auto bzc = FieldToParticleInterp<2, 1>(emdata.Bz_total, fcids, shapeI, shapeJ, shapeK); // 0, 1, 2
 
    return {exc, eyc, ezc, bxc, byc, bzc};
 } // end FieldAtParticle
@@ -62,9 +67,9 @@ struct BorisPush {
    using emdata_t = electromagnetics::EMData;
    using group_t = ParticleGroup;
 
-   static constexpr std::size_t BC_DEPTH = PMLDepth / 2;
+   static constexpr std::size_t BC_DEPTH = std::max(PMLDepth / 2zu, 1zu);
 
-   static void update_velocity(Particle& p, const emdata_t& emdata, auto qdt) {
+   static void update_velocity(Particle& p, const emdata_t& emdata, const auto qdt) {
       if (p.disabled) { return; }
       const auto emf = FieldAtParticle(p, emdata);
 
@@ -77,6 +82,15 @@ struct BorisPush {
       const auto v = eps + (vm + cross(vm + cross(vm, t), s));
       p.gamma = std::sqrt(1.0 + v.length_squared() * constants::over_c_sqr<double>);
       p.velocity = v.as_type<compute_t>();
+
+      // const auto vminus = p.velocity + eps;
+      // const auto t = bet / std::sqrt(1.0 + vminus.length_squared() * constants::over_c_sqr<double>);
+      // const auto s = 2.0 * t / (1.0 + t.length_squared());
+      // const auto v_prime = vminus + cross(vminus, t);
+      // const auto vplus = vminus + cross(v_prime, s);
+      //
+      // p.velocity = vplus + eps;
+      // p.gamma = std::sqrt(1.0 + p.velocity.length_squared() * constants::over_c_sqr<double>);
    } // end update_velocity()
 
    static void update_position(Particle& p) {
@@ -84,7 +98,7 @@ struct BorisPush {
       if (p.disabled) { return; }
 
       const auto new_loc = p.location + delta_inv * p.velocity / p.gamma;
-      const auto [inew, jnew, knew] = getCIDs(new_loc);
+      const auto [inew, jnew, knew] = getCellIndices(new_loc);
 
       p.disabled = inew < BC_DEPTH or inew > Nx - BC_DEPTH or knew < BC_DEPTH or knew > Nz - BC_DEPTH;
       p.old_location = p.location;
@@ -107,7 +121,6 @@ struct BorisPush {
    } // end advance_position
 
    static void backstep_velocity(group_t& g, const emdata_t& emdata) {
-      // Easiest way is to just copy the velocity update and make qdt negative
       #pragma omp parallel for num_threads(nThreads)
       for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
          update_velocity(g.particles[pid], emdata, -0.5 * g.qdt_over_2m);

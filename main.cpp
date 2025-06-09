@@ -1,3 +1,4 @@
+#include "compute_type.hpp"
 #include "program_params.hpp"
 #include "constants.hpp"
 #include "electromagnetics/em_solver.hpp"
@@ -54,20 +55,20 @@ Metrics create_metrics(const std::string& dir, EMSolver& em, const ParticleGroup
       )
    );
 
-   metrics.addMetric(
-      std::make_unique<ParticleDumpMetric>(
-         &g2,
-         metrics.adios.DeclareIO(g2.name + "_dump")
-      )
-   );
-
-   metrics.addMetric(
-      std::make_unique<ParticleMetric>(
-         &g2,
-         metrics.adios.DeclareIO(g2.name + "_metrics"),
-         Ncx, Ncy, Ncz
-      )
-   );
+   // metrics.addMetric(
+   //    std::make_unique<ParticleDumpMetric>(
+   //       &g2,
+   //       metrics.adios.DeclareIO(g2.name + "_dump")
+   //    )
+   // );
+   //
+   // metrics.addMetric(
+   //    std::make_unique<ParticleMetric>(
+   //       &g2,
+   //       metrics.adios.DeclareIO(g2.name + "_metrics"),
+   //       Ncx, Ncy, Ncz
+   //    )
+   // );
 
    return metrics;
 }
@@ -94,7 +95,7 @@ int main() {
    BorisPush::backstep_velocity(g2, emsolver.emdata);
 
    const auto metrics = create_metrics(
-      "/home/cepheid/TriForce/game_engine/data/single_particle_test",
+      "/home/cepheid/TriForce/game_engine/data/lsi_test",
       emsolver,
       g1, g2
    );
@@ -103,24 +104,22 @@ int main() {
    const auto progress_bar =
       bk::ProgressBar(
          &step,
-         {
-            .total = Nt,
-            .message = "Step",
-            .speed = 0.,
-            .speed_unit = "steps/s",
-            .interval = 1.,
-            // .no_tty = true,
-            .show = false
-         });
+         {.total = Nt,
+          .message = "Step",
+          .speed = 0.,
+          .speed_unit = "steps/s",
+          .interval = 1.,
+          // .no_tty = true,
+          .show = false});
 
    timers["IO"].start_timer();
    metrics.write(step);
    timers["IO"].stop_timer();
 
    progress_bar->show();
-   for (std::size_t n = 0; n < Nt; n++) {
+   for (step = 0; step < Nt; step++) {
       timers["EM"].start_timer();
-      emsolver.advance(static_cast<compute_t>(n) * dt);
+      emsolver.advance(static_cast<compute_t>(step) * dt);
       timers["EM"].stop_timer();
 
       timers["Push"].start_timer();
@@ -136,7 +135,6 @@ int main() {
       g1.reset_y_positions();
       g2.reset_y_positions();
 
-      step++;
       if (step % save_interval == 0) {
          timers["IO"].start_timer();
          metrics.write(step);

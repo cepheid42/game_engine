@@ -7,24 +7,24 @@
 
 inline constexpr auto nThreads = 1;
 
-inline constexpr auto Nx = 11zu;
+inline constexpr auto Nx = 51zu;
 inline constexpr auto Ny = 2zu;
-inline constexpr auto Nz = 11zu;
+inline constexpr auto Nz = 51zu;
 
-inline constexpr std::array x_range = {0.0_fp, 8e-05_fp};
-inline constexpr std::array y_range = {0.0_fp, 8e-06_fp};
-inline constexpr std::array z_range = {0.0_fp, 8e-05_fp};
+inline constexpr std::array x_range = {-0.1_fp, 0.1_fp};
+inline constexpr std::array y_range = {0.0_fp, 0.004_fp};
+inline constexpr std::array z_range = {-0.1_fp, 0.1_fp};
 
-inline constexpr auto dx = 8.000000000000001e-06_fp;
-inline constexpr auto dy = 8e-06_fp;
-inline constexpr auto dz = 8.000000000000001e-06_fp;
+inline constexpr auto dx = 0.004_fp;
+inline constexpr auto dy = 0.004_fp;
+inline constexpr auto dz = 0.004_fp;
 
 inline constexpr auto cfl   = 0.5484827557301445_fp;
-inline constexpr auto dt    = 1.4636e-14_fp;
-inline constexpr auto t_end = 8e-10_fp;
-inline constexpr auto Nt    = 54660zu;
+inline constexpr auto dt    = 4e-10_fp;
+inline constexpr auto t_end = 6e-07_fp;
+inline constexpr auto Nt    = 1500zu;
 
-inline constexpr auto save_interval = 1zu;
+inline constexpr auto save_interval = 15zu;
 
 inline constexpr auto Ncx = Nx - 1zu;
 inline constexpr auto Ncy = Ny - 1zu;

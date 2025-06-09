@@ -54,7 +54,6 @@ struct EMFieldsMetric final : detail::MetricBase {
       adios2::Engine    writer = io.Open(file, adios2::Mode::Write);
       writer.BeginStep();
 
-      // ReSharper disable once CppUseElementsView
       for (auto& [field, variable]: fields) {
          writer.Put(variable, field->data());
       }
@@ -81,7 +80,13 @@ struct ParticleDumpMetric final : detail::MetricBase {
         io.DefineVariable<compute_t>("Velocity", {group->num_particles(), 3}, {0, 0}, {group->num_particles(), 3})),
      var_w(io.DefineVariable<compute_t>("Weight", {group->num_particles(), 1}, {0, 0}, {group->num_particles(), 1})),
      var_gamma(io.DefineVariable<double>("Gamma", {group->num_particles(), 1}, {0, 0}, {group->num_particles(), 1}))
-   {}
+   {
+      const auto& nParticles = group->num_particles();
+      position.reserve(3 * nParticles);
+      velocity.reserve(3 * nParticles);
+      weight.reserve(nParticles);
+      gamma.reserve(nParticles);
+   }
 
    void write(const std::string& dir, const std::string& step_ext) override {
       const std::string file{dir + "/" + group->name + "_dump_" + step_ext};
@@ -91,38 +96,33 @@ struct ParticleDumpMetric final : detail::MetricBase {
       // io.DefineAttribute<std::size_t>("atomic_number", group->atomic_number);
       // io.DefineAttribute<compute_t>("mass", group->mass);
       // io.DefineAttribute<compute_t>("charge", group->charge);
-      const auto& nParticles = group->num_particles();
 
-      var_loc.SetShape({nParticles, 3});
-      var_loc.SetSelection({{0, 0}, {nParticles, 3}}); // {{start}, {count}}
-
-      var_vel.SetShape({nParticles, 3});
-      var_vel.SetSelection({{0, 0}, {nParticles, 3}}); // {{start}, {count}}
-
-      var_w.SetShape({nParticles, 1});
-      var_w.SetSelection({{0, 0}, {nParticles, 1}}); // {{start}, {count}}
-
-      var_gamma.SetShape({nParticles, 1});
-      var_gamma.SetSelection({{0, 0}, {nParticles, 1}}); // {{start}, {count}}
+      // const auto& nParticles = group->num_particles();
+      // var_loc.SetShape({nParticles, 3});
+      // var_loc.SetSelection({{0, 0}, {nParticles, 3}}); // {{start}, {count}}
+      //
+      // var_vel.SetShape({nParticles, 3});
+      // var_vel.SetSelection({{0, 0}, {nParticles, 3}}); // {{start}, {count}}
+      //
+      // var_w.SetShape({nParticles, 1});
+      // var_w.SetSelection({{0, 0}, {nParticles, 1}}); // {{start}, {count}}
+      //
+      // var_gamma.SetShape({nParticles, 1});
+      // var_gamma.SetSelection({{0, 0}, {nParticles, 1}}); // {{start}, {count}}
 
       adios2::Engine writer = io.Open(file, adios2::Mode::Write);
       writer.BeginStep();
 
-      constexpr vec3 delta{dx, dy, dz};
-      constexpr vec3 lb{x_range[0], y_range[0], z_range[0]};
+      static constexpr vec3 delta{dx, dy, dz};
+      static constexpr vec3 lb{x_range[0], y_range[0], z_range[0]};
 
-      std::vector<compute_t> position{};
-      std::vector<compute_t> velocity{};
-      std::vector<compute_t> weight{};
-      std::vector<double>    gamma{};
-
-      position.reserve(3 * nParticles);
-      velocity.reserve(3 * nParticles);
-      weight.reserve(nParticles);
-      gamma.reserve(nParticles);
+      // number of particles currently does not change
+      // position.reserve(3 * nParticles);
+      // velocity.reserve(3 * nParticles);
+      // weight.reserve(nParticles);
+      // gamma.reserve(nParticles);
 
       for (const auto& p: group->particles) {
-         // const auto idxs = particles::getCIDs(p.location);
          for (std::size_t d = 0; d < 3; d++) {
             position.push_back(lb[d] + delta[d] * p.location[d]);
             velocity.push_back(p.velocity[d]);
@@ -138,6 +138,11 @@ struct ParticleDumpMetric final : detail::MetricBase {
 
       writer.EndStep();
       writer.Close();
+
+      position.clear();
+      velocity.clear();
+      weight.clear();
+      gamma.clear();
    }
 
    adios2::IO                  io;
@@ -146,6 +151,10 @@ struct ParticleDumpMetric final : detail::MetricBase {
    adios2::Variable<compute_t> var_vel;
    adios2::Variable<compute_t> var_w;
    adios2::Variable<double>    var_gamma;
+   std::vector<compute_t> position{};
+   std::vector<compute_t> velocity{};
+   std::vector<compute_t> weight{};
+   std::vector<double>    gamma{};
 };
 
 // ========================================================
@@ -160,10 +169,8 @@ struct ParticleMetric final : detail::MetricBase {
                   const std::size_t ncz)
    : io(io_),
      group(g_),
-     var_density(io.DefineVariable<compute_t>("Density", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz},
-                                              adios2::ConstantDims)),
-     var_temp(io.DefineVariable<compute_t>("Temperature", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz},
-                                           adios2::ConstantDims)),
+     var_density(io.DefineVariable<compute_t>("Density", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz}, adios2::ConstantDims)),
+     var_temp(io.DefineVariable<compute_t>("Temperature", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz}, adios2::ConstantDims)),
      density(Ncx * Ncy * Ncz),
      T_avg(Ncx * Ncy * Ncz),
      KE_total(Ncx * Ncy * Ncz)
@@ -183,9 +190,8 @@ struct ParticleMetric final : detail::MetricBase {
       {
          #pragma omp for
          for (std::size_t pid = 0; pid < group->num_particles(); pid++) {
-            const auto& p         = group->particles[pid];
-            const auto  [i, j, k] = particles::getCIDs(p.location);
-            const auto  cid       = k + (Ncz * j) + (Ncy * Ncz * i);;
+            const auto& p   = group->particles[pid];
+            const auto  cid = particles::getCellIndex(p.location);
             #pragma omp atomic update
             density[cid] += p.weight;
             #pragma omp atomic update
@@ -202,7 +208,7 @@ struct ParticleMetric final : detail::MetricBase {
          for (std::size_t i = 0; i < density.size(); i++) {
             density[i] *= V_cell_inv;
          }
-      }
+      } // end parallel
    }
 
    void write(const std::string& dir, const std::string& step_ext) override {

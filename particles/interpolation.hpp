@@ -10,31 +10,28 @@
 
 namespace tf::interp {
 template<int D>
-constexpr auto rotateOrigin(const auto& x0, const auto& y0, const auto& z0) {
+constexpr auto rotateOrigin(const auto& x, const auto& y, const auto& z) {
    if constexpr (D == 0) {
-      return vec3{y0, z0, x0};
+      return vec3{y, z, x};
    }
    else if constexpr (D == 1) {
-      return vec3{z0, x0, y0};
+      return vec3{z, x, y};
    }
    else {
-      return vec3{x0, y0, z0};
+      return vec3{x, y, z};
    }
 }
 
 template<int D>
 constexpr auto rotateOrigin(const auto& p) {
    using ret_type = std::remove_cvref_t<decltype(p)>;
-   if constexpr (D == 0)
-   {
+   if constexpr (D == 0) {
       return ret_type{p[1], p[2], p[0]};
    }
-   else if constexpr (D == 1)
-   {
+   else if constexpr (D == 1) {
       return ret_type{p[2], p[0], p[1]};
    }
-   else
-   {
+   else {
       return p;
    }
 }
@@ -54,18 +51,19 @@ struct TSC {
 
    static constexpr auto operator()(const compute_t x) {
       const auto absx = std::abs(x);
-      if (absx < 0.5_fp) {
+      if (absx <= 0.5_fp) {
          return innerRadius(x);
       }
       return outerRadius(absx);
    }
 
-   static constexpr auto shapeArray(const compute_t x) {
-      const auto a0 = outerRadius(std::abs(x + 1.0));
-      const auto a1 = innerRadius(x);
-      const auto a2 = outerRadius(std::abs(x - 1.0));
-      return std::array{a0, a1, a2};
-   }
+   // static constexpr auto shapeArray(const compute_t x) {
+   //    return std::array{
+   //       outerRadius(std::abs(-0.5_fp - x)),
+   //       innerRadius(0.5 - x),
+   //       outerRadius(std::abs(1.5_fp - x))
+   //    };
+   // }
 };
 
 struct CIC {
@@ -77,11 +75,13 @@ struct CIC {
       return 1.0_fp - std::abs(x);
    }
 
-   static constexpr auto shapeArray(const compute_t x) {
-      const auto a0 = 1.0_fp - std::abs(x + 1.0);
-      const auto a1 = 1.0_fp - std::abs(x);
-      return std::array{a0, a1, 0.0};
-   }
+   // static constexpr auto shapeArray(const compute_t x) {
+   //    return std::array{
+   //       1.0_fp - std::abs(-0.5_fp - x),
+   //       1.0_fp - std::abs(0.5_fp - x),
+   //       0.0
+   //    };
+   // }
 };
 
 template<typename ParticleAssignFunctor>
@@ -96,28 +96,33 @@ struct Jit {
    : particle_position(pos)
    {}
 
-   constexpr auto operator()(const compute_t offset) const
-   {
-      return ParticleAssignFunctor()(particle_position - offset);
+   constexpr auto operator()(const compute_t offset) const {
+      return ParticleAssignFunctor()(offset - particle_position + 0.5);
    }
+
+   // constexpr auto operator()(const compute_t offset) const
+   // requires std::same_as<ParticleAssignFunctor, TSC>
+   // {
+   //    return ParticleAssignFunctor()(particle_position - offset);
+   // }
 };
 
-template<typename ParticleAssignFunctor>
-struct Cached {
-   // static constexpr int begin = ParticleAssignFunctor::begin;
-   // static constexpr int end = ParticleAssignFunctor::end;
-   // static constexpr int support = ParticleAssignFunctor::support;
-
-   const std::array<compute_t, 3> shapeArray;
-
-   constexpr explicit Cached(const compute_t pos)
-   : shapeArray(std::move(ParticleAssignFunctor().shapeArray(pos)))
-   {}
-
-   constexpr auto operator()(const int grid_point) const {
-      return shapeArray[grid_point - ParticleAssignFunctor::begin];
-   }
-};
+// template<typename ParticleAssignFunctor>
+// struct Cached {
+//    // static constexpr int begin = ParticleAssignFunctor::begin;
+//    // static constexpr int end = ParticleAssignFunctor::end;
+//    // static constexpr int support = ParticleAssignFunctor::support;
+//
+//    const std::array<compute_t, 3> shapeArray;
+//
+//    constexpr explicit Cached(const compute_t pos)
+//    : shapeArray(std::move(ParticleAssignFunctor().shapeArray(pos)))
+//    {}
+//
+//    constexpr auto operator()(const int grid_point) const {
+//       return shapeArray[grid_point - ParticleAssignFunctor::begin];
+//    }
+// };
 } // end namespace tf::interp
 
 #endif //INTERPOLATION_HPP

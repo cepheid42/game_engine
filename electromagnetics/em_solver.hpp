@@ -7,6 +7,7 @@
 #include "update_functors.hpp"
 #include "bc_functors.hpp"
 #include "diff_operators.hpp"
+#include "dbg.h"
 
 #include <algorithm>
 
@@ -19,50 +20,57 @@ struct EMSolver {
    using hy_func = FieldIntegrator<ExplicitUpdateFunctor<forward_dx, forward_dz>>;
    using hz_func = FieldIntegrator<ExplicitUpdateFunctor<noop, forward_dx>>;
 
+   // using ex_func = FieldIntegrator<ExplicitUpdateFunctor<noop, backward_dz>>;
+   // using ey_func = FieldIntegrator<ExplicitUpdateFunctor<backward_dz, backward_dx>>;
+   // using ez_func = FieldIntegrator<ExplicitUpdateFunctor<backward_dx, noop>>;
+   // using hx_func = FieldIntegrator<ExplicitUpdateFunctor<forward_dz, forward_dy>>;
+   // using hy_func = FieldIntegrator<ExplicitUpdateFunctor<forward_dx, forward_dz>>;
+   // using hz_func = FieldIntegrator<ExplicitUpdateFunctor<forward_dy, forward_dx>>;
+
    // X-Faces
-   using Ex_x0_bc = BCIntegrator<void>;
-   using Ex_x1_bc = BCIntegrator<void>;
+   // using Ex_x0_bc = BCIntegrator<void>;
+   // using Ex_x1_bc = BCIntegrator<void>;
    using Ey_x0_bc = BCIntegrator<PMLFunctor<backward_dx, false, true>>;
    using Ey_x1_bc = BCIntegrator<PMLFunctor<backward_dx, true, true>>;
    using Ez_x0_bc = BCIntegrator<PMLFunctor<backward_dx, false, false>>;
    using Ez_x1_bc = BCIntegrator<PMLFunctor<backward_dx, true, false>>;
 
-   using Hx_x0_bc = BCIntegrator<void>;
-   using Hx_x1_bc = BCIntegrator<void>;
+   // using Hx_x0_bc = BCIntegrator<void>;
+   // using Hx_x1_bc = BCIntegrator<void>;
    using Hy_x0_bc = BCIntegrator<PMLFunctor<forward_dx, false, false>>;
    using Hy_x1_bc = BCIntegrator<PMLFunctor<forward_dx, true, false>>;
    using Hz_x0_bc = BCIntegrator<PMLFunctor<forward_dx, false, true>>;
    using Hz_x1_bc = BCIntegrator<PMLFunctor<forward_dx, true, true>>;
 
-   // Y-Faces
-   using Ex_y0_bc = BCIntegrator<void>;
-   using Ex_y1_bc = BCIntegrator<void>;
-   using Ey_y0_bc = BCIntegrator<void>;
-   using Ey_y1_bc = BCIntegrator<void>;
-   using Ez_y0_bc = BCIntegrator<void>;
-   using Ez_y1_bc = BCIntegrator<void>;
-
-   using Hx_y0_bc = BCIntegrator<void>;
-   using Hx_y1_bc = BCIntegrator<void>;
-   using Hy_y0_bc = BCIntegrator<void>;
-   using Hy_y1_bc = BCIntegrator<void>;
-   using Hz_y0_bc = BCIntegrator<void>;
-   using Hz_y1_bc = BCIntegrator<void>;
+   // // Y-Faces
+   // using Ex_y0_bc = BCIntegrator<void>;
+   // using Ex_y1_bc = BCIntegrator<void>;
+   // using Ey_y0_bc = BCIntegrator<void>;
+   // using Ey_y1_bc = BCIntegrator<void>;
+   // using Ez_y0_bc = BCIntegrator<void>;
+   // using Ez_y1_bc = BCIntegrator<void>;
+   //
+   // using Hx_y0_bc = BCIntegrator<void>;
+   // using Hx_y1_bc = BCIntegrator<void>;
+   // using Hy_y0_bc = BCIntegrator<void>;
+   // using Hy_y1_bc = BCIntegrator<void>;
+   // using Hz_y0_bc = BCIntegrator<void>;
+   // using Hz_y1_bc = BCIntegrator<void>;
 
    // Z-Faces
    using Ex_z0_bc = BCIntegrator<PMLFunctor<backward_dz, false, true>>;
    using Ex_z1_bc = BCIntegrator<PMLFunctor<backward_dz, true, true>>;
    using Ey_z0_bc = BCIntegrator<PMLFunctor<backward_dz, false, false>>;
    using Ey_z1_bc = BCIntegrator<PMLFunctor<backward_dz, true, false>>;
-   using Ez_z0_bc = BCIntegrator<void>;
-   using Ez_z1_bc = BCIntegrator<void>;
+   // using Ez_z0_bc = BCIntegrator<void>;
+   // using Ez_z1_bc = BCIntegrator<void>;
 
    using Hx_z0_bc = BCIntegrator<PMLFunctor<forward_dz, false, false>>;
    using Hx_z1_bc = BCIntegrator<PMLFunctor<forward_dz, true, false>>;
    using Hy_z0_bc = BCIntegrator<PMLFunctor<forward_dz, false, true>>;
    using Hy_z1_bc = BCIntegrator<PMLFunctor<forward_dz, true, true>>;
-   using Hz_z0_bc = BCIntegrator<void>;
-   using Hz_z1_bc = BCIntegrator<void>;
+   // using Hz_z0_bc = BCIntegrator<void>;
+   // using Hz_z1_bc = BCIntegrator<void>;
 
    explicit EMSolver() = delete;
 
@@ -73,12 +81,12 @@ struct EMSolver {
 
    void advance(const compute_t t) {
       updateH();
-      // updateHBCs();
+      updateHBCs();
       apply_srcs(t);
       updateE();
-      // updateEBCs();
-      updateBhalf();   // for the particles and shit
-      zero_currents(); // also for the particles, don't need last weeks currents
+      updateEBCs();
+      particle_correction(); // for the particles and shit
+      zero_currents();       // also for the particles, don't need last weeks currents
    }
 
    void updateE() {
@@ -94,49 +102,44 @@ struct EMSolver {
       hz_update(emdata.Hz, emdata.Ex, emdata.Ey, emdata.empty, emdata.Chzh, emdata.Chzex, emdata.Chzey, emdata.empty, {0, 0, 0, 0, 0, 0});
    }
 
-   void updateBhalf() {
-      std::ranges::copy(emdata.Hx.begin(), emdata.Hx.end(), emdata.Bx.begin());
-      std::ranges::copy(emdata.Hy.begin(), emdata.Hy.end(), emdata.By.begin());
-      std::ranges::copy(emdata.Hz.begin(), emdata.Hz.end(), emdata.Bz.begin());
+   void particle_correction() {
+      // static constexpr auto over_mu = 1.0_fp / constants::mu0<compute_t>;
+      std::ranges::copy(emdata.Hx, emdata.Bx.begin());
+      std::ranges::copy(emdata.Hy, emdata.By.begin());
+      std::ranges::copy(emdata.Hz, emdata.Bz.begin());
 
       hx_update(emdata.Bx, emdata.Ey, emdata.Ez, emdata.empty, emdata.Chxh, emdata.Chxey2, emdata.Chxez2, emdata.empty, {0, 0, 0, 0, 0, 0});
       hy_update(emdata.By, emdata.Ez, emdata.Ex, emdata.empty, emdata.Chyh, emdata.Chyez2, emdata.Chyex2, emdata.empty, {0, 0, 0, 0, 0, 0});
       hz_update(emdata.Bz, emdata.Ex, emdata.Ey, emdata.empty, emdata.Chzh, emdata.Chzex2, emdata.Chzey2, emdata.empty, {0, 0, 0, 0, 0, 0});
 
-      std::ranges::for_each(emdata.Bx.begin(), emdata.Bx.end(), [](auto& x) { x *= constants::mu0<compute_t>;});
-      std::ranges::for_each(emdata.By.begin(), emdata.By.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
-      std::ranges::for_each(emdata.Bz.begin(), emdata.Bz.end(), [](auto& x) { x *= constants::mu0<compute_t>; });
+      #pragma omp parallel num_threads(nThreads)
+      {
+         #pragma omp for
+         for (std::size_t i = 0; i < emdata.Bx.size(); i++) {
+            emdata.Bx_total[i] = emdata.Bx[i] / constants::mu0<compute_t>;
+         }
 
-      std::ranges::transform(emdata.Ex.begin(), emdata.Ex.end(), emdata.Ex_app.begin(), emdata.Ex_app.end(), emdata.Ex_total.begin(), [](const auto& x, const auto& y){ return x + y; });
+         #pragma omp for
+         for (std::size_t i = 0; i < emdata.By.size(); i++) {
+            emdata.By_total[i] = emdata.By[i] / constants::mu0<compute_t>;
+         }
 
-      // auto saxpy = [](const auto& x, const auto& y) { return constants::mu0<compute_t> * x + y; };
-      // std::ranges::transform(emdata.Bx.begin(), emdata.Bx.end(), emdata.Bx_app.begin(), emdata.Bx_app.end(), emdata.Bx.begin(), saxpy);
-      // std::ranges::transform(emdata.By.begin(), emdata.By.end(), emdata.By_app.begin(), emdata.By_app.end(), emdata.By.begin(), saxpy);
-      // std::ranges::transform(emdata.Bz.begin(), emdata.Bz.end(), emdata.Bz_app.begin(), emdata.Bz_app.end(), emdata.Bz.begin(), saxpy);
+         #pragma omp for
+         for (std::size_t i = 0; i < emdata.Bz.size(); i++) {
+            emdata.Bz_total[i] = emdata.Bz[i] / constants::mu0<compute_t>;
+         }
+      } // end omp parallel
 
-      // for (std::size_t i = 0; i < emdata.Bx.dims()[0]; i++) {
-      //    for (std::size_t j = 0; j < emdata.Bx.dims()[1]; j++) {
-      //       for (std::size_t k = 0; k < emdata.Bx.dims()[2]; k++) {
-      //          emdata.Bx(i, j, k) = emdata.Bx(i, j, k) * constants::mu0<compute_t> + emdata.Bx_app(i, j, k);
-      //       }
-      //    }
-      // }
-      //
-      // for (std::size_t i = 0; i < emdata.By.dims()[0]; i++) {
-      //    for (std::size_t j = 0; j < emdata.By.dims()[1]; j++) {
-      //       for (std::size_t k = 0; k < emdata.By.dims()[2]; k++) {
-      //          emdata.By(i, j, k) = emdata.By(i, j, k) * constants::mu0<compute_t> + emdata.By_app(i, j, k);
-      //       }
-      //    }
-      // }
-      //
-      // for (std::size_t i = 0; i < emdata.Bz.dims()[0]; i++) {
-      //    for (std::size_t j = 0; j < emdata.Bz.dims()[1]; j++) {
-      //       for (std::size_t k = 0; k < emdata.Bz.dims()[2]; k++) {
-      //          emdata.Bz(i, j, k) = emdata.Bz(i, j, k) * constants::mu0<compute_t> + emdata.Bz_app(i, j, k);
-      //       }
-      //    }
-      // }
+      std::ranges::copy(emdata.Ex, emdata.Ex_total.begin());
+      std::ranges::copy(emdata.Ey, emdata.Ey_total.begin());
+      std::ranges::copy(emdata.Ez, emdata.Ez_total.begin());
+
+      // std::ranges::transform(emdata.Bx.begin(), emdata.Bx.end(), emdata.Bx_app.begin(), emdata.Bx_app.end(), emdata.Bx_total.begin(), [](const auto& x, const auto& y){ return over_mu * x + y; });
+      // std::ranges::transform(emdata.By.begin(), emdata.By.end(), emdata.By_app.begin(), emdata.By_app.end(), emdata.By_total.begin(), [](const auto& x, const auto& y){ return over_mu * x + y; });
+      // std::ranges::transform(emdata.Bz.begin(), emdata.Bz.end(), emdata.Bz_app.begin(), emdata.Bz_app.end(), emdata.Bz_total.begin(), [](const auto& x, const auto& y){ return over_mu * x + y; });
+      // std::ranges::transform(emdata.Ex.begin(), emdata.Ex.end(), emdata.Ex_app.begin(), emdata.Ex_app.end(), emdata.Ex_total.begin(), [](const auto& x, const auto& y){ return x + y; });
+      // std::ranges::transform(emdata.Ey.begin(), emdata.Ey.end(), emdata.Ey_app.begin(), emdata.Ey_app.end(), emdata.Ey_total.begin(), [](const auto& x, const auto& y){ return x + y; });
+      // std::ranges::transform(emdata.Ez.begin(), emdata.Ez.end(), emdata.Ez_app.begin(), emdata.Ez_app.end(), emdata.Ez_total.begin(), [](const auto& x, const auto& y){ return x + y; });
    }
 
    void updateEBCs() {
@@ -145,10 +148,10 @@ struct EMSolver {
       Ez_x0(emdata.Ez, emdata.Hy, emdata.Cezhy, bcdata.x0.Ez);
       Ez_x1(emdata.Ez, emdata.Hy, emdata.Cezhy, bcdata.x1.Ez);
 
-      Ex_y0(emdata.Ex, emdata.Hz, emdata.Cexhz, bcdata.y0.Ex);
-      Ex_y1(emdata.Ex, emdata.Hz, emdata.Cexhz, bcdata.y1.Ex);
-      Ez_y0(emdata.Ez, emdata.Hx, emdata.Cezhx, bcdata.y0.Ez);
-      Ez_y1(emdata.Ez, emdata.Hx, emdata.Cezhx, bcdata.y1.Ez);
+      // Ex_y0(emdata.Ex, emdata.Hz, emdata.Cexhz, bcdata.y0.Ex);
+      // Ex_y1(emdata.Ex, emdata.Hz, emdata.Cexhz, bcdata.y1.Ex);
+      // Ez_y0(emdata.Ez, emdata.Hx, emdata.Cezhx, bcdata.y0.Ez);
+      // Ez_y1(emdata.Ez, emdata.Hx, emdata.Cezhx, bcdata.y1.Ez);
 
       Ex_z0(emdata.Ex, emdata.Hy, emdata.Cexhy, bcdata.z0.Ex);
       Ex_z1(emdata.Ex, emdata.Hy, emdata.Cexhy, bcdata.z1.Ex);
@@ -162,10 +165,10 @@ struct EMSolver {
       Hz_x0(emdata.Hz, emdata.Ey, emdata.Chzey, bcdata.x0.Hz);
       Hz_x1(emdata.Hz, emdata.Ey, emdata.Chzey, bcdata.x1.Hz);
 
-      Hx_y0(emdata.Hx, emdata.Ez, emdata.Chxez, bcdata.y0.Hx);
-      Hx_y1(emdata.Hx, emdata.Ez, emdata.Chxez, bcdata.y1.Hx);
-      Hz_y0(emdata.Hz, emdata.Ex, emdata.Chzex, bcdata.y0.Hz);
-      Hz_y1(emdata.Hz, emdata.Ex, emdata.Chzex, bcdata.y1.Hz);
+      // Hx_y0(emdata.Hx, emdata.Ez, emdata.Chxez, bcdata.y0.Hx);
+      // Hx_y1(emdata.Hx, emdata.Ez, emdata.Chxez, bcdata.y1.Hx);
+      // Hz_y0(emdata.Hz, emdata.Ex, emdata.Chzex, bcdata.y0.Hz);
+      // Hz_y1(emdata.Hz, emdata.Ex, emdata.Chzex, bcdata.y1.Hz);
 
       Hx_z0(emdata.Hx, emdata.Ey, emdata.Chxey, bcdata.z0.Hx);
       Hx_z1(emdata.Hx, emdata.Ey, emdata.Chxey, bcdata.z1.Hx);
@@ -205,15 +208,15 @@ struct EMSolver {
    Hz_x0_bc Hz_x0{};
    Hz_x1_bc Hz_x1{};
 
-   Ex_y0_bc Ex_y0{};
-   Ex_y1_bc Ex_y1{};
-   Ez_y0_bc Ez_y0{};
-   Ez_y1_bc Ez_y1{};
-
-   Hx_y0_bc Hx_y0{};
-   Hx_y1_bc Hx_y1{};
-   Hz_y0_bc Hz_y0{};
-   Hz_y1_bc Hz_y1{};
+   // Ex_y0_bc Ex_y0{};
+   // Ex_y1_bc Ex_y1{};
+   // Ez_y0_bc Ez_y0{};
+   // Ez_y1_bc Ez_y1{};
+   //
+   // Hx_y0_bc Hx_y0{};
+   // Hx_y1_bc Hx_y1{};
+   // Hz_y0_bc Hz_y0{};
+   // Hz_y1_bc Hz_y1{};
 
    Ex_z0_bc Ex_z0{};
    Ex_z1_bc Ex_z1{};

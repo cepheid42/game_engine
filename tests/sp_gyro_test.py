@@ -3,29 +3,27 @@
 # import subprocess
 import math
 
-sim_name = 'lsi'
-
-nx = 1501
+nx = 16
 ny = 2
-nz = 1501
+nz = 16
 
-xmin, xmax = -15.0e-6, 15.0e-6
-ymin, ymax = 0.0, 2.0e-8
-zmin, zmax = -15.0e-6, 15.0e-6
+xmin, xmax = -0.03, 0.03
+ymin, ymax = 0.0, 0.004
+zmin, zmax = -0.03, 0.03
 
 dx = (xmax - xmin) / (nx - 1)
 dy = (ymax - ymin) / (ny - 1)
 dz = (zmax - zmin) / (nz - 1)
 
-cfl = 0.848 / math.sqrt(3)
-dt = 4.0e-17 # 0.04 fs
-t_end = 3.0e-13 # 300 fs
-nt = int(t_end / dt) + 1 # ~7500
+cfl = 0.95 / math.sqrt(3)
+dt = 4.0e-10 # 0.4 ns
+t_end = 2.0e-7 # 200 ns
+nt = int(t_end / dt) + 1
 
-save_interval = 5
-nthreads = 32
+save_interval = 1
+nthreads = 1
 
-PMLDepth = 20
+PMLDepth = 1
 PMLGrade = 3.5
 PMLAlphaMax = 0.2
 
@@ -58,9 +56,9 @@ program_params = (
     '\n'
     f'inline constexpr auto save_interval = {save_interval}zu;\n'
     '\n'
-    f'inline constexpr auto Ncx = {nx - 1}zu;\n'
-    f'inline constexpr auto Ncy = {ny - 1}zu;\n'
-    f'inline constexpr auto Ncz = {nz - 1}zu;\n'
+    f'inline constexpr auto Ncx = Nx - 1zu;\n'
+    f'inline constexpr auto Ncy = Ny - 1zu;\n'
+    f'inline constexpr auto Ncz = Nz - 1zu;\n'
     '\n'
     f'inline constexpr auto PMLDepth    = {PMLDepth}zu;\n'
     f'inline constexpr auto PMLGrade    = {PMLGrade}_fp;\n'
@@ -71,11 +69,13 @@ program_params = (
 )
 
 param_path = '/home/cepheid/TriForce/game_engine/params/program_params.hpp'
-with open(param_path, 'w+') as f:
+write_new = False
+with open(param_path, 'r') as f:
     cur_header = f.read()
     if cur_header != program_params:
+        write_new = True
+
+if write_new:
+    with open(param_path, 'w+') as f:
         f.write(program_params)
 
-# build_path = '/home/cepheid/TriForce/game_engine/buildDir'
-# meson = ['meson', 'compile', '-C', build_path]
-# subprocess.run(meson)

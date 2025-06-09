@@ -18,7 +18,7 @@
 
 namespace tf::particles {
 struct Particle {
-   vec3<compute_t> location; // todo: use normalized locations here
+   vec3<compute_t> location;
    vec3<compute_t> old_location;
    vec3<compute_t> velocity;
    compute_t weight;
@@ -27,12 +27,19 @@ struct Particle {
 }; // end struct Particle
 
 template <typename T = std::size_t>
-constexpr vec3<T> getCIDs(const vec3<compute_t>& loc) {
+constexpr vec3<T> getCellIndices(const vec3<compute_t>& loc) {
    return {
       static_cast<T>(std::floor(loc[0])),
       static_cast<T>(std::floor(loc[1])),
       static_cast<T>(std::floor(loc[2]))
    };
+}
+
+constexpr std::size_t getCellIndex(const vec3<compute_t>& loc) {
+   const auto x = static_cast<std::size_t>(std::floor(loc[0]));
+   const auto y = static_cast<std::size_t>(std::floor(loc[1]));
+   const auto z = static_cast<std::size_t>(std::floor(loc[2]));
+   return z + (Ncz * y) + (Ncy * Ncz * x);
 }
 
 struct ParticleGroup {
@@ -47,15 +54,13 @@ struct ParticleGroup {
 
    ParticleGroup() = delete;
 
-   ParticleGroup(std::string name_,
-                 const compute_t mass_,
-                 const compute_t charge_,
-                 const std::size_t z_)
-      : name(std::move(name_)),
-        atomic_number(z_),
-        mass(mass_),
-        charge(charge_),
-        qdt_over_2m(calculate_qdt_over_2m()) {}
+   ParticleGroup(std::string name_, const compute_t mass_, const compute_t charge_, const std::size_t z_)
+   : name(std::move(name_)),
+     atomic_number(z_),
+     mass(mass_),
+     charge(charge_),
+     qdt_over_2m(calculate_qdt_over_2m())
+   {}
 
    [[nodiscard]] compute_t calculate_qdt_over_2m() const {
       return static_cast<compute_t>(0.5 * static_cast<double>(charge) * static_cast<double>(dt) / static_cast<double>(
@@ -73,18 +78,18 @@ struct ParticleGroup {
 
    void sort_particles() {
       std::erase_if(particles, [](const Particle& p) { return p.disabled; });
-      gfx::timsort(
-         particles,
-         [](const Particle& a, const Particle& b) {
-            return morton_encode(getCIDs<std::size_t>(a.location)) < morton_encode(getCIDs<std::size_t>(b.location));
-         }
-      );
-      // std::ranges::sort(
+      // gfx::timsort(
       //    particles,
       //    [](const Particle& a, const Particle& b) {
-      //       return morton_encode(getCIDs<std::size_t>(a.location)) < morton_encode(getCIDs<std::size_t>(b.location));
+      //       return morton_encode(getCellIndices<std::size_t>(a.location)) < morton_encode(getCellIndices<std::size_t>(b.location));
       //    }
       // );
+      std::ranges::sort(
+         particles,
+         [](const Particle& a, const Particle& b) {
+            return morton_encode(getCellIndices<std::size_t>(a.location)) < morton_encode(getCellIndices<std::size_t>(b.location));
+         }
+      );
    }
 }; // end struct ParticleGroup
 
