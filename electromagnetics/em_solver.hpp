@@ -103,7 +103,6 @@ struct EMSolver {
    }
 
    void particle_correction() {
-      // static constexpr auto over_mu = 1.0_fp / constants::mu0<compute_t>;
       std::ranges::copy(emdata.Hx, emdata.Bx.begin());
       std::ranges::copy(emdata.Hy, emdata.By.begin());
       std::ranges::copy(emdata.Hz, emdata.Bz.begin());
@@ -141,20 +140,9 @@ struct EMSolver {
 
          #pragma omp for
          for (std::size_t i = 0; i < emdata.Bz.size(); i++) {
-            emdata.Bz_total[i] = emdata.Bz[i] / constants::mu0<compute_t> + emdata.By_app[i];
+            emdata.Bz_total[i] = emdata.Bz[i] / constants::mu0<compute_t> + emdata.Bz_app[i];
          }
       } // end omp parallel
-
-      // std::ranges::copy(emdata.Ex, emdata.Ex_total.begin());
-      // std::ranges::copy(emdata.Ey, emdata.Ey_total.begin());
-      // std::ranges::copy(emdata.Ez, emdata.Ez_total.begin());
-
-      // std::ranges::transform(emdata.Bx.begin(), emdata.Bx.end(), emdata.Bx_app.begin(), emdata.Bx_app.end(), emdata.Bx_total.begin(), [](const auto& x, const auto& y){ return over_mu * x + y; });
-      // std::ranges::transform(emdata.By.begin(), emdata.By.end(), emdata.By_app.begin(), emdata.By_app.end(), emdata.By_total.begin(), [](const auto& x, const auto& y){ return over_mu * x + y; });
-      // std::ranges::transform(emdata.Bz.begin(), emdata.Bz.end(), emdata.Bz_app.begin(), emdata.Bz_app.end(), emdata.Bz_total.begin(), [](const auto& x, const auto& y){ return over_mu * x + y; });
-      // std::ranges::transform(emdata.Ex.begin(), emdata.Ex.end(), emdata.Ex_app.begin(), emdata.Ex_app.end(), emdata.Ex_total.begin(), [](const auto& x, const auto& y){ return x + y; });
-      // std::ranges::transform(emdata.Ey.begin(), emdata.Ey.end(), emdata.Ey_app.begin(), emdata.Ey_app.end(), emdata.Ey_total.begin(), [](const auto& x, const auto& y){ return x + y; });
-      // std::ranges::transform(emdata.Ez.begin(), emdata.Ez.end(), emdata.Ez_app.begin(), emdata.Ez_app.end(), emdata.Ez_total.begin(), [](const auto& x, const auto& y){ return x + y; });
    }
 
    void updateEBCs() {

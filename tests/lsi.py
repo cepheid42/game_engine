@@ -22,7 +22,7 @@ dt = 4.0e-17 # 0.04 fs
 t_end = 3.0e-13 # 300 fs
 nt = int(t_end / dt) + 1 # ~7500
 
-save_interval = 5
+save_interval = 50
 nthreads = 32
 
 PMLDepth = 20

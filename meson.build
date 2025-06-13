@@ -29,6 +29,7 @@ debug_opts = [
 
 gcc_opts = [
     '-Wconversion',
+#    '-Wnrvo',
     '-fuse-ld=mold',
     '-march=native',
 #    '-ftree-vectorize',

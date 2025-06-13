@@ -22,13 +22,13 @@ struct vec3 {
    constexpr T& operator[](std::size_t i) { return data[i]; }
    constexpr const T& operator[](std::size_t i) const { return data[i]; }
 
-   [[nodiscard]] auto length_squared() const {
+   [[nodiscard]] constexpr auto length_squared() const {
       auto sum = T(0.0);
       for (std::size_t i = 0; i < 3; i++) { sum += data[i] * data[i]; }
       return sum;
    }
 
-   [[nodiscard]] T length() const { return std::hypot(data[0], data[1], data[2]); } //std::sqrt(length_squared()); }
+   [[nodiscard]] constexpr T length() const { return std::hypot(data[0], data[1], data[2]); } //std::sqrt(length_squared()); }
 
    // Unary Negation
    vec3 operator-() const { return {-data[0], -data[1], -data[2]}; }
@@ -77,8 +77,8 @@ struct vec3 {
       };
    }
 
-   bool operator==(const vec3& v) const { return (data[0] == v[0] && data[1] == v[1] && data[2] == v[2]); }
-   bool operator!=(const vec3& v) const { return !(*this == v); }
+   friend constexpr bool operator==(const vec3& u, const vec3& v){ return (u[0] == v[0] && u[1] == v[1] && u[2] == v[2]); }
+   friend constexpr bool operator!=(const vec3& u, const vec3& v) { return !(u == v); }
 
    template <std::size_t I>
    constexpr auto& get() & { return data[I]; }

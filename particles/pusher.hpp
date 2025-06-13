@@ -10,17 +10,55 @@
 // #include "dbg.h"
 
 #include <cmath>
+#include <cassert>
 
 namespace tf::particles {
+namespace detail {
+   template<int D, int I>
+   constexpr auto getShapeFunction(const auto x) {
+      using CachedTSC = interp::Jit<interp::TSC>;
+      using CachedCIC = interp::Jit<interp::CIC>;
+
+
+      if constexpr ((D == 0 and I == 1) or (D == 1 and I != 2) or (D == 2 and I == 0)) {
+         return CachedTSC{x};
+      } else {
+         return CachedCIC{x};
+      }
+   }
+} // end namespace detail
+
 template <int D, bool isB>
-auto FieldToParticleInterp(const auto& F, const auto& cids,
-                           const auto& shapeI, const auto& shapeJ, const auto& shapeK) {
-   static constexpr vec3 b0{-1, -1, -1};
-   static constexpr vec3 b1 = interp::rotateOrigin<D>(1, (D == 1) != isB ? -1 : 0, 1);
+auto FieldToParticleInterp(const auto& F, auto p0, const auto& cids) {
+   // static constexpr vec3 b0 = interp::rotateOrigin<D>(-1, (D == 1) != isB ? 0 : -1 , -1);
+   // static constexpr vec3 b1 = interp::rotateOrigin<D>(D == 0 ? 0 : 1, 0, D == 2 ? 0 : 1);
+
+   static constexpr vec3 b0{-1, -1 , -1};
+   static constexpr vec3 b1 = interp::rotateOrigin<D>(
+      D == 0 ? 0 : 1,
+      (D == 1) == isB ? 0 : -1,
+      D == 2 ? 0 : 1
+   );
+
+   // dbg(b0, b1);
+
+   if constexpr (D == 0 or (D == 1 and isB)) {
+      p0[0] -= 0.5;
+   }
+   if constexpr (D == 2 or (D == 1 and isB)) {
+      p0[2] -= 0.5;
+   }
 
    // // rotate elements to match the loop structure
-   const auto [ci, cj, ck] = interp::rotateOrigin<D>(cids);
+   const auto& [ci, cj, ck] = interp::rotateOrigin<D>(cids);
+   const auto& [x0, y0, z0] = interp::rotateOrigin<D>(p0);
 
+   const auto shapeI = detail::getShapeFunction<D, 0>(x0);
+   const auto shapeJ = detail::getShapeFunction<D, 1>(y0);
+   const auto shapeK = detail::getShapeFunction<D, 2>(z0);
+
+   // if constexpr (D == 2 and isB)
+   //    dbg(shapeI.particle_position, shapeJ.particle_position, shapeK.particle_position);
    auto result = 0.0_fp;
    for (int i = b0[0]; i <= b1[0]; ++i) {
       const auto s0i = shapeI(i);
@@ -29,8 +67,16 @@ auto FieldToParticleInterp(const auto& F, const auto& cids,
          for (int k = b0[2]; k <= b1[2]; ++k) {
             const auto s0k = shapeK(k);
             // undo the rotation to get proper indices back
-            const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(i + ci, j + cj, k + ck);
+            const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
+
+            // dbg(x, y, z, F.dims());
+            // if constexpr (D == 2 and isB)
+            //    dbg(i, j, k, s0i, s0j, s0k, F(x, y, z));
+
             result += s0i * s0j * s0k * F(x, y, z);
+            // if constexpr (D == 2 and isB)
+            //    dbg(result);
+            // dbg(result);
          } // end for(k)
       } // end for(j)
    } // end for(i)
@@ -39,30 +85,19 @@ auto FieldToParticleInterp(const auto& F, const auto& cids,
 
 
 static std::array<double, 6> FieldAtParticle(Particle& p, const auto& emdata) {
-   using TSCCache = interp::Jit<interp::TSC>;
-   using CICCache = interp::Jit<interp::CIC>;
-
-   // const auto new_loc = p.location + 0.5;
-   // const auto cids = getCellIndices(new_loc);
-   // const auto p0 = new_loc - cids.as_type<compute_t>();
-   // // todo: does p0[1] need to be corrected?
-
-   const auto cids = getCellIndices(p.location);
+   const auto cids = getCellIndices(p.location + 0.5);
    auto p0 = p.location - cids.as_type<compute_t>();
-   p0[1] -= 0.5_fp;
+   // dbg(p.location, p0, cids);
 
-   const TSCCache shapeI(p0[0]);
-   const CICCache shapeJ(p0[1]);
-   const TSCCache shapeK(p0[2]);
-
-   const auto exc = FieldToParticleInterp<0, 0>(emdata.Ex_total, cids, shapeJ, shapeK, shapeI); // 1, 2, 0
-   const auto eyc = FieldToParticleInterp<1, 0>(emdata.Ey_total, cids, shapeK, shapeI, shapeJ); // 2, 0, 1
-   const auto ezc = FieldToParticleInterp<2, 0>(emdata.Ez_total, cids, shapeI, shapeJ, shapeK); // 0, 1, 2
-   const auto bxc = FieldToParticleInterp<0, 1>(emdata.Bx_total, cids, shapeJ, shapeK, shapeI); // 1, 2, 0
-   const auto byc = FieldToParticleInterp<1, 1>(emdata.By_total, cids, shapeK, shapeI, shapeJ); // 2, 0, 1
-   const auto bzc = FieldToParticleInterp<2, 1>(emdata.Bz_total, cids, shapeI, shapeJ, shapeK); // 0, 1, 2
-
+   const auto exc = FieldToParticleInterp<0, 0>(emdata.Ex_total, p0, cids); // 1, 2, 0
+   const auto eyc = FieldToParticleInterp<1, 0>(emdata.Ey_total, p0, cids); // 2, 0, 1
+   const auto ezc = FieldToParticleInterp<2, 0>(emdata.Ez_total, p0, cids); // 0, 1, 2
+   const auto bxc = FieldToParticleInterp<0, 1>(emdata.Bx_total, p0, cids); // 1, 2, 0
+   const auto byc = FieldToParticleInterp<1, 1>(emdata.By_total, p0, cids); // 2, 0, 1
+   const auto bzc = FieldToParticleInterp<2, 1>(emdata.Bz_total, p0, cids); // 0, 1, 2
+   // dbg(exc, eyc, ezc, bxc, byc, bzc);
    return {exc, eyc, ezc, bxc, byc, bzc};
+   // return {};
 } // end FieldAtParticle
 
 struct BorisPush {
@@ -84,21 +119,13 @@ struct BorisPush {
       const auto v = eps + (vm + cross(vm + cross(vm, t), s));
       p.gamma = std::sqrt(1.0 + v.length_squared() * constants::over_c_sqr<double>);
       p.velocity = v.as_type<compute_t>();
-
-      // const auto vminus = p.velocity + eps;
-      // const auto t = bet / std::sqrt(1.0 + vminus.length_squared() * constants::over_c_sqr<double>);
-      // const auto s = 2.0 * t / (1.0 + t.length_squared());
-      // const auto v_prime = vminus + cross(vminus, t);
-      // const auto vplus = vminus + cross(v_prime, s);
-      // p.velocity = vplus + eps;
-      // p.gamma = std::sqrt(1.0 + p.velocity.length_squared() * constants::over_c_sqr<double>);
    } // end update_velocity()
 
    static void update_position(Particle& p) {
       static constexpr vec3 delta_inv{dt / dx, dt / dy, dt / dz};
       if (p.disabled) { return; }
 
-      const auto new_loc = p.location + delta_inv * p.velocity / p.gamma;
+      const auto new_loc = p.location + (delta_inv / p.gamma) * p.velocity;
       const auto [inew, jnew, knew] = getCellIndices(new_loc);
 
       p.disabled = inew < BC_DEPTH or inew > Nx - BC_DEPTH or knew < BC_DEPTH or knew > Nz - BC_DEPTH;
@@ -128,7 +155,7 @@ struct BorisPush {
       }
    }
 
-   static void operator()(group_t& g, const emdata_t& emdata, const std::size_t step) {
+   static void advance(group_t& g, const emdata_t& emdata, const std::size_t step) {
       advance_velocity(g, emdata);
       advance_position(g);
 

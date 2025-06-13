@@ -41,10 +41,11 @@ namespace tf::particles {
          using TSCTrajectory = TrajectoryShapeFunc<CachedTSC, CachedTSC>;
          using CICTrajectory = TrajectoryShapeFunc<CachedCIC, CachedCIC>;
 
-         if constexpr (C == 0 or C == 3) {
-            return CICTrajectory(CachedCIC{x0}, CachedCIC{x1});
-         } else {
+         if constexpr (C == 2) {
             return TSCTrajectory(CachedTSC{x0}, CachedTSC{x1});
+
+         } else {
+            return CICTrajectory(CachedCIC{x0}, CachedCIC{x1});
          }
       }
    } // end namespace tf::particles::detail
@@ -52,49 +53,60 @@ namespace tf::particles {
 struct CurrentDeposition {
    template<int D>
    static void deposit(auto& J, const auto& p0, const auto& p1, const auto& cids, const auto qA) {
-      static constexpr auto third = constants::third<compute_t>;
-      static constexpr vec3 b0 = interp::rotateOrigin<D>(-1, 0, -1);
-      static constexpr vec3 b1 = interp::rotateOrigin<D>(1, 0, 1);
+      using CachedTSC = interp::Jit<interp::TSC>;
+      using CachedCIC = interp::Jit<interp::CIC>;
+      using TSCTrajectory = detail::TrajectoryShapeFunc<CachedTSC, CachedTSC>;
+      using CICTrajectory = detail::TrajectoryShapeFunc<CachedCIC, CachedCIC>;
 
-      if (p0[D] == p1[D]) {
-         return;
-      }
+      static constexpr auto third = constants::third<compute_t>;
+      // static constexpr vec3 b0 = interp::rotateOrigin<D>(-1, D == 1 ? 0 : -1, -1);
+      // static constexpr vec3 b1 = interp::rotateOrigin<D>(D == 0 ? 0 : 1, 0, D == 2 ? 0 : 1);
+
+      static constexpr vec3 b0 = interp::rotateOrigin<D>(-1, -1, -1);
+      static constexpr vec3 b1 = interp::rotateOrigin<D>(0, 0, 1);
+
+
+      if (p0[D] == p1[D]) { return; }
 
       const auto& [ci, cj, ck] = interp::rotateOrigin<D>(cids);
       const auto& [x0, y0, z0] = interp::rotateOrigin<D>(p0);
       const auto& [x1, y1, z1] = interp::rotateOrigin<D>(p1);
 
-      const auto shapeI = detail::makeTrajectoryFunction<D>(x0, x1);
-      const auto shapeJ = detail::makeTrajectoryFunction<D + 1>(y0, y1);
-      const auto shapeK = detail::makeTrajectoryFunction<D + 2>(z0, z1);
+      // const auto shapeI = detail::makeTrajectoryFunction<D>(x0, x1);
+      // const auto shapeJ = detail::makeTrajectoryFunction<D + 1>(y0, y1);
+      // const auto shapeK = detail::makeTrajectoryFunction<D + 2>(z0, z1);
+      // const auto shapeI = CICTrajectory(CachedCIC{x0}, CachedCIC{x1});
+      const auto shapeJ = TSCTrajectory(CachedTSC{y0}, CachedTSC{y1});
+      const auto shapeK = CICTrajectory(CachedCIC{z0}, CachedCIC{z1});
 
-      for (int i = b0[0]; i <= b1[0]; ++i) {
-         const auto s0i = shapeI.S0(i);
-         const auto dsi = shapeI.S1(i) - s0i;
-
+      // for (int i = b0[0]; i <= b1[0]; ++i) {
+      //    const auto s0i = shapeI.S0(i);
+      //    const auto dsi = shapeI.S1(i) - s0i;
+         // dbg(i, s0i, shapeI.S1(i));
          for (int j = b0[1]; j <= b1[1]; ++j) {
             const auto s0j = shapeJ.S0(j);
             const auto dsj = shapeJ.S1(j) - s0j;
+            // dbg(j, s0j, shapeJ.S1(j));
+            const auto tmp = -qA * (s0j + 0.5_fp * dsj);
 
-            const auto tmp = -qA * (s0i * s0j + 0.5_fp * (dsi * s0j + s0i * dsj) + third * dsj * dsi);
-            auto acc = 0.0;
+            // const auto tmp = -qA * (s0i * s0j + 0.5_fp * (dsi * s0j + s0i * dsj) + third * dsj * dsi);
+            auto acc = 0.0_fp;
             for (int k = b0[2]; k <= b1[2]; ++k) {
+               // dbg(k, shapeK.S0(k), shapeK.S1(k));
+
                acc += shapeK.DS(k) * tmp;
-               const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
-               // #pragma omp atomic update
+               const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci, cj + j, ck + k);
+               #pragma omp atomic update
                J(x, y, z) += acc;
             } // end for(k)
          } // end for(j)
-      } // end for(i)
+      // } // end for(i)
    } // end deposit()
 
    static vec3<compute_t> findRelayPoint(const auto& i0, const auto& i1, const auto& x1) {
-      // y uses odd-order assignment function (CIC)
-      return {
-         i0[0] == i1[0] ? x1[0] : std::max(i0[0], i1[0]),
-         i0[1] == i1[1] ? x1[1] : std::max(i0[1], i1[1]),
-         i0[2] == i1[2] ? x1[2] : std::max(i0[2], i1[2]),
-      };
+      return {i0[0] == i1[0] ? x1[0] : static_cast<compute_t>(std::max(i0[0], i1[0])) - 0.5,
+              i0[1] == i1[1] ? x1[1] : static_cast<compute_t>(std::max(i0[1], i1[1])) - 0.5,
+              i0[2] == i1[2] ? x1[2] : static_cast<compute_t>(std::max(i0[2], i1[2])) - 0.5};
    }
 
    static void updateJ(const auto& p, auto& emdata, const auto charge) {
@@ -107,30 +119,30 @@ struct CurrentDeposition {
       const auto z_coeff = p.weight * charge * dtAxy;
       const auto y_coeff = p.weight * charge * dtAxz;
 
-      auto old_loc_half = p.old_location + 0.5_fp;
-      auto new_loc_half = p.location + 0.5_fp;
+      const vec3<std::size_t> i0 = getCellIndices(p.old_location + 0.5);
+      const vec3<std::size_t> i1 = getCellIndices(p.location + 0.5);
+      const auto relay = findRelayPoint(i0, i1, p.location);
 
-      const auto old_hcids = getCellIndices<compute_t>(old_loc_half);
-      const auto new_hcids = getCellIndices<compute_t>(new_loc_half);
-      const auto relay = findRelayPoint(old_hcids, new_hcids, new_loc_half);
+      auto p0 = p.old_location - i0.as_type<compute_t>();
+      auto p1 = relay - i0.as_type<compute_t>();
 
-      auto p0 = old_loc_half - old_hcids;
-      auto p1 = relay - old_hcids;
+      p0[0] -= 0.5;
+      p1[0] -= 0.5;
+      // dbg("0", p0, p1);
 
-      p0[1] -= 0.5_fp;
-      p1[1] -= 0.5_fp;
+      deposit<0>(emdata.Jx, p0, p1, i0, x_coeff);
+      // deposit<1>(emdata.Jy, p0, p1, i0, y_coeff);
+      // deposit<2>(emdata.Jz, p0, p1, i0, z_coeff);
 
-      deposit<0>(emdata.Jx, p0, p1, old_hcids.template as_type<std::size_t>(), x_coeff);
-      deposit<1>(emdata.Jy, p0, p1, old_hcids.template as_type<std::size_t>(), y_coeff);
-      deposit<2>(emdata.Jz, p0, p1, old_hcids.template as_type<std::size_t>(), z_coeff);
-
-      if (old_hcids != new_hcids) {
-         p0 = relay - new_hcids;
-         p1 = new_loc_half - new_hcids;
-
-         deposit<0>(emdata.Jx, p0, p1, new_hcids.template as_type<std::size_t>(), x_coeff);
-         // deposit<1>(emdata.Jy, p0, p1, new_hcids, y_coeff);
-         deposit<2>(emdata.Jz, p0, p1, new_hcids.template as_type<std::size_t>(), z_coeff);
+      if (i0 != i1) {
+         p0 = relay - i1.as_type<compute_t>();
+         p1 = p.location - i1.as_type<compute_t>();
+         p0[0] -= 0.5;
+         p1[0] -= 0.5;
+         // dbg("1", p0, p1);
+         deposit<0>(emdata.Jx, p0, p1, i1, x_coeff);
+         // deposit<1>(emdata.Jy, p0, p1, i1, y_coeff);
+         // deposit<2>(emdata.Jz, p0, p1, i1, z_coeff);
       }
    } // end updateJ()
 

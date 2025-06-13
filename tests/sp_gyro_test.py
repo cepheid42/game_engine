@@ -3,9 +3,9 @@
 # import subprocess
 import math
 
-nx = 16
+nx = 64
 ny = 2
-nz = 16
+nz = 64
 
 xmin, xmax = -0.03, 0.03
 ymin, ymax = 0.0, 0.004
@@ -16,8 +16,8 @@ dy = (ymax - ymin) / (ny - 1)
 dz = (zmax - zmin) / (nz - 1)
 
 cfl = 0.95 / math.sqrt(3)
-dt = 4.0e-10 # 0.4 ns
-t_end = 2.0e-7 # 200 ns
+dt = 1.0e-10 # 0.4 ns
+t_end = 5.0e-7 # 200 ns
 nt = int(t_end / dt) + 1
 
 save_interval = 1

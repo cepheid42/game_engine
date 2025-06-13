@@ -55,20 +55,20 @@ Metrics create_metrics(const std::string& dir, EMSolver& em, const ParticleGroup
       )
    );
 
-   // metrics.addMetric(
-   //    std::make_unique<ParticleDumpMetric>(
-   //       &g2,
-   //       metrics.adios.DeclareIO(g2.name + "_dump")
-   //    )
-   // );
-   //
-   // metrics.addMetric(
-   //    std::make_unique<ParticleMetric>(
-   //       &g2,
-   //       metrics.adios.DeclareIO(g2.name + "_metrics"),
-   //       Ncx, Ncy, Ncz
-   //    )
-   // );
+   metrics.addMetric(
+      std::make_unique<ParticleDumpMetric>(
+         &g2,
+         metrics.adios.DeclareIO(g2.name + "_dump")
+      )
+   );
+
+   metrics.addMetric(
+      std::make_unique<ParticleMetric>(
+         &g2,
+         metrics.adios.DeclareIO(g2.name + "_metrics"),
+         Ncx, Ncy, Ncz
+      )
+   );
 
    return metrics;
 }
@@ -109,7 +109,7 @@ int main() {
           .speed = 0.,
           .speed_unit = "steps/s",
           .interval = 1.,
-          // .no_tty = true,
+          .no_tty = true,
           .show = false});
 
    timers["IO"].start_timer();

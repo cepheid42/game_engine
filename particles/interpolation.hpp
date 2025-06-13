@@ -24,12 +24,12 @@ constexpr auto rotateOrigin(const auto& x, const auto& y, const auto& z) {
 
 template<int D>
 constexpr auto rotateOrigin(const auto& p) {
-   using ret_type = std::remove_cvref_t<decltype(p)>;
+   // using ret_type = std::remove_cvref_t<decltype(p)>;
    if constexpr (D == 0) {
-      return ret_type{p[1], p[2], p[0]};
+      return vec3{p[1], p[2], p[0]};
    }
    else if constexpr (D == 1) {
-      return ret_type{p[2], p[0], p[1]};
+      return vec3{p[2], p[0], p[1]};
    }
    else {
       return p;

@@ -23,7 +23,8 @@ public:
    auto begin() { return data_.begin(); }
    auto end() { return data_.end(); }
 
-   const auto& data() const { return data_; }
+   auto* data() { return data_.data(); }
+   const auto& vec_data() const { return data_; }
    [[nodiscard]] auto capacity() const { return data_.capacity(); }
    [[nodiscard]] constexpr std::size_t size() const { return data_.size(); }
    [[nodiscard]] constexpr std::size_t num_bytes() const { return size() * sizeof(T); }
