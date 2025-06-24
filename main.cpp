@@ -55,20 +55,20 @@ Metrics create_metrics(const std::string& dir, EMSolver& em, const ParticleGroup
       )
    );
 
-   metrics.addMetric(
-      std::make_unique<ParticleDumpMetric>(
-         &g2,
-         metrics.adios.DeclareIO(g2.name + "_dump")
-      )
-   );
-
-   metrics.addMetric(
-      std::make_unique<ParticleMetric>(
-         &g2,
-         metrics.adios.DeclareIO(g2.name + "_metrics"),
-         Ncx, Ncy, Ncz
-      )
-   );
+   // metrics.addMetric(
+   //    std::make_unique<ParticleDumpMetric>(
+   //       &g2,
+   //       metrics.adios.DeclareIO(g2.name + "_dump")
+   //    )
+   // );
+   //
+   // metrics.addMetric(
+   //    std::make_unique<ParticleMetric>(
+   //       &g2,
+   //       metrics.adios.DeclareIO(g2.name + "_metrics"),
+   //       Ncx, Ncy, Ncz
+   //    )
+   // );
 
    return metrics;
 }
@@ -87,9 +87,9 @@ int main() {
    auto g2 = ParticleInitializer::initializeFromFile("ions", m_p, +q_e, 1, ion_file);
 
    EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
-   add_gaussianbeam(emsolver);
+   emsolver.particle_correction();
+   // add_gaussianbeam(emsolver);
 
-   constexpr BorisPush particle_push{};
    constexpr CurrentDeposition current_dep{};
    BorisPush::backstep_velocity(g1, emsolver.emdata);
    BorisPush::backstep_velocity(g2, emsolver.emdata);
@@ -109,7 +109,7 @@ int main() {
           .speed = 0.,
           .speed_unit = "steps/s",
           .interval = 1.,
-          .no_tty = true,
+          // .no_tty = true,
           .show = false});
 
    timers["IO"].start_timer();
@@ -117,14 +117,14 @@ int main() {
    timers["IO"].stop_timer();
 
    progress_bar->show();
-   for (step = 0; step < Nt; step++) {
+   for (step = 1; step < Nt; step++) {
       timers["EM"].start_timer();
       emsolver.advance(static_cast<compute_t>(step) * dt);
       timers["EM"].stop_timer();
 
       timers["Push"].start_timer();
-      particle_push(g1, emsolver.emdata, step);
-      particle_push(g2, emsolver.emdata, step);
+      BorisPush::advance(g1, emsolver.emdata, step);
+      BorisPush::advance(g2, emsolver.emdata, step);
       timers["Push"].stop_timer();
 
       timers["Jdep"].start_timer();

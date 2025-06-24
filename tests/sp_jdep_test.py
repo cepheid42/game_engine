@@ -3,48 +3,24 @@
 # import subprocess
 import math
 
-# nx = 51
-# ny = 2
-# nz = 51
-#
-# xmin, xmax = -1.0e-8, 1.9e-7
-# ymin, ymax = 0.0, 4.0e-9
-# zmin, zmax = -1.0e-8, 1.9e-7
-#
-# dx = (xmax - xmin) / (nx - 1)
-# dy = (ymax - ymin) / (ny - 1)
-# dz = (zmax - zmin) / (nz - 1)
-#
-# cfl = 0.95 / math.sqrt(3)
-# dt = 1.0e-12
-# t_end = 1.0e-9
-# nt = int(t_end / dt)
-#
-# save_interval = 1
-# nthreads = 1
-#
-# PMLDepth = 1
-# PMLGrade = 3.5
-# PMLAlphaMax = 0.2
-
 nx = 51
 ny = 2
 nz = 51
 
-xmin, xmax = -0.10, 0.10
-ymin, ymax = 0.0, 0.004
-zmin, zmax = -0.10, 0.10
+xmin, xmax = -1.0e-8, 1.9e-7
+ymin, ymax = 0.0, 4.0e-9
+zmin, zmax = -1.0e-8, 1.9e-7
 
 dx = (xmax - xmin) / (nx - 1)
 dy = (ymax - ymin) / (ny - 1)
 dz = (zmax - zmin) / (nz - 1)
 
 cfl = 0.95 / math.sqrt(3)
-dt = 4.0e-10 # 0.4 ns
-t_end = 6.0e-7 # 200 ns
-nt = int(t_end / dt) + 1
+dt = 1.0e-12
+t_end = 1.0e-9
+nt = int(t_end / dt)
 
-save_interval = 15
+save_interval = 1
 nthreads = 1
 
 PMLDepth = 1
@@ -93,7 +69,6 @@ program_params = (
 )
 
 param_path = '/home/cepheid/TriForce/game_engine/params/program_params.hpp'
-
 write_new = False
 with open(param_path, 'r') as f:
     cur_header = f.read()
@@ -103,3 +78,4 @@ with open(param_path, 'r') as f:
 if write_new:
     with open(param_path, 'w+') as f:
         f.write(program_params)
+

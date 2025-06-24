@@ -42,6 +42,10 @@ constexpr std::size_t getCellIndex(const vec3<compute_t>& loc) {
    return z + (Ncz * y) + (Ncy * Ncz * x);
 }
 
+constexpr auto calculateGamma(const auto& v) {
+   return 1.0_fp / std::sqrt(1.0_fp - v.length_squared() * constants::over_c_sqr<compute_t>);
+}
+
 struct ParticleGroup {
    static constexpr std::size_t SORT_INTERVAL = 50;
    std::string name;
@@ -120,13 +124,13 @@ struct ParticleInitializer {
          location = (location - mins) / deltas;
 
          // compute Lorentz factor and relativistic momentum
-         const auto gamma = 1.0 / std::sqrt(1.0 - velocity.length_squared() * constants::over_c_sqr<double>);
+         const auto gamma = calculateGamma(velocity);
 
          // add particle to group
          g.particles.emplace_back(
             location.as_type<compute_t>(),
             location.as_type<compute_t>(),
-            velocity.as_type<compute_t>() * gamma,
+            velocity.as_type<compute_t>(),
             weight,
             gamma,
             false

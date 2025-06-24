@@ -7,22 +7,22 @@
 
 inline constexpr auto nThreads = 1;
 
-inline constexpr auto Nx = 64zu;
+inline constexpr auto Nx = 51zu;
 inline constexpr auto Ny = 2zu;
-inline constexpr auto Nz = 64zu;
+inline constexpr auto Nz = 51zu;
 
-inline constexpr std::array x_range = {-0.03_fp, 0.03_fp};
-inline constexpr std::array y_range = {0.0_fp, 0.004_fp};
-inline constexpr std::array z_range = {-0.03_fp, 0.03_fp};
+inline constexpr std::array x_range = {-1e-08_fp, 1.9e-07_fp};
+inline constexpr std::array y_range = {0.0_fp, 4e-09_fp};
+inline constexpr std::array z_range = {-1e-08_fp, 1.9e-07_fp};
 
-inline constexpr auto dx = 0.0009523809523809524_fp;
-inline constexpr auto dy = 0.004_fp;
-inline constexpr auto dz = 0.0009523809523809524_fp;
+inline constexpr auto dx = 4e-09_fp;
+inline constexpr auto dy = 4e-09_fp;
+inline constexpr auto dz = 4e-09_fp;
 
 inline constexpr auto cfl   = 0.5484827557301445_fp;
-inline constexpr auto dt    = 1e-10_fp;
-inline constexpr auto t_end = 5e-07_fp;
-inline constexpr auto Nt    = 5001zu;
+inline constexpr auto dt    = 1e-12_fp;
+inline constexpr auto t_end = 1e-09_fp;
+inline constexpr auto Nt    = 1000zu;
 
 inline constexpr auto save_interval = 1zu;
 

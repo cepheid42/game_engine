@@ -32,7 +32,7 @@ gcc_opts = [
 #    '-Wnrvo',
     '-fuse-ld=mold',
     '-march=native',
-#    '-ftree-vectorize',
+    '-ftree-vectorize',
 ]
 
 includes = include_directories(

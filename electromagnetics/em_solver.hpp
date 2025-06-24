@@ -20,13 +20,6 @@ struct EMSolver {
    using hy_func = FieldIntegrator<ExplicitUpdateFunctor<forward_dx, forward_dz>>;
    using hz_func = FieldIntegrator<ExplicitUpdateFunctor<noop, forward_dx>>;
 
-   // using ex_func = FieldIntegrator<ExplicitUpdateFunctor<noop, backward_dz>>;
-   // using ey_func = FieldIntegrator<ExplicitUpdateFunctor<backward_dz, backward_dx>>;
-   // using ez_func = FieldIntegrator<ExplicitUpdateFunctor<backward_dx, noop>>;
-   // using hx_func = FieldIntegrator<ExplicitUpdateFunctor<forward_dz, forward_dy>>;
-   // using hy_func = FieldIntegrator<ExplicitUpdateFunctor<forward_dx, forward_dz>>;
-   // using hz_func = FieldIntegrator<ExplicitUpdateFunctor<forward_dy, forward_dx>>;
-
    // X-Faces
    // using Ex_x0_bc = BCIntegrator<void>;
    // using Ex_x1_bc = BCIntegrator<void>;
@@ -81,10 +74,10 @@ struct EMSolver {
 
    void advance(const compute_t t) {
       updateH();
-      updateHBCs();
+      // updateHBCs();
       apply_srcs(t);
       updateE();
-      updateEBCs();
+      // updateEBCs();
       particle_correction(); // for the particles and shit
       zero_currents();       // also for the particles, don't need last weeks currents
    }
