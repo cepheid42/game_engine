@@ -1,13 +1,13 @@
 #ifndef EM_SOLVER_HPP
 #define EM_SOLVER_HPP
 
-#include "program_params.hpp"
+// #include "program_params.hpp"
 #include "em_data.hpp"
 #include "bc_data.hpp"
 #include "update_functors.hpp"
 #include "bc_functors.hpp"
 #include "diff_operators.hpp"
-#include "dbg.h"
+// #include "dbg.h"
 
 #include <algorithm>
 
@@ -74,10 +74,10 @@ struct EMSolver {
 
    void advance(const compute_t t) {
       updateH();
-      // updateHBCs();
+      updateHBCs();
       apply_srcs(t);
       updateE();
-      // updateEBCs();
+      updateEBCs();
       particle_correction(); // for the particles and shit
       zero_currents();       // also for the particles, don't need last weeks currents
    }
@@ -96,6 +96,10 @@ struct EMSolver {
    }
 
    void particle_correction() {
+      std::ranges::copy(emdata.Ex, emdata.Ex_total.begin());
+      std::ranges::copy(emdata.Ey, emdata.Ey_total.begin());
+      std::ranges::copy(emdata.Ez, emdata.Ez_total.begin());
+
       std::ranges::copy(emdata.Hx, emdata.Bx.begin());
       std::ranges::copy(emdata.Hy, emdata.By.begin());
       std::ranges::copy(emdata.Hz, emdata.Bz.begin());
@@ -104,38 +108,43 @@ struct EMSolver {
       hy_update(emdata.By, emdata.Ez, emdata.Ex, emdata.empty, emdata.Chyh, emdata.Chyez2, emdata.Chyex2, emdata.empty, {0, 0, 0, 0, 0, 0});
       hz_update(emdata.Bz, emdata.Ex, emdata.Ey, emdata.empty, emdata.Chzh, emdata.Chzex2, emdata.Chzey2, emdata.empty, {0, 0, 0, 0, 0, 0});
 
-      #pragma omp parallel num_threads(nThreads)
-      {
-         #pragma omp for
-         for (std::size_t i = 0; i < emdata.Ex.size(); i++) {
-            emdata.Ex_total[i] = emdata.Ex[i] + emdata.Ex_app[i];
-         }
+      std::ranges::transform(emdata.Bx, emdata.Bx_total.begin(), [](const auto x) { return x * constants::mu0<compute_t>; });
+      std::ranges::transform(emdata.By, emdata.By_total.begin(), [](const auto x) { return x * constants::mu0<compute_t>; });
+      std::ranges::transform(emdata.Bz, emdata.Bz_total.begin(), [](const auto x) { return x * constants::mu0<compute_t>; });
 
-         #pragma omp for
-         for (std::size_t i = 0; i < emdata.Ey.size(); i++) {
-            emdata.Ey_total[i] = emdata.Ey[i] + emdata.Ey_app[i];
-         }
 
-         #pragma omp for
-         for (std::size_t i = 0; i < emdata.Ez.size(); i++) {
-            emdata.Ez_total[i] = emdata.Ez[i] + emdata.Ez_app[i];
-         }
-
-         #pragma omp for
-         for (std::size_t i = 0; i < emdata.Bx.size(); i++) {
-            emdata.Bx_total[i] = emdata.Bx[i] / constants::mu0<compute_t> + emdata.Bx_app[i];
-         }
-
-         #pragma omp for
-         for (std::size_t i = 0; i < emdata.By.size(); i++) {
-            emdata.By_total[i] = emdata.By[i] / constants::mu0<compute_t> + emdata.By_app[i];
-         }
-
-         #pragma omp for
-         for (std::size_t i = 0; i < emdata.Bz.size(); i++) {
-            emdata.Bz_total[i] = emdata.Bz[i] / constants::mu0<compute_t> + emdata.Bz_app[i];
-         }
-      } // end omp parallel
+      // #pragma omp parallel num_threads(nThreads)
+      // {
+      //    #pragma omp for
+      //    for (std::size_t i = 0; i < emdata.Ex.size(); i++) {
+      //       emdata.Ex_total[i] = emdata.Ex[i] + emdata.Ex_app[i];
+      //    }
+      //
+      //    #pragma omp for
+      //    for (std::size_t i = 0; i < emdata.Ey.size(); i++) {
+      //       emdata.Ey_total[i] = emdata.Ey[i] + emdata.Ey_app[i];
+      //    }
+      //
+      //    #pragma omp for
+      //    for (std::size_t i = 0; i < emdata.Ez.size(); i++) {
+      //       emdata.Ez_total[i] = emdata.Ez[i] + emdata.Ez_app[i];
+      //    }
+      //
+      //    #pragma omp for
+      //    for (std::size_t i = 0; i < emdata.Bx.size(); i++) {
+      //       emdata.Bx_total[i] = emdata.Bx[i] * constants::mu0<compute_t> + emdata.Bx_app[i];
+      //    }
+      //
+      //    #pragma omp for
+      //    for (std::size_t i = 0; i < emdata.By.size(); i++) {
+      //       emdata.By_total[i] = emdata.By[i] * constants::mu0<compute_t> + emdata.By_app[i];
+      //    }
+      //
+      //    #pragma omp for
+      //    for (std::size_t i = 0; i < emdata.Bz.size(); i++) {
+      //       emdata.Bz_total[i] = emdata.Bz[i] * constants::mu0<compute_t> + emdata.Bz_app[i];
+      //    }
+      // } // end omp parallel
    }
 
    void updateEBCs() {

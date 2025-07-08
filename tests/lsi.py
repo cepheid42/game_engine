@@ -17,13 +17,14 @@ dx = (xmax - xmin) / (nx - 1)
 dy = (ymax - ymin) / (ny - 1)
 dz = (zmax - zmin) / (nz - 1)
 
-cfl = 0.848 / math.sqrt(3)
-dt = 4.0e-17 # 0.04 fs
-t_end = 3.0e-13 # 300 fs
-nt = int(t_end / dt) + 1 # ~7500
+dt = 3.0e-17
+t_end = 3.0e-13 #3.0e-13
+nt = int(t_end / dt) + 1 # ~10000
+cfl = 0.779 / math.sqrt(3)
 
-save_interval = 50
-nthreads = 32
+save_interval = 100
+nthreads = 48
+interp_order = 2
 
 PMLDepth = 20
 PMLGrade = 3.5
@@ -57,6 +58,7 @@ program_params = (
     f'inline constexpr auto Nt    = {nt}zu;\n'
     '\n'
     f'inline constexpr auto save_interval = {save_interval}zu;\n'
+    f'inline constexpr auto interpolation_order = {interp_order}zu;\n'
     '\n'
     f'inline constexpr auto Ncx = {nx - 1}zu;\n'
     f'inline constexpr auto Ncy = {ny - 1}zu;\n'

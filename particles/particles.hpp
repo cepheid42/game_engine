@@ -43,7 +43,13 @@ constexpr std::size_t getCellIndex(const vec3<compute_t>& loc) {
 }
 
 constexpr auto calculateGamma(const auto& v) {
+   // Calculates gamma using regular velocity
    return 1.0_fp / std::sqrt(1.0_fp - v.length_squared() * constants::over_c_sqr<compute_t>);
+}
+
+constexpr auto calculateGammaV(const auto& v) {
+   // Calculates gamma using gamma*v (e.g. relativistic momentum but with mass terms canceled)
+   return std::sqrt(1.0_fp + v.length_squared() * constants::over_c_sqr<compute_t>);
 }
 
 struct ParticleGroup {
@@ -67,8 +73,7 @@ struct ParticleGroup {
    {}
 
    [[nodiscard]] compute_t calculate_qdt_over_2m() const {
-      return static_cast<compute_t>(0.5 * static_cast<double>(charge) * static_cast<double>(dt) / static_cast<double>(
-         mass));
+      return static_cast<compute_t>(0.5 * static_cast<double>(charge) * static_cast<double>(dt) / static_cast<double>(mass));
    }
 
    [[nodiscard]] std::size_t num_particles() const { return particles.size(); }
@@ -82,18 +87,18 @@ struct ParticleGroup {
 
    void sort_particles() {
       std::erase_if(particles, [](const Particle& p) { return p.disabled; });
-      // gfx::timsort(
-      //    particles,
-      //    [](const Particle& a, const Particle& b) {
-      //       return morton_encode(getCellIndices<std::size_t>(a.location)) < morton_encode(getCellIndices<std::size_t>(b.location));
-      //    }
-      // );
-      std::ranges::sort(
+      gfx::timsort(
          particles,
          [](const Particle& a, const Particle& b) {
             return morton_encode(getCellIndices<std::size_t>(a.location)) < morton_encode(getCellIndices<std::size_t>(b.location));
          }
       );
+      // std::ranges::sort(
+      //    particles,
+      //    [](const Particle& a, const Particle& b) {
+      //       return morton_encode(getCellIndices<std::size_t>(a.location)) < morton_encode(getCellIndices<std::size_t>(b.location));
+      //    }
+      // );
    }
 }; // end struct ParticleGroup
 
@@ -128,9 +133,9 @@ struct ParticleInitializer {
 
          // add particle to group
          g.particles.emplace_back(
-            location.as_type<compute_t>(),
-            location.as_type<compute_t>(),
-            velocity.as_type<compute_t>(),
+            location,
+            location,
+            velocity,
             weight,
             gamma,
             false

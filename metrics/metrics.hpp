@@ -17,7 +17,7 @@ namespace tf::metrics {
 namespace detail {
    struct MetricBase {
       virtual ~MetricBase() = default;
-      virtual void write(const std::string&, const std::string&) = 0;
+      virtual void write(const std::string&, const std::string&, compute_t) = 0;
    };
 } // end namespace detail
 
@@ -49,8 +49,11 @@ struct EMFieldsMetric final : detail::MetricBase {
       }
    }
 
-   void write(const std::string& dir, const std::string& step_ext) override {
+   void write(const std::string& dir, const std::string& step_ext, const compute_t time) override {
       const std::string file{dir + "/fields_" + step_ext};
+
+      io.DefineAttribute<compute_t>("Time", time, "", "/", true);
+
       adios2::Engine    writer = io.Open(file, adios2::Mode::Write);
       writer.BeginStep();
 
@@ -88,8 +91,10 @@ struct ParticleDumpMetric final : detail::MetricBase {
       gamma.reserve(nParticles);
    }
 
-   void write(const std::string& dir, const std::string& step_ext) override {
+   void write(const std::string& dir, const std::string& step_ext, const compute_t time) override {
       const std::string file{dir + "/" + group->name + "_dump_" + step_ext};
+
+      io.DefineAttribute<compute_t>("Time", time, "", "/", true);
 
       // io.DefineAttribute<std::string>("name", group->name);
       // io.DefineAttribute<std::size_t>("num_particles", group->num_particles);
@@ -97,18 +102,18 @@ struct ParticleDumpMetric final : detail::MetricBase {
       // io.DefineAttribute<compute_t>("mass", group->mass);
       // io.DefineAttribute<compute_t>("charge", group->charge);
 
-      // const auto& nParticles = group->num_particles();
-      // var_loc.SetShape({nParticles, 3});
-      // var_loc.SetSelection({{0, 0}, {nParticles, 3}}); // {{start}, {count}}
-      //
-      // var_vel.SetShape({nParticles, 3});
-      // var_vel.SetSelection({{0, 0}, {nParticles, 3}}); // {{start}, {count}}
-      //
-      // var_w.SetShape({nParticles, 1});
-      // var_w.SetSelection({{0, 0}, {nParticles, 1}}); // {{start}, {count}}
-      //
-      // var_gamma.SetShape({nParticles, 1});
-      // var_gamma.SetSelection({{0, 0}, {nParticles, 1}}); // {{start}, {count}}
+      const auto& nParticles = group->num_particles();
+      var_loc.SetShape({nParticles, 3});
+      var_loc.SetSelection({{0, 0}, {nParticles, 3}}); // {{start}, {count}}
+
+      var_vel.SetShape({nParticles, 3});
+      var_vel.SetSelection({{0, 0}, {nParticles, 3}}); // {{start}, {count}}
+
+      var_w.SetShape({nParticles, 1});
+      var_w.SetSelection({{0, 0}, {nParticles, 1}}); // {{start}, {count}}
+
+      var_gamma.SetShape({nParticles, 1});
+      var_gamma.SetSelection({{0, 0}, {nParticles, 1}}); // {{start}, {count}}
 
       adios2::Engine writer = io.Open(file, adios2::Mode::Write);
       writer.BeginStep();
@@ -117,10 +122,10 @@ struct ParticleDumpMetric final : detail::MetricBase {
       static constexpr vec3 lb{x_range[0], y_range[0], z_range[0]};
 
       // number of particles currently does not change
-      // position.reserve(3 * nParticles);
-      // velocity.reserve(3 * nParticles);
-      // weight.reserve(nParticles);
-      // gamma.reserve(nParticles);
+      position.reserve(3 * nParticles);
+      velocity.reserve(3 * nParticles);
+      weight.reserve(nParticles);
+      gamma.reserve(nParticles);
 
       for (const auto& p: group->particles) {
          for (std::size_t d = 0; d < 3; d++) {
@@ -211,10 +216,11 @@ struct ParticleMetric final : detail::MetricBase {
       } // end parallel
    }
 
-   void write(const std::string& dir, const std::string& step_ext) override {
+   void write(const std::string& dir, const std::string& step_ext, const compute_t time) override {
       update_metrics();
-
       const std::string file{dir + "/" + group->name + "_" + step_ext};
+      io.DefineAttribute<compute_t>("Time", time, "", "/", true);
+
       adios2::Engine    writer = io.Open(file, adios2::Mode::Write);
       writer.BeginStep();
 
@@ -253,7 +259,7 @@ public:
       count_padded += file_ext; // default extension is .bp
 
       for (const auto& m: metrics) {
-         m->write(data_dir, count_padded);
+         m->write(data_dir, count_padded, static_cast<compute_t>(step) * dt);
       }
    }
 

@@ -5,7 +5,7 @@ project(
     default_options : [
 #        'buildtype=debug',
 #        'buildtype=debugoptimized',
-#        'buildtype=release',
+        'buildtype=release',
         'warning_level=3',
         'cpp_std=c++23',
 #        'b_sanitize=address',
@@ -16,20 +16,20 @@ project(
 )
 
 debug_opts = [
-        '-O0', '-g',
-#        '-fopt-info-note-vec-missed=missed.txt',
-#        '-DNDEBUG',
-#        '-fno-omit-frame-pointer',
-#        '-fno-inline-functions',
-#        '-fno-inline-functions-called-once',
-#        '-fno-optimize-sibling-calls',
-#        '-fno-default-inline',
-#        '-fno-inline'
+    '-Wconversion',
+    '-Wnrvo',
+#    '-O0', '-g',
+#    '-fopt-info-note-vec-missed=missed.txt',
+#    '-DNDEBUG',
+#    '-fno-omit-frame-pointer',
+#    '-fno-inline-functions',
+#    '-fno-inline-functions-called-once',
+#    '-fno-optimize-sibling-calls',
+#    '-fno-default-inline',
+#    '-fno-inline'
 ]
 
 gcc_opts = [
-    '-Wconversion',
-#    '-Wnrvo',
     '-fuse-ld=mold',
     '-march=native',
     '-ftree-vectorize',

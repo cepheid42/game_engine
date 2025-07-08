@@ -14,21 +14,20 @@ namespace tf {
 // ================
 template <typename T>
 struct vec3 {
+   using type = T;
+
    constexpr vec3() = default;
 
-   constexpr vec3(T e0, T e1, T e2)
-      : data{e0, e1, e2} {}
+   constexpr vec3(T e0, T e1, T e2) : data{e0, e1, e2} {}
 
    constexpr T& operator[](std::size_t i) { return data[i]; }
    constexpr const T& operator[](std::size_t i) const { return data[i]; }
 
    [[nodiscard]] constexpr auto length_squared() const {
-      auto sum = T(0.0);
-      for (std::size_t i = 0; i < 3; i++) { sum += data[i] * data[i]; }
-      return sum;
+      return data[0] * data[0] + data[1] * data[1] + data[2] * data[2];
    }
 
-   [[nodiscard]] constexpr T length() const { return std::hypot(data[0], data[1], data[2]); } //std::sqrt(length_squared()); }
+   [[nodiscard]] constexpr T length() const { return std::hypot(data[0], data[1], data[2]); }
 
    // Unary Negation
    vec3 operator-() const { return {-data[0], -data[1], -data[2]}; }

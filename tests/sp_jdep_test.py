@@ -22,6 +22,7 @@ nt = int(t_end / dt)
 
 save_interval = 1
 nthreads = 1
+interp_order = 1
 
 PMLDepth = 1
 PMLGrade = 3.5
@@ -55,6 +56,7 @@ program_params = (
     f'inline constexpr auto Nt    = {nt}zu;\n'
     '\n'
     f'inline constexpr auto save_interval = {save_interval}zu;\n'
+    f'inline constexpr auto interpolation_order = {interp_order}zu;\n'
     '\n'
     f'inline constexpr auto Ncx = Nx - 1zu;\n'
     f'inline constexpr auto Ncy = Ny - 1zu;\n'

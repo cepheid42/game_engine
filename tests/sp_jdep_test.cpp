@@ -21,7 +21,6 @@ constexpr auto v_init = 3.9945658078880e1;
 
 
 double test_deposition(ParticleGroup& g1, ParticleGroup& g2) {
-   constexpr CurrentDeposition current_deposition{};
    EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
    emsolver.particle_correction();
 
@@ -38,8 +37,8 @@ double test_deposition(ParticleGroup& g1, ParticleGroup& g2) {
       BorisPush::advance(g1, emsolver.emdata, 1zu);
       BorisPush::advance(g2, emsolver.emdata, 1zu);
 
-      current_deposition(emsolver.emdata, g1);
-      current_deposition(emsolver.emdata, g2);
+      CurrentDeposition::advance(g1, emsolver.emdata);
+      CurrentDeposition::advance(g2, emsolver.emdata);
 
       const auto jx_sum = std::ranges::fold_left(emsolver.emdata.Jx.vec_data(), 0.0_fp, std::plus<compute_t>{});
       const auto jy_sum = std::ranges::fold_left(emsolver.emdata.Jy.vec_data(), 0.0_fp, std::plus<compute_t>{});

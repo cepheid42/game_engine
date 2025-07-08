@@ -2,6 +2,7 @@
 #define EM_UPDATES_HPP
 
 #include <array>
+#include <cassert>
 
 namespace tf::electromagnetics {
 template<typename UpdateFunc>
@@ -26,6 +27,7 @@ struct FieldIntegrator {
 
 template<typename CurlA, typename CurlB>
 struct ExplicitUpdateFunctor {
+   #pragma omp declare simd notinbranch
    static void apply(auto& f, const auto& d1, const auto& d2, const auto& src,
                      const auto& c_f, const auto& c_d1, const auto& c_d2, const auto& c_src,
                      const std::size_t i, const std::size_t j, const std::size_t k)

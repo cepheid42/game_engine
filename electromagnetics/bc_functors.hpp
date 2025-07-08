@@ -12,6 +12,7 @@ struct PMLFunctor {
    static constexpr auto hi     = Hi;
    static constexpr auto negate = Negate;
 
+   #pragma omp declare simd notinbranch
    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc,
                      const std::size_t i, const std::size_t j, const std::size_t k, const std::size_t x0)
       requires (Curl::type == Derivative::DX)
@@ -29,6 +30,7 @@ struct PMLFunctor {
       }
    } // end apply
 
+   #pragma omp declare simd notinbranch
    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc,
                      const std::size_t i, const std::size_t j, const std::size_t k, const std::size_t y0)
       requires (Curl::type == Derivative::DY)
@@ -46,6 +48,7 @@ struct PMLFunctor {
       }
    } // end apply
 
+   #pragma omp declare simd notinbranch
    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc,
                      const std::size_t i, const std::size_t j, const std::size_t k, const std::size_t z0)
       requires (Curl::type == Derivative::DZ)

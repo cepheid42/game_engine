@@ -5,8 +5,8 @@
 
 namespace tf {
 // HELPER METHOD: Magic bits encoding (helper method)
-static constexpr std::size_t morton3D_SplitBy3bits(const std::size_t a) {
-   std::size_t x = a & 0x1fffff;
+static constexpr std::size_t morton3D_SplitBy3bits(std::size_t x) {
+   x = x & 0x1fffff;
    x = (x | x << 32) & 0x1f00000000ffff;
    x = (x | x << 16) & 0x1f0000ff0000ff;
    x = (x | x << 8) & 0x100f00f00f00f00f;
