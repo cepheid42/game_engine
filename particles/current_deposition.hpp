@@ -77,14 +77,14 @@ struct CurrentDeposition {
 
    static void updateJ(const auto& p, auto& emdata, const auto charge) {
       using AssignmentShape = interp::InterpolationShape<interpolation_order>;
-      using ReducedShape = interp::InterpolationShape<1>; // for y
-      using JxStrategy = interp::InterpolationStrategy<ReducedShape, AssignmentShape, AssignmentShape>;
-      using JyStrategy = interp::InterpolationStrategy<AssignmentShape, AssignmentShape, ReducedShape>;
-      using JzStrategy = interp::InterpolationStrategy<AssignmentShape, ReducedShape, AssignmentShape>;
+      // using ReducedShape = interp::InterpolationShape<1>; // for y
+      using JStrategy = interp::InterpolationStrategy<AssignmentShape, AssignmentShape, AssignmentShape>;
+      // using JyStrategy = interp::InterpolationStrategy<AssignmentShape, AssignmentShape, AssignmentShape>;
+      // using JzStrategy = interp::InterpolationStrategy<AssignmentShape, AssignmentShape, AssignmentShape>;
 
       static constexpr auto support = AssignmentShape::Support;
       static constexpr auto offset = AssignmentShape::Order % 2 == 0 ? 0.5_fp : 0.0_fp;
-      static constexpr vec3 offsets{offset, 0.0, offset};
+      static constexpr vec3 offsets{offset, offset, offset};
 
       static constexpr auto dtAxy = 1.0_fp / (dt * dx * dy);
       static constexpr auto dtAxz = 1.0_fp / (dt * dx * dz);
@@ -102,17 +102,17 @@ struct CurrentDeposition {
       auto p0 = p.old_location - i0.as_type<compute_t>();
       auto p1 = relay - i0.as_type<compute_t>();
 
-      deposit<0, JxStrategy>(emdata.Jx, p0, p1, i0, x_coeff);
-      deposit<1, JyStrategy>(emdata.Jy, p0, p1, i0, y_coeff);
-      deposit<2, JzStrategy>(emdata.Jz, p0, p1, i0, z_coeff);
+      deposit<0, JStrategy>(emdata.Jx, p0, p1, i0, x_coeff);
+      deposit<1, JStrategy>(emdata.Jy, p0, p1, i0, y_coeff);
+      deposit<2, JStrategy>(emdata.Jz, p0, p1, i0, z_coeff);
 
       if (i0 != i1) {
          p0 = relay - i1.as_type<compute_t>();
          p1 = p.location - i1.as_type<compute_t>();
 
-         deposit<0, JxStrategy>(emdata.Jx, p0, p1, i1, x_coeff);
-         // deposit<1, FullShape, ReducedShape>(emdata.Jy, p0, p1, i1, y_coeff);
-         deposit<2, JzStrategy>(emdata.Jz, p0, p1, i1, z_coeff);
+         deposit<0, JStrategy>(emdata.Jx, p0, p1, i1, x_coeff);
+         // deposit<1, JyStrategy>(emdata.Jy, p0, p1, i1, y_coeff);
+         deposit<2, JStrategy>(emdata.Jz, p0, p1, i1, z_coeff);
       }
    } // end updateJ()
 

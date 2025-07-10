@@ -50,28 +50,20 @@ auto FieldToParticleInterp(const auto& F, const auto& p0, const auto& cids) {
 
 static std::array<double, 6> fieldAtParticle(const Particle& p, const auto& emdata) {
    static_assert(interpolation_order != 0);
-
    using AssignmentShape = interp::InterpolationShape<interpolation_order>;
    using ReducedShape = interp::InterpolationShape<interpolation_order - 1>;
-   using YShape = interp::InterpolationShape<1>;
-
-   using ExStrategy = interp::InterpolationStrategy<YShape, AssignmentShape, ReducedShape>;
-   using EyStrategy = interp::InterpolationStrategy<AssignmentShape, AssignmentShape, YShape>;
-   using EzStrategy = interp::InterpolationStrategy<AssignmentShape, YShape, ReducedShape>;
-
-   using BxStrategy = interp::InterpolationStrategy<YShape, ReducedShape, AssignmentShape>;
-   using ByStrategy = interp::InterpolationStrategy<AssignmentShape, AssignmentShape, YShape>;
-   using BzStrategy = interp::InterpolationStrategy<AssignmentShape, YShape, ReducedShape>;
+   using EStrategy = interp::InterpolationStrategy<AssignmentShape, AssignmentShape, ReducedShape>; // 1, 2, 0
+   using BStrategy = interp::InterpolationStrategy<ReducedShape, ReducedShape, AssignmentShape>; // 1, 2, 0
 
    const auto cids = getCellIndices(p.location);
    auto p0 = p.location - cids.as_type<compute_t>();
 
-   const auto exc = FieldToParticleInterp<0, ExStrategy>(emdata.Ex_total, p0, cids);
-   const auto eyc = FieldToParticleInterp<1, EyStrategy>(emdata.Ey_total, p0, cids);
-   const auto ezc = FieldToParticleInterp<2, EzStrategy>(emdata.Ez_total, p0, cids);
-   const auto bxc = FieldToParticleInterp<0, BxStrategy>(emdata.Bx_total, p0, cids);
-   const auto byc = FieldToParticleInterp<1, ByStrategy>(emdata.By_total, p0, cids);
-   const auto bzc = FieldToParticleInterp<2, BzStrategy>(emdata.Bz_total, p0, cids);
+   const auto exc = FieldToParticleInterp<0, EStrategy>(emdata.Ex_total, p0, cids);
+   const auto eyc = FieldToParticleInterp<1, EStrategy>(emdata.Ey_total, p0, cids);
+   const auto ezc = FieldToParticleInterp<2, EStrategy>(emdata.Ez_total, p0, cids);
+   const auto bxc = FieldToParticleInterp<0, BStrategy>(emdata.Bx_total, p0, cids);
+   const auto byc = FieldToParticleInterp<1, BStrategy>(emdata.By_total, p0, cids);
+   const auto bzc = FieldToParticleInterp<2, BStrategy>(emdata.Bz_total, p0, cids);
 
    return {exc, eyc, ezc, bxc, byc, bzc};
 } // end FieldAtParticle

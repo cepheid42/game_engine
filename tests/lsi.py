@@ -22,8 +22,8 @@ t_end = 3.0e-13 #3.0e-13
 nt = int(t_end / dt) + 1 # ~10000
 cfl = 0.779 / math.sqrt(3)
 
-save_interval = 100
-nthreads = 48
+save_interval = 200
+nthreads = 32
 interp_order = 2
 
 PMLDepth = 20

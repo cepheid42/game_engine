@@ -6,7 +6,7 @@
 #include "array.hpp"
 #include "math_utils.hpp"
 
-// #include "dbg.h"
+#include "dbg.h"
 
 #include <memory>
 #include <vector>
@@ -77,8 +77,8 @@ struct GaussianSource final : TemporalSource {
 
    [[nodiscard]] compute_t eval(const compute_t t) const override {
       constexpr auto tol = 1e-15_fp;
-      const auto     val = std::exp(-1.0_fp * std::pow((t - delay) / width, power));
-      return val > tol ? val : 0.0_fp;
+      const auto     val = std::exp(-0.5_fp * std::pow((t - delay) / width, power));
+      return val <= tol ? 0.0_fp : val;
    }
 
    compute_t width;
@@ -160,12 +160,10 @@ struct GaussianBeam : CurrentSource {
      coeffs(src.offsets[5] - src.offsets[4])
    {
       const auto& [x0, x1, y0, y1, z0, z1] = src.offsets;
-
       assert((z1 - z0) == coeffs.size());
-
       const auto xpos = x_range[0] + (static_cast<compute_t>(x0) * dx);
       const auto z    = xpos - waist_pos[0]; // -x direction
-      // const auto z    = waist_pos[0] - xpos;
+      // const auto z    = waist_pos[0] - xpos; // +x? direction
 
       assert(z != 0.0_fp);
       const auto k  = omega_ / static_cast<compute_t>(constants::c<compute_t>);
@@ -174,31 +172,14 @@ struct GaussianBeam : CurrentSource {
       const auto RC   = z * (1.0_fp + math::SQR(zR / z));
       const auto gouy = std::atan2(z, zR);
       const auto c1   = waist_size / wz;
-
       const auto zmin = z_range[0] + dz * static_cast<compute_t>(z0);
       const auto zmax = z_range[0] + dz * static_cast<compute_t>(z1 - 1);
       const auto r = math::linspace(zmin, zmax, z1 - z0, true);
-
       const auto wz2 = wz * wz;
       for (std::size_t i = 0; i < r.size(); ++i) {
          const auto r2 = r[i] * r[i];
          coeffs[i] = c1 * std::exp(-r2 / wz2) * std::cos(0.5_fp * k * r2 / RC - gouy);
       }
-
-      // dbg(r.size(), coeffs.size());
-      // dbg(r[0], r.back(), z1 - z0);
-      // // dbg(x0, x1, xpos, waist_pos, z);
-      // // dbg(k, zR, wz, waist_size);
-      // // dbg(RC, gouy);
-      // std::ofstream file("/home/cepheid/TriForce/game_engine/data/beam_coeffs.csv");
-      // file << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10);
-      // for (const auto& x: coeffs) {
-      //    file << x << ", ";
-      // }
-      // file << std::endl;
-      // file.close();
-      //
-      // exit(0);
    } // end GaussianBeam ctor
 
    void apply(const compute_t t) const {
@@ -209,7 +190,7 @@ struct GaussianBeam : CurrentSource {
       for (size_t i = x0; i < x1; ++i) {
          for (size_t j = y0; j < y1; ++j) {
             for (size_t k = z0; k < z1; ++k) {
-               (*field)(i, j, k) = coeffs[k - z0] * val;
+               (*field)(i, j, k) += coeffs[k - z0] * val;
             }
          }
       }
@@ -225,10 +206,11 @@ void add_gaussianbeam(auto& em) {
 
    constexpr auto freq = constants::c<compute_t> / 8.0e-7_fp; // Hz -> c / 800 nm
    constexpr auto omega = 2.0_fp * constants::pi<compute_t> * freq;
-   constexpr auto amp = -2.75e13_fp; // V/m
+
+   constexpr auto amp = 1.1750978 * 2.75e13_fp; // V/m
    constexpr auto w0 = 2.5479e-6_fp; // meters, waste size
 
-   constexpr auto width = 2.548e-14_fp; // seconds, ~25.48 fs
+   constexpr auto width = 1.2739827e-14_fp; // ~12.74 fs
    constexpr auto delay = 2.0 * width;
 
    vec3 waist_pos{0.0_fp, 0.0_fp, 0.0_fp};
