@@ -162,9 +162,7 @@ struct GaussianBeam : CurrentSource {
       const auto& [x0, x1, y0, y1, z0, z1] = src.offsets;
       assert((z1 - z0) == coeffs.size());
       const auto xpos = x_range[0] + (static_cast<compute_t>(x0) * dx);
-      const auto z    = xpos - waist_pos[0]; // -x direction
-      // const auto z    = waist_pos[0] - xpos; // +x? direction
-
+      const auto z    = waist_pos[0] - xpos; // +x? direction
       assert(z != 0.0_fp);
       const auto k  = omega_ / static_cast<compute_t>(constants::c<compute_t>);
       const auto zR = 0.5_fp * k * math::SQR(waist_size);
@@ -207,7 +205,7 @@ void add_gaussianbeam(auto& em) {
    constexpr auto freq = constants::c<compute_t> / 8.0e-7_fp; // Hz -> c / 800 nm
    constexpr auto omega = 2.0_fp * constants::pi<compute_t> * freq;
 
-   constexpr auto amp = 1.1750978 * 2.75e13_fp; // V/m
+   constexpr auto amp = 1.59 * 2.75e13_fp; // V/m
    constexpr auto w0 = 2.5479e-6_fp; // meters, waste size
 
    constexpr auto width = 1.2739827e-14_fp; // ~12.74 fs
@@ -215,11 +213,11 @@ void add_gaussianbeam(auto& em) {
 
    vec3 waist_pos{0.0_fp, 0.0_fp, 0.0_fp};
 
-   constexpr auto x0 = PMLDepth + 20zu;
+   constexpr auto x0 = PMLDepth + 10zu;
    constexpr auto x1 = x0 + 1;
    constexpr auto y0 = 0zu;
    constexpr auto y1 = 1zu;
-   constexpr auto z0 = PMLDepth + 20zu;
+   constexpr auto z0 = PMLDepth + 10zu;
    constexpr auto z1 = Nz - z0;
 
    using continuous_t = ContinuousSource;

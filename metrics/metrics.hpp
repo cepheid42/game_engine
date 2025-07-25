@@ -9,7 +9,7 @@
 
 #include <unordered_map>
 #include <memory>
-
+#include <ctime>
 
 namespace tf::metrics {
 // =======================================
@@ -221,7 +221,7 @@ struct ParticleMetric final : detail::MetricBase {
       const std::string file{dir + "/" + group->name + "_" + step_ext};
       io.DefineAttribute<compute_t>("Time", time, "", "/", true);
 
-      adios2::Engine    writer = io.Open(file, adios2::Mode::Write);
+      adios2::Engine writer = io.Open(file, adios2::Mode::Write);
       writer.BeginStep();
 
       writer.Put(var_density, density.data());
@@ -248,7 +248,13 @@ class Metrics {
 public:
    explicit Metrics(std::string data_dir_)
    : data_dir(std::move(data_dir_))
-   {}
+   {
+      // const std::time_t time = std::time({});
+      // char timestr[std::size("YYMMDDHHMM")];
+      // std::strftime(std::data(timestr), std::size(timestr), "%y%m%d%H%M", std::localtime(&time));
+      //
+      // data_dir += "_" + std::string(timestr);
+   }
 
    void addMetric(std::unique_ptr<detail::MetricBase>&& m) { metrics.push_back(std::move(m)); }
 

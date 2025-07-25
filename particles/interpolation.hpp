@@ -77,7 +77,7 @@ struct TSC {
 
    static constexpr auto eval(const compute_t x) {
       const auto absx = std::abs(x);
-      return absx <= 0.5_fp ? innerRadius(x) : outerRadius(absx);
+      return absx <= 0.5_fp ? innerRadius(absx) : outerRadius(absx);
    }
 
    static constexpr auto shape_array(const compute_t x) {

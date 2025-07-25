@@ -15,57 +15,82 @@
 namespace tf::particles {
 template <int D, typename Strategy>
 auto FieldToParticleInterp(const auto& F, const auto& p0, const auto& cids) {
-   using OuterShape = typename Strategy::OuterShape::type;
-   using MiddleShape = typename Strategy::MiddleShape::type;
-   using InnerShape = typename Strategy::InnerShape::type;
+   using OShape = typename Strategy::OuterShape::type;
+   using MShape = typename Strategy::MiddleShape::type;
+   using IShape = typename Strategy::InnerShape::type;
 
-   static constexpr auto iBegin = OuterShape::Begin;
-   static constexpr auto jBegin = MiddleShape::Begin;
-   static constexpr auto kBegin = InnerShape::Begin;
-   static constexpr auto iEnd = OuterShape::End;
-   static constexpr auto jEnd = MiddleShape::End;
-   static constexpr auto kEnd = InnerShape::End;
+   static constexpr auto iBegin = OShape::Begin;
+   static constexpr auto jBegin = MShape::Begin;
+   static constexpr auto kBegin = IShape::Begin;
+   static constexpr auto iEnd = OShape::End;
+   static constexpr auto jEnd = MShape::End;
+   static constexpr auto kEnd = IShape::End;
 
    const auto& [ci, cj, ck] = interp::rotateOrigin<D>(cids);
    const auto& [x0, y0, z0] = interp::rotateOrigin<D>(p0);
 
-   const auto shapeI = OuterShape::shape_array(x0);
-   const auto shapeJ = MiddleShape::shape_array(y0);
-   const auto shapeK = InnerShape::shape_array(z0);
+   const auto shapeI = OShape::shape_array(x0);
+   const auto shapeJ = MShape::shape_array(y0);
+   const auto shapeK = IShape::shape_array(z0);
+
+   auto avg = 0.0;
 
    auto result = 0.0_fp;
    for (int i = iBegin; i <= iEnd; ++i) {
       const auto& s0i = shapeI[i - iBegin];
       for (int j = jBegin; j <= jEnd; ++j) {
          const auto& s0j = shapeJ[j - jBegin];
-         for (int k = kBegin; k <= kEnd - 1; ++k) {
+         for (int k = kBegin; k <= kEnd; ++k) {
             const auto& s0k = shapeK[k - kBegin];
-            const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
+            avg += s0i * s0j * s0k;
+            const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
             result += s0i * s0j * s0k * F(x, y, z);
          } // end for(k)
       } // end for(j)
    } // end for(i)
+
    return result;
 } // end FieldToParticle()
 
-static std::array<double, 6> fieldAtParticle(const Particle& p, const auto& emdata) {
-   static_assert(interpolation_order != 0);
+static std::array<vec3<double>, 2> fieldAtParticle(const Particle& p, const auto& emdata, const auto qdt) {
    using AssignmentShape = interp::InterpolationShape<interpolation_order>;
    using ReducedShape = interp::InterpolationShape<interpolation_order - 1>;
-   using EStrategy = interp::InterpolationStrategy<AssignmentShape, AssignmentShape, ReducedShape>; // 1, 2, 0
-   using BStrategy = interp::InterpolationStrategy<ReducedShape, ReducedShape, AssignmentShape>; // 1, 2, 0
+   using EStrategy = interp::InterpolationStrategy<AssignmentShape, AssignmentShape, ReducedShape>;
+   using BStrategy = interp::InterpolationStrategy<ReducedShape, ReducedShape, AssignmentShape>;
 
-   const auto cids = getCellIndices(p.location);
-   auto p0 = p.location - cids.as_type<compute_t>();
+   const vec3 cid = getCellIndices<compute_t>(p.location + 0.5);
 
-   const auto exc = FieldToParticleInterp<0, EStrategy>(emdata.Ex_total, p0, cids);
-   const auto eyc = FieldToParticleInterp<1, EStrategy>(emdata.Ey_total, p0, cids);
-   const auto ezc = FieldToParticleInterp<2, EStrategy>(emdata.Ez_total, p0, cids);
-   const auto bxc = FieldToParticleInterp<0, BStrategy>(emdata.Bx_total, p0, cids);
-   const auto byc = FieldToParticleInterp<1, BStrategy>(emdata.By_total, p0, cids);
-   const auto bzc = FieldToParticleInterp<2, BStrategy>(emdata.Bz_total, p0, cids);
+   // Ex H,F,F
+   const vec3 ExNloc{cid[0] - 0.5, cid[1], cid[2]};
+   const auto ExP0 = p.location - ExNloc;
+   const auto exc = FieldToParticleInterp<0, EStrategy>(emdata.Ex_total, ExP0, ExNloc.as_type<std::size_t>());
 
-   return {exc, eyc, ezc, bxc, byc, bzc};
+   // Ey F,H,F
+   const vec3 EyNloc{cid[0], cid[1] - 0.5, cid[2]};
+   const auto EyP0 = p.location - EyNloc;
+   const auto eyc = FieldToParticleInterp<1, EStrategy>(emdata.Ey_total, EyP0, EyNloc.as_type<std::size_t>());
+
+   // Ez
+   const vec3 EzNloc{cid[0], cid[1], cid[2] - 0.5};
+   const auto EzP0 = p.location - EzNloc;
+   const auto ezc = FieldToParticleInterp<2, EStrategy>(emdata.Ez_total, EzP0, EzNloc.as_type<std::size_t>());
+
+   // Bx
+   const vec3 BxNloc{cid[0], cid[1] - 0.5, cid[2] - 0.5};
+   const auto BxP0 = p.location - BxNloc;
+   const auto bxc = FieldToParticleInterp<0, BStrategy>(emdata.Bx_total, BxP0, BxNloc.as_type<std::size_t>());
+
+   // By
+   const vec3 ByNloc{cid[0] - 0.5, cid[1], cid[2] - 0.5};
+   const auto ByP0 = p.location - ByNloc;
+   const auto byc = FieldToParticleInterp<1, BStrategy>(emdata.By_total, ByP0, ByNloc.as_type<std::size_t>());
+
+   // Bz
+   const vec3 BzNloc{cid[0] - 0.5, cid[1] - 0.5, cid[2]};
+   const auto BzP0 = p.location - BzNloc;
+   const auto bzc = FieldToParticleInterp<2, BStrategy>(emdata.Bz_total, BzP0, BzNloc.as_type<std::size_t>());
+
+   return {qdt * vec3{exc, eyc, ezc}, qdt * vec3{bxc, byc, bzc}};
 } // end FieldAtParticle
 
 struct BorisPush {
@@ -76,10 +101,7 @@ struct BorisPush {
 
    static void update_velocity(Particle& p, const emdata_t& emdata, const auto qdt) {
       if (p.disabled) { return; }
-      const auto emf = fieldAtParticle(p, emdata);
-
-      const vec3<double> eps{qdt * emf[0], qdt * emf[1], qdt * emf[2]};
-      const vec3<double> bet{qdt * emf[3], qdt * emf[4], qdt * emf[5]};
+      const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
 
       // u = gamma * v
       const auto um = p.gamma * p.velocity + eps;
@@ -94,7 +116,6 @@ struct BorisPush {
    } // end update_velocity()
 
    static void update_position(Particle& p) {
-      // todo: If I store v/c, these could be dt*c/dx = cfl, which would be easy...
       static constexpr vec3 delta_inv{dt / dx, dt / dy, dt / dz};
       if (p.disabled) { return; }
 

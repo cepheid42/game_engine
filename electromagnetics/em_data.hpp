@@ -9,7 +9,7 @@ namespace tf::electromagnetics {
    struct EMData {
       EMData() = delete;
 
-      EMData(const std::size_t nx, const std::size_t ny, const std::size_t nz, const compute_t cfl, const compute_t dt)
+      EMData(const std::size_t nx, const std::size_t ny, const std::size_t nz)
       : Ex(nx - 1, ny, nz),
         Jx(nx - 1, ny, nz),
         Cexe(nx - 1, ny, nz),
@@ -62,13 +62,12 @@ namespace tf::electromagnetics {
         By_total(nx - 1, ny, nz - 1),
         Bz_total(nx - 1, ny - 1, nz)
       {
-         init_coefficients(cfl, dt);
+         init_coefficients();
       }
 
-      void init_coefficients(const compute_t cfl, const compute_t dt) {
-         const auto e_coeff = cfl * constants::eta0<compute_t>;
-         const auto h_coeff = cfl / constants::eta0<compute_t>;
-         const auto j_coeff = dt / constants::eps0<compute_t>;
+      void init_coefficients() {
+         constexpr auto e_coeff = dt / constants::eps0<compute_t>;
+         constexpr auto h_coeff = dt / constants::mu0<compute_t>;
 
          // todo: add loss terms
          Cexe.fill(1.0_fp);
@@ -78,30 +77,30 @@ namespace tf::electromagnetics {
          Chyh.fill(1.0_fp);
          Chzh.fill(1.0_fp);
 
-         Cexhy.fill(e_coeff);
-         Cexhz.fill(e_coeff);
-         Ceyhx.fill(e_coeff);
-         Ceyhz.fill(e_coeff);
-         Cezhx.fill(e_coeff);
-         Cezhy.fill(e_coeff);
+         Cexhy.fill(e_coeff / dz);
+         Cexhz.fill(e_coeff / dy);
+         Ceyhx.fill(e_coeff / dz);
+         Ceyhz.fill(e_coeff / dx);
+         Cezhx.fill(e_coeff / dy);
+         Cezhy.fill(e_coeff / dx);
 
-         Cjx.fill(j_coeff);
-         Cjy.fill(j_coeff);
-         Cjz.fill(j_coeff);
+         Cjx.fill(e_coeff);
+         Cjy.fill(e_coeff);
+         Cjz.fill(e_coeff);
 
-         Chxey.fill(h_coeff);
-         Chxez.fill(h_coeff);
-         Chyex.fill(h_coeff);
-         Chyez.fill(h_coeff);
-         Chzex.fill(h_coeff);
-         Chzey.fill(h_coeff);
+         Chxey.fill(h_coeff / dz);
+         Chxez.fill(h_coeff / dy);
+         Chyex.fill(h_coeff / dz);
+         Chyez.fill(h_coeff / dx);
+         Chzex.fill(h_coeff / dy);
+         Chzey.fill(h_coeff / dx);
 
-         Chxey2.fill(h_coeff / 2.0);
-         Chxez2.fill(h_coeff / 2.0);
-         Chyex2.fill(h_coeff / 2.0);
-         Chyez2.fill(h_coeff / 2.0);
-         Chzex2.fill(h_coeff / 2.0);
-         Chzey2.fill(h_coeff / 2.0);
+         Chxey2.fill(0.5 * h_coeff / dz);
+         Chxez2.fill(0.5 * h_coeff / dy);
+         Chyex2.fill(0.5 * h_coeff / dz);
+         Chyez2.fill(0.5 * h_coeff / dx);
+         Chzex2.fill(0.5 * h_coeff / dy);
+         Chzey2.fill(0.5 * h_coeff / dx);
       }
 
       Array3D<compute_t> Ex;

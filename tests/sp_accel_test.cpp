@@ -109,7 +109,7 @@ void test_ex_quadratic() {
       false                         // disabled
    );
    g1.initial_y_position = 0.5_fp;
-   EMSolver emsolver(Nx, Ny, Nz, cfl, dt);
+   EMSolver emsolver(Nx, Ny, Nz);
 
    const auto xr = math::linspace(-1.0, 1.0, Nx);
    const auto zr = math::linspace(-1.0, 1.0, Nz);

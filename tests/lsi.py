@@ -2,6 +2,7 @@
 
 # import subprocess
 import math
+from scipy import constants
 
 sim_name = 'lsi'
 
@@ -10,23 +11,23 @@ ny = 2
 nz = 1501
 
 xmin, xmax = -15.0e-6, 15.0e-6
-ymin, ymax = 0.0, 2.0e-8
+ymin, ymax = 0.0, 0.01
 zmin, zmax = -15.0e-6, 15.0e-6
 
 dx = (xmax - xmin) / (nx - 1)
 dy = (ymax - ymin) / (ny - 1)
 dz = (zmax - zmin) / (nz - 1)
 
-dt = 3.0e-17
-t_end = 3.0e-13 #3.0e-13
-nt = int(t_end / dt) + 1 # ~10000
-cfl = 0.779 / math.sqrt(3)
+dt = 4.0e-17
+t_end = 3.0e-13
+nt = int(t_end / dt) + 1
+cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
-save_interval = 200
+save_interval = 100
 nthreads = 32
 interp_order = 2
 
-PMLDepth = 20
+PMLDepth = 25
 PMLGrade = 3.5
 PMLAlphaMax = 0.2
 

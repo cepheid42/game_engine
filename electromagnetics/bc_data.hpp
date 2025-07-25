@@ -13,9 +13,10 @@
 namespace tf::electromagnetics {
 enum class EMFace { X, Y, Z };
 enum class EMSide { Lo, Hi };
+enum class BCType { PML, Periodic };
 
 template<EMSide S, std::size_t Depth>
-std::array<std::size_t, 6> get_x_offsets(const std::size_t nx, const std::size_t ny, const std::size_t nz) {
+constexpr std::array<std::size_t, 6> get_x_offsets(const std::size_t nx, const std::size_t ny, const std::size_t nz) {
    if constexpr (S == EMSide::Lo) {
       return {0, Depth, 0, ny, 0, nz};
    }
@@ -25,7 +26,7 @@ std::array<std::size_t, 6> get_x_offsets(const std::size_t nx, const std::size_t
 }
 
 template<EMSide S, std::size_t Depth>
-std::array<std::size_t, 6> get_y_offsets(const std::size_t nx, const std::size_t ny, const std::size_t nz) {
+constexpr std::array<std::size_t, 6> get_y_offsets(const std::size_t nx, const std::size_t ny, const std::size_t nz) {
    if constexpr (S == EMSide::Lo) {
       return {0, nx, 0, Depth, 0, nz};
    }
@@ -35,7 +36,7 @@ std::array<std::size_t, 6> get_y_offsets(const std::size_t nx, const std::size_t
 }
 
 template<EMSide S, std::size_t Depth>
-std::array<std::size_t, 6> get_z_offsets(const std::size_t nx, const std::size_t ny, const std::size_t nz) {
+constexpr std::array<std::size_t, 6> get_z_offsets(const std::size_t nx, const std::size_t ny, const std::size_t nz) {
    if constexpr (S == EMSide::Lo) {
       return {0, nx, 0, ny, 0, Depth};
    }
@@ -45,7 +46,7 @@ std::array<std::size_t, 6> get_z_offsets(const std::size_t nx, const std::size_t
 }
 
 template<EMFace F, EMSide S, std::size_t Depth>
-auto getOffsets(const auto& f) {
+constexpr auto getOffsets(const auto& f) {
    if constexpr (F == EMFace::X) {
       return get_x_offsets<S, Depth>(f.nx(), f.ny(), f.nz());
    }
@@ -169,6 +170,44 @@ struct PMLData {
    coeffs_t           c{};
 }; // end struct PMLData
 
+
+template<EMFace F, EMSide S>
+struct PeriodicData {
+   using offset_t = std::array<std::size_t, 6>;
+
+   explicit PeriodicData(const auto& f)
+   : numInterior{get_num_interior(f)},
+     hiIndex{get_hi_index(f)},
+     offsets{getOffsets<F, S, 2>(f)}
+   {}
+
+   static std::size_t get_num_interior(const auto& f) {
+      if constexpr (F == EMFace::X) {
+         return f.nx() - (2 * nHalo);
+      } else if constexpr (F == EMFace::Y) {
+         return f.ny() - (2 * nHalo);
+      } else {
+         return f.nz() - (2 * nHalo);
+      }
+   }
+
+   static std::size_t get_hi_index(const auto& f) {
+      if constexpr (F == EMFace::X) {
+         return f.nx() - 1 - nHalo;
+      } else if constexpr (F == EMFace::Y) {
+         return f.ny() - 1 - nHalo;
+      } else {
+         return f.nz() - 1 - nHalo;
+      }
+   }
+
+   static constexpr auto nHalo = 2zu;
+   std::size_t numInterior;
+   std::size_t hiIndex;
+   offset_t offsets;
+};
+
+
 template<EMFace F, EMSide S>
 struct PMLFaceBC {
    explicit PMLFaceBC() = delete;
@@ -190,7 +229,40 @@ struct PMLFaceBC {
    PMLData<F, S, true> Hz;
 }; // end struct PMLFaceBC
 
-struct BCData {
+
+template<EMFace F, EMSide S>
+struct PeriodicFaceBC {
+   explicit PeriodicFaceBC() = delete;
+
+   explicit PeriodicFaceBC(const auto& emdata)
+   : Ex{emdata.Ex},
+     Ey{emdata.Ey},
+     Ez{emdata.Ez},
+     Hx{emdata.Hx},
+     Hy{emdata.Hy},
+     Hz{emdata.Hz},
+     Jx{emdata.Jx},
+     Jy{emdata.Jy},
+     Jz{emdata.Jz}
+   {}
+
+   PeriodicData<F, S> Ex;
+   PeriodicData<F, S> Ey;
+   PeriodicData<F, S> Ez;
+   PeriodicData<F, S> Hx;
+   PeriodicData<F, S> Hy;
+   PeriodicData<F, S> Hz;
+   PeriodicData<F, S> Jx;
+   PeriodicData<F, S> Jy;
+   PeriodicData<F, S> Jz;
+};
+
+
+template<BCType BC>
+struct BCData;
+
+template<>
+struct BCData<BCType::PML> {
    explicit BCData(const auto& emdata)
    : x0(emdata),
      y0(emdata),
@@ -206,7 +278,26 @@ struct BCData {
    PMLFaceBC<EMFace::X, EMSide::Hi> x1;
    PMLFaceBC<EMFace::Y, EMSide::Hi> y1;
    PMLFaceBC<EMFace::Z, EMSide::Hi> z1;
-}; // end struct BCData
+};
+
+template<>
+struct BCData<BCType::Periodic> {
+   explicit BCData(const auto& emdata)
+   : x0(emdata),
+     y0(emdata),
+     z0(emdata),
+     x1(emdata),
+     y1(emdata),
+     z1(emdata)
+   {}
+
+   PeriodicFaceBC<EMFace::X, EMSide::Lo> x0;
+   PeriodicFaceBC<EMFace::Y, EMSide::Lo> y0;
+   PeriodicFaceBC<EMFace::Z, EMSide::Lo> z0;
+   PeriodicFaceBC<EMFace::X, EMSide::Hi> x1;
+   PeriodicFaceBC<EMFace::Y, EMSide::Hi> y1;
+   PeriodicFaceBC<EMFace::Z, EMSide::Hi> z1;
+};
 } // end namespace tf::electromagnetics
 
 #endif //EM_BOUNDARIES_HPP

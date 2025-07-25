@@ -2,23 +2,25 @@
 
 # import subprocess
 import math
+from scipy import constants
 
-nx = 51
+nx = 11
 ny = 2
-nz = 51
+nz = 11
 
-xmin, xmax = -1.0e-8, 1.9e-7
-ymin, ymax = 0.0, 4.0e-9
-zmin, zmax = -1.0e-8, 1.9e-7
+xmin, xmax = 0.0, 1.0
+ymin, ymax = 0.0, 0.1
+zmin, zmax = 0.0, 1.0
 
 dx = (xmax - xmin) / (nx - 1)
 dy = (ymax - ymin) / (ny - 1)
 dz = (zmax - zmin) / (nz - 1)
 
-cfl = 0.95 / math.sqrt(3)
-dt = 1.0e-12
-t_end = 1.0e-9
-nt = int(t_end / dt)
+
+dt = 1.83e-10
+t_end = 10 * dt
+nt = int(t_end / dt) + 1
+cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
 save_interval = 1
 nthreads = 1

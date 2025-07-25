@@ -142,8 +142,11 @@ struct ParticleInitializer {
          );
       }
       file.close();
+      // if (g.particles.empty()) {
+      //    throw std::runtime_error("Particle initialization failed: Particles vector is empty.");
+      // }
       g.sort_particles();
-      g.initial_y_position = g.particles[0].location[1];
+      g.initial_y_position = g.particles.empty() ? 0.0 : g.particles[0].location[1];
       return g;
    } // end initializeFromFile
 }; // end struct ParticleInitializer

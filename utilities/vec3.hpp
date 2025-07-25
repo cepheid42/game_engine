@@ -30,42 +30,42 @@ struct vec3 {
    [[nodiscard]] constexpr T length() const { return std::hypot(data[0], data[1], data[2]); }
 
    // Unary Negation
-   vec3 operator-() const { return {-data[0], -data[1], -data[2]}; }
+   constexpr vec3 operator-() const { return {-data[0], -data[1], -data[2]}; }
 
-   vec3& operator+=(const vec3& v) {
+   constexpr vec3& operator+=(const vec3& v) {
       data[0] += v[0];
       data[1] += v[1];
       data[2] += v[2];
       return *this;
    }
 
-   vec3& operator-=(const vec3& v) {
+   constexpr vec3& operator-=(const vec3& v) {
       data[0] -= v[0];
       data[1] -= v[1];
       data[2] -= v[2];
       return *this;
    }
 
-   vec3& operator*=(const T s) {
+   constexpr vec3& operator*=(const T s) {
       data[0] *= s;
       data[1] *= s;
       data[2] *= s;
       return *this;
    }
 
-   vec3& operator/=(const T s) {
+   constexpr vec3& operator/=(const T s) {
       data[0] /= s;
       data[1] /= s;
       data[2] /= s;
       return *this;
    }
 
-   vec3& operator/=(const vec3& v) {
-      data[0] /= v[0];
-      data[1] /= v[1];
-      data[2] /= v[2];
-      return *this;
-   }
+   // vec3& operator/=(const vec3& v) {
+   //    data[0] /= v[0];
+   //    data[1] /= v[1];
+   //    data[2] /= v[2];
+   //    return *this;
+   // }
 
    template <typename U>
    constexpr vec3<U> as_type() const {
@@ -112,75 +112,75 @@ struct tuple_element<2, tf::vec3<T>> {
 // ===== vec3-scalar Operators =====
 // =================================
 template <typename T>
-tf::vec3<T> operator*(T s, const tf::vec3<T>& u) {
+constexpr tf::vec3<T> operator*(const T s, const tf::vec3<T>& u) {
    return {s * u[0], s * u[1], s * u[2]};
 }
 
 template <typename T>
-tf::vec3<T> operator*(const tf::vec3<T>& u, T s) {
+constexpr tf::vec3<T> operator*(const tf::vec3<T>& u, const T s) {
    return s * u;
 }
 
 template <typename T>
-tf::vec3<T> operator/(const tf::vec3<T>& u, T s) {
+constexpr tf::vec3<T> operator/(const tf::vec3<T>& u, const T s) {
    return (T(1) / s) * u;
 }
 
 template <typename T>
-tf::vec3<T> operator+(const tf::vec3<T>& u, const T& v) {
-   return {u[0] + v, u[1] + v, u[2] + v};
+constexpr tf::vec3<T> operator+(const tf::vec3<T>& u, const T s) {
+   return {u[0] + s, u[1] + s, u[2] + s};
 }
 
 template <typename T>
-tf::vec3<T> operator+(const T& v, const tf::vec3<T>& u) {
-   return u + v;
+constexpr tf::vec3<T> operator+(const T s, const tf::vec3<T>& u) {
+   return u + s;
 }
 
 template <typename T>
-tf::vec3<T> operator-(const tf::vec3<T>& u, const T& v) {
-   return {u[0] - v, u[1] - v, u[2] - v};
+constexpr tf::vec3<T> operator-(const tf::vec3<T>& u, const T s) {
+   return {u[0] - s, u[1] - s, u[2] - s};
 }
 
 template <typename T>
-tf::vec3<T> operator-(const T& v, const tf::vec3<T>& u) {
-   return {v - u[0], v - u[1], v - u[2]};
+constexpr tf::vec3<T> operator-(const T s, const tf::vec3<T>& u) {
+   return {s - u[0], s - u[1], s - u[2]};
 }
 
 // ===== vec3-vec3 Operators =====
 // =================================
 template <typename T>
-tf::vec3<T> operator+(const tf::vec3<T>& u, const tf::vec3<T>& v) {
+constexpr tf::vec3<T> operator+(const tf::vec3<T>& u, const tf::vec3<T>& v) {
    return {u[0] + v[0], u[1] + v[1], u[2] + v[2]};
 }
 
 template <typename T>
-tf::vec3<T> operator-(const tf::vec3<T>& u, const tf::vec3<T>& v) {
+constexpr tf::vec3<T> operator-(const tf::vec3<T>& u, const tf::vec3<T>& v) {
    return {u[0] - v[0], u[1] - v[1], u[2] - v[2]};
 }
 
 template <typename T>
-tf::vec3<T> operator*(const tf::vec3<T>& u, const tf::vec3<T>& v) {
+constexpr tf::vec3<T> operator*(const tf::vec3<T>& u, const tf::vec3<T>& v) {
    return {u[0] * v[0], u[1] * v[1], u[2] * v[2]};
 }
 
 template <typename T>
-tf::vec3<T> operator/(const tf::vec3<T>& u, const tf::vec3<T>& v) {
+constexpr tf::vec3<T> operator/(const tf::vec3<T>& u, const tf::vec3<T>& v) {
    return {u[0] / v[0], u[1] / v[1], u[2] / v[2]};
 }
 
 template <typename T>
-tf::vec3<T> unit_vector(const tf::vec3<T>& u) {
+constexpr tf::vec3<T> unit_vector(const tf::vec3<T>& u) {
    return u / u.length();
 }
 
 template <typename T>
-T dot(const tf::vec3<T>& u, const tf::vec3<T>& v) {
+constexpr T dot(const tf::vec3<T>& u, const tf::vec3<T>& v) {
    // Performs u @ v
    return (u[0] * v[0]) + (u[1] * v[1]) + (u[2] * v[2]);
 }
 
 template <typename T>
-tf::vec3<T> cross(const tf::vec3<T>& u, const tf::vec3<T>& v) {
+constexpr tf::vec3<T> cross(const tf::vec3<T>& u, const tf::vec3<T>& v) {
    // Performs u x v
    return {
       u[1] * v[2] - u[2] * v[1],
@@ -190,7 +190,7 @@ tf::vec3<T> cross(const tf::vec3<T>& u, const tf::vec3<T>& v) {
 }
 
 template <typename T>
-std::istringstream& operator>>(std::istringstream& in, tf::vec3<T>& v) {
+constexpr std::istringstream& operator>>(std::istringstream& in, tf::vec3<T>& v) {
    for (std::size_t i = 0; i < 3; i++) {
       in >> v[i];
    }
@@ -198,14 +198,14 @@ std::istringstream& operator>>(std::istringstream& in, tf::vec3<T>& v) {
 }
 
 template <typename T>
-std::ostream& operator<<(std::ostream& os, const tf::vec3<T>& v) {
+constexpr std::ostream& operator<<(std::ostream& os, const tf::vec3<T>& v) {
    os << "[" << v[0] << ", " << v[1] << ", " << v[2] << "]";
    return os;
 }
 
 template <typename T>
 struct std::formatter<tf::vec3<T>> : std::formatter<std::string> {
-   auto format(const tf::vec3<T>& p, std::format_context& ctx) const {
+   constexpr auto format(const tf::vec3<T>& p, std::format_context& ctx) const {
       return std::format_to(ctx.out(), "[{}, {}, {}]", p[0], p[1], p[2]);
    }
 };
