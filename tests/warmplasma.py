@@ -1,40 +1,39 @@
 #!/usr/bin/env python3
 
+# import subprocess
 import math
 from scipy import constants
 
-sim_name = 'lsi'
+sim_name = 'warm plasma'
 
-nx = 301
+nx = 192
 ny = 2
-nz = 301
-nHalo = 0
+nz = 192
 
-xmin, xmax = -0.075, 0.075
-ymin, ymax = 0.0, 0.0005
-zmin, zmax = -0.075, 0.075
+dx = dy = dz = 5.78918e-5
 
-dx = (xmax - xmin) / (nx - 1)
-dy = (ymax - ymin) / (ny - 1)
-dz = (zmax - zmin) / (nz - 1)
+xmin, xmax = 0.0, dx * (nx - 1)
+ymin, ymax = 0.0, dy * (ny - 1)
+zmin, zmax = 0.0, dz * (nz - 1)
 
-dt = 9.0e-13
-t_end = 1e-7
+dt = 0.5 * dx / constants.c
+t_end = 2000 * dt
 nt = int(t_end / dt) + 1
 cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
-save_interval = 10
+save_interval = 20
 nthreads = 8
 interp_order = 2
 
-bc_type = [0,0,0,0,0,0]
-PMLDepth = 1
+PMLDepth = 10
 PMLGrade = 3.5
 PMLAlphaMax = 0.2
 
 program_params = (
     '#ifndef PROGRAM_PARAM_HPP\n'
     '#define PROGRAM_PARAM_HPP\n'
+    '\n'
+    '#include "doubleype.hpp"\n'
     '\n'
     '#include <array>\n'
     '\n'
@@ -43,7 +42,6 @@ program_params = (
     f'inline constexpr auto Nx = {nx}zu;\n'
     f'inline constexpr auto Ny = {ny}zu;\n'
     f'inline constexpr auto Nz = {nz}zu;\n'
-    f'inline constexpr auto nHalo = {nHalo}zu;\n'
     '\n'
     f'inline constexpr std::array x_range = {{{xmin}, {xmax}}};\n'
     f'inline constexpr std::array y_range = {{{ymin}, {ymax}}};\n'
@@ -73,30 +71,8 @@ program_params = (
     '#endif //PROGRAM_PARAM_HPP\n'
 )
 
-em_params = (
-    '#ifndef EM_PARAMS_HPP\n'
-    '#define EM_PARAMS_HPP\n'
-    '\n'
-    '#include <array>\n'
-    '\n'
-    'enum class EMFace { X, Y, Z };\n'
-    'enum class EMSide { Lo, Hi };\n'
-    '\n'
-    '// Reflecting = 0, Periodic = 1, PML = 2\n'
-    f'inline constexpr std::array<std::size_t, 6> BCSelect = {{{", ".join(str(i) for i in bc_type)}}};\n'
-    '\n'
-    '#endif //EM_PARAMS_HPP\n'
-)
-
 param_path = '/home/cepheid/TriForce/game_engine/params/program_params.hpp'
-em_path = '/home/cepheid/TriForce/game_engine/params/em_params.hpp'
-
 with open(param_path, 'w+') as f:
     cur_header = f.read()
     if cur_header != program_params:
         f.write(program_params)
-
-with open(em_path, 'w+') as f:
-    cur_header = f.read()
-    if cur_header != em_params:
-        f.write(em_params)

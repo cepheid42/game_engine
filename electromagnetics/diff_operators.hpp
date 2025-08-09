@@ -1,8 +1,9 @@
 #ifndef EM_CURL_HPP
 #define EM_CURL_HPP
 
-namespace tf::electromagnetics {
+#include <cstddef>
 
+namespace tf::electromagnetics {
 enum class Derivative { DX, DY, DZ, NoOp };
 
 //=================== Array Differencing Functions ========================

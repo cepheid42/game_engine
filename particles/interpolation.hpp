@@ -39,12 +39,13 @@ struct NGP {
    static constexpr int         End     = 0;
    static constexpr std::size_t Support = 1;
 
-   static constexpr auto eval(const compute_t) {
-      return 1.0;
+   static constexpr auto eval(const double x) {
+      const auto absx = std::abs(x);
+      return absx <= 0.5 ? 1.0 : 0.0;
    }
 
-   static constexpr auto shape_array(const compute_t) {
-      return std::array{1.0};
+   static constexpr auto shape_array(const double x) {
+      return std::array{eval(x)};
    }
 };
 
@@ -53,11 +54,11 @@ struct CIC {
    static constexpr int         End     = 1;
    static constexpr std::size_t Support = 2;
 
-   static constexpr auto eval(const compute_t x) {
-      return 1.0_fp - std::abs(x);
+   static constexpr auto eval(const double x) {
+      return 1.0 - std::abs(x);
    }
 
-   static constexpr auto shape_array(const compute_t x) {
+   static constexpr auto shape_array(const double x) {
       return std::array{eval(x - Begin), eval(x - End)};
    }
 };
@@ -67,20 +68,20 @@ struct TSC {
    static constexpr int         End     = 1;
    static constexpr std::size_t Support = 3;
 
-   static constexpr auto innerRadius(const compute_t x) {
-      return 0.75_fp - math::SQR(x);
+   static constexpr auto innerRadius(const double x) {
+      return 0.75 - math::SQR(x);
    }
 
-   static constexpr auto outerRadius(const compute_t x) {
-      return 0.5_fp * math::SQR(1.5_fp - x);
+   static constexpr auto outerRadius(const double x) {
+      return 0.5 * math::SQR(1.5 - x);
    }
 
-   static constexpr auto eval(const compute_t x) {
+   static constexpr auto eval(const double x) {
       const auto absx = std::abs(x);
-      return absx <= 0.5_fp ? innerRadius(absx) : outerRadius(absx);
+      return absx <= 0.5 ? innerRadius(absx) : outerRadius(absx);
    }
 
-   static constexpr auto shape_array(const compute_t x) {
+   static constexpr auto shape_array(const double x) {
       return std::array{eval(x - Begin), eval(x), eval(x - End)};
    }
 };
@@ -91,17 +92,17 @@ struct PQS {
    static constexpr int         End     = 2;
    static constexpr std::size_t Support = 4;
 
-   static constexpr auto innerRadius(const compute_t x) {
+   static constexpr auto innerRadius(const double x) {
       return (2.0 / 3.0) - math::SQR(x) + 0.5 * math::CUBE(x);
    }
 
-   static constexpr auto outerRadius(const compute_t x) {
+   static constexpr auto outerRadius(const double x) {
       return (1.0 / 6.0) * math::CUBE(2.0 - x);
    }
 
-   static constexpr auto eval(const compute_t x) {
+   static constexpr auto eval(const double x) {
       const auto absx = std::abs(x);
-      return absx < 1.0_fp ? innerRadius(x) : outerRadius(absx);
+      return absx < 1.0 ? innerRadius(x) : outerRadius(absx);
    }
 };
 
@@ -162,13 +163,13 @@ struct InterpolationStrategy {
 //    static constexpr auto Support = ParticleAssignFunctor::Support;
 //    static constexpr auto Order = Support - 1;
 //
-//    const compute_t particle_position;
+//    const double particle_position;
 //
-//    constexpr explicit Jit(const compute_t pos)
+//    constexpr explicit Jit(const double pos)
 //    : particle_position(pos)
 //    {}
 //
-//    constexpr auto operator()(const compute_t offset) const {
+//    constexpr auto operator()(const double offset) const {
 //       return ParticleAssignFunctor::eval(particle_position - offset);
 //    }
 // };
@@ -179,9 +180,9 @@ struct InterpolationStrategy {
 //    // static constexpr int End = ParticleAssignFunctor::End;
 //    // static constexpr int Support = ParticleAssignFunctor::Support;
 //
-//    const std::array<compute_t, 3> shapeArray;
+//    const std::array<double, 3> shapeArray;
 //
-//    constexpr explicit Cached(const compute_t pos)
+//    constexpr explicit Cached(const double pos)
 //    : shapeArray(std::move(ParticleAssignFunctor().shapeArray(pos)))
 //    {}
 //

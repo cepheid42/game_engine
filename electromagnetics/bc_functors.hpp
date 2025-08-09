@@ -1,19 +1,19 @@
 #ifndef BC_FUNCTORS_HPP
 #define BC_FUNCTORS_HPP
 
+#include "program_params.hpp"
+#include "em_params.hpp"
 #include "diff_operators.hpp"
 
 #include <concepts>
 
 namespace tf::electromagnetics {
 
-
-
-template<typename CurlFunc, bool Hi, bool Negate>
+template<typename CurlFunc, bool isHi, bool Negate>
 struct PMLFunctor {
    using Curl                   = CurlFunc;
-   static constexpr auto hi     = Hi;
-   static constexpr auto negate = Negate;
+   // static constexpr auto ishi   = isHi;
+   // static constexpr auto negate = Negate;
 
    #pragma omp declare simd notinbranch
    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc,
@@ -21,7 +21,7 @@ struct PMLFunctor {
       requires (Curl::type == Derivative::DX)
    {
       std::size_t ipml;
-      if constexpr (!Hi) { ipml = i; }
+      if constexpr (!isHi) { ipml = i; }
       else { ipml = i - x0 + Curl::Forward; }
 
       bc.psi(ipml, j, k) = bc.b[ipml] * bc.psi(ipml, j, k) + bc.c[ipml] * Curl::apply(f2, i, j, k);
@@ -39,7 +39,7 @@ struct PMLFunctor {
       requires (Curl::type == Derivative::DY)
    {
       std::size_t jpml;
-      if constexpr (!Hi) { jpml = j; }
+      if constexpr (!isHi) { jpml = j; }
       else { jpml = j - y0 + Curl::Forward; }
 
       bc.psi(i, jpml, k) = bc.b[jpml] * bc.psi(i, jpml, k) + bc.c[jpml] * Curl::apply(f2, i, j, k);
@@ -57,7 +57,7 @@ struct PMLFunctor {
       requires (Curl::type == Derivative::DZ)
    {
       std::size_t kpml;
-      if constexpr (!Hi) { kpml = k; }
+      if constexpr (!isHi) { kpml = k; }
       else { kpml = k - z0 + Curl::Forward; }
 
       bc.psi(i, j, kpml) = bc.b[kpml] * bc.psi(i, j, kpml) + bc.c[kpml] * Curl::apply(f2, i, j, k);
@@ -70,38 +70,11 @@ struct PMLFunctor {
    } // end apply
 };   // end struct Pml3DFunctor
 
-// template<EMFace F, EMSide S>
-// struct PeriodicFunctor {
-//    static constexpr EMFace face = F;
-//    static constexpr EMSide side = S;
-//
-//    // static void updateH() { DBG("Periodic3D::updateE()"); }
-//    static void updateE(auto&, auto&) {} // Only lo-side periodic is used
-//
-//    static void updateE(auto& f, const auto& bc, const std::size_t i, const std::size_t j, const std::size_t k)
-//       requires (S == EMSide::Lo)
-//    {
-//       const auto& numInterior = bc.numInterior;
-//       const auto& hiIndex = bc.hiIndex;
-//       if constexpr (F == EMFace::X) {
-//          const auto pm = i % numInterior;
-//          f(bc.depth - 1 - i, j, k) = f(hiIndex - pm, j, k);
-//          f(hiIndex + 1 + i, j, k) = f(bc.depth + pm, j, k);
-//       } else if constexpr (F == EMFace::Y) {
-//          const auto pm = j % numInterior;
-//          f(i, bc.depth - 1 - j, k) = f(i, hiIndex - pm, k);
-//          f(i, hiIndex + 1 + j, k) = f(i, bc.depth + pm, k);
-//       } else {
-//          const auto pm = k % numInterior;
-//          f(i, j, bc.depth - 1 - k) = f(i, j, hiIndex - pm);
-//          f(i, j, hiIndex + 1 + k) = f(i, j, bc.depth + pm);
-//       }
-//    } // end updateH
-// };
 
-template<EMFace F, bool Add=false>
+template<EMFace F, bool Add>
 struct PeriodicFunctor {
-   static constexpr auto nHalo = 2zu;
+   // static constexpr EMFace face = F;
+   // static constexpr bool add = Add;
 
    static void apply(auto& f, const auto& bc, const std::size_t i, const std::size_t j, const std::size_t k)
    {
@@ -126,6 +99,7 @@ struct PeriodicFunctor {
          idx4 = f.get_scid(i, j, nHalo + pm);
       }
 
+      // This allows for cumulative boundaries for current density
       if constexpr (Add) {
          f[idx1] += f[idx2];
          f[idx3] += f[idx4];
@@ -136,46 +110,153 @@ struct PeriodicFunctor {
    } // end apply()
 }; // end struct PeriodicFunctor
 
-template<typename UpdateFunc>
-struct BCIntegrator {
-   static void operator()(auto& f1, const auto& bc) {
-      const auto& [x0, x1, y0, y1, z0, z1] = bc.offsets;
-      // #pragma omp parallel for simd collapse(3) num_threads(nThreads)
-      for (std::size_t i = x0; i < x1; ++i) {
-         for (std::size_t j = y0; j < y1; ++j) {
-            for (std::size_t k = z0; k < z1; ++k) {
-               UpdateFunc::apply(f1, bc, i, j, k);
-            }
-         }
-      }
-   }
 
-   static void operator()(auto& f1, const auto& f2, const auto& c1, auto& bc)
-      requires std::same_as<UpdateFunc, PMLFunctor<typename UpdateFunc::Curl, UpdateFunc::hi, UpdateFunc::negate>>
+template<typename U>
+struct BCIntegrator {
+   static constexpr void apply(const auto&, const auto&, const auto&, const auto&) {}
+
+   static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc)
+   requires std::same_as<U, PMLFunctor<typename U::Curl, U::hi, U::negate>>
    {
+      static constexpr auto CurlType = U::Curl::type;
       const auto& [x0, x1, y0, y1, z0, z1] = bc.offsets;
+
       std::size_t pml_offset;
-      if constexpr (UpdateFunc::Curl::type == Derivative::DX) { pml_offset = x0; }
-      else if constexpr (UpdateFunc::Curl::type == Derivative::DY) { pml_offset = y0; }
-      else { pml_offset = z0; }
+      if constexpr      (CurlType == Derivative::DX) { pml_offset = x0; }
+      else if constexpr (CurlType == Derivative::DY) { pml_offset = y0; }
+      else                                           { pml_offset = z0; }
 
       #pragma omp parallel for simd collapse(3) num_threads(nThreads)
       for (std::size_t i = x0; i < x1; ++i) {
          for (std::size_t j = y0; j < y1; ++j) {
             for (std::size_t k = z0; k < z1; ++k) {
-               UpdateFunc::apply(f1, f2, c1, bc, i, j, k, pml_offset);
+               U::apply(f1, f2, c1, bc, i, j, k, pml_offset);
             } // end for k
          } // end for j
       } // end for i
    } // end operator()
+
+   static void apply(auto& f1, const auto&, const auto&, const auto& bc)
+   requires std::same_as<U, PeriodicFunctor<U::face, U::add>>
+   {
+      const auto& [x0, x1, y0, y1, z0, z1] = bc.offsets;
+      #pragma omp parallel for simd collapse(3) num_threads(nThreads)
+      for (std::size_t i = x0; i < x1; ++i) {
+         for (std::size_t j = y0; j < y1; ++j) {
+            for (std::size_t k = z0; k < z1; ++k) {
+               U::apply(f1, bc, i, j, k);
+            }
+         }
+      }
+   }
 }; // end struct BCIntegrator
 
-template<>
-struct BCIntegrator<void> {
-   static constexpr void operator()() {}
-   static constexpr void operator()(const auto&, const auto&) {}
-   static constexpr void operator()(const auto&, const auto&, const auto&, const auto&) {}
+
+template<EMFace F, EMSide S>
+struct PeriodicImpl;
+
+template<EMSide S>
+struct PeriodicImpl<EMFace::X, S> {
+   using Ex = BCIntegrator<void>;
+   using Ey = BCIntegrator<PeriodicFunctor<EMFace::X, false>>;
+   using Ez = BCIntegrator<PeriodicFunctor<EMFace::X, false>>;
+   using Hx = BCIntegrator<void>;
+   using Hy = BCIntegrator<void>;
+   using Hz = BCIntegrator<void>;
+   using Jx = BCIntegrator<PeriodicFunctor<EMFace::X, true>>;
+   using Jy = BCIntegrator<PeriodicFunctor<EMFace::X, true>>;
+   using Jz = BCIntegrator<PeriodicFunctor<EMFace::X, true>>;
 };
+
+template<EMSide S>
+struct PeriodicImpl<EMFace::Y, S> {
+   using Ex = BCIntegrator<PeriodicFunctor<EMFace::Y, false>>;
+   using Ey = BCIntegrator<void>;
+   using Ez = BCIntegrator<PeriodicFunctor<EMFace::Y, false>>;
+   using Hx = BCIntegrator<void>;
+   using Hy = BCIntegrator<void>;
+   using Hz = BCIntegrator<void>;
+   using Jx = BCIntegrator<PeriodicFunctor<EMFace::Y, true>>;
+   using Jy = BCIntegrator<PeriodicFunctor<EMFace::Y, true>>;
+   using Jz = BCIntegrator<PeriodicFunctor<EMFace::Y, true>>;
+};
+
+template<EMSide S>
+struct PeriodicImpl<EMFace::Z, S> {
+   using Ex = BCIntegrator<PeriodicFunctor<EMFace::Z, false>>;
+   using Ey = BCIntegrator<PeriodicFunctor<EMFace::Z, false>>;
+   using Ez = BCIntegrator<void>;
+   using Hx = BCIntegrator<void>;
+   using Hy = BCIntegrator<void>;
+   using Hz = BCIntegrator<void>;
+   using Jx = BCIntegrator<PeriodicFunctor<EMFace::Z, true>>;
+   using Jy = BCIntegrator<PeriodicFunctor<EMFace::Z, true>>;
+   using Jz = BCIntegrator<PeriodicFunctor<EMFace::Z, true>>;
+};
+
+template<EMFace F, EMSide S>
+struct PMLImpl;
+
+template<EMSide S>
+struct PMLImpl<EMFace::X, S> {
+   static constexpr bool isHi = S == EMSide::Hi;
+   using Ex = BCIntegrator<void>;
+   using Ey = BCIntegrator<PMLFunctor<backward_dx, isHi, true>>;
+   using Ez = BCIntegrator<PMLFunctor<backward_dx, isHi, false>>;
+   using Hx = BCIntegrator<void>;
+   using Hy = BCIntegrator<PMLFunctor<forward_dx, isHi, false>>;
+   using Hz = BCIntegrator<PMLFunctor<forward_dx, isHi, true>>;
+   using Jx = BCIntegrator<void>;
+   using Jy = BCIntegrator<void>;
+   using Jz = BCIntegrator<void>;
+};
+
+template<EMSide S>
+struct PMLImpl<EMFace::Y, S> {
+   static constexpr bool isHi = S == EMSide::Hi;
+   using Ex = BCIntegrator<PMLFunctor<backward_dy, isHi, false>>;
+   using Ey = BCIntegrator<void>;
+   using Ez = BCIntegrator<PMLFunctor<backward_dy, isHi, true>>;
+   using Hx = BCIntegrator<PMLFunctor<forward_dy, isHi, true>>;
+   using Hy = BCIntegrator<void>;
+   using Hz = BCIntegrator<PMLFunctor<forward_dy, isHi, false>>;
+   using Jx = BCIntegrator<void>;
+   using Jy = BCIntegrator<void>;
+   using Jz = BCIntegrator<void>;
+};
+
+template<EMSide S>
+struct PMLImpl<EMFace::Z, S> {
+   static constexpr bool isHi = S == EMSide::Hi;
+   using Ex = BCIntegrator<PMLFunctor<backward_dz, isHi, true>>;
+   using Ey = BCIntegrator<PMLFunctor<backward_dz, isHi, false>>;
+   using Ez = BCIntegrator<void>;
+   using Hx = BCIntegrator<PMLFunctor<forward_dz, isHi, false>>;
+   using Hy = BCIntegrator<PMLFunctor<forward_dz, isHi, true>>;
+   using Hz = BCIntegrator<void>;
+   using Jx = BCIntegrator<void>;
+   using Jy = BCIntegrator<void>;
+   using Jz = BCIntegrator<void>;
+};
+
+struct ReflectingBoundary {
+   using Ex = BCIntegrator<void>;
+   using Ey = BCIntegrator<void>;
+   using Ez = BCIntegrator<void>;
+   using Hx = BCIntegrator<void>;
+   using Hy = BCIntegrator<void>;
+   using Hz = BCIntegrator<void>;
+   using Jx = BCIntegrator<void>;
+   using Jy = BCIntegrator<void>;
+   using Jz = BCIntegrator<void>;
+};
+
+template<EMFace F, EMSide S>
+using PeriodicBoundary = PeriodicImpl<F, S>;
+
+template<EMFace F, EMSide S>
+using PMLBoundary = PMLImpl<F, S>;
+
 } // end namespace tf::electromagnetics
 
 

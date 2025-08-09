@@ -66,16 +66,16 @@ namespace tf::electromagnetics {
       }
 
       void init_coefficients() {
-         constexpr auto e_coeff = dt / constants::eps0<compute_t>;
-         constexpr auto h_coeff = dt / constants::mu0<compute_t>;
+         constexpr auto e_coeff = dt / constants::eps0<double>;
+         constexpr auto h_coeff = dt / constants::mu0<double>;
 
          // todo: add loss terms
-         Cexe.fill(1.0_fp);
-         Ceye.fill(1.0_fp);
-         Ceze.fill(1.0_fp);
-         Chxh.fill(1.0_fp);
-         Chyh.fill(1.0_fp);
-         Chzh.fill(1.0_fp);
+         Cexe.fill(1.0);
+         Ceye.fill(1.0);
+         Ceze.fill(1.0);
+         Chxh.fill(1.0);
+         Chyh.fill(1.0);
+         Chzh.fill(1.0);
 
          Cexhy.fill(e_coeff / dz);
          Cexhz.fill(e_coeff / dy);
@@ -103,71 +103,72 @@ namespace tf::electromagnetics {
          Chzey2.fill(0.5 * h_coeff / dx);
       }
 
-      Array3D<compute_t> Ex;
-      Array3D<compute_t> Jx;
-      Array3D<compute_t> Cexe;
-      Array3D<compute_t> Cexhy;
-      Array3D<compute_t> Cexhz;
-      Array3D<compute_t> Cjx;
+      Array3D<double> Ex;
+      Array3D<double> Jx;
+      Array3D<double> Cexe;
+      Array3D<double> Cexhy;
+      Array3D<double> Cexhz;
+      Array3D<double> Cjx;
 
-      Array3D<compute_t> Ey;
-      Array3D<compute_t> Jy;
-      Array3D<compute_t> Ceye;
-      Array3D<compute_t> Ceyhx;
-      Array3D<compute_t> Ceyhz;
-      Array3D<compute_t> Cjy;
+      Array3D<double> Ey;
+      Array3D<double> Jy;
+      Array3D<double> Ceye;
+      Array3D<double> Ceyhx;
+      Array3D<double> Ceyhz;
+      Array3D<double> Cjy;
 
-      Array3D<compute_t> Ez;
-      Array3D<compute_t> Jz;
-      Array3D<compute_t> Ceze;
-      Array3D<compute_t> Cezhx;
-      Array3D<compute_t> Cezhy;
-      Array3D<compute_t> Cjz;
+      Array3D<double> Ez;
+      Array3D<double> Jz;
+      Array3D<double> Ceze;
+      Array3D<double> Cezhx;
+      Array3D<double> Cezhy;
+      Array3D<double> Cjz;
 
-      Array3D<compute_t> Hx;
-      Array3D<compute_t> Chxh;
-      Array3D<compute_t> Chxey;
-      Array3D<compute_t> Chxez;
+      Array3D<double> Hx;
+      Array3D<double> Chxh;
+      Array3D<double> Chxey;
+      Array3D<double> Chxez;
 
-      Array3D<compute_t> Hy;
-      Array3D<compute_t> Chyh;
-      Array3D<compute_t> Chyex;
-      Array3D<compute_t> Chyez;
+      Array3D<double> Hy;
+      Array3D<double> Chyh;
+      Array3D<double> Chyex;
+      Array3D<double> Chyez;
 
-      Array3D<compute_t> Hz;
-      Array3D<compute_t> Chzh;
-      Array3D<compute_t> Chzex;
-      Array3D<compute_t> Chzey;
+      Array3D<double> Hz;
+      Array3D<double> Chzh;
+      Array3D<double> Chzex;
+      Array3D<double> Chzey;
 
-      Array3D<compute_t> Bx;
-      Array3D<compute_t> Chxey2;
-      Array3D<compute_t> Chxez2;
+      Array3D<double> Bx;
+      Array3D<double> Chxey2;
+      Array3D<double> Chxez2;
 
-      Array3D<compute_t> By;
-      Array3D<compute_t> Chyex2;
-      Array3D<compute_t> Chyez2;
+      Array3D<double> By;
+      Array3D<double> Chyex2;
+      Array3D<double> Chyez2;
 
-      Array3D<compute_t> Bz;
-      Array3D<compute_t> Chzex2;
-      Array3D<compute_t> Chzey2;
+      Array3D<double> Bz;
+      Array3D<double> Chzex2;
+      Array3D<double> Chzey2;
 
-      Array3D<compute_t> Ex_app;
-      Array3D<compute_t> Ey_app;
-      Array3D<compute_t> Ez_app;
+      Array3D<double> Ex_app;
+      Array3D<double> Ey_app;
+      Array3D<double> Ez_app;
 
-      Array3D<compute_t> Bx_app;
-      Array3D<compute_t> By_app;
-      Array3D<compute_t> Bz_app;
+      Array3D<double> Bx_app;
+      Array3D<double> By_app;
+      Array3D<double> Bz_app;
 
-      Array3D<compute_t> Ex_total;
-      Array3D<compute_t> Ey_total;
-      Array3D<compute_t> Ez_total;
+      Array3D<double> Ex_total;
+      Array3D<double> Ey_total;
+      Array3D<double> Ez_total;
 
-      Array3D<compute_t> Bx_total;
-      Array3D<compute_t> By_total;
-      Array3D<compute_t> Bz_total;
+      Array3D<double> Bx_total;
+      Array3D<double> By_total;
+      Array3D<double> Bz_total;
 
-      std::vector<GaussianBeam> srcs{};
+      // std::vector<GaussianBeam> beams{};
+      std::vector<CurrentSource> srcs{};
 
       Array3D<void> empty{}; // for the shits and possibly also some giggles...
    };

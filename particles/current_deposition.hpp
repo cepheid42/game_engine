@@ -5,7 +5,7 @@
 #include "interpolation.hpp"
 #include "particles.hpp"
 
-#include "dbg.h"
+// #include "dbg.h"
 
 #include <cmath>
 
@@ -24,7 +24,7 @@ struct CurrentDeposition {
       static constexpr auto   jEnd = MShape::End;
       static constexpr auto   kEnd = IShape::End;
 
-      // if (p0[D] == p1[D]) { return; }
+      if (p0[D] == p1[D]) { return; }
 
       const auto& [ci, cj, ck] = interp::rotateOrigin<D>(cids);
       const auto& [x0, y0, z0] = interp::rotateOrigin<D>(p0);
@@ -45,17 +45,12 @@ struct CurrentDeposition {
             const auto& s0j = shapeJ0[j - jBegin];
             const auto& s1j = shapeJ1[j - jBegin];
             const auto dsj = s1j - s0j;
-            const auto tmp = -qA * (s0i * s0j + 0.5_fp * (dsi * s0j + s0i * dsj) + (1.0_fp / 3.0_fp) * dsi * dsj);
-            auto acc = 0.0_fp;
+            const auto tmp = -qA * (s0i * s0j + 0.5 * (dsi * s0j + s0i * dsj) + (1.0 / 3.0) * dsi * dsj);
+            auto acc = 0.0;
             for (int k = kBegin; k <= kEnd - 1; ++k) {
-               if constexpr (D == 1) {
-                  acc += tmp;
-               } else {
-                  const auto& s0k = shapeK0[k - kBegin];
-                  const auto& s1k = shapeK1[k - kBegin];
-                  acc += (s1k - s0k) * tmp;
-               }
-
+               const auto& s0k = shapeK0[k - kBegin];
+               const auto& s1k = shapeK1[k - kBegin];
+               acc += (s1k - s0k) * tmp;
                const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
                #pragma omp atomic update
                J(x, y, z) += acc;
@@ -65,55 +60,52 @@ struct CurrentDeposition {
    } // end deposit()
 
 
-   template<int Support>
-   static vec3<compute_t> findRelayPoint(const auto& i0, const auto& i1, const auto& p1) {
-      if constexpr (Support % 2 == 0) {
-         return {i0[0] == i1[0] ? p1[0] : std::fmax(i0[0], i1[0]) - 0.5,
-                 i0[1] == i1[1] ? p1[1] : std::fmax(i0[1], i1[1]) - 0.5,
-                 i0[2] == i1[2] ? p1[2] : std::fmax(i0[2], i1[2]) - 0.5};
-      }
-      else {
-         return {i0[0] == i1[0] ? p1[0] : std::fmax(i0[0], i1[0]),
-                 i0[1] == i1[1] ? p1[1] : std::fmax(i0[1], i1[1]),
-                 i0[2] == i1[2] ? p1[2] : std::fmax(i0[2], i1[2])};
-
-      }
+   template<int Order>
+   static auto findRelayPoint(const auto& i0, const auto& i1, const auto& p) {
+      static constexpr auto offset = Order % 2 == 0 ? 0.5 : 0.0;
+      if (i0 == i1) { return p; }
+      return std::fmax(i0, i1) - offset;
    }
 
    static void updateJ(const auto& p, auto& emdata, const auto charge) {
       using AssignmentShape = interp::InterpolationShape<interpolation_order>;
-      using NGP = interp::InterpolationShape<0>;
+      using NGP = interp::InterpolationShape<interpolation_order - 1>;
+      // using CIC = interp::InterpolationShape<interpolation_order>;
       using JxStrategy = interp::InterpolationStrategy<NGP, AssignmentShape, AssignmentShape>;
       using JyStrategy = interp::InterpolationStrategy<AssignmentShape, AssignmentShape, NGP>;
       using JzStrategy = interp::InterpolationStrategy<AssignmentShape, NGP, AssignmentShape>;
 
+      static constexpr auto Order = AssignmentShape::Order;
+      static constexpr auto offset = Order % 2 == 0 ? 0.5 : 0.0;
 
-      static constexpr auto support = AssignmentShape::Support;
-      static constexpr auto offset = AssignmentShape::Order % 2 == 0 ? 0.5_fp : 0.0_fp;
+      static constexpr auto dtAxy = 1.0 / (dt * dx * dy);
+      static constexpr auto dtAxz = 1.0 / (dt * dx * dz);
+      static constexpr auto dtAyz = 1.0 / (dt * dy * dz);
 
-      static constexpr auto dtAxy = 1.0_fp / (dt * dx * dy);
-      // static constexpr auto dtAxz = 1.0_fp / (dt * dx * dz);
-      static constexpr auto dtAyz = 1.0_fp / (dt * dy * dz);
       if (p.disabled) { return; }
 
       const auto x_coeff = p.weight * charge * dtAyz;
-      const auto y_coeff = -1.0 * p.weight * charge * p.velocity[1] / (dx * dy * dz);
+      const auto y_coeff = p.weight * charge * dtAxz;
       const auto z_coeff = p.weight * charge * dtAxy;
 
       const vec3<std::size_t> i0 = getCellIndices(p.old_location + offset);
       const vec3<std::size_t> i1 = getCellIndices(p.location + offset);
-      const auto relay = findRelayPoint<support>(i0, i1, p.location);
+      const vec3 relay{
+         findRelayPoint<Order>(i0[0], i1[0], p.location[0]),
+         findRelayPoint<1>(i0[1], i1[1], p.location[1]), // todo: don't forget to change this
+         findRelayPoint<Order>(i0[2], i1[2], p.location[2])
+      };
 
-      auto p0 = p.old_location - i0.as_type<compute_t>();
-      auto p1 = relay - i0.as_type<compute_t>();
+      auto p0 = p.old_location - i0.as_type<double>();
+      auto p1 = relay - i0.as_type<double>();
 
       deposit<0, JxStrategy>(emdata.Jx, p0, p1, i0, x_coeff);
       deposit<1, JyStrategy>(emdata.Jy, p0, p1, i0, y_coeff);
       deposit<2, JzStrategy>(emdata.Jz, p0, p1, i0, z_coeff);
 
       if (i0 != i1) {
-         p0 = relay - i1.as_type<compute_t>();
-         p1 = p.location - i1.as_type<compute_t>();
+         p0 = relay - i1.as_type<double>();
+         p1 = p.location - i1.as_type<double>();
 
          deposit<0, JxStrategy>(emdata.Jx, p0, p1, i1, x_coeff);
          // deposit<1, JStrategy>(emdata.Jy, p0, p1, i1, y_coeff);

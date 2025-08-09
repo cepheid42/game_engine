@@ -4,12 +4,12 @@ project(
     version : '0.0.1',
     default_options : [
 #        'buildtype=debug',
-        'buildtype=debugoptimized',
-#        'buildtype=release',
+#        'buildtype=debugoptimized',
+        'buildtype=release',
         'warning_level=3',
         'cpp_std=c++23',
 #        'b_sanitize=address',
-        'b_lto=true',
+#        'b_lto=true',
 #        'b_pgo=generate',
 #        'b_pgo=use'
     ]
@@ -30,7 +30,7 @@ debug_opts = [
 ]
 
 gcc_opts = [
-    '-fuse-ld=mold',
+#    '-fuse-ld=mold',
     '-march=native',
     '-ftree-vectorize',
 ]
@@ -61,4 +61,4 @@ game_engine = executable(
     dependencies : deps
 )
 
-subdir('tests')
+#subdir('tests')

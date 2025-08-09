@@ -18,16 +18,16 @@
 
 namespace tf::particles {
 struct Particle {
-   vec3<compute_t> location;
-   vec3<compute_t> old_location;
-   vec3<compute_t> velocity;
-   compute_t weight;
+   vec3<double> location;
+   vec3<double> old_location;
+   vec3<double> velocity;
+   double weight;
    double gamma;
    bool disabled{false};
 }; // end struct Particle
 
 template <typename T = std::size_t>
-constexpr vec3<T> getCellIndices(const vec3<compute_t>& loc) {
+constexpr vec3<T> getCellIndices(const vec3<double>& loc) {
    return {
       static_cast<T>(std::floor(loc[0])),
       static_cast<T>(std::floor(loc[1])),
@@ -35,7 +35,7 @@ constexpr vec3<T> getCellIndices(const vec3<compute_t>& loc) {
    };
 }
 
-constexpr std::size_t getCellIndex(const vec3<compute_t>& loc) {
+constexpr std::size_t getCellIndex(const vec3<double>& loc) {
    const auto x = static_cast<std::size_t>(std::floor(loc[0]));
    const auto y = static_cast<std::size_t>(std::floor(loc[1]));
    const auto z = static_cast<std::size_t>(std::floor(loc[2]));
@@ -44,27 +44,27 @@ constexpr std::size_t getCellIndex(const vec3<compute_t>& loc) {
 
 constexpr auto calculateGamma(const auto& v) {
    // Calculates gamma using regular velocity
-   return 1.0_fp / std::sqrt(1.0_fp - v.length_squared() * constants::over_c_sqr<compute_t>);
+   return 1.0 / std::sqrt(1.0 - v.length_squared() * constants::over_c_sqr<double>);
 }
 
 constexpr auto calculateGammaV(const auto& v) {
    // Calculates gamma using gamma*v (e.g. relativistic momentum but with mass terms canceled)
-   return std::sqrt(1.0_fp + v.length_squared() * constants::over_c_sqr<compute_t>);
+   return std::sqrt(1.0 + v.length_squared() * constants::over_c_sqr<double>);
 }
 
 struct ParticleGroup {
    static constexpr std::size_t SORT_INTERVAL = 50;
    std::string name;
    std::size_t atomic_number;
-   compute_t mass;
-   compute_t charge;
-   compute_t qdt_over_2m;
-   compute_t initial_y_position{};
+   double mass;
+   double charge;
+   double qdt_over_2m;
+   double initial_y_position{};
    std::vector<Particle> particles{};
 
    ParticleGroup() = delete;
 
-   ParticleGroup(std::string name_, const compute_t mass_, const compute_t charge_, const std::size_t z_)
+   ParticleGroup(std::string name_, const double mass_, const double charge_, const std::size_t z_)
    : name(std::move(name_)),
      atomic_number(z_),
      mass(mass_),
@@ -72,8 +72,8 @@ struct ParticleGroup {
      qdt_over_2m(calculate_qdt_over_2m())
    {}
 
-   [[nodiscard]] compute_t calculate_qdt_over_2m() const {
-      return static_cast<compute_t>(0.5 * static_cast<double>(charge) * static_cast<double>(dt) / static_cast<double>(mass));
+   [[nodiscard]] double calculate_qdt_over_2m() const {
+      return static_cast<double>(0.5 * static_cast<double>(charge) * static_cast<double>(dt) / static_cast<double>(mass));
    }
 
    [[nodiscard]] std::size_t num_particles() const { return particles.size(); }
@@ -103,7 +103,7 @@ struct ParticleGroup {
 }; // end struct ParticleGroup
 
 struct ParticleInitializer {
-   static ParticleGroup initializeFromFile(const std::string& name, const compute_t mass, const compute_t charge,
+   static ParticleGroup initializeFromFile(const std::string& name, const double mass, const double charge,
                                            const std::size_t z, const std::string& filename) {
       std::ifstream file(filename);
 

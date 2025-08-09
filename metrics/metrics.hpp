@@ -17,19 +17,19 @@ namespace tf::metrics {
 namespace detail {
    struct MetricBase {
       virtual ~MetricBase() = default;
-      virtual void write(const std::string&, const std::string&, compute_t) = 0;
+      virtual void write(const std::string&, const std::string&, double) = 0;
    };
 } // end namespace detail
 
 // =====================================
 // ======== EM Fields Metric ===========
 struct EMFieldsMetric final : detail::MetricBase {
-   using pointer_t = Array3D<compute_t>*;
+   using pointer_t = Array3D<double>*;
    using field_map = std::unordered_map<std::string, pointer_t>;
 
    struct FieldVariable {
       pointer_t                   field;
-      adios2::Variable<compute_t> variable;
+      adios2::Variable<double> variable;
    };
 
    EMFieldsMetric(const field_map& fields_, adios2::IO&& io_)
@@ -38,7 +38,7 @@ struct EMFieldsMetric final : detail::MetricBase {
       for (const auto& [name, field]: fields_) {
          fields.push_back({
             .field = field,
-            .variable = io.DefineVariable<compute_t>(
+            .variable = io.DefineVariable<double>(
                name,
                {field->nx(), field->ny(), field->nz()}, // shape (global)
                {0, 0, 0},                               // start (local)
@@ -49,10 +49,10 @@ struct EMFieldsMetric final : detail::MetricBase {
       }
    }
 
-   void write(const std::string& dir, const std::string& step_ext, const compute_t time) override {
+   void write(const std::string& dir, const std::string& step_ext, const double time) override {
       const std::string file{dir + "/fields_" + step_ext};
 
-      io.DefineAttribute<compute_t>("Time", time, "", "/", true);
+      io.DefineAttribute<double>("Time", time, "", "/", true);
 
       adios2::Engine    writer = io.Open(file, adios2::Mode::Write);
       writer.BeginStep();
@@ -78,10 +78,10 @@ struct ParticleDumpMetric final : detail::MetricBase {
    : io(io_),
      group(group_),
      var_loc(
-        io.DefineVariable<compute_t>("Position", {group->num_particles(), 3}, {0, 0}, {group->num_particles(), 3})),
+        io.DefineVariable<double>("Position", {group->num_particles(), 3}, {0, 0}, {group->num_particles(), 3})),
      var_vel(
-        io.DefineVariable<compute_t>("Velocity", {group->num_particles(), 3}, {0, 0}, {group->num_particles(), 3})),
-     var_w(io.DefineVariable<compute_t>("Weight", {group->num_particles(), 1}, {0, 0}, {group->num_particles(), 1})),
+        io.DefineVariable<double>("Velocity", {group->num_particles(), 3}, {0, 0}, {group->num_particles(), 3})),
+     var_w(io.DefineVariable<double>("Weight", {group->num_particles(), 1}, {0, 0}, {group->num_particles(), 1})),
      var_gamma(io.DefineVariable<double>("Gamma", {group->num_particles(), 1}, {0, 0}, {group->num_particles(), 1}))
    {
       const auto& nParticles = group->num_particles();
@@ -91,16 +91,16 @@ struct ParticleDumpMetric final : detail::MetricBase {
       gamma.reserve(nParticles);
    }
 
-   void write(const std::string& dir, const std::string& step_ext, const compute_t time) override {
+   void write(const std::string& dir, const std::string& step_ext, const double time) override {
       const std::string file{dir + "/" + group->name + "_dump_" + step_ext};
 
-      io.DefineAttribute<compute_t>("Time", time, "", "/", true);
+      io.DefineAttribute<double>("Time", time, "", "/", true);
 
       // io.DefineAttribute<std::string>("name", group->name);
       // io.DefineAttribute<std::size_t>("num_particles", group->num_particles);
       // io.DefineAttribute<std::size_t>("atomic_number", group->atomic_number);
-      // io.DefineAttribute<compute_t>("mass", group->mass);
-      // io.DefineAttribute<compute_t>("charge", group->charge);
+      // io.DefineAttribute<double>("mass", group->mass);
+      // io.DefineAttribute<double>("charge", group->charge);
 
       const auto& nParticles = group->num_particles();
       var_loc.SetShape({nParticles, 3});
@@ -152,13 +152,13 @@ struct ParticleDumpMetric final : detail::MetricBase {
 
    adios2::IO                  io;
    const group_t*              group;
-   adios2::Variable<compute_t> var_loc;
-   adios2::Variable<compute_t> var_vel;
-   adios2::Variable<compute_t> var_w;
+   adios2::Variable<double> var_loc;
+   adios2::Variable<double> var_vel;
+   adios2::Variable<double> var_w;
    adios2::Variable<double>    var_gamma;
-   std::vector<compute_t> position{};
-   std::vector<compute_t> velocity{};
-   std::vector<compute_t> weight{};
+   std::vector<double> position{};
+   std::vector<double> velocity{};
+   std::vector<double> weight{};
    std::vector<double>    gamma{};
 };
 
@@ -174,22 +174,22 @@ struct ParticleMetric final : detail::MetricBase {
                   const std::size_t ncz)
    : io(io_),
      group(g_),
-     var_density(io.DefineVariable<compute_t>("Density", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz}, adios2::ConstantDims)),
-     var_temp(io.DefineVariable<compute_t>("Temperature", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz}, adios2::ConstantDims)),
+     var_density(io.DefineVariable<double>("Density", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz}, adios2::ConstantDims)),
+     var_temp(io.DefineVariable<double>("Temperature", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz}, adios2::ConstantDims)),
      density(Ncx * Ncy * Ncz),
      T_avg(Ncx * Ncy * Ncz),
      KE_total(Ncx * Ncy * Ncz)
    {}
 
    void update_metrics() {
-      static constexpr auto V_cell_inv = 1.0_fp / (dx * dy * dz);
-      static constexpr auto temp_coef  = 2.0_fp / (3.0_fp * constants::q_e<compute_t>);
+      static constexpr auto V_cell_inv = 1.0 / (dx * dy * dz);
+      static constexpr auto temp_coef  = 2.0 / (3.0 * constants::q_e<double>);
 
-      const auto mc2 = group->mass * constants::c_sqr<compute_t>;
+      const auto mc2 = group->mass * constants::c_sqr<double>;
 
-      std::ranges::fill(density, 0.0_fp);
-      std::ranges::fill(T_avg, 0.0_fp);
-      std::ranges::fill(KE_total, 0.0_fp);
+      std::ranges::fill(density, 0.0);
+      std::ranges::fill(T_avg, 0.0);
+      std::ranges::fill(KE_total, 0.0);
 
       #pragma omp parallel num_threads(nThreads)
       {
@@ -205,7 +205,7 @@ struct ParticleMetric final : detail::MetricBase {
 
          #pragma omp for
          for (std::size_t i = 0; i < T_avg.size(); i++) {
-            if (density[i] == 0.0_fp) { continue; }
+            if (density[i] == 0.0) { continue; }
             T_avg[i] = temp_coef * KE_total[i] / density[i];
          }
 
@@ -216,10 +216,10 @@ struct ParticleMetric final : detail::MetricBase {
       } // end parallel
    }
 
-   void write(const std::string& dir, const std::string& step_ext, const compute_t time) override {
+   void write(const std::string& dir, const std::string& step_ext, const double time) override {
       update_metrics();
       const std::string file{dir + "/" + group->name + "_" + step_ext};
-      io.DefineAttribute<compute_t>("Time", time, "", "/", true);
+      io.DefineAttribute<double>("Time", time, "", "/", true);
 
       adios2::Engine writer = io.Open(file, adios2::Mode::Write);
       writer.BeginStep();
@@ -233,11 +233,11 @@ struct ParticleMetric final : detail::MetricBase {
 
    adios2::IO                  io;
    const group_t*              group;
-   adios2::Variable<compute_t> var_density;
-   adios2::Variable<compute_t> var_temp;
-   std::vector<compute_t>      density;
-   std::vector<compute_t>      T_avg;
-   std::vector<compute_t>      KE_total;
+   adios2::Variable<double> var_density;
+   adios2::Variable<double> var_temp;
+   std::vector<double>      density;
+   std::vector<double>      T_avg;
+   std::vector<double>      KE_total;
 };
 
 // =======================================
@@ -265,7 +265,7 @@ public:
       count_padded += file_ext; // default extension is .bp
 
       for (const auto& m: metrics) {
-         m->write(data_dir, count_padded, static_cast<compute_t>(step) * dt);
+         m->write(data_dir, count_padded, static_cast<double>(step) * dt);
       }
    }
 

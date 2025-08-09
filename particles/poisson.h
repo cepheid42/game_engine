@@ -17,7 +17,7 @@ struct PoissonSolver {
    // 8. Calculate E using E = -∇ϕ
 
    static auto createPoissonMatrix() {
-      Array3D<compute_t> P{};
+      Array3D<double> P{};
 
       return P;
    }
@@ -25,16 +25,16 @@ struct PoissonSolver {
    static void calculateVectorPotential() {}
 
    static void calculateB(auto& emdata, const auto& P) {
-      Array3D<compute_t> Ax{}; // Vector Potential
-      Array3D<compute_t> Ay{}; // Vector Potential
-      Array3D<compute_t> Az{}; // Vector Potential
+      Array3D<double> Ax{}; // Vector Potential
+      Array3D<double> Ay{}; // Vector Potential
+      Array3D<double> Az{}; // Vector Potential
 
       // Step 4
       calculateVectorPotential(emdata.Jx, emdata.Jy, emdata.Jz, Ax, Ay, Az, P);
    }
 
    static auto calculateRho(const auto& p_groups) {
-      Array3D<compute_t> rho{};
+      Array3D<double> rho{};
 
       // todo: There is a metric for calculating this. Maybe worth making it second order or something...
 
@@ -42,7 +42,7 @@ struct PoissonSolver {
    }
 
    static auto calculatePhi() {
-      Array3D<compute_t> phi{};
+      Array3D<double> phi{};
 
       // Step 6
       const auto rho = calculateRho();

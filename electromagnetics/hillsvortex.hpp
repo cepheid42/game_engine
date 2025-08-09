@@ -9,15 +9,15 @@
 namespace tf::electromagnetics {
 
 struct HillsFieldGenerator {
-   static void fillEMData(auto& emdata, const auto B0, const auto rs, const auto kk) {
+   static void fill(auto& emdata, const auto B0, const auto rs, const auto kk) {
       using math::SQR;
 
       for (size_t i = 0; i < emdata.Bx_app.nx(); i++) {
          for (size_t j = 0; j < emdata.Bx_app.ny(); j++) {
             for (size_t k = 0; k < emdata.Bx_app.nz(); k++) {
-               const auto xx = x_range[0] + (static_cast<double>(i) + 0.5) * dx;
-               const auto yy = y_range[0] + (static_cast<double>(j) + 0.0) * dy;
-               const auto zz = z_range[0] + (static_cast<double>(k) + 0.0) * dz;
+               const auto xx = x_range[0] + (static_cast<double>(i) + 0.0) * dx;
+               const auto yy = y_range[0] + (static_cast<double>(j) + 0.5) * dy;
+               const auto zz = z_range[0] + (static_cast<double>(k) + 0.5) * dz;
                const auto rr = std::sqrt(SQR(xx) + SQR(zz));
                const auto theta = std::atan2(zz, xx);
                emdata.Bx_app(i, j, k) = getHillsBr(rr, yy, B0, rs, kk) * std::cos(theta);
@@ -28,9 +28,9 @@ struct HillsFieldGenerator {
       for (size_t i = 0; i < emdata.By_app.nx(); i++) {
          for (size_t j = 0; j < emdata.By_app.ny(); j++) {
             for (size_t k = 0; k < emdata.By_app.nz(); k++) {
-               const auto xx = x_range[0] + (static_cast<double>(i) + 0.0) * dx;
-               const auto yy = y_range[0] + (static_cast<double>(j) + 0.5) * dy;
-               const auto zz = z_range[0] + (static_cast<double>(k) + 0.0) * dz;
+               const auto xx = x_range[0] + (static_cast<double>(i) + 0.5) * dx;
+               const auto yy = y_range[0] + (static_cast<double>(j) + 0.0) * dy;
+               const auto zz = z_range[0] + (static_cast<double>(k) + 0.5) * dz;
                const auto rr = std::sqrt(SQR(xx) + SQR(zz));
                emdata.By_app(i, j, k) = getHillsBz(rr, yy, B0, rs, kk);
             }
@@ -41,7 +41,7 @@ struct HillsFieldGenerator {
          for (size_t j = 0; j < emdata.Bz_app.ny(); j++) {
             for (size_t k = 0; k < emdata.Bz_app.nz(); k++) {
                const auto xx = x_range[0] + (static_cast<double>(i) + 0.0) * dx;
-               const auto yy = y_range[0] + (static_cast<double>(j) + 0.0) * dy;
+               const auto yy = y_range[0] + (static_cast<double>(j) + 0.5) * dy;
                const auto zz = z_range[0] + (static_cast<double>(k) + 0.5)* dz;
                const auto rr = std::sqrt(SQR(xx) + SQR(zz));
                const auto theta = std::atan2(zz, xx);
@@ -79,7 +79,36 @@ struct HillsFieldGenerator {
    }
 };
 
-}
+struct RadialEFields {
+   static void fill(auto& emdata, const auto E0) {
+      using math::SQR;
+
+      for (size_t i = 0; i < emdata.Ex_app.nx(); i++) {
+         for (size_t j = 0; j < emdata.Ex_app.ny(); j++) {
+            for (size_t k = 0; k < emdata.Ex_app.nz(); k++) {
+               const auto xx = x_range[0] + (static_cast<double>(i) + 0.5) * dx;
+               const auto zz = z_range[0] + (static_cast<double>(k) + 0.0) * dz;
+               const auto rr = E0 / (SQR(xx) + SQR(zz));
+               const auto theta = std::atan2(zz, xx);
+               emdata.Ex_app(i, j, k) = rr * std::cos(theta);
+            }
+         }
+      }
+
+      for (size_t i = 0; i < emdata.Ez_app.nx(); i++) {
+         for (size_t j = 0; j < emdata.Ez_app.ny(); j++) {
+            for (size_t k = 0; k < emdata.Ez_app.nz(); k++) {
+               const auto xx = x_range[0] + (static_cast<double>(i) + 0.0) * dx;
+               const auto zz = z_range[0] + (static_cast<double>(k) + 0.5) * dz;
+               const auto rr = E0 / (SQR(xx) + SQR(zz));
+               const auto theta = std::atan2(zz, xx);
+               emdata.Ez_app(i, j, k) = rr * std::sin(theta);
+            }
+         }
+      }
+   } // end fill()
+}; // end struct RadialEFields
+} // end namespace tf::electromagnetics
 
 
 #endif //HILLSVORTEX_HPP
