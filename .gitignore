@@ -1,4 +1,3 @@
-data/
 buildDir/
 meson-build-debug/
 .idea/
@@ -6,4 +5,5 @@ meson-build-debug/
 
 *.png
 *.csv
-*.data
+*.dat
+*.bp

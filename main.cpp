@@ -72,7 +72,6 @@ Metrics create_metrics(const std::string& dir, auto& em, const ParticleGroup& g1
    return metrics;
 }
 
-
 int main() {
    auto timers = utilities::create_timers();
    timers["Main"].start_timer();
@@ -104,15 +103,15 @@ int main() {
 
    // add_gaussianbeam(emsolver);
 
-   constexpr auto B0 = -0.025;
-   for (std::size_t i = 0; i < emsolver.emdata.By_app.nx(); i++) {
-      for (std::size_t j = 0; j < emsolver.emdata.By_app.ny(); j++) {
-         for (std::size_t k = 0; k < emsolver.emdata.By_app.nz(); k++) {
-            emsolver.emdata.By_app(i, j, k) = B0;
-            // emsolver.emdata.By_app(i, j, k) = static_cast<double>(i) * B0 * dx / (x_range[1] - x_range[0]);
-         }
-      }
-   }
+   // constexpr auto B0 = -0.05;
+   // for (std::size_t i = 0; i < emsolver.emdata.By_app.nx(); i++) {
+   //    for (std::size_t j = 0; j < emsolver.emdata.By_app.ny(); j++) {
+   //       for (std::size_t k = 0; k < emsolver.emdata.By_app.nz(); k++) {
+   //          emsolver.emdata.By_app(i, j, k) = B0;
+   //          // emsolver.emdata.By_app(i, j, k) = static_cast<double>(i) * B0 * dx / (x_range[1] - x_range[0]);
+   //       }
+   //    }
+   // }
 
    emsolver.particle_correction();
    BorisPush::backstep_velocity(g1, emsolver.emdata);

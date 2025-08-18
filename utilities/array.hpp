@@ -67,6 +67,8 @@ public:
    static constexpr auto operator[](const std::size_t) { return 0.0f; }
    static constexpr void fill(auto) {}
 };
+
+constexpr std::string to_string(const auto& arr) { return "(" + arr.nx() + ", " + arr.ny() + ", " + arr.nz() + ")"; }
 } // end namespace tf
 
 #endif //EM_ARRAY_HPP

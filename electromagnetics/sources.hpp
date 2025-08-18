@@ -184,6 +184,14 @@ struct GaussianBeam : CurrentSource {
       const auto zmax = z_range[0] + dz * static_cast<double>(z1 - 1);
       const auto r = math::linspace(zmin, zmax, z1 - z0, true);
       const auto wz2 = wz * wz;
+
+      std::println("zR = {}", zR);
+      std::println("z = {}", z);
+      std::println("wz = {}", wz);
+      std::println("k = {}", k);
+      std::println("RC = {}", RC);
+      std::println("c1 = {}", c1);
+
       for (std::size_t i = 0; i < r.size(); ++i) {
          const auto r2 = r[i] * r[i];
          coeffs[i] = c1 * std::exp(-r2 / wz2) * std::cos(0.5 * k * r2 / RC - gouy);
@@ -212,73 +220,52 @@ struct GaussianBeam : CurrentSource {
 void add_gaussianbeam(auto& em) {
    using temporal_vec = std::vector<std::unique_ptr<TemporalSource>>;
 
-   // constexpr auto freq = constants::c<double> / 8.0e-7; // Hz -> c / 800 nm
-   // constexpr auto omega = 2.0 * constants::pi<double> * freq;
-   //
-   // constexpr auto amp = 1.59 * 2.75e13; // V/m
-   // constexpr auto w0 = 2.5479e-6; // meters, waste size
-   //
-   // constexpr auto width = 1.2739827e-14; // ~12.74 fs
-   // constexpr auto delay = 2.0 * width;
-   //
-   // vec3 waist_pos{0.0, 0.0, 0.0};
-   //
-   // constexpr auto x0 = PMLDepth + 10zu;
-   // constexpr auto x1 = x0 + 1;
-   // constexpr auto y0 = 0zu;
-   // constexpr auto y1 = 1zu;
-   // constexpr auto z0 = PMLDepth + 10zu;
-   // constexpr auto z1 = Nz - z0;
+   constexpr auto freq = constants::c<double> / 8.0e-7; // Hz -> c / 800 nm
+   constexpr auto omega = 2.0 * constants::pi<double> * freq;
 
-   // using continuous_t = ContinuousSource;
-   // auto make_continuous = [&](temporal_vec& srcs) {
-   //    srcs.push_back(std::make_unique<continuous_t>(omega, 0.0f, 0.0f, 1.0e30f, dx));
-   // };
+   constexpr auto amp = 1.59 * 2.75e13; // V/m
+   constexpr auto w0 = 2.5479e-6; // meters, waste size
 
-   // using gaussian_t = GaussianSource;
-   // auto make_gaussian = [&](temporal_vec& srcs) {
-   //    srcs.push_back(std::make_unique<gaussian_t>(width, 2.0, delay));
-   // };
+   constexpr auto width = 1.2739827e-14; // ~12.74 fs
+   constexpr auto delay = 2.0 * width;
 
-   constexpr auto amp = 1.0e4;
-   constexpr auto freq = 1.445e10;
+   vec3 waist_pos{0.0, 0.0, 0.0};
 
-   constexpr auto x0 = 25zu;
-   constexpr auto x1 = x0 + 1zu;
+   constexpr auto x0 = PMLDepth + 10zu;
+   constexpr auto x1 = x0 + 1;
    constexpr auto y0 = 0zu;
    constexpr auto y1 = 1zu;
-   constexpr auto z0 = 25zu;
-   constexpr auto z1 = z0 + 1zu;
+   constexpr auto z0 = PMLDepth + 10zu;
+   constexpr auto z1 = Nz - z0;
 
-   using ricker_t = RickerSource;
-   auto make_ricker = [&](temporal_vec& srcs) {
-      srcs.push_back(std::make_unique<ricker_t>(freq));
+   using continuous_t = ContinuousSource;
+   auto make_continuous = [&](temporal_vec& srcs) {
+      srcs.push_back(std::make_unique<continuous_t>(omega, 0.0f, 0.0f, 1.0e30f, dx));
+   };
+
+   using gaussian_t = GaussianSource;
+   auto make_gaussian = [&](temporal_vec& srcs) {
+      srcs.push_back(std::make_unique<gaussian_t>(width, 2.0, delay));
    };
 
    auto make_srcvec = [&]() -> temporal_vec {
       temporal_vec result{};
-      make_ricker(result);
-      // make_gaussian(result);
-      // make_continuous(result);
+      make_gaussian(result);
+      make_continuous(result);
       return result;
    };
 
-   em.emdata.srcs.emplace_back(
+   em.emdata.beams.emplace_back(
       &em.emdata.Ey,
-      SpatialSource(make_srcvec(), amp, {x0, x1, y0, y1, z0, z1})
+      w0,
+      omega,
+      waist_pos,
+      SpatialSource(
+         make_srcvec(),
+         amp,
+         {x0, x1, y0, y1, z0, z1}
+      )
    );
-
-   // em.emdata.beams.emplace_back(
-   //    &em.emdata.Ey,
-   //    w0,
-   //    omega,
-   //    waist_pos,
-   //    SpatialSource(
-   //       make_srcvec(),
-   //       amp,
-   //       {x0, x1, y0, y1, z0, z1}
-   //    )
-   // );
 }
 } // end namespace tf::electromagnetics
 

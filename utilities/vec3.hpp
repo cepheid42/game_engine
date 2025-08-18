@@ -206,7 +206,7 @@ constexpr std::ostream& operator<<(std::ostream& os, const tf::vec3<T>& v) {
 template <typename T>
 struct std::formatter<tf::vec3<T>> : std::formatter<std::string> {
    constexpr auto format(const tf::vec3<T>& p, std::format_context& ctx) const {
-      return std::format_to(ctx.out(), "[{}, {}, {}]", p[0], p[1], p[2]);
+      return std::format_to(ctx.out(), "({}, {}, {})", p[0], p[1], p[2]);
    }
 };
 
