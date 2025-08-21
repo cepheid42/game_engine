@@ -19,18 +19,18 @@ using namespace tf::metrics;
 
 namespace bk = barkeep;
 
-Metrics create_metrics(const std::string& dir, auto& em, const ParticleGroup& g1){//, const ParticleGroup& g2) {
+Metrics create_metrics(const std::string& dir, auto& em){//, const ParticleGroup& g1, const ParticleGroup& g2) {
    Metrics metrics(dir);
 
    metrics.addMetric(
       std::make_unique<EMFieldsMetric>(
          std::unordered_map<std::string, Array3D<double>*>{
-            {"Ex", &em.emdata.Ex_total},
-            {"Ey", &em.emdata.Ey_total},
-            {"Ez", &em.emdata.Ez_total},
-            {"Hx", &em.emdata.Bx_total},
-            {"Hy", &em.emdata.By_total},
-            {"Hz", &em.emdata.Bz_total},
+            {"Ex", &em.emdata.Ex},
+            {"Ey", &em.emdata.Ey},
+            {"Ez", &em.emdata.Ez},
+            {"Hx", &em.emdata.Hx},
+            {"Hy", &em.emdata.Hy},
+            {"Hz", &em.emdata.Hz},
             {"Jx", &em.emdata.Jx},
             {"Jy", &em.emdata.Jy},
             {"Jz", &em.emdata.Jz}
@@ -39,20 +39,20 @@ Metrics create_metrics(const std::string& dir, auto& em, const ParticleGroup& g1
       )
    );
 
-   metrics.addMetric(
-      std::make_unique<ParticleDumpMetric>(
-         &g1,
-         metrics.adios.DeclareIO(g1.name + "_dump")
-      )
-   );
-
-   metrics.addMetric(
-      std::make_unique<ParticleMetric>(
-         &g1,
-         metrics.adios.DeclareIO(g1.name + "_metrics"),
-         Ncx, Ncy, Ncz
-      )
-   );
+   // metrics.addMetric(
+   //    std::make_unique<ParticleDumpMetric>(
+   //       &g1,
+   //       metrics.adios.DeclareIO(g1.name + "_dump")
+   //    )
+   // );
+   //
+   // metrics.addMetric(
+   //    std::make_unique<ParticleMetric>(
+   //       &g1,
+   //       metrics.adios.DeclareIO(g1.name + "_metrics"),
+   //       Ncx, Ncy, Ncz
+   //    )
+   // );
 
    // metrics.addMetric(
    //    std::make_unique<ParticleDumpMetric>(
@@ -75,31 +75,62 @@ Metrics create_metrics(const std::string& dir, auto& em, const ParticleGroup& g1
 int main() {
    auto timers = utilities::create_timers();
    timers["Main"].start_timer();
-   constexpr auto q_e = constants::q_e<double>;
-   constexpr auto m_e = constants::m_e<double>;
+   // constexpr auto q_e = constants::q_e<double>;
+   // constexpr auto m_e = constants::m_e<double>;
    // constexpr auto m_p = constants::m_p<double>;
-   constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/electrons.dat";
+   // constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/electrons.dat";
    // constexpr auto      ion_file = "/home/cepheid/TriForce/game_engine/data/ion_slab.dat";
 
    // auto g1 = ParticleInitializer::initializeFromFile("electrons", m_e, -q_e, 0, electron_file);
    // auto g2 = ParticleInitializer::initializeFromFile(     "ions", m_p, +q_e, 1,      ion_file);
 
-   ParticleGroup g1("electrons", m_e, -q_e, 0);
-   g1.initial_y_position = dy / 2.0;
-
-   constexpr vec3 loc0{60.5, 0.5, 150.0};
-   constexpr vec3 vel{0.0, 0.0, 1.9e7};
-   constexpr auto weight = 1.0;
-   const Particle p0 = {loc0, loc0, vel, weight, calculateGamma(vel), false};
-   g1.particles.push_back(p0);
+   // ParticleGroup g1("electrons", m_e, -q_e, 0);
+   // g1.initial_y_position = dy / 2.0;
+   //
+   // constexpr vec3 loc0{60.5, 0.5, 150.0};
+   // constexpr vec3 vel{0.0, 0.0, 1.9e7};
+   // constexpr auto weight = 1.0;
+   // const Particle p0 = {loc0, loc0, vel, weight, calculateGamma(vel), false};
+   // g1.particles.push_back(p0);
 
    EMSolver emsolver(Nx, Ny, Nz);
+
    // constexpr auto B0 = 0.12;
    // constexpr auto rs = 0.07;
    // constexpr auto kk = 1.0;
    // HillsFieldGenerator::fill(emsolver.emdata, B0, rs, kk);
 
-   RadialEFields::fill(emsolver.emdata, 164.883273);
+   // RadialEFields::fill(emsolver.emdata, 164.883273);
+
+   using temporal_vec = std::vector<std::unique_ptr<TemporalSource>>;
+   constexpr auto omega = constants::c<double> / (25.0 * dx);
+   auto make_ricker = [&](temporal_vec& srcs) {
+      srcs.push_back(std::make_unique<RickerSource>(omega));
+
+   };
+
+   using gaussian_t = GaussianSource;
+   constexpr auto width = 10.0 * dt;
+   constexpr auto delay = 30.0 * dt;
+   auto make_gaussian = [&](temporal_vec& srcs) {
+      srcs.push_back(std::make_unique<gaussian_t>(width, 2.0, delay));
+   };
+
+   auto make_srcvec = [&]() -> temporal_vec {
+      temporal_vec result{};
+      make_ricker(result);
+      // make_gaussian(result);
+      return result;
+   };
+
+   emsolver.emdata.srcs.emplace_back(
+      &(emsolver.emdata.Ex),
+      SpatialSource(
+         make_srcvec(),
+         1.0,
+         {50zu, 51zu, 50zu, 51zu, 50zu, 51zu}
+      )
+   );
 
    // add_gaussianbeam(emsolver);
 
@@ -113,14 +144,14 @@ int main() {
    //    }
    // }
 
-   emsolver.particle_correction();
-   BorisPush::backstep_velocity(g1, emsolver.emdata);
+   // emsolver.particle_correction();
+   // BorisPush::backstep_velocity(g1, emsolver.emdata);
    // BorisPush::backstep_velocity(g2, emsolver.emdata);
 
    const auto metrics = create_metrics(
       "/home/cepheid/TriForce/game_engine/data/lsi_test",
-      emsolver,
-      g1//, g2
+      emsolver
+      // g1//, g2
    );
 
    std::size_t step = 0zu;
@@ -134,12 +165,6 @@ int main() {
           .interval = 1.,
           // .no_tty = true,
           .show = false});
-
-   // for (std::size_t i = 3; i < emsolver.emdata.Jx.nx() - 2; i++) {
-   //    for (std::size_t k = 50; k < 51; k++) {
-   //       emsolver.emdata.Jx(i, 0, k) = -1.0;
-   //    }
-   // }
 
    timers["IO"].start_timer();
    metrics.write(step);
@@ -160,12 +185,12 @@ int main() {
       // g1.particles.push_back(p0);
       // g1.particles.push_back(p1);
 
-      timers["Push"].start_timer();
-      g1.reset_y_positions();
-      // g2.reset_y_positions();
-      BorisPush::advance(g1, emsolver.emdata, step);
-      // BorisPush::advance(g2, emsolver.emdata, step);
-      timers["Push"].stop_timer();
+      // timers["Push"].start_timer();
+      // g1.reset_y_positions();
+      // // g2.reset_y_positions();
+      // BorisPush::advance(g1, emsolver.emdata, step);
+      // // BorisPush::advance(g2, emsolver.emdata, step);
+      // timers["Push"].stop_timer();
 
       // timers["Jdep"].start_timer();
       // CurrentDeposition::advance(g1, emsolver.emdata);

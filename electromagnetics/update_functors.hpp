@@ -12,15 +12,11 @@ struct ExplicitUpdateFunctor {
                      const auto& c_f, const auto& c_d1, const auto& c_d2, const auto& c_src,
                      const std::size_t i, const std::size_t j, const std::size_t k)
    {
-      // const auto self    = c_f(i, j, k) * f(i, j, k);
-      // const auto diff1   = c_d1(i, j, k) * CurlA::apply(d1, i, j, k);
-      // const auto diff2   = c_d2(i, j, k) * CurlB::apply(d2, i, j, k);
-      // const auto current = c_src(i, j, k) * src(i, j, k);
-      // f(i, j, k)         = self + (diff1 - diff2) - current;
-      f(i, j, k) =  c_f(i, j, k) * f(i, j, k)
-                 + (c_d1(i, j, k) * CurlA::apply(d1, i, j, k)
-                 -  c_d2(i, j, k) * CurlB::apply(d2, i, j, k))
-                 -  c_src(i, j, k) * src(i, j, k);
+      const auto self    = c_f(i, j, k) * f(i, j, k);
+      const auto diff1   = c_d1(i, j, k) * CurlA::apply(d1, i, j, k);
+      const auto diff2   = c_d2(i, j, k) * CurlB::apply(d2, i, j, k);
+      const auto current = c_src(i, j, k) * src(i, j, k);
+      f(i, j, k)         = self + (diff1 - diff2) - current;
    } // end apply
 }; // end struct ExplicitUpdateFunctor
 

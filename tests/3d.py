@@ -6,28 +6,34 @@ from scipy import constants
 
 sim_name = 'lsi'
 
-nx = 1501
-ny = 2
-nz = 1501
+nx = 101
+ny = 101
+nz = 101
+nhalo = 0
 
-xmin, xmax = -15.0e-6, 15.0e-6
-ymin, ymax = 0.0, 0.01
-zmin, zmax = -15.0e-6, 15.0e-6
+xmin, xmax = -0.01, 0.01
+ymin, ymax = -0.01, 0.01
+zmin, zmax = -0.01, 0.01
 
 dx = (xmax - xmin) / (nx - 1)
 dy = (ymax - ymin) / (ny - 1)
 dz = (zmax - zmin) / (nz - 1)
 
-dt = 4.0e-17
-t_end = 3.0e-13
-nt = int(t_end / dt) + 1
-cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
+cfl = 0.95
+dt = cfl / (constants.c * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2))
+nt = 400
+t_end = nt * dt
 
-save_interval = 100
+# dt = 4.0e-17
+# t_end = 3.0e-13
+# nt = int(t_end / dt) + 1
+# cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
+
+save_interval = 4
 nthreads = 32
 interp_order = 2
 
-PMLDepth = 25
+PMLDepth = 10
 PMLGrade = 3.5
 PMLAlphaMax = 0.2
 
@@ -42,6 +48,7 @@ program_params = (
     f'inline constexpr auto Nx = {nx}zu;\n'
     f'inline constexpr auto Ny = {ny}zu;\n'
     f'inline constexpr auto Nz = {nz}zu;\n'
+    f'inline constexpr auto NHalo = {nhalo}zu;\n'
     '\n'
     f'inline constexpr std::array x_range = {{{xmin}, {xmax}}};\n'
     f'inline constexpr std::array y_range = {{{ymin}, {ymax}}};\n'

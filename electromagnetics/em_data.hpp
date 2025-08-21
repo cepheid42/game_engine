@@ -170,7 +170,7 @@ namespace tf::electromagnetics {
       std::vector<GaussianBeam> beams{};
       std::vector<CurrentSource> srcs{};
 
-      Array3D<void> empty{}; // for the shits and possibly also some giggles...
+      Array3D<null_t> empty{}; // for the shits and possibly also some giggles...
    };
 } // end namespace tf::electromagnetics
 

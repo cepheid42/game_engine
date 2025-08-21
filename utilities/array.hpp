@@ -2,6 +2,7 @@
 #define EM_ARRAY_HPP
 
 #include "vec3.hpp"
+#include "traits.hpp"
 
 #include <vector>
 
@@ -56,9 +57,11 @@ private:
    std::vector<T> data_{};
 }; // end class Array3D
 
+
+
 template<>
-class Array3D<void> {
-   using value_t = void;
+class Array3D<null_t> {
+   using value_t = null_t;
 public:
    explicit Array3D() = default;
    explicit Array3D(const std::size_t, const std::size_t, const std::size_t, const auto) {}

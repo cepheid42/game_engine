@@ -5,9 +5,13 @@
 #include "em_data.hpp"
 #include "typelist.hpp"
 
+#include "dbg.h"
+
 namespace tf::electromagnetics {
 
 struct EMSolver {
+   using offset_t = std::array<std::size_t, 6>;
+
    using ExUpdate = TypeListAt<0, field_t>;
    using EyUpdate = TypeListAt<1, field_t>;
    using EzUpdate = TypeListAt<2, field_t>;
@@ -22,6 +26,9 @@ struct EMSolver {
    using Z0BC = TypeListAt<4, boundary_t>;
    using Z1BC = TypeListAt<5, boundary_t>;
 
+   static constexpr offset_t Ex_offsets = {0, 0, 1, 1, 1, 1};
+   static constexpr offset_t Ey_offsets = {1, 1, 0, 0, 1, 1};
+   static constexpr offset_t Ez_offsets = {1, 1, 1, 1, 0, 0};
 
    explicit EMSolver() = delete;
 
@@ -33,8 +40,8 @@ struct EMSolver {
    void advance(const double t) {
       updateH();
       updateHBCs();
-      apply_srcs(t);
       updateJBCs();
+      apply_srcs(t);
       updateE();
       updateEBCs();
       particle_correction(); // for the particles and shit
@@ -42,9 +49,9 @@ struct EMSolver {
    }
 
    void updateE() {
-      ExUpdate::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexhz, emdata.Cexhy, emdata.Cjx, {0, 0, 0, 0, 1, 1});
-      EyUpdate::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyhx, emdata.Ceyhz, emdata.Cjy, {1, 1, 0, 0, 1, 1});
-      EzUpdate::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezhy, emdata.Cezhx, emdata.Cjz, {1, 1, 0, 0, 0, 0});
+      ExUpdate::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexhz, emdata.Cexhy, emdata.Cjx, Ex_offsets);
+      EyUpdate::apply(emdata.Ey, emdata.Hx, emdata.Hz, emdata.Jy, emdata.Ceye, emdata.Ceyhx, emdata.Ceyhz, emdata.Cjy, Ey_offsets);
+      EzUpdate::apply(emdata.Ez, emdata.Hy, emdata.Hx, emdata.Jz, emdata.Ceze, emdata.Cezhy, emdata.Cezhx, emdata.Cjz, Ez_offsets);
    }
 
    void updateH() {
@@ -96,7 +103,7 @@ struct EMSolver {
       } // end omp parallel
    }
 
-   void updateEBCs() const {
+   void updateEBCs() {
       X0BC::Ey::apply(emdata.Ey, emdata.Hz, emdata.Ceyhz, bcdata.x0.Ey);
       X1BC::Ey::apply(emdata.Ey, emdata.Hz, emdata.Ceyhz, bcdata.x1.Ey);
 
@@ -116,7 +123,7 @@ struct EMSolver {
       Z1BC::Ey::apply(emdata.Ey, emdata.Hx, emdata.Ceyhx, bcdata.z1.Ey);
    }
 
-   void updateHBCs() const {
+   void updateHBCs() {
       X0BC::Hy::apply(emdata.Hy, emdata.Ez, emdata.Chyez, bcdata.x0.Hy);
       X1BC::Hy::apply(emdata.Hy, emdata.Ez, emdata.Chyez, bcdata.x1.Hy);
 
@@ -136,7 +143,7 @@ struct EMSolver {
       Z1BC::Hy::apply(emdata.Hy, emdata.Ex, emdata.Chyex, bcdata.z1.Hy);
    }
 
-   void updateJBCs() const {
+   void updateJBCs() {
       // Only used for periodic BCs
       X0BC::Jy::apply(emdata.Jy, emdata.empty, emdata.empty, bcdata.x0.Jy);
       X0BC::Jz::apply(emdata.Jz, emdata.empty, emdata.empty, bcdata.x0.Jz);
@@ -149,7 +156,7 @@ struct EMSolver {
    }
 
 
-   void apply_srcs(const double t) const {
+   void apply_srcs(const double t) {
       for (const auto& src: emdata.srcs) {
          src.apply(t);
       }

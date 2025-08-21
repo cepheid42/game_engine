@@ -7,9 +7,12 @@
 #include "constants.hpp"
 #include "math_utils.hpp"
 
+#include "dbg.h"
+
 #include <vector>
 #include <algorithm>
 #include <array>
+#include <cassert>
 
 namespace tf::electromagnetics {
 template<EMSide S, std::size_t Depth>
@@ -18,7 +21,7 @@ constexpr std::array<std::size_t, 6> get_x_offsets(const std::size_t nx, const s
       return {0, Depth, 0, ny, 0, nz};
    }
    else {
-      return {nx - Depth - 1, nx - 1, 0, ny, 0, nz};
+      return {nx - Depth, nx, 0, ny, 0, nz};
    }
 }
 
@@ -28,7 +31,7 @@ constexpr std::array<std::size_t, 6> get_y_offsets(const std::size_t nx, const s
       return {0, nx, 0, Depth, 0, nz};
    }
    else {
-      return {0, nx, ny - Depth - 1, ny - 1, 0, nz};
+      return {0, nx, ny - Depth, ny, 0, nz};
    }
 }
 
@@ -38,7 +41,7 @@ constexpr std::array<std::size_t, 6> get_z_offsets(const std::size_t nx, const s
       return {0, nx, 0, ny, 0, Depth};
    }
    else {
-      return {0, nx, 0, ny, nz - Depth - 1, nz - 1};
+      return {0, nx, 0, ny, nz - Depth, nz};
    }
 }
 
@@ -55,11 +58,11 @@ constexpr auto getOffsets(const auto& f) {
    }
 } // end getOffsets()
 
-template<EMFace F, EMSide S, bool isB>
+template<EMFace F, EMSide S, bool isE>
 auto getPMLOffsets(const auto& f) {
    auto           result = getOffsets<F, S, PMLDepth>(f);
-   constexpr auto lo     = static_cast<std::size_t>(!isB == (S == EMSide::Lo));
-   constexpr auto hi     = static_cast<std::size_t>(!isB != (S == EMSide::Lo));
+   constexpr auto lo     = static_cast<std::size_t>(isE == (S == EMSide::Lo)); // xnor
+   constexpr auto hi     = static_cast<std::size_t>(isE != (S == EMSide::Lo)); // xor
 
    std::size_t lo_idx, hi_idx;
    if constexpr (F == EMFace::X) {
@@ -82,47 +85,46 @@ auto getPMLOffsets(const auto& f) {
 } // end getPMLOffsets()
 
 
-template<EMFace F, EMSide S, bool isB>
+template<EMFace F, EMSide S, bool isE>
 struct PMLData {
    using offset_t = std::array<std::size_t, 6>;
    using coeffs_t = std::array<double, PMLDepth>;
 
    explicit PMLData() = delete;
 
-   PMLData(const std::size_t nx_, const std::size_t ny_, const std::size_t nz_, const offset_t& offsets_)
+   PMLData(const std::size_t nx_, const std::size_t ny_, const std::size_t nz_, const auto delta, const offset_t& offsets_)
    : psi(nx_, ny_, nz_),
      offsets(offsets_)
    {
-      init_coefficients();
+      init_coefficients(delta);
    }
 
    PMLData(const Array3D<double>& f, const offset_t& offset)
       requires (F == EMFace::X)
-   : PMLData(PMLDepth, f.ny(), f.nz(), offset)
+   : PMLData(PMLDepth, f.ny(), f.nz(), dx, offset)
    {}
 
    PMLData(const Array3D<double>& f, const offset_t& offset)
       requires (F == EMFace::Y)
-   : PMLData(f.nx(), PMLDepth, f.nz(), offset)
+   : PMLData(f.nx(), PMLDepth, f.nz(), dy, offset)
    {}
 
    PMLData(const Array3D<double>& f, const offset_t& offset)
       requires (F == EMFace::Z)
-   : PMLData(f.nx(), f.ny(), PMLDepth, offset)
+   : PMLData(f.nx(), f.ny(), PMLDepth, dz, offset)
    {}
 
-   // template<bool isB>
-   void init_coefficients() {
+   void init_coefficients(const auto delta) {
       std::vector<double> d = math::linspace(1.0, 0.0, PMLDepth, false);
 
-      if (isB) {
+      if (!isE) {
          constexpr auto hstep = 1.0 / (2.0 * static_cast<double>(PMLDepth));
          for (auto& x: d) { x -= hstep; }
       }
 
       constexpr auto eta0      = constants::eta0<double>;
       constexpr auto pml_grade = static_cast<double>(PMLGrade);
-      constexpr auto sigma_max = (0.8 * (pml_grade + 1.0)) / (dx * eta0);
+      const auto sigma_max = 0.8 * (pml_grade + 1.0) / (delta * eta0);
 
       const auto sigma_d = calculate_sigma(d, sigma_max);
       const auto alpha_d = calculate_alpha(d);
@@ -137,16 +139,16 @@ struct PMLData {
    static std::vector<double> calculate_sigma(const std::vector<double>& d, const double sigma_max) {
       auto sigma_bc(d);
       for (auto& x: sigma_bc) {
-         x = sigma_max * std::pow(x, static_cast<double>(PMLGrade));
+         x = sigma_max * std::pow(x, PMLGrade);
       }
       return sigma_bc;
    }
 
    static std::vector<double> calculate_alpha(const std::vector<double>& d) {
-      static constexpr auto m = 1.0; // alpha power
+      static constexpr auto m = 1.0; // alpha exponent
       auto alpha_bc(d);
       for (auto& x: alpha_bc) {
-         x = static_cast<double>(PMLAlphaMax) * std::pow(1.0 - x, m);
+         x = PMLAlphaMax * std::pow(1.0 - x, m);
       }
       return alpha_bc;
    }
@@ -162,9 +164,9 @@ struct PMLData {
    }
 
    Array3D<double> psi;
-   offset_t           offsets;
-   coeffs_t           b{};
-   coeffs_t           c{};
+   offset_t        offsets;
+   coeffs_t        b{};
+   coeffs_t        c{};
 }; // end struct PMLData
 
 
@@ -175,7 +177,7 @@ struct PeriodicData {
    explicit PeriodicData(const auto& f)
    : numInterior{get_num_interior(f)},
      hiIndex{get_hi_index(f)},
-     offsets{getOffsets<F, S, 2>(f)}
+     offsets{getOffsets<F, S, nHalo>(f)}
    {}
 
    static std::size_t get_num_interior(const auto& f) {
@@ -209,20 +211,20 @@ struct EmptyData {};
 template<EMFace F, EMSide S>
 struct PMLFaceBC {
    explicit PMLFaceBC(const auto& emdata)
-   : Ex{emdata.Ex, getPMLOffsets<F, S, false>(emdata.Ex)},
-     Ey{emdata.Ey, getPMLOffsets<F, S, false>(emdata.Ey)},
-     Ez{emdata.Ez, getPMLOffsets<F, S, false>(emdata.Ez)},
-     Hx{emdata.Hx, getPMLOffsets<F, S, true>(emdata.Hx)},
-     Hy{emdata.Hy, getPMLOffsets<F, S, true>(emdata.Hy)},
-     Hz{emdata.Hz, getPMLOffsets<F, S, true>(emdata.Hz)}
+   : Ex{emdata.Ex, getPMLOffsets<F, S, true>(emdata.Ex)},
+     Ey{emdata.Ey, getPMLOffsets<F, S, true>(emdata.Ey)},
+     Ez{emdata.Ez, getPMLOffsets<F, S, true>(emdata.Ez)},
+     Hx{emdata.Hx, getPMLOffsets<F, S, false>(emdata.Hx)},
+     Hy{emdata.Hy, getPMLOffsets<F, S, false>(emdata.Hy)},
+     Hz{emdata.Hz, getPMLOffsets<F, S, false>(emdata.Hz)}
    {}
 
-   PMLData<F, S, false> Ex;
-   PMLData<F, S, false> Ey;
-   PMLData<F, S, false> Ez;
-   PMLData<F, S, true> Hx;
-   PMLData<F, S, true> Hy;
-   PMLData<F, S, true> Hz;
+   PMLData<F, S, true> Ex;
+   PMLData<F, S, true> Ey;
+   PMLData<F, S, true> Ez;
+   PMLData<F, S, false> Hx;
+   PMLData<F, S, false> Hy;
+   PMLData<F, S, false> Hz;
    EmptyData Jx{};
    EmptyData Jy{};
    EmptyData Jz{};

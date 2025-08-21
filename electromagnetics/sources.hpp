@@ -1,12 +1,12 @@
 #ifndef EM_SOURCES_HPP
 #define EM_SOURCES_HPP
 
-// #include "program_params.hpp"
+#include "program_params.hpp"
 #include "constants.hpp"
-// #include "array.hpp"
-// #include "math_utils.hpp"
+#include "array.hpp"
+#include "math_utils.hpp"
 
-// #include "dbg.h"
+#include "dbg.h"
 
 #include <memory>
 // #include <vector>
@@ -26,7 +26,9 @@ struct RickerSource final : TemporalSource {
    [[nodiscard]] double eval(const double t) const override {
       constexpr auto Md = 2.0;
       const auto alpha = math::SQR(static_cast<double>(constants::pi<double>) * freq * (t - Md / freq));
-      return (1.0 - 2.0 * alpha) * std::exp(-alpha);
+      const auto temp = (1.0 - 2.0 * alpha) * std::exp(-alpha);
+      // std::println("{}", temp);
+      return temp;
    }
 
    double freq;
@@ -124,8 +126,8 @@ struct SpatialSource {
       return result;
    } // end SpatialSource::eval
 
-   double    amplitude;
-   offset_t     offsets;
+   double amplitude;
+   offset_t offsets;
    temporal_vec t_srcs;
 }; // end struct SpatialSource
 
@@ -184,14 +186,6 @@ struct GaussianBeam : CurrentSource {
       const auto zmax = z_range[0] + dz * static_cast<double>(z1 - 1);
       const auto r = math::linspace(zmin, zmax, z1 - z0, true);
       const auto wz2 = wz * wz;
-
-      std::println("zR = {}", zR);
-      std::println("z = {}", z);
-      std::println("wz = {}", wz);
-      std::println("k = {}", k);
-      std::println("RC = {}", RC);
-      std::println("c1 = {}", c1);
-
       for (std::size_t i = 0; i < r.size(); ++i) {
          const auto r2 = r[i] * r[i];
          coeffs[i] = c1 * std::exp(-r2 / wz2) * std::cos(0.5 * k * r2 / RC - gouy);

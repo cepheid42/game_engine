@@ -36,7 +36,7 @@ MU0 = 1.25663706127E-6 # N/A^2
 # nx, ny, nz = 192, 2, 192
 
 dt = 2.5e-12
-dx, dy, dz = 0.0005, 0.0005, 0.0005
+dx, dy, dz = 0.0002, 0.0002, 0.0002
 cell_volume = dx * dy * dz
 xmin, xmax = -0.075, 0.075
 ymin, ymax = 0.0, dy
@@ -205,15 +205,8 @@ def plot_single_field(n, step, name, file_dir):
 
     field = load_field(n, name, file_dir)
 
-    field *= 2 / (MU0)
-
-    # bmax = np.max(field[10:-10, 0, 50])
-    # bmin = np.min(field[10:-10, 0, 50])
-
-    # name = 'B' + name[-1]
-
-    xs = np.linspace(xmin, xmax, field.shape[0])
-    xs[xs == 0] = np.nextafter(0, 1)
+    # xs = np.linspace(xmin, xmax, field.shape[0])
+    # xs[xs == 0] = np.nextafter(0, 1)
     # zs = np.linspace(zmin, zmax, field.shape[2])
 
     fig, ax = plt.subplots(figsize=(10, 10), layout='constrained')
@@ -221,15 +214,15 @@ def plot_single_field(n, step, name, file_dir):
     # fig.supylabel(r'x ($\mu$m)')
     fig.suptitle(f'{name} @ {time * s_to_ns:.4e} ns')
 
-    ax.plot(xs, field[:, 0, 50], label=f'{name}')
+    # ax.plot(xs, field[:, 0, 50], label=f'{name}')
     # ax.hlines([-1.0, 1.0], xmin=xs[10], xmax=xs[-10], linestyles='--')
 
     # vmin, vmax = -6e12, 6e12
     # norm = colors.Normalize(vmin=vmin, vmax=vmax)
-    # im = ax.contourf(field[:, 0, :], levels=100, cmap='plasma')
-    # fig.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=0.9)
+    im = ax.contourf(field[:, :, 50], cmap='plasma')
+    fig.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=0.8)
     # fig.colorbar(ScalarMappable(norm=norm, cmap='jet'), ax=ax, format='{x:3.1e}', pad=0.01, shrink=1.0)
-    # ax.set_aspect('equal')
+    ax.set_aspect('equal')
 
     # plt.show()
     plt.savefig(data_dir + f'/pngs/{name}_{n // step:010}.png')
@@ -241,21 +234,21 @@ def plot_fields(n, step, file_dir):
     print(f'Processing file {n}...')
 
     def plot(name, ax, figure, vmin=None, vmax=None):
-        field = load_field(n, name, file_dir)[:, 0, :]
-        if name in ['Hx', 'Hy', 'Hz']:
-            field *= MU0# * T_to_G
-            name = 'B' + name[-1]
+        field = load_field(n, name, file_dir)[:, :, 50]
+        # if name in ['Hx', 'Hy', 'Hz']:
+        #     # field *= MU0# * T_to_G
+        #     name = 'B' + name[-1]
         # elif name in ['Ex', 'Ey', 'Ez']:
         #     field *= Vm_to_kVcm
         # else:
         #     field *= Am_to_Acm
 
-        xs = np.linspace(xmin, xmax, field.shape[0])
-        zs = np.linspace(zmin, zmax, field.shape[1])
-        norm = colors.Normalize(vmin=vmin, vmax=vmax)
-        im = ax.contourf(zs, xs, field, levels=100, cmap='plasma', vmin=vmin, vmax=vmax)
-        # figure.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=1.0)
-        figure.colorbar(ScalarMappable(norm=norm, cmap='plasma'), ax=ax, format='{x:3.1e}', pad=0.01, shrink=1.0)
+        # xs = np.linspace(xmin, xmax, field.shape[0])
+        # zs = np.linspace(zmin, zmax, field.shape[1])
+        # norm = colors.Normalize(vmin=vmin, vmax=vmax)
+        im = ax.contourf(field, levels=100, cmap='plasma', vmin=vmin, vmax=vmax)
+        figure.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=1.0)
+        # figure.colorbar(ScalarMappable(norm=norm, cmap='plasma'), ax=ax, format='{x:3.1e}', pad=0.01, shrink=1.0)
         ax.set_aspect('equal')
         ax.set_title(f'{name}')
 
@@ -267,21 +260,22 @@ def plot_fields(n, step, file_dir):
     fig.supxlabel(r'z ($\mu$m)')
     fig.supylabel(r'x ($\mu$m)')
     fig.suptitle(f'Fields @ {time * s_to_ns:.4e} ns')
-    plot('Ex', axes[0, 0], fig)#, -2e7, 2e7)
-    plot('Ey', axes[0, 1], fig)#, -2.75e7, 2.75e7)
-    plot('Ez', axes[0, 2], fig)#, -2e7, 2e7)
-    plot('Hx', axes[1, 0], fig)#, -2e8, 2e8)
-    plot('Hy', axes[1, 1], fig)#, -5e-13, 5e-13)
-    plot('Hz', axes[1, 2], fig)#, -9e8, 9e8)
-    plot('Jx', axes[2, 0], fig)#, -4e11, 4e11)
-    plot('Jy', axes[2, 1], fig)#, -4e11, 4e11)
-    plot('Jz', axes[2, 2], fig)#, -4e12, 4e12)
+    plot('Ex', axes[0, 0], fig)
+    plot('Ey', axes[0, 1], fig)
+    plot('Ez', axes[0, 2], fig)
+    plot('Hx', axes[1, 0], fig)
+    plot('Hy', axes[1, 1], fig)
+    plot('Hz', axes[1, 2], fig)
+    plot('Jx', axes[2, 0], fig)
+    plot('Jy', axes[2, 1], fig)
+    plot('Jz', axes[2, 2], fig)
 
     plt.savefig(data_dir + f'/pngs/fields_{n // step:010}.png')
     plt.clf()
     plt.close(fig)
 
 def total_field_energy(n, file_dir):
+    print(f'Calculating field energy for step {n}')
     Ex = load_field(n, 'Ex', file_dir)[:, :-1, :-1]
     Ey = load_field(n, 'Ey', file_dir)[:-1, :, :-1]
     Ez = load_field(n, 'Ez', file_dir)[:-1, :-1, :]
@@ -311,7 +305,7 @@ def plot_field_energy(start, stop, step, file_dir):
     # ax.plot(time, result[:, 0], label='E-Field')
     # ax.plot(time, result[:, 1], label='H-Field')
     # ax.plot(time, result[:, 2], '-.', label='Total')
-    ax.plot(time, result)
+    ax.plot(result)
 
     # ax.set_yticks([0.0, 0.0005, 0.001, 0.0015, 0.002])
     # ax.grid(True, which='major', axis='both', linestyle='--')
@@ -389,9 +383,9 @@ def main():
     # start = 0
     # stop = 30000
 
-    step = 40
+    step = 4
     start = 0
-    stop = 60000
+    stop = 400
 
     file_dir = '/lsi_test'
 
@@ -415,21 +409,21 @@ def main():
     # with mp.Pool(16) as p:
     #     p.starmap(plot_metric, targs)
 
-    # targs = [(n, step, file_dir) for n in range(start, stop, step)]
-    # with mp.Pool(16) as p:
-    #    p.starmap(plot_fields, targs)
+    targs = [(n, step, file_dir) for n in range(start, stop, step)]
+    with mp.Pool(16) as p:
+       p.starmap(plot_fields, targs)
 
-    # targs = [(n, step, 'Hy', file_dir) for n in range(start, stop, step)]
+    # targs = [(n, step, 'Hz', file_dir) for n in range(start, stop, step)]
     # with mp.Pool(16) as p:
     #     p.starmap(plot_single_field, targs)
 
     # particle_positions(start, stop, step, 'electrons', file_dir)
 
     # plot_KE(start, stop, step, file_dir)
-    # plot_field_energy(start, stop, step, file_dir)
+    plot_field_energy(start, stop, step, file_dir)
 
-    plot_single_field(0, 1, 'Ex', file_dir)
-    plot_single_field(0, 1, 'Ez', file_dir)
+    # plot_single_field(0, 1, 'Ex', file_dir)
+    # plot_single_field(0, 1, 'Ez', file_dir)
 
 
 if __name__ == '__main__':

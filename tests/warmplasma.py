@@ -33,8 +33,6 @@ program_params = (
     '#ifndef PROGRAM_PARAM_HPP\n'
     '#define PROGRAM_PARAM_HPP\n'
     '\n'
-    '#include "doubleype.hpp"\n'
-    '\n'
     '#include <array>\n'
     '\n'
     f'inline constexpr auto nThreads = {nthreads};\n'
