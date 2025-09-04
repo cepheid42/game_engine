@@ -35,19 +35,19 @@ MU0 = 1.25663706127E-6 # N/A^2
 # zmin, zmax = 0.0, 0.0110573338
 # nx, ny, nz = 192, 2, 192
 
-dt = 2.5e-12
-dx, dy, dz = 0.0002, 0.0002, 0.0002
+dt = 1.7332498813918236e-12
+dx, dy, dz = 0.0001, 0.0001, 0.0001
 cell_volume = dx * dy * dz
-xmin, xmax = -0.075, 0.075
-ymin, ymax = 0.0, dy
-zmin, zmax = -0.075, 0.075
-nx, ny, nz = 301, 1, 301
+xmin, xmax = 0.0, 0.005
+ymin, ymax = 0.0, 0.005
+zmin, zmax = 0.0, 0.005
+nx, ny, nz = 51, 51, 51
 
-s_to_ns = 1.0e9
-T_to_G = 1.0e4
-Vm_to_kVcm = 1.0e-5
-Am_to_Acm = 1.0e-4
-J_to_kJ = 1.0e-3
+# s_to_ns = 1.0e9
+# T_to_G = 1.0e4
+# Vm_to_kVcm = 1.0e-5
+# Am_to_Acm = 1.0e-4
+# J_to_kJ = 1.0e-3
 
 def colored_line(x, y, c, ax, **lc_kwargs):
     default_kwargs = {"capstyle": "butt"}
@@ -126,21 +126,23 @@ def plot_distributions(start, stop, step, group_name, file_dir):
     #     gamma1 = f.read('Gamma')
 
     n = 0
-    n2 = 12000
-    file1 = f'/electrons_dump_{n:010d}.bp'
-    file2 = f'/electrons_dump_{n2:010d}.bp'
+    n2 = stop
+    file1 = f'/{group_name}_dump_{n:010d}.bp'
+    file2 = f'/{group_name}_dump_{n2:010d}.bp'
     with FileReader(data_dir + '/lsi_test' + file1) as f:
+        weight1 = f.read('Weight')
         gamma1 = f.read('Gamma')
 
     with FileReader(data_dir + '/lsi_test' + file2) as f:
+        weight2 = f.read('Weight')
         gamma2 = f.read('Gamma')
 
     energy1 = (gamma1 - 1) * constants.m_e * constants.c**2 / constants.elementary_charge
     energy2 = (gamma2 - 1) * constants.m_e * constants.c**2 / constants.elementary_charge
     fig, ax = plt.subplots(figsize=(12,10))
 
-    n, bins, p = ax.hist(energy2, bins=1000, density=True, histtype='step', log=True)
-    ax.hist(energy1, bins=bins, density=True, histtype='step', log=True)
+    n, bins, p = ax.hist(energy2, weights=weight2, color='r', bins=1000, density=True, histtype='step', log=False)
+    ax.hist(energy1, weights=weight1, color='b', bins=bins, density=True, histtype='step', log=False)
 
     # plt.grid(ls="--")
     # plt.ylabel("fraction")
@@ -170,21 +172,24 @@ def plot_metric(n, step, metric, group_name, file_dir):
         time = f.read_attribute('Time')
 
     data = load_particle_data(n, metric, group_name, file_dir)
+    nnx, nny, nnz = data.shape
 
     xs = np.linspace(xmin, xmax, nx - 1)
     zs = np.linspace(zmin, zmax, nz - 1)
 
     fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
-    ax.set_aspect('equal')
+    # ax.set_aspect('equal')
 
     # norm = colors.LogNorm(vmin=1e26, vmax=1e28)
     # im = ax.contourf(zs, xs, data[:, 0, :], levels=np.logspace(26, 28, 50), norm=norm, cmap='jet')
     # fig.colorbar(ScalarMappable(norm=norm, cmap='jet'), ax=ax, shrink=0.82)
 
-    im = ax.contourf(zs, xs, data[:, 0, :], levels=100)
-    fig.colorbar(im, ax=ax)
+    # im = ax.contourf(data[:, :, nnz // 2], levels=100)
+    # fig.colorbar(im, ax=ax)
 
-    ax.set_title(f'{group_name.capitalize()} {metric} @ {time * s_to_ns:.4e} ns')
+    ax.plot(data[:, nny // 2, nnz // 2])
+
+    ax.set_title(f'{group_name.capitalize()} {metric} @ {time:.4e} ns')
     ax.set_ylabel(r'x ($\mu$m)')
     ax.set_xlabel(r'z ($\mu$m)')
 
@@ -205,6 +210,8 @@ def plot_single_field(n, step, name, file_dir):
 
     field = load_field(n, name, file_dir)
 
+    nnx, nny, nnz = field.shape
+
     # xs = np.linspace(xmin, xmax, field.shape[0])
     # xs[xs == 0] = np.nextafter(0, 1)
     # zs = np.linspace(zmin, zmax, field.shape[2])
@@ -212,14 +219,14 @@ def plot_single_field(n, step, name, file_dir):
     fig, ax = plt.subplots(figsize=(10, 10), layout='constrained')
     # fig.supxlabel(r'z ($\mu$m)')
     # fig.supylabel(r'x ($\mu$m)')
-    fig.suptitle(f'{name} @ {time * s_to_ns:.4e} ns')
+    fig.suptitle(f'{name} @ {time:.4e} ns')
 
     # ax.plot(xs, field[:, 0, 50], label=f'{name}')
     # ax.hlines([-1.0, 1.0], xmin=xs[10], xmax=xs[-10], linestyles='--')
 
     # vmin, vmax = -6e12, 6e12
     # norm = colors.Normalize(vmin=vmin, vmax=vmax)
-    im = ax.contourf(field[:, :, 50], cmap='plasma')
+    im = ax.contourf(field[:, nny // 2, :], cmap='plasma')
     fig.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=0.8)
     # fig.colorbar(ScalarMappable(norm=norm, cmap='jet'), ax=ax, format='{x:3.1e}', pad=0.01, shrink=1.0)
     ax.set_aspect('equal')
@@ -234,19 +241,15 @@ def plot_fields(n, step, file_dir):
     print(f'Processing file {n}...')
 
     def plot(name, ax, figure, vmin=None, vmax=None):
-        field = load_field(n, name, file_dir)[:, :, 50]
-        # if name in ['Hx', 'Hy', 'Hz']:
-        #     # field *= MU0# * T_to_G
-        #     name = 'B' + name[-1]
-        # elif name in ['Ex', 'Ey', 'Ez']:
-        #     field *= Vm_to_kVcm
-        # else:
-        #     field *= Am_to_Acm
+        field = load_field(n, name, file_dir)
+        nnx, nny, nnz = field.shape
+        field = field[:, :, nnz // 2]
 
         # xs = np.linspace(xmin, xmax, field.shape[0])
         # zs = np.linspace(zmin, zmax, field.shape[1])
         # norm = colors.Normalize(vmin=vmin, vmax=vmax)
-        im = ax.contourf(field, levels=100, cmap='plasma', vmin=vmin, vmax=vmax)
+        im = ax.pcolormesh(field, cmap='plasma')
+        # im = ax.contourf(field, levels=100, cmap='plasma', vmin=vmin, vmax=vmax)
         figure.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=1.0)
         # figure.colorbar(ScalarMappable(norm=norm, cmap='plasma'), ax=ax, format='{x:3.1e}', pad=0.01, shrink=1.0)
         ax.set_aspect('equal')
@@ -259,7 +262,7 @@ def plot_fields(n, step, file_dir):
     fig, axes = plt.subplots(nrows=3, ncols=3, figsize=(14, 10), layout='constrained', sharex=True, sharey=False)
     fig.supxlabel(r'z ($\mu$m)')
     fig.supylabel(r'x ($\mu$m)')
-    fig.suptitle(f'Fields @ {time * s_to_ns:.4e} ns')
+    fig.suptitle(f'Fields @ {time:.4e} ns')
     plot('Ex', axes[0, 0], fig)
     plot('Ey', axes[0, 1], fig)
     plot('Ez', axes[0, 2], fig)
@@ -321,8 +324,7 @@ def plot_field_energy(start, stop, step, file_dir):
 def calculate_KE(n, group_name, file_dir):
     weight = load_particle_data(n, 'Weight', group_name + '_dump', file_dir)
     gamma = load_particle_data(n, 'Gamma', group_name + '_dump', file_dir)
-    # mass = constants.m_p if group_name == 'ions' else constants.m_e
-    mass = constants.m_e
+    mass = constants.m_e if group_name == 'electrons' else constants.m_e
     return (weight * (gamma - 1.0) * constants.c**2 * mass).sum()
 
 def plot_KE(start, stop, step, file_dir):
@@ -333,25 +335,25 @@ def plot_KE(start, stop, step, file_dir):
         electron_energy = p.starmap(calculate_KE, targs)
     print('Done.')
 
-    # print('Processing ions...', end=' ')
-    # targs = [(n, 'ions', file_dir) for n in range(start, stop, step)]
-    # with mp.Pool(16) as p:
-    #     ion_energy = p.starmap(calculate_KE, targs)
-    # print('Done')
+    print('Processing ions...', end=' ')
+    targs = [(n, 'ions', file_dir) for n in range(start, stop, step)]
+    with mp.Pool(16) as p:
+        ion_energy = p.starmap(calculate_KE, targs)
+    print('Done')
 
     electron_energy = np.asarray(electron_energy)
-    # ion_energy = np.asarray(ion_energy)
+    ion_energy = np.asarray(ion_energy)
 
-    time = np.linspace(0, stop * dt, stop // step)
-
+    # time = np.linspace(0, stop * dt, stop // step)
     fig, ax = plt.subplots(figsize=(8, 8))
-    ax.plot(time, electron_energy, label='Electrons')
-    # ax.plot(time, ion_energy, label='Ions')
+    ax.plot(electron_energy, label='Electrons')
+    ax.plot(ion_energy, label='Ions')
 
-    ax.set_xlabel('Time (fs)')
+    # ax.set_xlabel('Time (fs)')
     ax.set_ylabel('KE (J)')
     ax.set_title(f'Total Particle KE')
     ax.legend()
+    # plt.show()
     plt.savefig(data_dir + f'/total_particle_energy.png')
     plt.clf()
     plt.close(fig)
@@ -383,15 +385,16 @@ def main():
     # start = 0
     # stop = 30000
 
-    step = 4
+    step = 160
     start = 0
-    stop = 400
+    stop = 16000
 
-    file_dir = '/lsi_test'
+    file_dir = '/positron_test'
 
     # divE(start, stop, step, file_dir)
 
     # plot_distributions(start, stop, step, 'electrons', file_dir)
+    # plot_distributions(start, stop, step, 'ions', file_dir)
 
     # targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop, step)]
     # with mp.Pool(16) as p:
@@ -409,17 +412,17 @@ def main():
     # with mp.Pool(16) as p:
     #     p.starmap(plot_metric, targs)
 
-    targs = [(n, step, file_dir) for n in range(start, stop, step)]
-    with mp.Pool(16) as p:
-       p.starmap(plot_fields, targs)
+    # targs = [(n, step, file_dir) for n in range(start, stop, step)]
+    # with mp.Pool(16) as p:
+    #    p.starmap(plot_fields, targs)
 
-    # targs = [(n, step, 'Hz', file_dir) for n in range(start, stop, step)]
+    # targs = [(n, step, 'Jz', file_dir) for n in range(start, stop, step)]
     # with mp.Pool(16) as p:
     #     p.starmap(plot_single_field, targs)
 
     # particle_positions(start, stop, step, 'electrons', file_dir)
 
-    # plot_KE(start, stop, step, file_dir)
+    plot_KE(start, stop, step, file_dir)
     plot_field_energy(start, stop, step, file_dir)
 
     # plot_single_field(0, 1, 'Ex', file_dir)

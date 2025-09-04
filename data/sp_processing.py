@@ -3,70 +3,46 @@
 import numpy as np
 from scipy import constants
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+# control colour
+colors = np.empty((3, 3, 3, 4))
+alpha = 0.9
+
+colors[0] = [1, 0, 0, alpha] # red
+colors[1] = [0, 1, 0, alpha] # green
+colors[2] = [0, 0, 1, alpha] # blue
+# colors[3] = [1, 1, 0, alpha] # yellow
+# colors[4] = [1, 1, 1, alpha] # grey
+
+points = np.ones((3, 3, 3))
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+ax.voxels(points, facecolors=colors, edgecolors='grey')
 
 
-nx = ny = nz = 5
-f = np.ones((nx, ny - 1, nz)) # Ey
-d1 = np.zeros((nx, ny - 1, nz - 1)) # Hx
-d2 = np.zeros((nx - 1, ny - 1, nz)) # Hz
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
+plt.show()
 
-for i in range(nx):
-    for j in range(ny - 1):
-        for k in range(nz - 1):
-            d1[i, j, k] = k
-
-for i in range(nx - 1):
-    for j in range(ny - 1):
-        for k in range(nz):
-            d2[i, j, k] = j
-
-# f[:, 1:-1, 1:-1] = f[:, 1:-1, 1:-1]  + ((d1[:, 1:, 1:-1] - d1[:, :-1, 1:-1])  - (d2[:, 1:-1, 1:] - d2[:, 1:-1, :-1]))
-f[1:-1, :, 1:-1] = f[1:-1, :, 1:-1]  + ((d1[1:-1, :, 1:] - d1[1:-1, :, :-1])  - (d2[1:, :, 1:-1] - d2[:-1, :, 1:-1]))
-
-print(f)
-
-# t2 = np.load('/home/cepheid/TriForce/game_engine/data/test_0000000001.npy')
-# print(t2.shape, t2.dtype)
-# print(t2)
-# gamma = 1 / np.sqrt(1 - ((v * v).sum(axis=1)) / constants.c**2)
+# nx, nz = 4, 4
 #
-# ke = (weight * (gamma - 1) * constants.m_e * constants.c**2).sum()
+# dx = np.linspace(0, nx - 1, nx)
+# hdx = np.linspace(0.5, nx - 1.5, nx - 1)
 #
-# print(f'v = {v}')
-# print(f'Gamma = {gamma}')
-# print(f'KE = {ke} J')
-
-# xmin, xmax = -0.5, 0.5
-# zmin, zmax = -0.5, 0.5
+# bydx = np.linspace(0, nx - 1, nx)
+# byhdx = np.linspace(0.5, nx - 1.5, nx - 1)
 #
-# xs = np.linspace(xmin, xmax, 100)
-# zs = np.linspace(zmin, zmax, 100)
+# Ex_x, Ex_z = np.meshgrid(hdx, dx)
+# Ez_x, Ez_z = np.meshgrid(dx, hdx)
+# By_x, By_z = np.meshgrid(byhdx, byhdx)
 #
-# X, Z = np.meshgrid(xs, zs)
-#
-# Er = -1.109 / (X**2 + Z**2)
-#
-# theta = np.arctan2(Z, X)
-#
-# Ex = Er * np.cos(theta)
-# Ez = Er * np.sin(theta)
-#
-# fig, ax = plt.subplots()
-# im = ax.contourf(X, Z, np.sqrt(Ex**2 + Ez**2))
-# fig.colorbar(im, ax=ax)
-# plt.show()
-
-# nx, nz = 3, 3
-#
-# dx = np.linspace(0, 3, nx + 1)
-# hdx = np.linspace(0.5, 2.5, nx)
-#
-# bydx = np.linspace(0, 3, nx + 1)
-# byhdx = np.linspace(0.5, 1.5, nx)
-#
-# Ex_x, Ex_z = np.meshgrid(dx, hdx)
-# Ez_x, Ez_z = np.meshgrid(hdx, dx)
-# By_x, By_z = np.meshgrid(bydx, bydx)
+# wx, wz = np.meshgrid(dx[:-1], dx[:-1])
+# ex_x_stencil, ex_z_stencil = np.meshgrid(hdx[:-1], dx[:-1])
+# # by_x_stencil, by_z_stencil = np.meshgrid(byhdx[:-1], byhdx[:-1])
 #
 # fig, ax = plt.subplots(figsize=(10,10))
 # ax.set_axisbelow(True)
@@ -74,10 +50,16 @@ print(f)
 #
 # ax.scatter(Ex_x, Ex_z, c='g', marker='>', s=180, label='Ex')
 # ax.scatter(Ez_x, Ez_z, c='b', marker='^', s=180, label='Ez')
-# ax.scatter(By_x, By_z, c='r', marker='s', s=120, label='By')
+# # ax.scatter(By_x, By_z, c='r', marker='s', s=120, label='By')
 #
-# ax.set_xlim([-0.5, 3.5])
-# ax.set_ylim([-0.5, 3.5])
+# ax.scatter(wx, wz, c='orange', marker='h', s=180)
+# ax.scatter([1.0], [1.0], c='m', marker='X', s=180)
+# ax.scatter(ex_x_stencil, ex_z_stencil, c='tab:olive', marker='>', s=180)
+# # ax.scatter(by_x_stencil, by_z_stencil, c='orange', marker='s', s=180)
+#
+#
+# ax.set_xlim([-1, nx])
+# ax.set_ylim([-1, nz])
 #
 # ax.set_xticks(dx)
 # ax.set_xticks(hdx, minor=True)

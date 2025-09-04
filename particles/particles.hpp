@@ -8,7 +8,7 @@
 
 // #include "dbg.h"
 
-#include <gfx/timsort.hpp>
+// #include <gfx/timsort.hpp>
 
 #include <vector>
 #include <algorithm>
@@ -69,12 +69,8 @@ struct ParticleGroup {
      atomic_number(z_),
      mass(mass_),
      charge(charge_),
-     qdt_over_2m(calculate_qdt_over_2m())
+     qdt_over_2m(0.5 * charge * dt / mass)
    {}
-
-   [[nodiscard]] double calculate_qdt_over_2m() const {
-      return static_cast<double>(0.5 * static_cast<double>(charge) * static_cast<double>(dt) / static_cast<double>(mass));
-   }
 
    [[nodiscard]] std::size_t num_particles() const { return particles.size(); }
 
@@ -87,24 +83,25 @@ struct ParticleGroup {
 
    void sort_particles() {
       std::erase_if(particles, [](const Particle& p) { return p.disabled; });
-      gfx::timsort(
-         particles,
-         [](const Particle& a, const Particle& b) {
-            return morton_encode(getCellIndices<std::size_t>(a.location)) < morton_encode(getCellIndices<std::size_t>(b.location));
-         }
-      );
-      // std::ranges::sort(
+      // gfx::timsort(
       //    particles,
       //    [](const Particle& a, const Particle& b) {
       //       return morton_encode(getCellIndices<std::size_t>(a.location)) < morton_encode(getCellIndices<std::size_t>(b.location));
       //    }
       // );
+      std::ranges::sort(
+         particles,
+         [](const Particle& a, const Particle& b) {
+            return morton_encode(getCellIndices<std::size_t>(a.location)) < morton_encode(getCellIndices<std::size_t>(b.location));
+         }
+      );
    }
 }; // end struct ParticleGroup
 
 struct ParticleInitializer {
    static ParticleGroup initializeFromFile(const std::string& name, const double mass, const double charge,
-                                           const std::size_t z, const std::string& filename) {
+                                           const std::size_t z, const std::string& filename)
+   {
       std::ifstream file(filename);
 
       if (!file.is_open()) {
@@ -118,7 +115,7 @@ struct ParticleInitializer {
 
       vec3<double> location{};
       vec3<double> velocity{};
-      float weight = 0.0;
+      double weight = 0.0;
 
       std::println("Loading particle file: {}... ", filename);
       std::string line;

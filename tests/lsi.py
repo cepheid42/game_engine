@@ -9,6 +9,7 @@ sim_name = 'lsi'
 nx = 1501
 ny = 2
 nz = 1501
+nhalo = 0
 
 xmin, xmax = -15.0e-6, 15.0e-6
 ymin, ymax = 0.0, 0.01
@@ -42,6 +43,7 @@ program_params = (
     f'inline constexpr auto Nx = {nx}zu;\n'
     f'inline constexpr auto Ny = {ny}zu;\n'
     f'inline constexpr auto Nz = {nz}zu;\n'
+    f'inline constexpr auto NHalo = {nhalo}zu;\n'
     '\n'
     f'inline constexpr std::array x_range = {{{xmin}, {xmax}}};\n'
     f'inline constexpr std::array y_range = {{{ymin}, {ymax}}};\n'

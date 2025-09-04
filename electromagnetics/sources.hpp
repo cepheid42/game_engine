@@ -89,11 +89,11 @@ struct GaussianSource final : TemporalSource {
 
 struct ContinuousSource final : TemporalSource {
    explicit ContinuousSource(const double omega_, const double phase_, const double start_,
-                             const double stop_, const double)
+                             const double stop_)
    : omega(omega_),
      start(start_),
      stop(stop_),
-     phase(phase_) //, ramp{dx_}
+     phase(phase_)
    {}
 
    [[nodiscard]] double eval(const double t) const override {
@@ -105,7 +105,6 @@ struct ContinuousSource final : TemporalSource {
    double start;
    double stop;
    double phase;
-   // BlackmanHarris ramp;
 }; // end struct ContinuousSource
 
 struct SpatialSource {
@@ -147,7 +146,7 @@ struct CurrentSource {
       for (size_t i = x0; i < x1; ++i) {
          for (size_t j = y0; j < y1; ++j) {
             for (size_t k = z0; k < z1; ++k) {
-               (*field)(i, j, k) += val;
+               (*field)(i, j, k) = val;
             }
          }
       }
@@ -176,7 +175,7 @@ struct GaussianBeam : CurrentSource {
       const auto xpos = x_range[0] + (static_cast<double>(x0) * dx);
       const auto z    = waist_pos[0] - xpos; // +x? direction
       assert(z != 0.0);
-      const auto k  = omega_ / static_cast<double>(constants::c<double>);
+      const auto k  = omega_ / constants::c<double>;
       const auto zR = 0.5 * k * math::SQR(waist_size);
       const auto wz = waist_size * std::sqrt(1.0 + math::SQR(z / zR));
       const auto RC   = z * (1.0 + math::SQR(zR / z));

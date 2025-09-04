@@ -6,9 +6,9 @@ from scipy import constants
 
 sim_name = 'lsi'
 
-nx = 101
-ny = 101
-nz = 101
+nx = 51
+ny = 51
+nz = 51
 nhalo = 0
 
 xmin, xmax = -0.01, 0.01

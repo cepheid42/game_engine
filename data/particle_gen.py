@@ -3,31 +3,31 @@
 import numpy as np
 import scipy.constants as constants
 
-ppc_x = 10
-ppc_y = 1
-ppc_z = 10
+ppc_x = 4
+ppc_y = 4
+ppc_z = 4
 ppc = ppc_x * ppc_y * ppc_z
-density = 8.5e27
-temp = 2000 # eV
+density = 1.0e17
+temp = 4 # eV
 velocity = 0.0
 
 # Number of cells
-nx = 1500
-ny = 1
-nz = 1500
+nx = 50
+ny = 50
+nz = 50
 nhalo = 0
 
-xmin, xmax = -15e-6, 15e-6
-ymin, ymax = 0.0, 2e-8
-zmin, zmax = -15e-6, 15e-6
+xmin, xmax = 0.0, 0.005
+ymin, ymax = 0.0, 0.005
+zmin, zmax = 0.0, 0.005
 
 dx = (xmax - xmin) / nx
 dy = (ymax - ymin) / ny
 dz = (zmax - zmin) / nz
 
-px_min, px_max = -5e-7, 5e-7
-py_min, py_max = ymin, ymax
-pz_min, pz_max = -1e-5, 1e-5
+px_min, px_max = 0.0015, 0.0035
+py_min, py_max = 0.0015, 0.0035
+pz_min, pz_max = 0.0015, 0.0035
 
 pnx = int((px_max - px_min) / dx)
 pny = int((py_max - py_min) / dy)
@@ -35,7 +35,7 @@ pnz = int((pz_max - pz_min) / dz)
 
 print(f'Pnx/y/z {pnx}, {pny}, {pnz}')
 
-nc = 1000 * 50 #pnx * pny * pnz
+nc = pnx * pny * pnz
 
 print(f'Num Cells: {nc}')
 
@@ -50,8 +50,8 @@ zs = np.arange(zmin, zmax, dz)
 px0 = xs[np.searchsorted(xs, px_min)]
 px1 = xs[np.searchsorted(xs, px_max)]
 
-py0 = dy / 2 #ys[np.searchsorted(ys, py_min)]
-py1 = dy / 2 #ys[np.searchsorted(ys, py_max)]
+py0 = ys[np.searchsorted(ys, py_min)]
+py1 = ys[np.searchsorted(ys, py_max)]
 
 pz0 = zs[np.searchsorted(zs, pz_min)]
 pz1 = zs[np.searchsorted(zs, pz_max)]
@@ -114,34 +114,35 @@ def maxwell_juttner(mass, T_M):
 # ===== Weights =====
 weights = np.full((num_particles, 1), density * cell_volume / ppc)
 
-print(weights[:5])
+#===== Positions =====
+pxs = np.arange(px0 + pdx / 2, px1, pdx)
+pys = np.arange(py0 + pdy / 2, py1, pdy)
+pzs = np.arange(pz0 + pdz / 2, pz1, pdz)
 
-# #===== Positions =====
-# pxs = np.arange(px0 + pdx / 2, px1, pdx)
-# pys = np.array([dy / 2])
-# pzs = np.arange(pz0 + pdz / 2, pz1, pdz)
-# xc, yc, zc = np.meshgrid(pxs, pys, pzs)
-# positions = np.vstack((xc.flatten(), yc.flatten(), zc.flatten())).T
-#
-# # v_e = make_velocities(constants.m_e, temp)
+xc, yc, zc = np.meshgrid(pxs, pys, pzs)
+positions = np.vstack((xc.flatten(), yc.flatten(), zc.flatten())).T
+
 # v_e = maxwell_juttner(constants.m_e, temp)
-# # v_i = maxwell_juttner(constants.m_p, temp)
-#
+# v_i = maxwell_juttner(100.0 * constants.m_e, temp)
+
+v_e = make_velocities(constants.m_e, temp)
+v_i = make_velocities(constants.m_e, temp)
+
 # positions[:, 1] = ymax / 2.0
-#
-# # import matplotlib.pyplot as plt
-# # plt.scatter(positions[:, 0], positions[:, 2], s=2)
-# # plt.xticks(xs)
-# # plt.yticks(zs)
-# # # plt.grid()
-# # # plt.xlim([px_min, px_max])
-# # # plt.ylim([pz_min, px_max])
-# # plt.show()
-#
-# # ===== Output =====
-# electrons = np.hstack((positions, v_e, weights))
-# # ions = np.hstack((positions, v_i, weights))
-#
-# np.savetxt('/data/electrons.dat', electrons, delimiter=' ')
-# # np.savetxt('ion_slab.dat', ions, delimiter=' ')
+
+# import matplotlib.pyplot as plt
+# plt.scatter(positions[:, 0], positions[:, 1], s=2)
+# plt.xticks(xs)
+# plt.yticks(zs)
+# plt.grid()
+# # plt.xlim([px_min, px_max])
+# # plt.ylim([pz_min, px_max])
+# plt.show()
+
+# ===== Output =====
+electrons = np.hstack((positions, v_e, weights))
+ions = np.hstack((positions, v_i, weights))
+
+np.savetxt('/home/cepheid/TriForce/game_engine/data/electrons.dat', electrons, delimiter=' ')
+np.savetxt('/home/cepheid/TriForce/game_engine/data/ion_slab.dat', ions, delimiter=' ')
 

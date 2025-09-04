@@ -3,11 +3,13 @@
 
 #include "program_params.hpp"
 #include "math_utils.hpp"
+#include "vec3.hpp"
 // #include "dbg.h"
 
 #include <cmath>
 
-namespace tf::interp {
+namespace tf::interp
+{
 template<int D>
 constexpr auto rotateOrigin(const auto x, const auto y, const auto z) {
    if constexpr (D == 0) {
@@ -47,6 +49,12 @@ struct NGP {
    static constexpr auto shape_array(const double x) {
       return std::array{eval(x)};
    }
+
+   static constexpr auto ds_array(const auto x1, const auto& s0) {
+      return std::array{
+         eval(x1) - s0[0],
+      };
+   }
 };
 
 struct CIC {
@@ -59,7 +67,14 @@ struct CIC {
    }
 
    static constexpr auto shape_array(const double x) {
-      return std::array{eval(x - Begin), eval(x - End)};
+      return std::array{eval(x), eval(x - End)};
+   }
+
+   static constexpr auto ds_array(const auto x1, const auto& s0) {
+      return std::array{
+         eval(x1)         - s0[0],
+         eval(x1 - End)   - s0[1]
+      };
    }
 };
 
@@ -84,6 +99,14 @@ struct TSC {
    static constexpr auto shape_array(const double x) {
       return std::array{eval(x - Begin), eval(x), eval(x - End)};
    }
+
+   static constexpr auto ds_array(const auto x1, const auto& s0) {
+      return std::array{
+         eval(x1 - Begin) - s0[0],
+         eval(x1)         - s0[1],
+         eval(x1 - End)   - s0[2]
+      };
+   }
 };
 
 
@@ -104,6 +127,11 @@ struct PQS {
       const auto absx = std::abs(x);
       return absx < 1.0 ? innerRadius(x) : outerRadius(absx);
    }
+
+   static constexpr auto shape_array(const double x) {
+      assert(false);
+      return std::array{eval(x - Begin), eval(x), eval(x - End)};
+   }
 };
 
 template<int ShapeOrder>
@@ -111,85 +139,29 @@ struct InterpolationShape;
 
 template<>
 struct InterpolationShape<0> {
-   static constexpr auto Begin = NGP::Begin;
-   static constexpr auto End = NGP::End;
-   static constexpr auto Support = NGP::Support;
-   static constexpr auto Order = Support - 1;
-   
-   using type = NGP;
+   using Type = NGP;
 };
 
 template<>
 struct InterpolationShape<1> {
-   static constexpr auto Begin = CIC::Begin;
-   static constexpr auto End = CIC::End;
-   static constexpr auto Support = CIC::Support;
-   static constexpr auto Order = Support - 1;
-   
-   using type = CIC;
+   using Type = CIC;
 };
 
 template<>
 struct InterpolationShape<2> {
-   static constexpr auto Begin = TSC::Begin;
-   static constexpr auto End = TSC::End;
-   static constexpr auto Support = TSC::Support;
-   static constexpr auto Order = Support - 1;
-   
-   using type = TSC;
+   using Type = TSC;
 };
 
 template<>
 struct InterpolationShape<3> {
-   static constexpr auto Begin = PQS::Begin;
-   static constexpr auto End = PQS::End;
-   static constexpr auto Support = PQS::Support;
-   static constexpr auto Order = Support - 1;
-
-   using type = PQS;
+   using Type = PQS;
 };
 
 template<typename Outer, typename Middle, typename Inner>
 struct InterpolationStrategy {
-   using OuterShape = Outer;
-   using MiddleShape = Middle;
-   using InnerShape = Inner;
+   using OuterShape = typename Outer::Type;
+   using MiddleShape = typename Middle::Type;
+   using InnerShape = typename Inner::Type;
 };
-
-// template<typename ParticleAssignFunctor>
-// struct Jit {
-//    static constexpr auto Begin = ParticleAssignFunctor::Begin;
-//    static constexpr auto End = ParticleAssignFunctor::End;
-//    static constexpr auto Support = ParticleAssignFunctor::Support;
-//    static constexpr auto Order = Support - 1;
-//
-//    const double particle_position;
-//
-//    constexpr explicit Jit(const double pos)
-//    : particle_position(pos)
-//    {}
-//
-//    constexpr auto operator()(const double offset) const {
-//       return ParticleAssignFunctor::eval(particle_position - offset);
-//    }
-// };
-
-// template<typename ParticleAssignFunctor>
-// struct Cached {
-//    // static constexpr int Begin = ParticleAssignFunctor::Begin;
-//    // static constexpr int End = ParticleAssignFunctor::End;
-//    // static constexpr int Support = ParticleAssignFunctor::Support;
-//
-//    const std::array<double, 3> shapeArray;
-//
-//    constexpr explicit Cached(const double pos)
-//    : shapeArray(std::move(ParticleAssignFunctor().shapeArray(pos)))
-//    {}
-//
-//    constexpr auto operator()(const int grid_point) const {
-//       return shapeArray[grid_point - ParticleAssignFunctor::Begin];
-//    }
-// };
 } // end namespace tf::interp
-
 #endif //INTERPOLATION_HPP

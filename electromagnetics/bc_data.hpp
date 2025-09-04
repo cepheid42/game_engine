@@ -177,30 +177,29 @@ struct PeriodicData {
    explicit PeriodicData(const auto& f)
    : numInterior{get_num_interior(f)},
      hiIndex{get_hi_index(f)},
-     offsets{getOffsets<F, S, nHalo>(f)}
+     offsets{getOffsets<F, S, NHalo>(f)}
    {}
 
    static std::size_t get_num_interior(const auto& f) {
       if constexpr (F == EMFace::X) {
-         return f.nx() - (2 * nHalo);
+         return f.nx() - (2 * NHalo);
       } else if constexpr (F == EMFace::Y) {
-         return f.ny() - (2 * nHalo);
+         return f.ny() - (2 * NHalo);
       } else {
-         return f.nz() - (2 * nHalo);
+         return f.nz() - (2 * NHalo);
       }
    }
 
    static std::size_t get_hi_index(const auto& f) {
       if constexpr (F == EMFace::X) {
-         return f.nx() - 1 - nHalo;
+         return f.nx() - 1 - NHalo;
       } else if constexpr (F == EMFace::Y) {
-         return f.ny() - 1 - nHalo;
+         return f.ny() - 1 - NHalo;
       } else {
-         return f.nz() - 1 - nHalo;
+         return f.nz() - 1 - NHalo;
       }
    }
-
-   static constexpr auto nHalo = 2zu;
+   
    std::size_t numInterior;
    std::size_t hiIndex;
    offset_t offsets;

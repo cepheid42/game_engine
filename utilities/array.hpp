@@ -34,7 +34,7 @@ public:
       return k + nz_ * j + nz_ * ny_ * i;
    }
 
-   // Specialized accessors
+   // Specialized accessor
    T& operator()(const std::size_t i, const std::size_t j, const std::size_t k) { return data_[get_scid(i, j, k)]; }
    const T& operator()(const std::size_t i, const std::size_t j, const std::size_t k) const { return data_[get_scid(i, j, k)]; }
 

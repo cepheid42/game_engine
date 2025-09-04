@@ -6,23 +6,24 @@ from scipy import constants
 
 sim_name = 'warm plasma'
 
-nx = 192
-ny = 2
-nz = 192
+nx = 51
+ny = 51
+nz = 51
+nhalo = 2
 
-dx = dy = dz = 5.78918e-5
+dx = dy = dz = 0.0001
 
 xmin, xmax = 0.0, dx * (nx - 1)
 ymin, ymax = 0.0, dy * (ny - 1)
 zmin, zmax = 0.0, dz * (nz - 1)
 
-dt = 0.5 * dx / constants.c
-t_end = 2000 * dt
+cfl = 0.95
+dt = cfl / (constants.c * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2))
+t_end = 4000 * dt
 nt = int(t_end / dt) + 1
-cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
 save_interval = 20
-nthreads = 8
+nthreads = 24
 interp_order = 2
 
 PMLDepth = 10
@@ -40,6 +41,7 @@ program_params = (
     f'inline constexpr auto Nx = {nx}zu;\n'
     f'inline constexpr auto Ny = {ny}zu;\n'
     f'inline constexpr auto Nz = {nz}zu;\n'
+    f'inline constexpr auto NHalo = {nhalo}zu;\n'
     '\n'
     f'inline constexpr std::array x_range = {{{xmin}, {xmax}}};\n'
     f'inline constexpr std::array y_range = {{{ymin}, {ymax}}};\n'

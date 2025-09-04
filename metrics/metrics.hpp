@@ -95,12 +95,11 @@ struct ParticleDumpMetric final : detail::MetricBase {
       const std::string file{dir + "/" + group->name + "_dump_" + step_ext};
 
       io.DefineAttribute<double>("Time", time, "", "/", true);
-
-      // io.DefineAttribute<std::string>("name", group->name);
-      // io.DefineAttribute<std::size_t>("num_particles", group->num_particles);
-      // io.DefineAttribute<std::size_t>("atomic_number", group->atomic_number);
-      // io.DefineAttribute<double>("mass", group->mass);
-      // io.DefineAttribute<double>("charge", group->charge);
+      io.DefineAttribute<std::string>("name", group->name);
+      io.DefineAttribute<std::size_t>("num_particles", group->num_particles(), "", "/", true);
+      io.DefineAttribute<std::size_t>("atomic_number", group->atomic_number);
+      io.DefineAttribute<double>("mass", group->mass);
+      io.DefineAttribute<double>("charge", group->charge);
 
       const auto& nParticles = group->num_particles();
       var_loc.SetShape({nParticles, 3});

@@ -6,21 +6,18 @@
 #include "diff_operators.hpp"
 #include "traits.hpp"
 
-#include "dbg.h"
+// #include "dbg.h"
 
 #include <concepts>
 
-namespace tf::electromagnetics {
-
-
+namespace tf::electromagnetics
+{
 template<typename T> concept is_periodic = std::derived_from<T, periodic_t>;
 template<typename T> concept is_pml = std::derived_from<T, pml_t>;
 
 template<typename CurlFunc, bool isLo, bool Negate>
 struct PMLFunctor : pml_t {
    using Curl                   = CurlFunc;
-   // static constexpr auto ishi   = isHi;
-   // static constexpr auto negate = Negate;
 
    #pragma omp declare simd notinbranch
    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc,
@@ -80,9 +77,7 @@ struct PMLFunctor : pml_t {
 
 template<EMFace F, bool Add>
 struct PeriodicFunctor : periodic_t {
-   // static constexpr EMFace face = F;
-   // static constexpr bool add = Add;
-
+#pragma omp declare simd notinbranch
    static void apply(auto& f, const auto& bc, const std::size_t i, const std::size_t j, const std::size_t k)
    {
       std::size_t idx1, idx2, idx3, idx4;
@@ -161,43 +156,56 @@ struct BCIntegrator {
 template<EMFace F, EMSide S>
 struct PeriodicImpl;
 
-template<EMSide S>
-struct PeriodicImpl<EMFace::X, S> {
+template<EMFace F>
+struct PeriodicImpl<F, EMSide::Hi> {
+   using Ex = BCIntegrator<null_t>;
+   using Ey = BCIntegrator<null_t>;
+   using Ez = BCIntegrator<null_t>;
+   using Hx = BCIntegrator<null_t>;
+   using Hy = BCIntegrator<null_t>;
+   using Hz = BCIntegrator<null_t>;
+   using Jx = BCIntegrator<null_t>;
+   using Jy = BCIntegrator<null_t>;
+   using Jz = BCIntegrator<null_t>;
+};
+
+template<>
+struct PeriodicImpl<EMFace::X, EMSide::Lo> {
    using Ex = BCIntegrator<null_t>;
    using Ey = BCIntegrator<PeriodicFunctor<EMFace::X, false>>;
    using Ez = BCIntegrator<PeriodicFunctor<EMFace::X, false>>;
    using Hx = BCIntegrator<null_t>;
    using Hy = BCIntegrator<null_t>;
    using Hz = BCIntegrator<null_t>;
-   using Jx = BCIntegrator<PeriodicFunctor<EMFace::X, true>>;
-   using Jy = BCIntegrator<PeriodicFunctor<EMFace::X, true>>;
-   using Jz = BCIntegrator<PeriodicFunctor<EMFace::X, true>>;
+   using Jx = BCIntegrator<null_t>;
+   using Jy = BCIntegrator<null_t>;
+   using Jz = BCIntegrator<null_t>;
 };
 
-template<EMSide S>
-struct PeriodicImpl<EMFace::Y, S> {
+template<>
+struct PeriodicImpl<EMFace::Y, EMSide::Lo> {
    using Ex = BCIntegrator<PeriodicFunctor<EMFace::Y, false>>;
    using Ey = BCIntegrator<null_t>;
    using Ez = BCIntegrator<PeriodicFunctor<EMFace::Y, false>>;
    using Hx = BCIntegrator<null_t>;
    using Hy = BCIntegrator<null_t>;
    using Hz = BCIntegrator<null_t>;
-   using Jx = BCIntegrator<PeriodicFunctor<EMFace::Y, true>>;
-   using Jy = BCIntegrator<PeriodicFunctor<EMFace::Y, true>>;
-   using Jz = BCIntegrator<PeriodicFunctor<EMFace::Y, true>>;
+   using Jx = BCIntegrator<null_t>;
+   using Jy = BCIntegrator<null_t>;
+   using Jz = BCIntegrator<null_t>;
 };
 
-template<EMSide S>
-struct PeriodicImpl<EMFace::Z, S> {
+template<>
+struct PeriodicImpl<EMFace::Z, EMSide::Lo> {
    using Ex = BCIntegrator<PeriodicFunctor<EMFace::Z, false>>;
    using Ey = BCIntegrator<PeriodicFunctor<EMFace::Z, false>>;
    using Ez = BCIntegrator<null_t>;
    using Hx = BCIntegrator<null_t>;
    using Hy = BCIntegrator<null_t>;
    using Hz = BCIntegrator<null_t>;
-   using Jx = BCIntegrator<PeriodicFunctor<EMFace::Z, true>>;
-   using Jy = BCIntegrator<PeriodicFunctor<EMFace::Z, true>>;
-   using Jz = BCIntegrator<PeriodicFunctor<EMFace::Z, true>>;
+   using Jx = BCIntegrator<null_t>;
+   using Jy = BCIntegrator<null_t>;
+   using Jz = BCIntegrator<null_t>;
 };
 
 template<EMFace F, EMSide S>
