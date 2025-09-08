@@ -71,32 +71,32 @@ struct EMSolver {
 
       #pragma omp parallel num_threads(nThreads)
       {
-         #pragma omp for simd
+         #pragma omp for
          for (std::size_t i = 0; i < emdata.Ex.size(); i++) {
             emdata.Ex_total[i] = emdata.Ex[i] + emdata.Ex_app[i];
          }
 
-         #pragma omp for simd
+         #pragma omp for
          for (std::size_t i = 0; i < emdata.Ey.size(); i++) {
             emdata.Ey_total[i] = emdata.Ey[i] + emdata.Ey_app[i];
          }
 
-         #pragma omp for simd
+         #pragma omp for
          for (std::size_t i = 0; i < emdata.Ez.size(); i++) {
             emdata.Ez_total[i] = emdata.Ez[i] + emdata.Ez_app[i];
          }
 
-         #pragma omp for simd
+         #pragma omp for
          for (std::size_t i = 0; i < emdata.Bx.size(); i++) {
             emdata.Bx_total[i] = emdata.Bx[i] * constants::mu0<double> + emdata.Bx_app[i];
          }
 
-         #pragma omp for simd
+         #pragma omp for
          for (std::size_t i = 0; i < emdata.By.size(); i++) {
             emdata.By_total[i] = emdata.By[i] * constants::mu0<double> + emdata.By_app[i];
          }
 
-         #pragma omp for simd
+         #pragma omp for
          for (std::size_t i = 0; i < emdata.Bz.size(); i++) {
             emdata.Bz_total[i] = emdata.Bz[i] * constants::mu0<double> + emdata.Bz_app[i];
          }

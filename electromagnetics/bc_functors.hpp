@@ -6,18 +6,21 @@
 #include "diff_operators.hpp"
 #include "traits.hpp"
 
-// #include "dbg.h"
+#include "dbg.h"
 
 #include <concepts>
 
-namespace tf::electromagnetics
-{
+namespace tf::electromagnetics {
+
+
 template<typename T> concept is_periodic = std::derived_from<T, periodic_t>;
 template<typename T> concept is_pml = std::derived_from<T, pml_t>;
 
 template<typename CurlFunc, bool isLo, bool Negate>
 struct PMLFunctor : pml_t {
    using Curl                   = CurlFunc;
+   // static constexpr auto ishi   = isHi;
+   // static constexpr auto negate = Negate;
 
    #pragma omp declare simd notinbranch
    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc,
@@ -77,7 +80,9 @@ struct PMLFunctor : pml_t {
 
 template<EMFace F, bool Add>
 struct PeriodicFunctor : periodic_t {
-#pragma omp declare simd notinbranch
+   // static constexpr EMFace face = F;
+   // static constexpr bool add = Add;
+
    static void apply(auto& f, const auto& bc, const std::size_t i, const std::size_t j, const std::size_t k)
    {
       std::size_t idx1, idx2, idx3, idx4;

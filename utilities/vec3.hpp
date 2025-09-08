@@ -17,6 +17,7 @@ struct vec3 {
    using type = T;
 
    constexpr vec3() = default;
+
    constexpr vec3(T e0, T e1, T e2) : data{e0, e1, e2} {}
 
    constexpr T& operator[](std::size_t i) { return data[i]; }
@@ -58,6 +59,13 @@ struct vec3 {
       data[2] /= s;
       return *this;
    }
+
+   // vec3& operator/=(const vec3& v) {
+   //    data[0] /= v[0];
+   //    data[1] /= v[1];
+   //    data[2] /= v[2];
+   //    return *this;
+   // }
 
    template <typename U>
    constexpr vec3<U> as_type() const {
@@ -139,7 +147,7 @@ constexpr tf::vec3<T> operator-(const T s, const tf::vec3<T>& u) {
 }
 
 // ===== vec3-vec3 Operators =====
-// ===============================
+// =================================
 template <typename T>
 constexpr tf::vec3<T> operator+(const tf::vec3<T>& u, const tf::vec3<T>& v) {
    return {u[0] + v[0], u[1] + v[1], u[2] + v[2]};

@@ -1,10 +1,8 @@
 #ifndef CURRENT_DEPOSITION_HPP
 #define CURRENT_DEPOSITION_HPP
 
-// #include "em_data.hpp"
 #include "interpolation.hpp"
 #include "particles.hpp"
-
 
 #include <cmath>
 
@@ -13,33 +11,28 @@ struct CurrentDeposition {
    template<int D, typename Shape>
    static void deposit(auto& J,
                        const auto& p0, const auto& p1,
-                       const auto& shapeI0, const auto& shapeJ0, const auto& shapeK0,
-                       const auto& shapeI1, const auto& shapeJ1, const auto& shapeK1,
-                       const auto& cids, const auto qA)
+                       const auto& shapeI0, const auto& shapeJ0,
+                       const auto& shapeDI, const auto& shapeDJ, const auto& shapeDK,
+                       const auto& ci, const auto& cj, const auto& ck,
+                       const auto qA)
    {
       static constexpr auto Begin = Shape::Begin;
       static constexpr auto   End = Shape::End;
-      
-      if (p0[D] == p1[D]) { return; }
 
-      const auto& [ci, cj, ck] = interp::rotateOrigin<D>(cids);
+      if (p0 == p1) { return; }
 
       for (int i = Begin; i <= End; ++i) {
          const auto& s0i = shapeI0[i - Begin];
-         const auto& s1i = shapeI1[i - Begin];
-         const auto dsi = s1i - s0i;
+         const auto& dsi = shapeDI[i - Begin];
          for (int j = Begin; j <= End; ++j) {
             const auto& s0j = shapeJ0[j - Begin];
-            const auto& s1j = shapeJ1[j - Begin];
-            const auto dsj = s1j - s0j;
+            const auto& dsj = shapeDJ[j - Begin];
             const auto tmp = -qA * (s0i * s0j + 0.5 * (dsi * s0j + s0i * dsj) + (1.0 / 3.0) * dsi * dsj);
             auto acc = 0.0;
             for (int k = Begin; k <= End - 1; ++k) {
-               const auto& s0k = shapeK0[k - Begin];
-               const auto& s1k = shapeK1[k - Begin];
-
-               acc += (s1k - s0k) * tmp;
-               const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
+               const auto& dsk = shapeDK[k - Begin];
+               acc += dsk * tmp;
+               const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
                #pragma omp atomic update
                J(x, y, z) += acc;
             } // end for(k)
@@ -85,13 +78,13 @@ struct CurrentDeposition {
       auto s0i = Shape::shape_array(p0[0]);
       auto s0j = Shape::shape_array(p0[1]);
       auto s0k = Shape::shape_array(p0[2]);
-      auto s1i = Shape::shape_array(p1[0]);
-      auto s1j = Shape::shape_array(p1[1]);
-      auto s1k = Shape::shape_array(p1[2]);
+      auto dsi = Shape::ds_array(p1[0], s0i);
+      auto dsj = Shape::ds_array(p1[1], s0j);
+      auto dsk = Shape::ds_array(p1[2], s0k);
 
-      deposit<0, Shape>(emdata.Jx, p0, p1, s0j, s0k, s0i, s1j, s1k, s1i, i0, x_coeff); // y-z-x
-      deposit<1, Shape>(emdata.Jy, p0, p1, s0k, s0i, s0j, s1k, s1i, s1j, i0, y_coeff); // z-x-y
-      deposit<2, Shape>(emdata.Jz, p0, p1, s0i, s0j, s0k, s1i, s1j, s1k, i0, z_coeff); // x-y-z
+      deposit<0, Shape>(emdata.Jx, p0[0], p1[0], s0j, s0k, dsj, dsk, dsi, i0[1], i0[2], i0[0], x_coeff); // y-z-x
+      deposit<1, Shape>(emdata.Jy, p0[1], p1[1], s0k, s0i, dsk, dsi, dsj, i0[2], i0[0], i0[1], y_coeff); // z-x-y
+      deposit<2, Shape>(emdata.Jz, p0[2], p1[2], s0i, s0j, dsi, dsj, dsk, i0[0], i0[1], i0[2], z_coeff); // x-y-z
 
       if (i0 != i1) {
          p0 = relay - i1.as_type<double>();
@@ -99,13 +92,13 @@ struct CurrentDeposition {
          s0i = Shape::shape_array(p0[0]);
          s0j = Shape::shape_array(p0[1]);
          s0k = Shape::shape_array(p0[2]);
-         s1i = Shape::shape_array(p1[0]);
-         s1j = Shape::shape_array(p1[1]);
-         s1k = Shape::shape_array(p1[2]);
+         dsi = Shape::ds_array(p1[0], s0i);
+         dsj = Shape::ds_array(p1[1], s0j);
+         dsk = Shape::ds_array(p1[2], s0k);
 
-         deposit<0, Shape>(emdata.Jx, p0, p1, s0j, s0k, s0i, s1j, s1k, s1i, i1, x_coeff); // y-z-x
-         deposit<1, Shape>(emdata.Jy, p0, p1, s0k, s0i, s0j, s1k, s1i, s1j, i1, y_coeff); // z-x-y
-         deposit<2, Shape>(emdata.Jz, p0, p1, s0i, s0j, s0k, s1i, s1j, s1k, i1, z_coeff); // x-y-z
+         deposit<0, Shape>(emdata.Jx, p0[0], p1[0], s0j, s0k, dsj, dsk, dsi, i1[1], i1[2], i1[0], x_coeff); // y-z-x
+         deposit<1, Shape>(emdata.Jy, p0[1], p1[1], s0k, s0i, dsk, dsi, dsj, i1[2], i1[0], i1[1], y_coeff); // z-x-y
+         deposit<2, Shape>(emdata.Jz, p0[2], p1[2], s0i, s0j, dsi, dsj, dsk, i1[0], i1[1], i1[2], z_coeff); // x-y-z
       }
    } // end updateJ()
    

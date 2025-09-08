@@ -184,10 +184,10 @@ def plot_metric(n, step, metric, group_name, file_dir):
     # im = ax.contourf(zs, xs, data[:, 0, :], levels=np.logspace(26, 28, 50), norm=norm, cmap='jet')
     # fig.colorbar(ScalarMappable(norm=norm, cmap='jet'), ax=ax, shrink=0.82)
 
-    # im = ax.contourf(data[:, :, nnz // 2], levels=100)
-    # fig.colorbar(im, ax=ax)
+    im = ax.contourf(data[:, :, nnz // 2], levels=100)
+    fig.colorbar(im, ax=ax)
 
-    ax.plot(data[:, nny // 2, nnz // 2])
+    # ax.plot(data[:, nny // 2, nnz // 2])
 
     ax.set_title(f'{group_name.capitalize()} {metric} @ {time:.4e} ns')
     ax.set_ylabel(r'x ($\mu$m)')
@@ -385,28 +385,28 @@ def main():
     # start = 0
     # stop = 30000
 
-    step = 160
+    step = 1000
     start = 0
-    stop = 16000
+    stop = 100000
 
-    file_dir = '/positron_test'
+    file_dir = '/lsi_test'
 
     # divE(start, stop, step, file_dir)
 
     # plot_distributions(start, stop, step, 'electrons', file_dir)
     # plot_distributions(start, stop, step, 'ions', file_dir)
 
-    # targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop, step)]
-    # with mp.Pool(16) as p:
-    #    p.starmap(plot_metric, targs)
+    targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop, step)]
+    with mp.Pool(16) as p:
+       p.starmap(plot_metric, targs)
 
     # targs = [(n, step, 'Temperature', 'electrons', file_dir) for n in range(start, stop, step)]
     # with mp.Pool(16) as p:
     #     p.starmap(plot_metric, targs)
 
-    # targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop, step)]
-    # with mp.Pool(16) as p:
-    #    p.starmap(plot_metric, targs)
+    targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop, step)]
+    with mp.Pool(16) as p:
+       p.starmap(plot_metric, targs)
 
     # targs = [(n, step, 'Temperature', 'ions', file_dir) for n in range(start, stop, step)]
     # with mp.Pool(16) as p:

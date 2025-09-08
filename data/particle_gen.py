@@ -122,11 +122,11 @@ pzs = np.arange(pz0 + pdz / 2, pz1, pdz)
 xc, yc, zc = np.meshgrid(pxs, pys, pzs)
 positions = np.vstack((xc.flatten(), yc.flatten(), zc.flatten())).T
 
-# v_e = maxwell_juttner(constants.m_e, temp)
-# v_i = maxwell_juttner(100.0 * constants.m_e, temp)
+v_e = maxwell_juttner(constants.m_e, temp)
+v_i = maxwell_juttner(constants.m_e, temp)
 
-v_e = make_velocities(constants.m_e, temp)
-v_i = make_velocities(constants.m_e, temp)
+# v_e = make_velocities(constants.m_e, temp)
+# v_i = make_velocities(constants.m_e, temp)
 
 # positions[:, 1] = ymax / 2.0
 

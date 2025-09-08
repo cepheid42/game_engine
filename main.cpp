@@ -45,13 +45,13 @@ void add_group_metric(Metrics& metrics, const auto& pg) {
       )
    );
 
-   // metrics.addMetric(
-   //    std::make_unique<ParticleMetric>(
-   //       &pg,
-   //       metrics.adios.DeclareIO(pg.name + "_metrics"),
-   //       Ncx, Ncy, Ncz
-   //    )
-   // );
+   metrics.addMetric(
+      std::make_unique<ParticleMetric>(
+         &pg,
+         metrics.adios.DeclareIO(pg.name + "_metrics"),
+         Ncx, Ncy, Ncz
+      )
+   );
 }
 
 
@@ -65,7 +65,7 @@ int main() {
    constexpr auto      ion_file = "/home/cepheid/TriForce/game_engine/data/ion_slab.dat";
 
    auto g1 = ParticleInitializer::initializeFromFile("electrons", m_e, -q_e, 0, electron_file);
-   auto g2 = ParticleInitializer::initializeFromFile(     "ions", m_p, +q_e, 1,      ion_file);
+   auto g2 = ParticleInitializer::initializeFromFile(     "ions", m_e, +q_e, 1,      ion_file);
 
    // ParticleGroup g1("electrons", m_e, -q_e, 0);
    // ParticleGroup g2("positrons", m_e, +q_e, 0);
@@ -79,9 +79,6 @@ int main() {
    // g2.particles.push_back({loc0, loc0, {}, weight, 0.0, false});
 
    EMSolver emsolver(Nx, Ny, Nz);
- //   EM: 00:00:29.905477237
- // Push: 00:02:54.850384200
- // Jdep: 00:03:11.836470748
 
    emsolver.particle_correction();
    BorisPush::backstep_velocity(g1, emsolver.emdata);

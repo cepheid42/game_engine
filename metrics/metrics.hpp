@@ -120,7 +120,6 @@ struct ParticleDumpMetric final : detail::MetricBase {
       static constexpr vec3 delta{dx, dy, dz};
       static constexpr vec3 lb{x_range[0], y_range[0], z_range[0]};
 
-      // number of particles currently does not change
       position.reserve(3 * nParticles);
       velocity.reserve(3 * nParticles);
       weight.reserve(nParticles);
