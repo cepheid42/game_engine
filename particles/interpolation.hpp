@@ -134,28 +134,11 @@ struct PQS {
    }
 };
 
-template<int ShapeOrder>
-struct InterpolationShape;
-
-template<>
-struct InterpolationShape<0> {
-   using Type = NGP;
-};
-
-template<>
-struct InterpolationShape<1> {
-   using Type = CIC;
-};
-
-template<>
-struct InterpolationShape<2> {
-   using Type = TSC;
-};
-
-template<>
-struct InterpolationShape<3> {
-   using Type = PQS;
-};
+template<int ShapeOrder> struct InterpolationShape;
+template<> struct InterpolationShape<0> { using Type = NGP; };
+template<> struct InterpolationShape<1> { using Type = CIC; };
+template<> struct InterpolationShape<2> { using Type = TSC; };
+template<> struct InterpolationShape<3> { using Type = PQS; };
 
 template<typename Outer, typename Middle, typename Inner>
 struct InterpolationStrategy {

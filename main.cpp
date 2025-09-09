@@ -1,5 +1,5 @@
 #include "program_params.hpp"
-#include "constants.hpp"
+// #include "constants.hpp"
 #include "em_solver.hpp"
 #include "metrics.hpp"
 #include "timers.hpp"
@@ -58,27 +58,14 @@ void add_group_metric(Metrics& metrics, const auto& pg) {
 int main() {
    auto timers = utilities::create_timers();
    timers["Main"].start_timer();
-   constexpr auto q_e = constants::q_e<double>;
-   constexpr auto m_e = constants::m_e<double>;
-   constexpr auto m_p = constants::m_p<double>;
    constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/electrons.dat";
-   constexpr auto      ion_file = "/home/cepheid/TriForce/game_engine/data/ion_slab.dat";
-
-   auto g1 = ParticleInitializer::initializeFromFile("electrons", m_e, -q_e, 0, electron_file);
-   auto g2 = ParticleInitializer::initializeFromFile(     "ions", m_e, +q_e, 1,      ion_file);
-
-   // ParticleGroup g1("electrons", m_e, -q_e, 0);
-   // ParticleGroup g2("positrons", m_e, +q_e, 0);
-   //
-   // constexpr vec3 loc0{5.5, 5.5, 5.5};
-   // // constexpr vec3 loc1{5.0, 5.0, 5.0};
-   // constexpr vec3 vel{1.8e7, 0.0, 0.0};
-   // constexpr auto weight = 1.0;
-   // const Particle p0 = {loc0, loc0, vel, weight, calculateGamma(vel), false};
-   // g1.particles.push_back(p0);
-   // g2.particles.push_back({loc0, loc0, {}, weight, 0.0, false});
+   constexpr auto      ion_file = "/home/cepheid/TriForce/game_engine/data/ions.dat";
+   auto g1 = ParticleInitializer::initializeFromFile(electron_file);
+   auto g2 = ParticleInitializer::initializeFromFile(ion_file);
 
    EMSolver emsolver(Nx, Ny, Nz);
+
+   emsolver.emdata.Bz_app.fill(0.1);
 
    emsolver.particle_correction();
    BorisPush::backstep_velocity(g1, emsolver.emdata);

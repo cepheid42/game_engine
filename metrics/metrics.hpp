@@ -17,7 +17,7 @@ namespace tf::metrics {
 namespace detail {
    struct MetricBase {
       virtual ~MetricBase() = default;
-      virtual void write(const std::string&, const std::string&, double) = 0;
+      virtual void write(const std::string&, const std::string&, std::size_t) = 0;
    };
 } // end namespace detail
 
@@ -49,10 +49,13 @@ struct EMFieldsMetric final : detail::MetricBase {
       }
    }
 
-   void write(const std::string& dir, const std::string& step_ext, const double time) override {
+   void write(const std::string& dir, const std::string& step_ext, const std::size_t step) override {
       const std::string file{dir + "/fields_" + step_ext};
+      static constexpr auto cell_volume = dx * dy * dz;
 
-      io.DefineAttribute<double>("Time", time, "", "/", true);
+      io.DefineAttribute<std::size_t>("step", step, "", "/", true);
+      io.DefineAttribute<double>("dt", dt);
+      io.DefineAttribute<double>("cell_volume", cell_volume);
 
       adios2::Engine    writer = io.Open(file, adios2::Mode::Write);
       writer.BeginStep();
@@ -91,17 +94,19 @@ struct ParticleDumpMetric final : detail::MetricBase {
       gamma.reserve(nParticles);
    }
 
-   void write(const std::string& dir, const std::string& step_ext, const double time) override {
+   void write(const std::string& dir, const std::string& step_ext, const std::size_t step) override {
       const std::string file{dir + "/" + group->name + "_dump_" + step_ext};
+      const auto& nParticles = group->num_particles();
 
-      io.DefineAttribute<double>("Time", time, "", "/", true);
       io.DefineAttribute<std::string>("name", group->name);
-      io.DefineAttribute<std::size_t>("num_particles", group->num_particles(), "", "/", true);
-      io.DefineAttribute<std::size_t>("atomic_number", group->atomic_number);
+      io.DefineAttribute<std::size_t>("step", step, "", "/", true);
+      io.DefineAttribute<double>("dt", dt);
       io.DefineAttribute<double>("mass", group->mass);
       io.DefineAttribute<double>("charge", group->charge);
+      // io.DefineAttribute<std::size_t>("atomic_number", group->atomic_number);
+      io.DefineAttribute<std::size_t>("num_particles", nParticles, "", "/", true);
 
-      const auto& nParticles = group->num_particles();
+
       var_loc.SetShape({nParticles, 3});
       var_loc.SetSelection({{0, 0}, {nParticles, 3}}); // {{start}, {count}}
 
@@ -214,10 +219,21 @@ struct ParticleMetric final : detail::MetricBase {
       } // end parallel
    }
 
-   void write(const std::string& dir, const std::string& step_ext, const double time) override {
-      update_metrics();
+   void write(const std::string& dir, const std::string& step_ext, const std::size_t step) override {
       const std::string file{dir + "/" + group->name + "_" + step_ext};
-      io.DefineAttribute<double>("Time", time, "", "/", true);
+
+      update_metrics();
+
+      io.DefineAttribute<std::string>("name", group->name);
+      io.DefineAttribute<std::size_t>("step", step, "", "/", true);
+      io.DefineAttribute<double>("dt", dt);
+      io.DefineAttribute<double>("mass", group->mass);
+      io.DefineAttribute<double>("charge", group->charge);
+      // io.DefineAttribute<std::size_t>("atomic_number", group->atomic_number);
+      io.DefineAttribute<std::size_t>("dims", dims.data(), 3);
+      io.DefineAttribute<double>("x_range", x_range.data(), 2);
+      io.DefineAttribute<double>("y_range", y_range.data(), 2);
+      io.DefineAttribute<double>("z_range", z_range.data(), 2);
 
       adios2::Engine writer = io.Open(file, adios2::Mode::Write);
       writer.BeginStep();
@@ -236,6 +252,7 @@ struct ParticleMetric final : detail::MetricBase {
    std::vector<double>      density;
    std::vector<double>      T_avg;
    std::vector<double>      KE_total;
+   std::array<std::size_t, 3> dims{Ncx, Ncy, Ncz};
 };
 
 // =======================================
@@ -263,7 +280,7 @@ public:
       count_padded += file_ext; // default extension is .bp
 
       for (const auto& m: metrics) {
-         m->write(data_dir, count_padded, static_cast<double>(step) * dt);
+         m->write(data_dir, count_padded, step);
       }
    }
 

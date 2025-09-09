@@ -42,7 +42,7 @@ static std::array<vec3<double>, 2> fieldAtParticle(const Particle& p, const auto
    using EStrategy = interp::InterpolationStrategy<AssShape, AssShape, RedShape>;
    using BStrategy = interp::InterpolationStrategy<RedShape, RedShape, AssShape>;
 
-   const vec3 loc_full = getCellIndices<double>(p.location);
+   const vec3 loc_full = getCellIndices<double>(p.location + 0.5);
    const vec3 loc_half = getCellIndices<double>(p.location + 0.5) - 0.5;
 
    const vec3 fid = loc_full.as_type<std::size_t>();
@@ -76,11 +76,6 @@ struct BorisPush {
    static constexpr std::size_t BC_DEPTH = 3zu;
 
    static void update_velocity(Particle& p, const emdata_t& emdata, const auto qdt) {
-      static constexpr vec3 delta_inv{dt / dx, dt / dy, dt / dz};
-      static constexpr auto fnx = static_cast<double>(Nx - 1);
-      static constexpr auto fny = static_cast<double>(Ny - 1);
-      static constexpr auto fnz = static_cast<double>(Nz - 1);
-
       if (p.disabled) { return; }
       const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
 
@@ -98,15 +93,14 @@ struct BorisPush {
 
    static void update_position(Particle& p) {
       static constexpr vec3 delta_inv{dt / dx, dt / dy, dt / dz};
+      if (p.disabled) { return; }
+
+      // Periodic particle BCs
       static constexpr auto fnx = static_cast<double>(Nx - 1);
       static constexpr auto fny = static_cast<double>(Ny - 1);
       static constexpr auto fnz = static_cast<double>(Nz - 1);
-      if (p.disabled) { return; }
-
       auto new_loc = p.location + delta_inv * p.velocity;
       auto old_loc = p.location;
-
-      // Periodic particle BCs
       if (new_loc[0] <= NHalo or new_loc[0] >= fnx - NHalo) {
          new_loc[0] = fnx + new_loc[0] - 2.0 * std::floor(new_loc[0] + 0.5);
          old_loc[0] = fnx + old_loc[0] - 2.0 * std::floor(old_loc[0] + 0.5);
@@ -123,6 +117,8 @@ struct BorisPush {
       }
 
       // // Outflow particle BCs
+      // const auto new_loc = p.location + delta_inv * p.velocity;
+      // const auto old_loc = p.location;
       // const auto& [inew, jnew, knew] = getCellIndices(new_loc);
       // p.disabled = inew < BC_DEPTH or inew > Nx - 1 - BC_DEPTH or
       //              jnew < BC_DEPTH or jnew > Ny - 1 - BC_DEPTH or

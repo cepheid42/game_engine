@@ -27,7 +27,7 @@ struct CurrentDeposition {
          for (int j = Begin; j <= End; ++j) {
             const auto& s0j = shapeJ0[j - Begin];
             const auto& dsj = shapeDJ[j - Begin];
-            const auto tmp = -qA * (s0i * s0j + 0.5 * (dsi * s0j + s0i * dsj) + (1.0 / 3.0) * dsi * dsj);
+            const auto tmp = -qA * (s0i * s0j + 0.5 * (dsi * s0j + s0i * dsj) + (1.0 / 3.0) * dsj * dsi);
             auto acc = 0.0;
             for (int k = Begin; k <= End - 1; ++k) {
                const auto& dsk = shapeDK[k - Begin];
@@ -53,15 +53,15 @@ struct CurrentDeposition {
 
    static void updateJ(const auto& p, auto& emdata, const auto charge) {
       using Shape = interp::InterpolationShape<interpolation_order>::Type;
-      static constexpr auto dtAxy = 1.0 / (dt * dx * dy);
-      static constexpr auto dtAxz = 1.0 / (dt * dx * dz);
-      static constexpr auto dtAyz = 1.0 / (dt * dy * dz);
+      // static constexpr auto dtAxy = 1.0 / (dt * dx * dy);
+      // static constexpr auto dtAxz = 1.0 / (dt * dx * dz);
+      // static constexpr auto dtAyz = 1.0 / (dt * dy * dz);
 
       if (p.disabled) { return; }
 
-      const auto x_coeff = p.weight * charge * dtAyz;
-      const auto y_coeff = p.weight * charge * dtAxz;
-      const auto z_coeff = p.weight * charge * dtAxy;
+      const auto x_coeff = p.weight * charge / (dt * dy * dz);
+      const auto y_coeff = p.weight * charge / (dt * dx * dz);
+      const auto z_coeff = p.weight * charge / (dt * dx * dz);
 
       const vec3<std::size_t> i0 = getCellIndices(p.old_location + 0.5);
       const vec3<std::size_t> i1 = getCellIndices(p.location + 0.5);

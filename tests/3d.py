@@ -6,14 +6,14 @@ from scipy import constants
 
 sim_name = 'lsi'
 
-nx = 51
-ny = 51
-nz = 51
+nx = 11
+ny = 11
+nz = 11
 nhalo = 0
 
-xmin, xmax = -0.01, 0.01
-ymin, ymax = -0.01, 0.01
-zmin, zmax = -0.01, 0.01
+xmin, xmax = 0.0, 0.001
+ymin, ymax = 0.0, 0.001
+zmin, zmax = 0.0, 0.001
 
 dx = (xmax - xmin) / (nx - 1)
 dy = (ymax - ymin) / (ny - 1)
@@ -29,11 +29,11 @@ t_end = nt * dt
 # nt = int(t_end / dt) + 1
 # cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
-save_interval = 4
-nthreads = 32
+save_interval = 1
+nthreads = 1
 interp_order = 2
 
-PMLDepth = 10
+PMLDepth = 0
 PMLGrade = 3.5
 PMLAlphaMax = 0.2
 
