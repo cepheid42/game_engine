@@ -6,15 +6,12 @@
 #include "morton.hpp"
 #include "constants.hpp"
 
-// #include "dbg.h"
-
 // #include <gfx/timsort.hpp>
 
 #include <vector>
 #include <algorithm>
 #include <fstream>
 #include <sstream>
-// #include <print>
 
 namespace tf::particles {
 struct Particle {

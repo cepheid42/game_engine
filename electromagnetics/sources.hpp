@@ -6,11 +6,7 @@
 #include "array.hpp"
 #include "math_utils.hpp"
 
-#include "dbg.h"
-
 #include <memory>
-// #include <vector>
-// #include <cassert>
 
 namespace tf::electromagnetics {
 struct TemporalSource {

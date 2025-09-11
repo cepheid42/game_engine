@@ -25,7 +25,7 @@ nt = int(t_end / dt) + 1
 
 save_interval = 40
 nthreads = 24
-interp_order = 2
+interp_order = 1
 
 PMLDepth = 6
 PMLGrade = 3.5

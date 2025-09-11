@@ -7,8 +7,6 @@
 #include "constants.hpp"
 #include "math_utils.hpp"
 
-#include "dbg.h"
-
 #include <vector>
 #include <algorithm>
 #include <array>

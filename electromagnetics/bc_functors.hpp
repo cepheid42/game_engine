@@ -6,8 +6,6 @@
 #include "diff_operators.hpp"
 #include "traits.hpp"
 
-#include "dbg.h"
-
 #include <concepts>
 
 namespace tf::electromagnetics {

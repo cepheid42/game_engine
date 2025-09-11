@@ -5,8 +5,6 @@
 #include "em_data.hpp"
 #include "typelist.hpp"
 
-#include "dbg.h"
-
 namespace tf::electromagnetics {
 
 struct EMSolver {

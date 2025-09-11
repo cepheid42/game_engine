@@ -278,10 +278,13 @@ def plot_field_energy(start, stop, step, file_dir):
     time = np.linspace(0, stop * dt * s_to_ns, stop // step)
     fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
 
+    lsp_data = np.loadtxt('/home/cepheid/TriForce/game_engine/data/seinfeld_lsp_fields.csv', delimiter=',', dtype=np.float64)
+
     # ax.plot(time, result[:, 0], label='E-Field')
     # ax.plot(time, result[:, 1], label='H-Field')
     # ax.plot(time, result[:, 2], '-.', label='Total')
     ax.plot(time, result)
+    ax.plot(lsp_data[:, 0], lsp_data[:, 1])
     # ax.hlines([1.3e-6, 3e-6], xmin=0, xmax=80, colors=['b', 'r'])
     # ax.vlines([20, 40], ymin=0, ymax=3.0e-6, colors=['k', 'r'])
 
@@ -326,14 +329,15 @@ def plot_KE(groups, start, stop, step, file_dir):
     time = np.linspace(0, stop * dt * s_to_ns, stop // step)
     fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
 
+    lsp_data = np.loadtxt('/home/cepheid/TriForce/game_engine/data/seinfeld_lsp_particleke.csv', delimiter=',', dtype=np.float64)
+
     ke_sum = group_data['electrons'] + group_data['ions']
     ax.plot(time, ke_sum)
-    # ax.hlines([2.275e-4, 2.293e-4], xmin=0, xmax=80, colors=['b', 'r'])
-    # ax.vlines([20, 40], ymin=2.275e-4, ymax=2.305e-4, colors=['k', 'r'])
+    ax.plot(lsp_data[:, 0], lsp_data[:, 1])
 
     # for name, data in group_data.items():
     #     ax.plot(time, data, label=name)
-    # ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
+    ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
     # ax.set_ylim([2.2745e-4, 2.305e-4])
     ax.set_xlim([time[0], time[-1]])
     ax.set_xlabel('Time (ns)')
@@ -347,9 +351,9 @@ def plot_KE(groups, start, stop, step, file_dir):
 
 
 def main():
-    step = 40
+    step = 1
     start = 0
-    stop = 16000
+    stop = 400
 
     file_dir = '/lsi_test'
 
@@ -364,9 +368,9 @@ def main():
     # with mp.Pool(16) as p:
     #    p.starmap(plot_metric, targs)
 
-    # targs = [(n, step, file_dir) for n in range(start, stop, step)]
-    # with mp.Pool(16) as p:
-    #    p.starmap(plot_fields, targs)
+    targs = [(n, step, file_dir) for n in range(start, stop, step)]
+    with mp.Pool(16) as p:
+       p.starmap(plot_fields, targs)
 
     # targs = [(n, step, 'Jx', file_dir) for n in range(start, stop, step)]
     # with mp.Pool(16) as p:
@@ -374,8 +378,8 @@ def main():
 
     # particle_positions(start, stop, step, 'electrons', file_dir)
 
-    plot_KE(['electrons', 'ions'], start, stop, step, file_dir)
-    plot_field_energy(start, stop, step, file_dir)
+    # plot_KE(['electrons', 'ions'], start, stop, step, file_dir)
+    # plot_field_energy(start, stop, step, file_dir)
 
     # plot_single_field(0, 1, 'Ex', file_dir)
     # plot_single_field(0, 1, 'Ez', file_dir)
