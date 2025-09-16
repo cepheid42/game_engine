@@ -351,9 +351,9 @@ def plot_KE(groups, start, stop, step, file_dir):
 
 
 def main():
-    step = 1
+    step = 40
     start = 0
-    stop = 400
+    stop = 16000
 
     file_dir = '/lsi_test'
 
@@ -368,9 +368,9 @@ def main():
     # with mp.Pool(16) as p:
     #    p.starmap(plot_metric, targs)
 
-    targs = [(n, step, file_dir) for n in range(start, stop, step)]
-    with mp.Pool(16) as p:
-       p.starmap(plot_fields, targs)
+    # targs = [(n, step, file_dir) for n in range(start, stop, step)]
+    # with mp.Pool(16) as p:
+    #    p.starmap(plot_fields, targs)
 
     # targs = [(n, step, 'Jx', file_dir) for n in range(start, stop, step)]
     # with mp.Pool(16) as p:
@@ -378,8 +378,8 @@ def main():
 
     # particle_positions(start, stop, step, 'electrons', file_dir)
 
-    # plot_KE(['electrons', 'ions'], start, stop, step, file_dir)
-    # plot_field_energy(start, stop, step, file_dir)
+    plot_KE(['electrons', 'ions'], start, stop, step, file_dir)
+    plot_field_energy(start, stop, step, file_dir)
 
     # plot_single_field(0, 1, 'Ex', file_dir)
     # plot_single_field(0, 1, 'Ez', file_dir)
