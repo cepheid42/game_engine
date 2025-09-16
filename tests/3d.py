@@ -21,7 +21,7 @@ dz = (zmax - zmin) / (nz - 1)
 
 cfl = 0.95
 dt = cfl / (constants.c * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2))
-nt = 400
+nt = 1
 t_end = nt * dt
 
 # dt = 4.0e-17

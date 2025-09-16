@@ -38,10 +38,12 @@ struct CurrentDeposition {
 
    template<int Order>
    static auto findRelayPoint(const auto i0, const auto i1, const auto p1) {
+      // static constexpr decltype(p1) offset = Order % 2 == 0 ? 0.5 : 1.0;
+      // return i1 == i0 ? p1 : std::fmax(i1, i0) - offset;
       if constexpr (Order % 2 == 0) {
          return i0 == i1 ? p1 : 0.5 * static_cast<double>(i1 + i0);
       } else {
-         return i0 == i1 ? p1 : std::fmax(i0, i1);
+         return i0 == i1 ? p1 : std::fmax(i0, i1) - 1.0;
       }
    }
 
@@ -53,11 +55,19 @@ struct CurrentDeposition {
 
       const auto x_coeff = p.weight * charge / (dt * dy * dz);
       const auto y_coeff = p.weight * charge / (dt * dx * dz);
-      const auto z_coeff = p.weight * charge / (dt * dx * dz);
+      const auto z_coeff = p.weight * charge / (dt * dx * dy);
 
-      constexpr auto offset = Shape::Order % 2 == 0 ? 0.5 : 0.0;
+      static constexpr auto offset = Shape::Order % 2 == 0 ? 0.5 : 1.0;
       const vec3<std::size_t> i0 = getCellIndices(p.old_location + offset);
       const vec3<std::size_t> i1 = getCellIndices(p.location + offset);
+
+      // // First Order, seems correct
+      // const vec3<std::size_t> i0 = getCellIndices(p.old_location + 1.0);
+      // const vec3<std::size_t> i1 = getCellIndices(p.location + 1.0);
+
+      // // Second Order, seems correct
+      // const vec3<std::size_t> i0 = getCellIndices(p.old_location + 0.5);
+      // const vec3<std::size_t> i1 = getCellIndices(p.location + 0.5);
 
       const vec3<double> relay = {
          findRelayPoint<Shape::Order>(i0[0], i1[0], p.location[0]),
@@ -76,11 +86,13 @@ struct CurrentDeposition {
       auto dsk = Shape::ds_array(p1[2], s0k);
 
       // std::println("{}, {}", p.old_location, p.location);
-      // std::println("{}, {}, {}", i0, i1, relay);
+      // std::println("Ref Node: {}, {}, {}", i0[0], i0[1], i0[2]);
+      // std::println("{}, {}", i0, relay);
       // std::println("{}, {}", p0, p1);
       // auto s1i = Shape::shape_array(p1[0]);
       // auto s1j = Shape::shape_array(p1[1]);
       // auto s1k = Shape::shape_array(p1[2]);
+      //
       // // First Order
       // std::println("s0i: ({}, {})", s0i[0], s0i[1]);
       // std::println("s0j: ({}, {})", s0j[0], s0j[1]);
@@ -112,7 +124,7 @@ struct CurrentDeposition {
          dsk = Shape::ds_array(p1[2], s0k);
 
          // std::println("Cell crossing!");
-         // std::println("{}, {}", p0, p1);
+         // std::println("{}, {}, {}", p0, p1, i1);
          // s1i = Shape::shape_array(p1[0]);
          // s1j = Shape::shape_array(p1[1]);
          // s1k = Shape::shape_array(p1[2]);

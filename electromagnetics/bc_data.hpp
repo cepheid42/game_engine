@@ -128,6 +128,18 @@ struct PMLData {
       const auto alpha_d = calculate_alpha(d);
       calculate_coeffs(sigma_d, alpha_d);
 
+      // std::println("sigma_max = {}", sigma_max);
+      //
+      // std::print("sigma_d: ");
+      // for (auto& x: sigma_d) {
+      //    std::print("{}, ", x);
+      // }
+      //
+      // std::print("\nalpha_d: ");
+      // for (auto& x: alpha_d) {
+      //    std::print("{}, ", x);
+      // }
+
       if constexpr (S == EMSide::Hi) {
          std::ranges::reverse(b);
          std::ranges::reverse(c);

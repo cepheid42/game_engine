@@ -6,9 +6,9 @@ from scipy import constants
 
 sim_name = 'lsi'
 
-nx = 1501
+nx = 1501 # 751
 ny = 2
-nz = 1501
+nz = 1501 # 401
 nhalo = 0
 
 xmin, xmax = -15.0e-6, 15.0e-6
@@ -78,7 +78,3 @@ with open(param_path, 'w+') as f:
     cur_header = f.read()
     if cur_header != program_params:
         f.write(program_params)
-
-# build_path = '/home/cepheid/TriForce/game_engine/buildDir'
-# meson = ['meson', 'compile', '-C', build_path]
-# subprocess.run(meson)

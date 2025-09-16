@@ -212,7 +212,8 @@ def plot_fields(n, step, file_dir):
     def plot(name, ax, figure, vmin=None, vmax=None):
         field = load_field(n, name, file_dir)
         nnx, nny, nnz = field.shape
-        field = field[:, :, nnz // 2]
+        # field = field[:, :, nnz // 2]
+        field = field[:, nny // 2, :]
 
         if name[0] == 'H':
             field *= H_to_B
@@ -235,12 +236,12 @@ def plot_fields(n, step, file_dir):
     fig.supxlabel(r'z ($\mu$m)')
     fig.supylabel(r'x ($\mu$m)')
     # fig.suptitle(f'Fields @ {time:.4e} ns')
-    # plot('Ex', axes[0, 0], fig)
-    # plot('Ey', axes[0, 1], fig)
-    # plot('Ez', axes[0, 2], fig)
-    # plot('Hx', axes[1, 0], fig)
-    # plot('Hy', axes[1, 1], fig)
-    # plot('Hz', axes[1, 2], fig)
+    plot('Ex', axes[0, 0], fig)
+    plot('Ey', axes[0, 1], fig)
+    plot('Ez', axes[0, 2], fig)
+    plot('Hx', axes[1, 0], fig)
+    plot('Hy', axes[1, 1], fig)
+    plot('Hz', axes[1, 2], fig)
     plot('Jx', axes[2, 0], fig)
     plot('Jy', axes[2, 1], fig)
     plot('Jz', axes[2, 2], fig)
@@ -353,7 +354,7 @@ def plot_KE(groups, start, stop, step, file_dir):
 def main():
     step = 40
     start = 0
-    stop = 16000
+    stop = 8000
 
     file_dir = '/lsi_test'
 

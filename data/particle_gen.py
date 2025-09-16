@@ -3,12 +3,12 @@
 import numpy as np
 import scipy.constants as constants
 
-ppc_x = 4
+ppc_x = 4 # 5, 1, 5
 ppc_y = 4
 ppc_z = 4
 ppc = ppc_x * ppc_y * ppc_z
-density = 1.0e17
-temp = 4 # eV
+density = 1.0e17 # 1.0e21
+temp = 4 # eV # 10000
 velocity = 0.0
 
 # Number of cells
@@ -144,5 +144,5 @@ electrons = np.hstack((positions, v_e, weights))
 ions = np.hstack((positions, v_i, weights))
 
 np.savetxt('/home/cepheid/TriForce/game_engine/data/electrons.dat', electrons, delimiter=' ')
-np.savetxt('/home/cepheid/TriForce/game_engine/data/ion_slab.dat', ions, delimiter=' ')
+np.savetxt('/home/cepheid/TriForce/game_engine/data/ion.dat', ions, delimiter=' ')
 

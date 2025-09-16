@@ -36,22 +36,20 @@ constexpr auto rotateOrigin(const auto& p) {
 }
 
 struct NGP {
-   static constexpr int         Begin   = 0;
-   static constexpr int         End     = 0;
+   static constexpr int         Begin   = -1;
+   static constexpr int         End     = -1;
    static constexpr std::size_t Order   = 0;
    static constexpr std::size_t Support = 1;
 
-   static constexpr auto eval(const double x) {
+   static constexpr auto eval(const double) {
       return 1.0;
-      // return std::abs(x) <= 0.5 ? 1.0 : 0.0;
    }
 
-   static constexpr auto shape_array(const double x) {
+   static constexpr auto shape_array(const double) {
       return std::array{1.0};
-      // return std::array{eval(x)};
    }
 
-   static constexpr auto ds_array(const auto, const auto&) = delete;
+   static constexpr auto ds_array(auto, const auto&) = delete;
 };
 
 struct CIC {
@@ -69,8 +67,8 @@ struct CIC {
    }
 
    static constexpr auto ds_array(const auto x1, const auto& s0) {
-      return std::array{eval(x1 - Begin)       - s0[0],
-                        eval(x1) - s0[1]};
+      return std::array{eval(x1 - Begin) - s0[0],
+                        eval(x1)         - s0[1]};
    }
 };
 

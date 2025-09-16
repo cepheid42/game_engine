@@ -164,27 +164,27 @@ def create_particles(name, ppc, prange, density, temp, mass, charge):
 
     weights = np.full((num_particles, 1), density * dx * dy * dz / ppc_total)
     positions = np.vstack((xc.flatten(), yc.flatten(), zc.flatten())).T
-    velocities = maxwell_juttner(mass, temp, num_particles)
-    # velocities = make_velocities(mass, temp, num_particles)
+    # velocities = maxwell_juttner(mass, temp, num_particles)
+    # # velocities = make_velocities(mass, temp, num_particles)
+    #
+    # output = np.hstack((positions, velocities, weights))
+    # header = f'{name} {mass} {charge}'
+    # np.savetxt(f'/home/cepheid/TriForce/game_engine/data/{name}.dat', output, delimiter=' ', header=header)
 
-    output = np.hstack((positions, velocities, weights))
-    header = f'{name} {mass} {charge}'
-    np.savetxt(f'/home/cepheid/TriForce/game_engine/data/{name}.dat', output, delimiter=' ', header=header)
-
-    # import matplotlib.pyplot as plt
-    # plt.scatter(positions[:, 0], positions[:, 1], s=2)
-    # plt.xticks(xs)
-    # plt.yticks(zs)
-    # plt.grid()
-    # # plt.xlim([px_min, px_max])
-    # # plt.ylim([pz_min, px_max])
-    # plt.show()
+    import matplotlib.pyplot as plt
+    plt.scatter(positions[:, 0], positions[:, 1], s=2)
+    plt.xticks(xs)
+    plt.yticks(zs)
+    plt.grid()
+    # plt.xlim([px_min, px_max])
+    # plt.ylim([pz_min, px_max])
+    plt.show()
 
 
-init_density = 1.0e17 # m^3
-p_range = ((-0.04, 0.04), # pxmin, pxmax meters
-           (-0.04, 0.04), # pymin, pymax
-           (-0.15, 0.15)) # pzmin, pzmax
-
-create_particles('electrons', (3, 3, 3), p_range, init_density, 4.0, constants.m_e, -1.0 * constants.e)
-create_particles('ions', (2, 2, 2), p_range, init_density, 1.0, constants.m_p, constants.e)
+# init_density = 1.0e17 # m^3
+# p_range = ((-0.04, 0.04), # pxmin, pxmax meters
+#            (-0.04, 0.04), # pymin, pymax
+#            (-0.15, 0.15)) # pzmin, pzmax
+#
+# create_particles('electrons', (3, 3, 3), p_range, init_density, 4.0, constants.m_e, -1.0 * constants.e)
+# create_particles('ions', (2, 2, 2), p_range, init_density, 1.0, constants.m_p, constants.e)

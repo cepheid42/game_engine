@@ -219,7 +219,8 @@ struct PMLImpl<EMFace::X, S> {
    static constexpr bool isLo = S == EMSide::Lo;
    using Ex = BCIntegrator<null_t>;
    using Ey = BCIntegrator<PMLFunctor<backward_dx, isLo, true>>;
-   using Ez = BCIntegrator<PMLFunctor<backward_dx, isLo, false>>;
+   using Ez = BCIntegrator<PMLFunctor<backward_dx, isLo, false>
+   >;
    using Hx = BCIntegrator<null_t>;
    using Hy = BCIntegrator<PMLFunctor<forward_dx, isLo, false>>;
    using Hz = BCIntegrator<PMLFunctor<forward_dx, isLo, true>>;

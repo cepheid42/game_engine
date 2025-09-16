@@ -21,7 +21,7 @@ inline constexpr auto dz = 0.005;
 inline constexpr auto cfl   = 0.95;
 inline constexpr auto dt    = 5e-12;
 inline constexpr auto t_end = 8e-08;
-inline constexpr auto Nt    = 16001zu;
+inline constexpr auto Nt    = 8001zu;
 
 inline constexpr auto save_interval = 40zu;
 inline constexpr auto interpolation_order = 2zu;

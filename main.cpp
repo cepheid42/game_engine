@@ -8,8 +8,6 @@
 
 #include "barkeep.h"
 
-#include <print>
-
 using namespace tf;
 using namespace tf::electromagnetics;
 using namespace tf::particles;
@@ -66,7 +64,7 @@ int main() {
    // constexpr auto m_e = constants::m_e<double>;
    // ParticleGroup g1("electrons", m_e, -q_e);
    //
-   // constexpr vec3 loc0{4.75, 5.0, 5.0};
+   // constexpr vec3 loc0{5.25, 5.25, 5.25};
    // constexpr vec3 vel{1.8e6, 0.0, 0.0};
    // constexpr auto weight = 3.5;
    // const Particle p0 = {loc0, loc0, vel, weight, calculateGamma(vel), false};
@@ -76,9 +74,10 @@ int main() {
 
    emsolver.emdata.Bz_app.fill(0.1);
 
-   emsolver.particle_correction();
+   // todo: test whether this ordering matters
    BorisPush::backstep_velocity(g1, emsolver.emdata);
    BorisPush::backstep_velocity(g2, emsolver.emdata);
+   emsolver.particle_correction();
 
    Metrics metrics("/home/cepheid/TriForce/game_engine/data/lsi_test");
    add_em_metrics(metrics, emsolver);
