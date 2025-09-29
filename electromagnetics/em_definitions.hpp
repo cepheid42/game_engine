@@ -1,7 +1,7 @@
 #ifndef EM_DEFINITIONS_HPP
 #define EM_DEFINITIONS_HPP
 
-#include "em_params.hpp"
+#include "program_params.hpp"
 #include "typelist.hpp"
 #include "bc_data.hpp"
 #include "bc_functors.hpp"
@@ -11,9 +11,9 @@ namespace tf::electromagnetics {
 
 template<EMFace F, EMSide S>
 using BCDataTypes = TypeList<
-   ReflectingFaceBC<F, S>,  // 0
-   PeriodicFaceBC<F, S>,    // 1
-   PMLFaceBC<F, S>          // 2
+   PeriodicFaceBC<F, S>,   // 0
+   PMLFaceBC<F, S>,        // 1
+   ReflectingFaceBC<F, S>  // 2
 >;
 
 using bcdata_t = BCData<
@@ -27,9 +27,9 @@ using bcdata_t = BCData<
 
 template<EMFace F, EMSide S>
 using BCFuncTypes = TypeList<
-   ReflectingBoundary,      // 0
-   PeriodicBoundary<F, S>,  // 1
-   PMLBoundary<F, S>        // 2
+   PeriodicBoundary<F, S>,  // 0
+   PMLBoundary<F, S>,       // 1
+   ReflectingBoundary       // 2
 >;
 
 using boundary_t = TypeList<
@@ -41,25 +41,25 @@ using boundary_t = TypeList<
    TypeListAt<BCSelect[5], BCFuncTypes<EMFace::Z, EMSide::Hi>>  // z1
 >;
 
-// // 2D TEy
-// using field_t = TypeList<
-//    FieldIntegrator<ExplicitUpdateFunctor<noop, backward_dz>>,
-//    FieldIntegrator<ExplicitUpdateFunctor<backward_dz, backward_dx>>,
-//    FieldIntegrator<ExplicitUpdateFunctor<backward_dx, noop>>,
-//    FieldIntegrator<ExplicitUpdateFunctor<forward_dz, noop>>,
-//    FieldIntegrator<ExplicitUpdateFunctor<forward_dx, forward_dz>>,
-//    FieldIntegrator<ExplicitUpdateFunctor<noop , forward_dx>>
-// >;
-
-// 3D
+// 2D TEy
 using field_t = TypeList<
-   FieldIntegrator<ExplicitUpdateFunctor<backward_dy, backward_dz>>,
+   FieldIntegrator<ExplicitUpdateFunctor<       noop, backward_dz>>,
    FieldIntegrator<ExplicitUpdateFunctor<backward_dz, backward_dx>>,
-   FieldIntegrator<ExplicitUpdateFunctor<backward_dx, backward_dy>>,
-   FieldIntegrator<ExplicitUpdateFunctor<forward_dz, forward_dy>>,
-   FieldIntegrator<ExplicitUpdateFunctor<forward_dx, forward_dz>>,
-   FieldIntegrator<ExplicitUpdateFunctor<forward_dy, forward_dx>>
+   FieldIntegrator<ExplicitUpdateFunctor<backward_dx,        noop>>,
+   FieldIntegrator<ExplicitUpdateFunctor< forward_dz,        noop>>,
+   FieldIntegrator<ExplicitUpdateFunctor< forward_dx,  forward_dz>>,
+   FieldIntegrator<ExplicitUpdateFunctor<       noop,  forward_dx>>
 >;
+
+// // 3D
+// using field_t = TypeList<
+//    FieldIntegrator<ExplicitUpdateFunctor<backward_dy, backward_dz>>,
+//    FieldIntegrator<ExplicitUpdateFunctor<backward_dz, backward_dx>>,
+//    FieldIntegrator<ExplicitUpdateFunctor<backward_dx, backward_dy>>,
+//    FieldIntegrator<ExplicitUpdateFunctor<forward_dz, forward_dy>>,
+//    FieldIntegrator<ExplicitUpdateFunctor<forward_dx, forward_dz>>,
+//    FieldIntegrator<ExplicitUpdateFunctor<forward_dy, forward_dx>>
+// >;
 
 } // end namespace tf::electromagnetics
 #endif //EM_DEFINITIONS_HPP

@@ -2,7 +2,6 @@
 #define BC_FUNCTORS_HPP
 
 #include "program_params.hpp"
-#include "em_params.hpp"
 #include "diff_operators.hpp"
 #include "traits.hpp"
 
@@ -16,9 +15,7 @@ template<typename T> concept is_pml = std::derived_from<T, pml_t>;
 
 template<typename CurlFunc, bool isLo, bool Negate>
 struct PMLFunctor : pml_t {
-   using Curl                   = CurlFunc;
-   // static constexpr auto ishi   = isHi;
-   // static constexpr auto negate = Negate;
+   using Curl = CurlFunc;
 
    #pragma omp declare simd notinbranch
    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc,
@@ -78,30 +75,27 @@ struct PMLFunctor : pml_t {
 
 template<EMFace F, bool Add>
 struct PeriodicFunctor : periodic_t {
-   // static constexpr EMFace face = F;
-   // static constexpr bool add = Add;
-
    static void apply(auto& f, const auto& bc, const std::size_t i, const std::size_t j, const std::size_t k)
    {
       std::size_t idx1, idx2, idx3, idx4;
       if constexpr (F == EMFace::X) {
          const auto pm = i % bc.numInterior;
-         idx1 = f.get_scid(NHalo - 1 - i, j, k);
+         idx1 = f.get_scid(nHalo - 1 - i, j, k);
          idx2 = f.get_scid(bc.hiIndex - pm, j, k);
          idx3 = f.get_scid(bc.hiIndex + 1 + i, j, k);
-         idx4 = f.get_scid(NHalo + pm, j, k);
+         idx4 = f.get_scid(nHalo + pm, j, k);
       } else if constexpr (F == EMFace::Y) {
          const auto pm = j % bc.numInterior;
-         idx1 = f.get_scid(i, NHalo - 1 - j, k);
+         idx1 = f.get_scid(i, nHalo - 1 - j, k);
          idx2 = f.get_scid(i, bc.hiIndex - pm, k);
          idx3 = f.get_scid(i, bc.hiIndex + 1 + j, k);
-         idx4 = f.get_scid(i, NHalo + pm, k);
+         idx4 = f.get_scid(i, nHalo + pm, k);
       } else {
          const auto pm = k % bc.numInterior;
-         idx1 = f.get_scid(i, j, NHalo - 1 - k);
+         idx1 = f.get_scid(i, j, nHalo - 1 - k);
          idx2 = f.get_scid(i, j, bc.hiIndex - pm);
          idx3 = f.get_scid(i, j, bc.hiIndex + 1 + k);
-         idx4 = f.get_scid(i, j, NHalo + pm);
+         idx4 = f.get_scid(i, j, nHalo + pm);
       }
 
       // This allows for cumulative boundaries for current density

@@ -2,6 +2,7 @@ buildDir/
 meson-build-debug/
 .idea/
 .venv/
+__pycache__
 
 *.png
 *.csv

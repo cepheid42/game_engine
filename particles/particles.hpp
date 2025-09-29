@@ -6,7 +6,7 @@
 #include "morton.hpp"
 #include "constants.hpp"
 
-// #include <gfx/timsort.hpp>
+#include <gfx/timsort.hpp>
 
 #include <vector>
 #include <algorithm>
@@ -36,7 +36,7 @@ constexpr std::size_t getCellIndex(const vec3<double>& loc) {
    const auto x = static_cast<std::size_t>(std::floor(loc[0]));
    const auto y = static_cast<std::size_t>(std::floor(loc[1]));
    const auto z = static_cast<std::size_t>(std::floor(loc[2]));
-   return z + (Ncz * y) + (Ncy * Ncz * x);
+   return z + ((Nz - 1) * y) + ((Ny - 1) * (Nz - 1) * x);
 }
 
 constexpr auto calculateGamma(const auto& v) {
@@ -50,12 +50,12 @@ constexpr auto calculateGammaV(const auto& v) {
 }
 
 struct ParticleGroup {
-   static constexpr std::size_t SORT_INTERVAL = 50;
+   static constexpr std::size_t SORT_INTERVAL = 100;
    std::string name;
    double mass;
    double charge;
    double qdt_over_2m;
-   // double initial_y_position{};
+   double initial_y_position{};
    std::vector<Particle> particles{};
 
    ParticleGroup() = delete;
@@ -69,27 +69,28 @@ struct ParticleGroup {
 
    [[nodiscard]] std::size_t num_particles() const { return particles.size(); }
 
-   // void reset_y_positions() {
-   //    #pragma omp parallel for simd num_threads(nThreads)
-   //    for (std::size_t pid = 0; pid < particles.size(); pid++) {
-   //       particles[pid].location[1] = initial_y_position;
-   //    }
-   // }
+   void reset_y_positions() {
+      #pragma omp parallel for simd num_threads(nThreads)
+      for (std::size_t pid = 0; pid < particles.size(); pid++) {
+         particles[pid].location[1] = initial_y_position;
+      }
+   }
 
    void sort_particles() {
       std::erase_if(particles, [](const Particle& p) { return p.disabled; });
-      // gfx::timsort(
-      //    particles,
-      //    [](const Particle& a, const Particle& b) {
-      //       return morton_encode(getCellIndices<std::size_t>(a.location)) < morton_encode(getCellIndices<std::size_t>(b.location));
-      //    }
-      // );
-      std::ranges::sort(
+      gfx::timsort(
          particles,
          [](const Particle& a, const Particle& b) {
             return morton_encode(getCellIndices<std::size_t>(a.location)) < morton_encode(getCellIndices<std::size_t>(b.location));
          }
       );
+
+      // std::ranges::sort(
+      //    particles,
+      //    [](const Particle& a, const Particle& b) {
+      //       return morton_encode(getCellIndices<std::size_t>(a.location)) < morton_encode(getCellIndices<std::size_t>(b.location));
+      //    }
+      // );
    }
 }; // end struct ParticleGroup
 
@@ -145,7 +146,7 @@ struct ParticleInitializer {
          throw std::runtime_error("Particle initialization failed: Particles vector is empty.");
       }
       g.sort_particles();
-      // g.initial_y_position = g.particles.empty() ? 0.0 : g.particles[0].location[1];
+      g.initial_y_position = g.particles.empty() ? 0.0 : g.particles[0].location[1];
       return g;
    } // end initializeFromFile
 }; // end struct ParticleInitializer

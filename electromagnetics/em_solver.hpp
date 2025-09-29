@@ -24,9 +24,12 @@ struct EMSolver {
    using Z0BC = TypeListAt<4, boundary_t>;
    using Z1BC = TypeListAt<5, boundary_t>;
 
-   static constexpr offset_t Ex_offsets = {0, 0, 1, 1, 1, 1};
+   // static constexpr offset_t Ex_offsets = {0, 0, 1, 1, 1, 1};
+   // static constexpr offset_t Ey_offsets = {1, 1, 0, 0, 1, 1};
+   // static constexpr offset_t Ez_offsets = {1, 1, 1, 1, 0, 0};
+   static constexpr offset_t Ex_offsets = {0, 0, 0, 0, 1, 1};
    static constexpr offset_t Ey_offsets = {1, 1, 0, 0, 1, 1};
-   static constexpr offset_t Ez_offsets = {1, 1, 1, 1, 0, 0};
+   static constexpr offset_t Ez_offsets = {1, 1, 0, 0, 0, 0};
 
    explicit EMSolver() = delete;
 
@@ -156,6 +159,10 @@ struct EMSolver {
 
    void apply_srcs(const double t) {
       for (const auto& src: emdata.srcs) {
+         src.apply(t);
+      }
+
+      for (const auto& src: emdata.beams) {
          src.apply(t);
       }
    }

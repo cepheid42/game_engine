@@ -7,7 +7,7 @@ import multiprocessing as mp
 import matplotlib.pyplot as plt
 # from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.cm import ScalarMappable
-from matplotlib import colors
+from matplotlib import colors, ticker
 from matplotlib.collections import LineCollection
 
 from scipy import constants, special
@@ -160,10 +160,14 @@ def plot_metric(n, step, metric, group_name, file_dir):
     fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
     # ax.set_aspect('equal')
 
-    im = ax.pcolormesh(xs, zs, data[:, ny // 2, :])
-    # im = ax.contourf(xs, ys, data[:, :, nz // 2], levels=100)
+    norm = colors.LogNorm(vmin=1e24, vmax=1e28)
+    im = ax.contourf(zs, xs, data[:, 0, :], levels=np.logspace(24, 28, 50), norm=norm, cmap='jet')
+    fig.colorbar(ScalarMappable(norm=norm, cmap='jet'), ax=ax, shrink=0.82)
+
+    # im = ax.pcolormesh(xs, zs, data[:, ny // 2, :])
+    # im = ax.contourf(xs, zs, data[:, ny // 2, :], levels=levels, norm=colors.LogNorm(), cmap='plasma')
     # im = ax.contourf(zs, xs, data[:, ny // 2, :], levels=100)
-    fig.colorbar(im, ax=ax)
+    # fig.colorbar(im, ax=ax)
 
     ax.set_title(f'{group_name.capitalize()} {metric} @ {time:.4e} ns')
     ax.set_ylabel(r'x ($\mu$m)')
@@ -186,26 +190,24 @@ def plot_single_field(n, step, name, file_dir):
 
     nnx, nny, nnz = field.shape
 
-    fig, ax = plt.subplots(figsize=(10, 10), layout='constrained')
-    # fig.supxlabel(r'z ($\mu$m)')
-    # fig.supylabel(r'x ($\mu$m)')
-    # fig.suptitle(f'{name} @ {time:.4e} ns')
-
-    # ax.plot(xs, field[:, 0, 50], label=f'{name}')
-    # ax.hlines([-1.0, 1.0], xmin=xs[10], xmax=xs[-10], linestyles='--')
-
-    # vmin, vmax = -6e12, 6e12
-    # norm = colors.Normalize(vmin=vmin, vmax=vmax)
-    # im = ax.contourf(field[:, nny // 2, :], cmap='plasma')
-    im = ax.pcolormesh(field[:, nny // 2, :])
-    fig.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=0.8)
-    # fig.colorbar(ScalarMappable(norm=norm, cmap='jet'), ax=ax, format='{x:3.1e}', pad=0.01, shrink=1.0)
-    ax.set_aspect('equal')
-
-    # plt.show()
-    plt.savefig(data_dir + f'/pngs/{name}_{n // step:010}.png')
-    plt.clf()
-    plt.close(fig)
+    # fig, ax = plt.subplots(figsize=(10, 10), layout='constrained')
+    # # fig.supxlabel(r'z ($\mu$m)')
+    # # fig.supylabel(r'x ($\mu$m)')
+    # # fig.suptitle(f'{name} @ {time:.4e} ns')
+    #
+    # # ax.plot(xs, field[:, 0, 50], label=f'{name}')
+    # # ax.hlines([-1.0, 1.0], xmin=xs[10], xmax=xs[-10], linestyles='--')
+    #
+    # # im = ax.pcolormesh(field[:, nny // 2, :])
+    # # fig.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=0.8)
+    # # fig.colorbar(ScalarMappable(norm=norm, cmap='jet'), ax=ax, format='{x:3.1e}', pad=0.01, shrink=1.0)
+    # ax.set_aspect('equal')
+    #
+    # # plt.show()
+    # plt.savefig(data_dir + f'/pngs/{name}_{n // step:010}.png')
+    # plt.clf()
+    # plt.close(fig)
+    return np.max(field[:, nny // 2, :])
 
 
 def plot_fields(n, step, file_dir):
@@ -213,7 +215,7 @@ def plot_fields(n, step, file_dir):
         field = load_field(n, name, file_dir)
         nnx, nny, nnz = field.shape
         # field = field[:, :, nnz // 2]
-        field = field[:, nny // 2, :]
+        field = field[:, 0, :]
 
         if name[0] == 'H':
             field *= H_to_B
@@ -221,9 +223,9 @@ def plot_fields(n, step, file_dir):
         # xs = np.linspace(xmin, xmax, field.shape[0])
         # zs = np.linspace(zmin, zmax, field.shape[1])
         # norm = colors.Normalize(vmin=vmin, vmax=vmax)
-        im = ax.pcolormesh(field, cmap='plasma')
-        # im = ax.contourf(field, levels=100, cmap='plasma', vmin=vmin, vmax=vmax)
-        figure.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=1.0)
+        # im = ax.pcolormesh(field, cmap='plasma')
+        im = ax.contourf(field, cmap='plasma')
+        figure.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=0.5)
         # figure.colorbar(ScalarMappable(norm=norm, cmap='plasma'), ax=ax, format='{x:3.1e}', pad=0.01, shrink=1.0)
         ax.set_aspect('equal')
         ax.set_title(f'{name}')
@@ -232,7 +234,7 @@ def plot_fields(n, step, file_dir):
     # with FileReader(data_dir + file_dir + filename) as f:
     #     step = f.read_attribute('step')
 
-    fig, axes = plt.subplots(nrows=3, ncols=3, figsize=(14, 10), layout='constrained', sharex=True, sharey=False)
+    fig, axes = plt.subplots(nrows=3, ncols=3, figsize=(12, 8), layout='constrained', sharex=True, sharey=False)
     fig.supxlabel(r'z ($\mu$m)')
     fig.supylabel(r'x ($\mu$m)')
     # fig.suptitle(f'Fields @ {time:.4e} ns')
@@ -271,23 +273,18 @@ def plot_field_energy(start, stop, step, file_dir):
     with FileReader(data_dir + file_dir + filename) as f:
         dt = f.read_attribute('dt')
 
-    targs = [(n, file_dir) for n in range(start, stop, step)]
+    targs = [(n, file_dir) for n in range(start, stop + step, step)]
     with mp.Pool(16) as p:
         result = p.starmap(total_field_energy, targs)
     result = np.asarray(result)
 
-    time = np.linspace(0, stop * dt * s_to_ns, stop // step)
+    time = np.linspace(0, stop * dt * s_to_ns, (stop + step) // step)
     fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
 
-    lsp_data = np.loadtxt('/home/cepheid/TriForce/game_engine/data/seinfeld_lsp_fields.csv', delimiter=',', dtype=np.float64)
+    # lsp_data = np.loadtxt('/home/cepheid/TriForce/game_engine/data/seinfeld_lsp_fields.csv', delimiter=',', dtype=np.float64)
+    # ax.plot(lsp_data[:, 0], lsp_data[:, 1], label='LSP')
 
-    # ax.plot(time, result[:, 0], label='E-Field')
-    # ax.plot(time, result[:, 1], label='H-Field')
-    # ax.plot(time, result[:, 2], '-.', label='Total')
     ax.plot(time, result)
-    ax.plot(lsp_data[:, 0], lsp_data[:, 1])
-    # ax.hlines([1.3e-6, 3e-6], xmin=0, xmax=80, colors=['b', 'r'])
-    # ax.vlines([20, 40], ymin=0, ymax=3.0e-6, colors=['k', 'r'])
 
     # ax.set_ylim([0, 3.0e-6])
     ax.set_xlim([time[0], time[-1]])
@@ -322,29 +319,30 @@ def plot_KE(groups, start, stop, step, file_dir):
 
     group_data = {}
     for g in groups:
-        targs = [(n, g, file_dir) for n in range(start, stop, step)]
+        targs = [(n, g, file_dir) for n in range(start, stop + step, step)]
         with mp.Pool(16) as p:
             ke = p.starmap(calculate_KE, targs)
         group_data[g] = np.asarray(ke)
 
-    time = np.linspace(0, stop * dt * s_to_ns, stop // step)
+    time = np.linspace(0, stop * dt * s_to_ns, (stop + step) // step)
     fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
 
-    lsp_data = np.loadtxt('/home/cepheid/TriForce/game_engine/data/seinfeld_lsp_particleke.csv', delimiter=',', dtype=np.float64)
+    # lsp_data = np.loadtxt('/home/cepheid/TriForce/game_engine/data/seinfeld_lsp_particleke.csv', delimiter=',', dtype=np.float64)
+    # ax.plot(lsp_data[:, 0], lsp_data[:, 1], label='LSP')
 
     ke_sum = group_data['electrons'] + group_data['ions']
     ax.plot(time, ke_sum)
-    ax.plot(lsp_data[:, 0], lsp_data[:, 1])
 
-    # for name, data in group_data.items():
-    #     ax.plot(time, data, label=name)
+    for name, data in group_data.items():
+        ax.plot(time, data, label=name)
+
     ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
     # ax.set_ylim([2.2745e-4, 2.305e-4])
     ax.set_xlim([time[0], time[-1]])
     ax.set_xlabel('Time (ns)')
     ax.set_ylabel('KE (J)')
     ax.set_title(f'Total Particle KE')
-    # ax.legend()
+    ax.legend()
     plt.savefig(data_dir + f'/total_particle_energy.png')
     plt.clf()
     plt.close(fig)
@@ -352,30 +350,30 @@ def plot_KE(groups, start, stop, step, file_dir):
 
 
 def main():
-    step = 40
+    step = 100
     start = 0
-    stop = 8000
+    stop = 7500
 
     file_dir = '/lsi_test'
 
     # plot_distributions(start, stop, step, 'electrons', file_dir)
     # plot_distributions(start, stop, step, 'ions', file_dir)
 
-    # targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop, step)]
+    # targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
     #    p.starmap(plot_metric, targs)
-
-    # targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop, step)]
+    #
+    # targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
     #    p.starmap(plot_metric, targs)
-
-    # targs = [(n, step, file_dir) for n in range(start, stop, step)]
-    # with mp.Pool(16) as p:
+    #
+    # targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
+    # with mp.Pool(8) as p:
     #    p.starmap(plot_fields, targs)
 
-    # targs = [(n, step, 'Jx', file_dir) for n in range(start, stop, step)]
+    # targs = [(n, step, 'Ey', file_dir) for n in range(start, stop, step)]
     # with mp.Pool(16) as p:
-    #     p.starmap(plot_single_field, targs)
+    #     max_fields = p.starmap(plot_single_field, targs)
 
     # particle_positions(start, stop, step, 'electrons', file_dir)
 

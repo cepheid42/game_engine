@@ -23,7 +23,6 @@ struct RickerSource final : TemporalSource {
       constexpr auto Md = 2.0;
       const auto alpha = math::SQR(static_cast<double>(constants::pi<double>) * freq * (t - Md / freq));
       const auto temp = (1.0 - 2.0 * alpha) * std::exp(-alpha);
-      // std::println("{}", temp);
       return temp;
    }
 
@@ -84,8 +83,7 @@ struct GaussianSource final : TemporalSource {
 
 
 struct ContinuousSource final : TemporalSource {
-   explicit ContinuousSource(const double omega_, const double phase_, const double start_,
-                             const double stop_)
+   explicit ContinuousSource(const double omega_, const double phase_, const double start_, const double stop_)
    : omega(omega_),
      start(start_),
      stop(stop_),
@@ -212,11 +210,11 @@ void add_gaussianbeam(auto& em) {
    constexpr auto freq = constants::c<double> / 8.0e-7; // Hz -> c / 800 nm
    constexpr auto omega = 2.0 * constants::pi<double> * freq;
 
-   constexpr auto amp = 1.59 * 2.75e13; // V/m
+   constexpr auto amp = 1.583 * 2.75e13; // V/m
    constexpr auto w0 = 2.5479e-6; // meters, waste size
 
    constexpr auto width = 1.2739827e-14; // ~12.74 fs
-   constexpr auto delay = 2.0 * width;
+   constexpr auto delay = 4.0 * width;
 
    vec3 waist_pos{0.0, 0.0, 0.0};
 
@@ -229,7 +227,7 @@ void add_gaussianbeam(auto& em) {
 
    using continuous_t = ContinuousSource;
    auto make_continuous = [&](temporal_vec& srcs) {
-      srcs.push_back(std::make_unique<continuous_t>(omega, 0.0f, 0.0f, 1.0e30f, dx));
+      srcs.push_back(std::make_unique<continuous_t>(omega, 0.0, 0.0, 1.0e30));
    };
 
    using gaussian_t = GaussianSource;

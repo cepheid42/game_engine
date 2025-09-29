@@ -1,13 +1,13 @@
 project(
     'game_engine',
-    'cpp',
+    'cpp', 'cuda',
     version : '0.0.1',
     default_options : [
 #        'buildtype=debug',
-        'buildtype=debugoptimized',
-#        'buildtype=release',
+#        'buildtype=debugoptimized',
+        'buildtype=release',
         'warning_level=3',
-        'cpp_std=c++23',
+        'cpp_std=c++20',
 #        'b_sanitize=address',
         'b_lto=true',
 #        'b_pgo=generate',
@@ -35,6 +35,10 @@ gcc_opts = [
     '-ftree-vectorize',
 ]
 
+#cuda_opts = [
+#
+#]
+
 includes = include_directories(
     'electromagnetics',
     'metrics',
@@ -44,13 +48,14 @@ includes = include_directories(
 )
 
 sources = [
-    'main.cpp'
+    'main.cpp',
+    './electromagnetics/em_test.cu'
 ]
 
 deps = [
     dependency('adios2', required : true),
     dependency('OpenMP'),
-    #    dependency('cuda')
+    dependency('cuda')
 ]
 
 game_engine = executable(

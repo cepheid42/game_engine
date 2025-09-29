@@ -6,34 +6,23 @@
 #include "vec3.hpp"
 
 #include <cmath>
+#include <array>
 
 namespace tf::interp
 {
 template<int D>
 constexpr auto rotateOrigin(const auto x, const auto y, const auto z) {
-   if constexpr (D == 0) {
-      return vec3{y, z, x};
-   }
-   else if constexpr (D == 1) {
-      return vec3{z, x, y};
-   }
-   else {
-      return vec3{x, y, z};
-   }
+   if      constexpr (D == 0) { return std::array{y, z, x}; } // 1, 2, 0
+   else if constexpr (D == 1) { return std::array{z, x, y}; } // 2, 0, 1
+   else                       { return std::array{x, y, z}; } // 0, 1, 2
 }
 
-template<int D>
-constexpr auto rotateOrigin(const auto& p) {
-   if constexpr (D == 0) {
-      return vec3{p[1], p[2], p[0]};
-   }
-   else if constexpr (D == 1) {
-      return vec3{p[2], p[0], p[1]};
-   }
-   else {
-      return p;
-   }
-}
+// template<int D>
+// constexpr auto rotateOrigin(const auto& p) {
+//    if      constexpr (D == 0) { return vec3{p[1], p[2], p[0]}; } // y, z, x
+//    else if constexpr (D == 1) { return vec3{p[2], p[0], p[1]}; } // z, x, y
+//    else                       { return p; }                      // x, y, z
+// }
 
 struct NGP {
    static constexpr int         Begin   = -1;
@@ -49,7 +38,9 @@ struct NGP {
       return std::array{1.0};
    }
 
-   static constexpr auto ds_array(auto, const auto&) = delete;
+   static constexpr auto ds_array(const auto, const auto&) {
+      return std::array{1.0};
+   }
 };
 
 struct CIC {
@@ -102,37 +93,36 @@ struct TSC {
    }
 };
 
+struct PQS {
+   static constexpr int         Begin   = -1;
+   static constexpr int         End     = 2;
+   static constexpr std::size_t Order   = 3;
+   static constexpr std::size_t Support = 4;
 
-// struct PQS {
-//    static constexpr int         Begin   = -1;
-//    static constexpr int         End     = 2;
-//    static constexpr std::size_t Order   = 3;
-//    static constexpr std::size_t Support = 4;
-//
-//    static constexpr auto innerRadius(const double x) {
-//       return (2.0 / 3.0) - math::SQR(x) + 0.5 * math::CUBE(x);
-//    }
-//
-//    static constexpr auto outerRadius(const double x) {
-//       return (1.0 / 6.0) * math::CUBE(2.0 - x);
-//    }
-//
-//    static constexpr auto eval(const double x) {
-//       const auto absx = std::abs(x);
-//       return absx < 1.0 ? innerRadius(x) : outerRadius(absx);
-//    }
-//
-//    static constexpr auto shape_array(const double x) {
-//       assert(false);
-//       return std::array{eval(x - Begin), eval(x), eval(x - 1.0), eval(x - End)};
-//    }
-// };
+   static constexpr auto innerRadius(const double x) {
+      return (2.0 / 3.0) - math::SQR(x) + 0.5 * math::CUBE(x);
+   }
+
+   static constexpr auto outerRadius(const double x) {
+      return (1.0 / 6.0) * math::CUBE(2.0 - x);
+   }
+
+   static constexpr auto eval(const double x) {
+      const auto absx = std::abs(x);
+      return absx <= 1.0 ? innerRadius(x) : outerRadius(absx);
+   }
+
+   static constexpr auto shape_array(const double x) {
+      assert(false);
+      return std::array{eval(x - Begin), eval(x), eval(x - 1.0), eval(x - End)};
+   }
+};
 
 template<int ShapeOrder> struct InterpolationShape;
 template<> struct InterpolationShape<0> { using Type = NGP; };
 template<> struct InterpolationShape<1> { using Type = CIC; };
 template<> struct InterpolationShape<2> { using Type = TSC; };
-// template<> struct InterpolationShape<3> { using Type = PQS; };
+template<> struct InterpolationShape<3> { using Type = PQS; };
 
 template<typename Outer, typename Middle, typename Inner>
 struct InterpolationStrategy {

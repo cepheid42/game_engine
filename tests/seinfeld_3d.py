@@ -6,12 +6,12 @@ from scipy import constants
 sim_name = 'seinfeld_3d'
 
 nx = 45
-ny = 45
+ny = 2
 nz = 101
 nhalo = 2
 
 xmin, xmax = -0.11, 0.11
-ymin, ymax = -0.11, 0.11
+ymin, ymax = 0.0, 0.005
 zmin, zmax = -0.25, 0.25
 
 dx = (xmax - xmin) / (nx - 1)
@@ -19,17 +19,30 @@ dy = (ymax - ymin) / (ny - 1)
 dz = (zmax - zmin) / (nz - 1)
 
 cfl = 0.95
-dt = 5.0e-12
-t_end = 16000 * dt
+dt = 2.5e-12
+t_end = 4000 * dt
 nt = int(t_end / dt) + 1
 
 save_interval = 40
 nthreads = 24
 interp_order = 1
 
-PMLDepth = 6
+# ===== EM =====
+# Periodic = 0, PML = 1, Reflecting = 2
+BCS = [1, 1, 2, 2, 1, 1]
+bc_str = f'{BCS[0]}zu, {BCS[1]}zu, {BCS[2]}zu, {BCS[3]}zu, {BCS[4]}zu, {BCS[5]}zu'
+PMLDepth = 15
 PMLGrade = 3.5
 PMLAlphaMax = 0.2
+
+# ===== Particles =====
+init_temp = 10000 # eV
+init_density = 8.5e27 # m^3
+ppc = (10, 1, 10)
+p_range = ((-5e-7, 5e-7), # pxmin, pxmax
+           (ymin, ymax),  # pymin, pymax
+           (-1e-5, 1e-5)) # pzmin, pzmax
+particleBCs = 1
 
 program_params = (
     '#ifndef PROGRAM_PARAM_HPP\n'
@@ -42,7 +55,6 @@ program_params = (
     f'inline constexpr auto Nx = {nx}zu;\n'
     f'inline constexpr auto Ny = {ny}zu;\n'
     f'inline constexpr auto Nz = {nz}zu;\n'
-    f'inline constexpr auto NHalo = {nhalo}zu;\n'
     '\n'
     f'inline constexpr std::array x_range = {{{xmin}, {xmax}}};\n'
     f'inline constexpr std::array y_range = {{{ymin}, {ymax}}};\n'
@@ -58,25 +70,42 @@ program_params = (
     f'inline constexpr auto Nt    = {nt}zu;\n'
     '\n'
     f'inline constexpr auto save_interval = {save_interval}zu;\n'
-    f'inline constexpr auto interpolation_order = {interp_order}zu;\n'
     '\n'
-    f'inline constexpr auto Ncx = {nx - 1}zu;\n'
-    f'inline constexpr auto Ncy = {ny - 1}zu;\n'
-    f'inline constexpr auto Ncz = {nz - 1}zu;\n'
+    '/ *--------------------------------------------------------------- /\n'
+    '/ -                        EM Parameters                         - /\n'
+    '/ ---------------------------------------------------------------* /\n'
+    'enum class EMFace { X, Y, Z };\n'
+    'enum class EMSide { Lo, Hi };\n'
     '\n'
     f'inline constexpr auto PMLDepth    = {PMLDepth}zu;\n'
     f'inline constexpr auto PMLGrade    = {PMLGrade};\n'
     f'inline constexpr auto PMLAlphaMax = {PMLAlphaMax};\n'
-    f'//inline constexpr auto PMLKappaMax = 1.0;\n'
+    '//inline constexpr auto PMLKappaMax = 1.0;\n'
+    '\n'
+    f'inline constexpr auto nHalo = 2zu;\n'
+    '\n'
+    '// Periodic = 0, PML = 1, Reflecting = 2\n'
+    f'inline constexpr std::array BCSelect = {{{bc_str}}};\n'
+    '\n'
+    '/ *--------------------------------------------------------------- /\n'
+    '/ -                     Particle Parameters                      - /\n'
+    '/ ---------------------------------------------------------------* /\n'
+    'enum class ParticleBCType { Periodic, Outflow };\n'
+    '\n'
+    f'inline constexpr auto interpolation_order = {interp_order}zu;\n'
+    '\n'
+    f'inline constexpr auto PBCSelect = {'ParticleBCType::Periodic' if particleBCs == 0 else 'ParticleBCType::Outflow'};\n'
     '\n'
     '#endif //PROGRAM_PARAM_HPP\n'
 )
 
-param_path = '/home/cepheid/TriForce/game_engine/params/program_params.hpp'
-with open(param_path, 'w+') as f:
+
+param_path = '/home/cepheid/TriForce/game_engine/params/'
+with open(param_path + 'program_params.hpp', 'w+') as f:
     cur_header = f.read()
     if cur_header != program_params:
         f.write(program_params)
+
 
 def make_velocities(mass, T_M, num_particles, velocity=0.0):
     rng = np.random.default_rng()
@@ -164,27 +193,26 @@ def create_particles(name, ppc, prange, density, temp, mass, charge):
 
     weights = np.full((num_particles, 1), density * dx * dy * dz / ppc_total)
     positions = np.vstack((xc.flatten(), yc.flatten(), zc.flatten())).T
-    # velocities = maxwell_juttner(mass, temp, num_particles)
-    # # velocities = make_velocities(mass, temp, num_particles)
-    #
-    # output = np.hstack((positions, velocities, weights))
-    # header = f'{name} {mass} {charge}'
-    # np.savetxt(f'/home/cepheid/TriForce/game_engine/data/{name}.dat', output, delimiter=' ', header=header)
+    velocities = maxwell_juttner(mass, temp, num_particles)
 
-    import matplotlib.pyplot as plt
-    plt.scatter(positions[:, 0], positions[:, 1], s=2)
-    plt.xticks(xs)
-    plt.yticks(zs)
-    plt.grid()
-    # plt.xlim([px_min, px_max])
-    # plt.ylim([pz_min, px_max])
-    plt.show()
+    output = np.hstack((positions, velocities, weights))
+    header = f'{name} {mass} {charge}'
+    np.savetxt(f'/home/cepheid/TriForce/game_engine/data/{name}.dat', output, delimiter=' ', header=header)
+
+    # import matplotlib.pyplot as plt
+    # plt.scatter(positions[:, 0], positions[:, 1], s=2)
+    # plt.xticks(xs)
+    # plt.yticks(zs)
+    # plt.grid()
+    # # plt.xlim([px_min, px_max])
+    # # plt.ylim([pz_min, px_max])
+    # plt.show()
 
 
-# init_density = 1.0e17 # m^3
-# p_range = ((-0.04, 0.04), # pxmin, pxmax meters
-#            (-0.04, 0.04), # pymin, pymax
-#            (-0.15, 0.15)) # pzmin, pzmax
-#
-# create_particles('electrons', (3, 3, 3), p_range, init_density, 4.0, constants.m_e, -1.0 * constants.e)
-# create_particles('ions', (2, 2, 2), p_range, init_density, 1.0, constants.m_p, constants.e)
+init_density = 1.0e17 # m^3
+p_range = ((-0.04, 0.04), # pxmin, pxmax meters
+           (0.0, 0.005), # pymin, pymax
+           (-0.15, 0.15)) # pzmin, pzmax
+
+create_particles('electrons', (3, 1, 3), p_range, init_density, 4.0, constants.m_e, -1.0 * constants.e)
+create_particles('ions', (2, 1, 2), p_range, init_density, 1.0, constants.m_p, constants.e)

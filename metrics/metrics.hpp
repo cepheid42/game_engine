@@ -179,9 +179,9 @@ struct ParticleMetric final : detail::MetricBase {
      group(g_),
      var_density(io.DefineVariable<double>("Density", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz}, adios2::ConstantDims)),
      var_temp(io.DefineVariable<double>("Temperature", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz}, adios2::ConstantDims)),
-     density(Ncx * Ncy * Ncz),
-     T_avg(Ncx * Ncy * Ncz),
-     KE_total(Ncx * Ncy * Ncz)
+     density(ncx * ncy * ncz),
+     T_avg(ncx * ncy * ncz),
+     KE_total(ncx * ncy * ncz)
    {}
 
    void update_metrics() {
@@ -252,7 +252,7 @@ struct ParticleMetric final : detail::MetricBase {
    std::vector<double>      density;
    std::vector<double>      T_avg;
    std::vector<double>      KE_total;
-   std::array<std::size_t, 3> dims{Ncx, Ncy, Ncz};
+   std::array<std::size_t, 3> dims{Nx - 1, Ny - 1, Nz - 1};
 };
 
 // =======================================

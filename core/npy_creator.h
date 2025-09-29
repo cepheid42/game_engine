@@ -1,8 +1,8 @@
 #ifndef GAME_ENGINE_NPY_CREATOR_H
 #define GAME_ENGINE_NPY_CREATOR_H
 
-#include "array.hpp"
-#include "vec3.hpp"
+#include "../utilities/array.hpp"
+#include "../utilities/vec3.hpp"
 
 #include <string>
 #include <print>
