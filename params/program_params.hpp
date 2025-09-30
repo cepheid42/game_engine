@@ -45,7 +45,7 @@ inline constexpr std::array BCSelect = {1zu, 1zu, 2zu, 2zu, 1zu, 1zu};
 /---------------------------------------------------------------*/
 enum class ParticleBCType { Periodic, Outflow };
 
-inline constexpr auto interpolation_order = 1zu;
+inline constexpr auto interpolation_order = 2zu;
 
 inline constexpr auto PBCSelect = ParticleBCType::Outflow;
 

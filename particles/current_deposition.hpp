@@ -41,39 +41,22 @@ struct CurrentDeposition {
    static void deposit2d(auto& J,
                          const auto p0, const auto p1,
                          const auto& shapeI0, const auto& shapeJ0,
-                         const auto& shapeDI, const auto& shapeDJ, const auto& shapeDK,
-                         const auto ci, const auto cj, const auto ck, const auto qA) {
+                         const auto& shapeDI, const auto& shapeDJ, const auto&,
+                         const auto ci, const auto cj, const auto, const auto qA) {
       if (p0 == p1) { return; }
 
-      if constexpr (D == 1) {
-         for (int i = Shape::Begin; i <= Shape::End; ++i) {
-            const auto& s0i = shapeI0[i - Shape::Begin];
-            const auto& dsi = shapeDI[i - Shape::Begin];
-            for (int j = Shape::Begin; j <= Shape::End; ++j) {
-               const auto& s0j = shapeJ0[j - Shape::Begin];
-               const auto& dsj = shapeDJ[j - Shape::Begin];
-               #pragma omp atomic update
-               J(cj + j, 0, ci + i) += qA * (s0i * s0j + 0.5 * (dsi * s0j + s0i * dsj) + (1.0 / 3.0) * dsj * dsi);
-            } // end for(j)
-         } // end for(i)
-      } else {
-         for (int i = Shape::Begin; i <= Shape::End; ++i) {
-            const auto& s0i = shapeI0[i - Shape::Begin];
-            const auto& dsi = shapeDI[i - Shape::Begin];
-            for (int j = Shape::Begin; j <= Shape::End; ++j) {
-               const auto& s0j = shapeJ0[j - Shape::Begin];
-               const auto& dsj = shapeDJ[j - Shape::Begin];
-               const auto tmp = -qA * (s0i * s0j + 0.5 * (dsi * s0j + s0i * dsj) + (1.0 / 3.0) * dsj * dsi);
-               auto acc = 0.0;
-               for (int k = Shape::Begin; k <= Shape::End - 1; ++k) {
-                  acc += shapeDK[k - Shape::Begin] * tmp;
-                  const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
-                  #pragma omp atomic update
-                  J(x, y, z) += acc;
-               } // end for(k)
-            } // end for(j)
-         } // end for(i)
-      }
+      for (int i = Shape::Begin; i <= Shape::End; ++i) {
+         const auto& s0i = shapeI0[i - Shape::Begin];
+         const auto& dsi = shapeDI[i - Shape::Begin];
+         for (int j = Shape::Begin; j <= Shape::End; ++j) {
+            const auto& s0j = shapeJ0[j - Shape::Begin];
+            const auto& dsj = shapeDJ[j - Shape::Begin];
+            const auto result = qA * (s0i * s0j + 0.5 * (dsi * s0j + s0i * dsj) + (1.0 / 3.0) * dsj * dsi);
+            const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, 0zu);
+            #pragma omp atomic update
+            J(x, y, z) += result;
+         } // end for(j)
+      } // end for(i)
    } // end deposit()
 
 
@@ -87,7 +70,8 @@ struct CurrentDeposition {
       if (p.disabled) { return; }
 
       const auto x_coeff = p.weight * charge * dtAyz;
-      const auto y_coeff = p.weight * charge * p.velocity[1] / (dx * dy * dz); //dtAxz;
+      // const auto y_coeff = p.weight * charge * dtAxz;
+      const auto y_coeff = p.weight * charge * p.velocity[1] / (dx * dy * dz);
       const auto z_coeff = p.weight * charge * dtAxy;
 
       static constexpr auto offset = Shape::Order % 2 == 0 ? 0.5 : 1.0;
@@ -112,9 +96,11 @@ struct CurrentDeposition {
       auto dsi = Shape::ds_array(p1[0], s0i);
       auto dsj = Shape::ds_array(p1[1], s0j);
       auto dsk = Shape::ds_array(p1[2], s0k);
-      deposit2d<0, Shape>(emdata.Jx, p0[0], p1[0], s0j, s0k, dsj, dsk, dsi, idx0[1], idx0[2], idx0[0], x_coeff); // y-z-x
+
+      deposit<0, Shape>(emdata.Jx, p0[0], p1[0], s0j, s0k, dsj, dsk, dsi, idx0[1], idx0[2], idx0[0], x_coeff); // y-z-x
+      // deposit<1, Shape>(emdata.Jy, p0[1], p1[1], s0k, s0i, dsk, dsi, dsj, idx0[2], idx0[0], idx0[1], y_coeff); // z-x-y
       deposit2d<1, Shape>(emdata.Jy, p0[1], p1[1], s0k, s0i, dsk, dsi, dsj, idx0[2], idx0[0], idx0[1], y_coeff); // z-x-y
-      deposit2d<2, Shape>(emdata.Jz, p0[2], p1[2], s0i, s0j, dsi, dsj, dsk, idx0[0], idx0[1], idx0[2], z_coeff); // x-y-z
+      deposit<2, Shape>(emdata.Jz, p0[2], p1[2], s0i, s0j, dsi, dsj, dsk, idx0[0], idx0[1], idx0[2], z_coeff); // x-y-z
 
       if (i0 != i1) {
          p0 = relay - i1;
@@ -126,9 +112,9 @@ struct CurrentDeposition {
          dsj = Shape::ds_array(p1[1], s0j);
          dsk = Shape::ds_array(p1[2], s0k);
 
-         deposit2d<0, Shape>(emdata.Jx, p0[0], p1[0], s0j, s0k, dsj, dsk, dsi, idx1[1], idx1[2], idx1[0], x_coeff); // y-z-x
+         deposit<0, Shape>(emdata.Jx, p0[0], p1[0], s0j, s0k, dsj, dsk, dsi, idx1[1], idx1[2], idx1[0], x_coeff); // y-z-x
          // deposit<1, Shape>(emdata.Jy, p0[1], p1[1], s0k, s0i, dsk, dsi, dsj, idx1[2], idx1[0], idx1[1], y_coeff); // z-x-y
-         deposit2d<2, Shape>(emdata.Jz, p0[2], p1[2], s0i, s0j, dsi, dsj, dsk, idx1[0], idx1[1], idx1[2], z_coeff); // x-y-z
+         deposit<2, Shape>(emdata.Jz, p0[2], p1[2], s0i, s0j, dsi, dsj, dsk, idx1[0], idx1[1], idx1[2], z_coeff); // x-y-z
       }
    } // end updateJ()
    

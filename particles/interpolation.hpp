@@ -113,8 +113,14 @@ struct PQS {
    }
 
    static constexpr auto shape_array(const double x) {
-      assert(false);
       return std::array{eval(x - Begin), eval(x), eval(x - 1.0), eval(x - End)};
+   }
+
+   static constexpr auto ds_array(const auto x1, const auto& s0) {
+      return std::array{eval(x1 - Begin) - s0[0],
+                        eval(x1)         - s0[1],
+                        eval(x1 - 1.0)   - s0[2],
+                        eval(x1 - End)   - s0[2]};
    }
 };
 

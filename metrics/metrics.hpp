@@ -4,6 +4,7 @@
 #include "program_params.hpp"
 #include "array.hpp"
 #include "particles.hpp"
+#include "interpolation.hpp"
 
 #include <adios2.h>
 
@@ -153,16 +154,16 @@ struct ParticleDumpMetric final : detail::MetricBase {
       gamma.clear();
    }
 
-   adios2::IO                  io;
-   const group_t*              group;
+   adios2::IO               io;
+   const group_t*           group;
    adios2::Variable<double> var_loc;
    adios2::Variable<double> var_vel;
    adios2::Variable<double> var_w;
-   adios2::Variable<double>    var_gamma;
-   std::vector<double> position{};
-   std::vector<double> velocity{};
-   std::vector<double> weight{};
-   std::vector<double>    gamma{};
+   adios2::Variable<double> var_gamma;
+   std::vector<double>      position{};
+   std::vector<double>      velocity{};
+   std::vector<double>      weight{};
+   std::vector<double>      gamma{};
 };
 
 // ========================================================
@@ -179,7 +180,7 @@ struct ParticleMetric final : detail::MetricBase {
      group(g_),
      var_density(io.DefineVariable<double>("Density", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz}, adios2::ConstantDims)),
      var_temp(io.DefineVariable<double>("Temperature", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz}, adios2::ConstantDims)),
-     density(ncx * ncy * ncz),
+     density(ncx, ncy, ncz),
      T_avg(ncx * ncy * ncz),
      KE_total(ncx * ncy * ncz)
    {}
@@ -194,24 +195,52 @@ struct ParticleMetric final : detail::MetricBase {
       std::ranges::fill(T_avg, 0.0);
       std::ranges::fill(KE_total, 0.0);
 
+      using Shape = interp::InterpolationShape<1>::Type;
+
       #pragma omp parallel num_threads(nThreads)
       {
          #pragma omp for
          for (std::size_t pid = 0; pid < group->num_particles(); pid++) {
             const auto& p   = group->particles[pid];
-            const auto  cid = particles::getCellIndex(p.location);
-            #pragma omp atomic update
-            density[cid] += p.weight;
-            #pragma omp atomic update
-            KE_total[cid] += p.weight * mc2 * (p.gamma - 1.0);
+            if (p.disabled) { continue; }
+            const vec3 loc_half = particles::getCellIndices<double>(p.location + 1.0) + 0.5;
+            const vec3 hid = loc_half.as_type<std::size_t>();
+
+            const vec3 p_half = p.location - loc_half;
+            const auto shapeI0 = Shape::shape_array(p_half[0]);
+            const auto shapeJ0 = Shape::shape_array(p_half[1]);
+            const auto shapeK0 = Shape::shape_array(p_half[2]);
+
+            for (int i = Shape::Begin; i <= Shape::End; ++i) {
+               const auto& s0i = shapeI0[i - Shape::Begin];
+               for (int j = Shape::Begin; j <= Shape::End; ++j) {
+                  const auto& s0j = shapeJ0[j - Shape::Begin];
+                  for (int k = Shape::Begin; k <= Shape::End; ++k) {
+                     const auto& s0k = shapeK0[k - Shape::Begin];
+                     #pragma omp atomic update
+                     density(hid[0] + i, hid[1] + j, hid[2] + k) += s0i * s0j * s0k * p.weight;
+                  } // end for(k)
+               } // end for(j)
+            } // end for(i)
          }
 
-         #pragma omp for
-         for (std::size_t i = 0; i < T_avg.size(); i++) {
-            if (density[i] == 0.0) { continue; }
-            T_avg[i] = temp_coef * KE_total[i] / density[i];
-         }
 
+         // #pragma omp for
+         // for (std::size_t pid = 0; pid < group->num_particles(); pid++) {
+         //    const auto& p   = group->particles[pid];
+         //    const auto  cid = particles::getCellIndex(p.location);
+         //    #pragma omp atomic update
+         //    density[cid] += p.weight;
+         //    #pragma omp atomic update
+         //    KE_total[cid] += p.weight * mc2 * (p.gamma - 1.0);
+         // }
+         //
+         // #pragma omp for
+         // for (std::size_t i = 0; i < T_avg.size(); i++) {
+         //    if (density[i] == 0.0) { continue; }
+         //    T_avg[i] = temp_coef * KE_total[i] / density[i];
+         // }
+         //
          #pragma omp for
          for (std::size_t i = 0; i < density.size(); i++) {
             density[i] *= V_cell_inv;
@@ -249,7 +278,7 @@ struct ParticleMetric final : detail::MetricBase {
    const group_t*              group;
    adios2::Variable<double> var_density;
    adios2::Variable<double> var_temp;
-   std::vector<double>      density;
+   Array3D<double>          density;
    std::vector<double>      T_avg;
    std::vector<double>      KE_total;
    std::array<std::size_t, 3> dims{Nx - 1, Ny - 1, Nz - 1};

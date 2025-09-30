@@ -359,13 +359,13 @@ def main():
     # plot_distributions(start, stop, step, 'electrons', file_dir)
     # plot_distributions(start, stop, step, 'ions', file_dir)
 
-    # targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop + step, step)]
-    # with mp.Pool(16) as p:
-    #    p.starmap(plot_metric, targs)
+    targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop + step, step)]
+    with mp.Pool(16) as p:
+       p.starmap(plot_metric, targs)
     #
-    # targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop + step, step)]
-    # with mp.Pool(16) as p:
-    #    p.starmap(plot_metric, targs)
+    targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop + step, step)]
+    with mp.Pool(16) as p:
+       p.starmap(plot_metric, targs)
     #
     # targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(8) as p:
