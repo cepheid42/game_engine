@@ -79,7 +79,7 @@ struct BorisPush {
    static void update_velocity(Particle& p, const emdata_t& emdata, const auto qdt) {
       if (p.disabled) { return; }
 
-      const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
+      const auto [eps, bet] = fieldAtParticle(p, emdata, qdt);
 
       // u = gamma * v
       const auto um = p.gamma * p.velocity + eps;
@@ -96,7 +96,7 @@ struct BorisPush {
    static void update_position(Particle& p) {
       static constexpr vec3 delta_inv{dt / dx, dt / dy, dt / dz};
 
-      // if (p.disabled) { return; }
+      if (p.disabled) { return; }
 
       auto new_loc = p.location + delta_inv * p.velocity;
       auto old_loc = p.location;
