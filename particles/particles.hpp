@@ -113,7 +113,8 @@ struct ParticleInitializer {
       vec3<double> velocity{};
       double weight = 0.0;
 
-      std::println("Loading particle file: {}... ", filename);
+      // std::println("Loading particle file: {}... ", filename);
+      std::cout << "Loading particle file: " << filename << "..." << std::endl;
 
       std::string line;
       std::getline(file, line);

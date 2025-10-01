@@ -96,7 +96,7 @@ struct BorisPush {
    static void update_position(Particle& p) {
       static constexpr vec3 delta_inv{dt / dx, dt / dy, dt / dz};
 
-      if (p.disabled) { return; }
+      // if (p.disabled) { return; }
 
       auto new_loc = p.location + delta_inv * p.velocity;
       auto old_loc = p.location;

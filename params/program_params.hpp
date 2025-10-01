@@ -20,9 +20,9 @@ inline constexpr auto dz = 2e-08;
 inline constexpr auto cfl   = 1.0;
 inline constexpr auto dt    = 4e-17;
 inline constexpr auto t_end = 3e-13;
-inline constexpr auto Nt    = 7500zu;
+inline constexpr auto Nt    = 500zu;
 
-inline constexpr auto save_interval = 100zu;
+inline constexpr auto save_interval = 5zu;
 
 /*---------------------------------------------------------------/
 /-                        EM Parameters                         -/

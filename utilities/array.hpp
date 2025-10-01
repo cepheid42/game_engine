@@ -25,7 +25,7 @@ public:
    auto end() { return data_.end(); }
 
    auto* data() { return data_.data(); }
-   const auto& vec_data() const { return data_; }
+   // auto& vec_data() { return data_; }
    [[nodiscard]] auto capacity() const { return data_.capacity(); }
    [[nodiscard]] constexpr std::size_t size() const { return data_.size(); }
    [[nodiscard]] constexpr std::size_t num_bytes() const { return size() * sizeof(T); }
@@ -66,8 +66,8 @@ public:
    explicit Array3D() = default;
    explicit Array3D(const std::size_t, const std::size_t, const std::size_t, const auto) {}
    // Specialized accessors
-   static constexpr auto operator()(const std::size_t, const std::size_t, const std::size_t) { return 0.0f; }
-   static constexpr auto operator[](const std::size_t) { return 0.0f; }
+   constexpr auto operator()(const std::size_t, const std::size_t, const std::size_t) const { return 0.0f; }
+   constexpr auto operator[](const std::size_t) const { return 0.0f; }
    static constexpr void fill(auto) {}
 };
 

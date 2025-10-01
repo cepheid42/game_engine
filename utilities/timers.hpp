@@ -4,7 +4,7 @@
 #include <chrono>
 #include <unordered_map>
 #include <string>
-#include <print>
+#include <iostream>
 
 namespace tf::utilities {
 //========== Timer Classes =========
@@ -55,12 +55,18 @@ inline auto create_timers() {
 } // end create_timers()
 
 void print_final_timers(auto& timers) {
-   std::println("   EM: {}", std::chrono::hh_mm_ss(timers["EM"].elapsed));
-   std::println(" Push: {}", std::chrono::hh_mm_ss(timers["Push"].elapsed));
-   // std::println(" Sort: {}", std::chrono::hh_mm_ss(timers["Sort"].elapsed));
-   std::println(" Jdep: {}", std::chrono::hh_mm_ss(timers["Jdep"].elapsed));
-   std::println("   IO: {}", std::chrono::hh_mm_ss(timers["IO"].elapsed));
-   std::println("Total: {}", std::chrono::hh_mm_ss(timers["Main"].elapsed));
+   std::cout << "   EM: " << std::chrono::hh_mm_ss(timers["EM"].elapsed) << '\n';
+   std::cout << " Push: " << std::chrono::hh_mm_ss(timers["Push"].elapsed) << '\n';
+   std::cout << " Jdep: " << std::chrono::hh_mm_ss(timers["Jdep"].elapsed) << '\n';
+   std::cout << "   IO: " << std::chrono::hh_mm_ss(timers["IO"].elapsed) << '\n';
+   std::cout << "Total: " << std::chrono::hh_mm_ss(timers["Main"].elapsed) << std::endl;
+
+   // std::println("   EM: {}", std::chrono::hh_mm_ss(timers["EM"].elapsed));
+   // std::println(" Push: {}", std::chrono::hh_mm_ss(timers["Push"].elapsed));
+   // // std::println(" Sort: {}", std::chrono::hh_mm_ss(timers["Sort"].elapsed));
+   // std::println(" Jdep: {}", std::chrono::hh_mm_ss(timers["Jdep"].elapsed));
+   // std::println("   IO: {}", std::chrono::hh_mm_ss(timers["IO"].elapsed));
+   // std::println("Total: {}", std::chrono::hh_mm_ss(timers["Main"].elapsed));
 }
 
 } // end namespace tf::utilities

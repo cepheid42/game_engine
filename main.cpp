@@ -51,7 +51,14 @@ void add_group_metric(Metrics& metrics, const auto& pg) {
    );
 }
 
+// #include "cuda/em_kernel.cuh"
+
 int main() {
+   // constexpr auto thing = Thingy{};
+   // const cudaClass test{thing};
+   //
+   // test.run();
+
    auto timers = utilities::create_timers();
    timers["Main"].start_timer();
    constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/electrons.dat";

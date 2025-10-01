@@ -350,22 +350,22 @@ def plot_KE(groups, start, stop, step, file_dir):
 
 
 def main():
-    step = 100
+    step = 5
     start = 0
-    stop = 7500
+    stop = 500
 
     file_dir = '/lsi_test'
 
     # plot_distributions(start, stop, step, 'electrons', file_dir)
     # plot_distributions(start, stop, step, 'ions', file_dir)
 
-    targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop + step, step)]
-    with mp.Pool(16) as p:
-       p.starmap(plot_metric, targs)
-    #
-    targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop + step, step)]
-    with mp.Pool(16) as p:
-       p.starmap(plot_metric, targs)
+    # targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop + step, step)]
+    # with mp.Pool(16) as p:
+    #    p.starmap(plot_metric, targs)
+    # #
+    # targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop + step, step)]
+    # with mp.Pool(16) as p:
+    #    p.starmap(plot_metric, targs)
     #
     # targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(8) as p:

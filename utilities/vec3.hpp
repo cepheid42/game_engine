@@ -203,11 +203,11 @@ constexpr std::ostream& operator<<(std::ostream& os, const tf::vec3<T>& v) {
    return os;
 }
 
-template <typename T>
-struct std::formatter<tf::vec3<T>> : std::formatter<std::string> {
-   constexpr auto format(const tf::vec3<T>& p, std::format_context& ctx) const {
-      return std::format_to(ctx.out(), "({}, {}, {})", p[0], p[1], p[2]);
-   }
-};
+// template <typename T>
+// struct std::formatter<tf::vec3<T>> : std::formatter<std::string> {
+//    constexpr auto format(const tf::vec3<T>& p, std::format_context& ctx) const {
+//       return std::format_to(ctx.out(), "({}, {}, {})", p[0], p[1], p[2]);
+//    }
+// };
 
 #endif //TRIFORCE_VECTOR_H

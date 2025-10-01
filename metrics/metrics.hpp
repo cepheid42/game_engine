@@ -188,12 +188,11 @@ struct ParticleMetric final : detail::MetricBase {
    void update_metrics() {
       using Shape = interp::InterpolationShape<1>::Type;
       static constexpr auto V_cell_inv = 1.0 / (dx * dy * dz);
-      static constexpr auto temp_coef  = 2.0 / (3.0 * constants::q_e<double>);
+      // static constexpr auto temp_coef  = 2.0 / (3.0 * constants::q_e<double>);
 
-      const auto mc2 = group->mass * constants::c_sqr<double>;
+      // const auto mc2 = group->mass * constants::c_sqr<double>;
 
-      density.fill(0.0);
-      // std::ranges::fill(density, 0.0);
+      std::ranges::fill(density, 0.0);
       std::ranges::fill(T_avg, 0.0);
       std::ranges::fill(KE_total, 0.0);
 
@@ -242,7 +241,7 @@ struct ParticleMetric final : detail::MetricBase {
          //    T_avg[i] = temp_coef * KE_total[i] / density[i];
          // }
          //
-         #pragma omp for simd
+         #pragma omp for
          for (std::size_t i = 0; i < density.size(); i++) {
             density[i] *= V_cell_inv;
          }
