@@ -2,6 +2,8 @@
 
 # import numpy as np
 from scipy import constants
+import math
+
 from particle_generation import Particles, create_particles
 from domain_params import Simulation, update_header
 
@@ -11,14 +13,17 @@ xmin, xmax = -15.0e-6, 15.0e-6
 zmin, zmax = -15.0e-6, 15.0e-6
 
 dx = (xmax - xmin) / (shape[0] - 1)
-dy = dx
 dz = (zmax - zmin) / (shape[2] - 1)
 
+# ymin, ymax = 0.0, 0.01
+# dy = 0.01
+dy = dx
 ymin, ymax = 0.0, dx
 
 dt = 4.0e-17
 t_end = 3.0e-13
 nt = int(t_end / dt) + 1
+cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
 sim_params = Simulation(
     name='lsi',
@@ -35,7 +40,8 @@ sim_params = Simulation(
     x_range=(xmin, xmax),
     y_range=(ymin, ymax),
     z_range=(zmin, zmax),
-    deltas=(dx, dy, dz)
+    deltas=(dx, dy, dz),
+    cfl=cfl
 )
 
 # ===== Particles =====

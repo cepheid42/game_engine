@@ -42,23 +42,17 @@ void add_group_metric(Metrics& metrics, const auto& pg) {
       )
    );
 
-   metrics.addMetric(
-      std::make_unique<ParticleMetric>(
-         &pg,
-         metrics.adios.DeclareIO(pg.name + "_metrics"),
-         Nx - 1, Ny - 1, Nz - 1
-      )
-   );
+   // metrics.addMetric(
+   //    std::make_unique<ParticleMetric>(
+   //       &pg,
+   //       metrics.adios.DeclareIO(pg.name + "_metrics"),
+   //       Nx - 1, Ny - 1, Nz - 1
+   //    )
+   // );
 }
 
-// #include "cuda/em_kernel.cuh"
 
 int main() {
-   // constexpr auto thing = Thingy{};
-   // const cudaClass test{thing};
-   //
-   // test.run();
-
    auto timers = utilities::create_timers();
    timers["Main"].start_timer();
    constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/electrons.dat";
@@ -66,20 +60,9 @@ int main() {
    auto g1 = ParticleInitializer::initializeFromFile(electron_file);
    auto g2 = ParticleInitializer::initializeFromFile(ion_file);
 
-   // constexpr auto q_e = constants::q_e<double>;
-   // constexpr auto m_e = constants::m_e<double>;
-   // ParticleGroup g1("electrons", m_e, -q_e);
-   // g1.initial_y_position = 0.5;
-   // constexpr vec3 loc0{750.5, 0.5, 750.5};
-   // constexpr vec3 vel{1.8e6, 0.0, 0.0};
-   // constexpr auto weight = 3.5;
-   // const Particle p0 = {loc0, loc0, vel, weight, calculateGamma(vel), false};
-   // g1.particles.push_back(p0);
-
    EMSolver emsolver(Nx, Ny, Nz);
    add_gaussianbeam(emsolver);
 
-   // todo: test whether this ordering matters
    emsolver.particle_correction();
    BorisPush::backstep_velocity(g1, emsolver.emdata);
    BorisPush::backstep_velocity(g2, emsolver.emdata);
@@ -89,7 +72,7 @@ int main() {
    add_group_metric(metrics, g1);
    add_group_metric(metrics, g2);
 
-   auto step = 0zu;
+   auto step = 0lu;
    const auto progress_bar =
       bk::ProgressBar(
          &step,

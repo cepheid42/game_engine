@@ -1,5 +1,5 @@
-import numpy as np
-from scipy import constants
+# import numpy as np
+# from scipy import constants
 from dataclasses import dataclass
 
 @dataclass
@@ -24,6 +24,7 @@ class Simulation:
     deltas: tuple = ()
     cfl: float = 1.0
 
+
 def update_header(params, header_path='/home/cepheid/TriForce/game_engine/params/'):
     assert params.dt != 1.0
     print('Updating header...', end=' ')
@@ -33,7 +34,7 @@ def update_header(params, header_path='/home/cepheid/TriForce/game_engine/params
     zmin, zmax = params.z_range
     dx, dy, dz = params.deltas
     em_bcs = params.em_bcs
-    bc_str = f'{em_bcs[0]}zu, {em_bcs[1]}zu, {em_bcs[2]}zu, {em_bcs[3]}zu, {em_bcs[4]}zu, {em_bcs[5]}zu'
+    bc_str = f'{em_bcs[0]}lu, {em_bcs[1]}lu, {em_bcs[2]}lu, {em_bcs[3]}lu, {em_bcs[4]}lu, {em_bcs[5]}lu'
     particle_bc = 'ParticleBCType::Periodic' if params.particle_bcs == 0 else 'ParticleBCType::Outflow'
 
     program_params = (
@@ -44,9 +45,9 @@ def update_header(params, header_path='/home/cepheid/TriForce/game_engine/params
         '\n'
         f'inline constexpr auto nThreads = {params.nthreads};\n'
         '\n'
-        f'inline constexpr auto Nx = {nx}zu;\n'
-        f'inline constexpr auto Ny = {ny}zu;\n'
-        f'inline constexpr auto Nz = {nz}zu;\n'
+        f'inline constexpr auto Nx = {nx}lu;\n'
+        f'inline constexpr auto Ny = {ny}lu;\n'
+        f'inline constexpr auto Nz = {nz}lu;\n'
         '\n'
         f'inline constexpr std::array x_range = {{{xmin}, {xmax}}};\n'
         f'inline constexpr std::array y_range = {{{ymin}, {ymax}}};\n'
@@ -59,9 +60,9 @@ def update_header(params, header_path='/home/cepheid/TriForce/game_engine/params
         f'inline constexpr auto cfl   = {params.cfl};\n'
         f'inline constexpr auto dt    = {params.dt};\n'
         f'inline constexpr auto t_end = {params.t_end};\n'
-        f'inline constexpr auto Nt    = {params.nt}zu;\n'
+        f'inline constexpr auto Nt    = {params.nt}lu;\n'
         '\n'
-        f'inline constexpr auto save_interval = {params.save_interval}zu;\n'
+        f'inline constexpr auto save_interval = {params.save_interval}lu;\n'
         '\n'
         '/*---------------------------------------------------------------/\n'
         '/-                        EM Parameters                         -/\n'
@@ -69,12 +70,12 @@ def update_header(params, header_path='/home/cepheid/TriForce/game_engine/params
         'enum class EMFace { X, Y, Z };\n'
         'enum class EMSide { Lo, Hi };\n'
         '\n'
-        f'inline constexpr auto PMLDepth    = {params.pml_depth}zu;\n'
+        f'inline constexpr auto PMLDepth    = {params.pml_depth}lu;\n'
         f'inline constexpr auto PMLGrade    = {params.pml_grade};\n'
         f'inline constexpr auto PMLAlphaMax = {params.pml_alpha_max};\n'
         '//inline constexpr auto PMLKappaMax = 1.0;\n'
         '\n'
-        f'inline constexpr auto nHalo = 2zu;\n'
+        f'inline constexpr auto nHalo = 2lu;\n'
         '\n'
         '// Periodic = 0, PML = 1, Reflecting = 2\n'
         f'inline constexpr std::array BCSelect = {{{bc_str}}};\n'
@@ -84,7 +85,7 @@ def update_header(params, header_path='/home/cepheid/TriForce/game_engine/params
         '/---------------------------------------------------------------*/\n'
         'enum class ParticleBCType { Periodic, Outflow };\n'
         '\n'
-        f'inline constexpr auto interpolation_order = {params.interp_order}zu;\n'
+        f'inline constexpr auto interpolation_order = {params.interp_order}lu;\n'
         '\n'
         f'inline constexpr auto PBCSelect = {particle_bc};\n'
         '\n'

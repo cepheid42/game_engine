@@ -23,15 +23,15 @@ def thermal_distribution(mass, T_M, num_particles, velocity=0.0):
     return velocities
 
 
-def maxwell_juttner_distribution(mass, T_M, num_particles):
+def maxwell_juttner_distribution(mass, t_M, num_particles):
     rng = np.random.default_rng()
-    T_norm = constants.elementary_charge * T_M / (mass * constants.c**2)
-    a, b, R0 = 0.56, 0.35, 0.95
+    t_norm = constants.elementary_charge * t_M / (mass * constants.c**2)
+    a, b, r0 = 0.56, 0.35, 0.95
     root2 = np.sqrt(2)
     w3 = np.sqrt(np.pi)
-    w4 = a * np.sqrt(2 * T_norm)
-    w5 = 1.5 * np.sqrt(np.pi) * b * T_norm
-    w6 = (2 * T_norm)**1.5
+    w4 = a * np.sqrt(2 * t_norm)
+    w5 = 1.5 * np.sqrt(np.pi) * b * t_norm
+    w6 = (2 * t_norm)**1.5
     s_sum = w3 + w4 + w5 + w6
     pi3 = w3 / s_sum
     pi4 = w4 / s_sum
@@ -49,16 +49,16 @@ def maxwell_juttner_distribution(mass, T_M, num_particles):
                 i = 4
             elif X1 < pi3 + pi4 + pi5:
                 i = 5
-            x = rng.gamma(i / 2, T_norm)
-            if X2 < R0 or X2 < R(x):
+            x = rng.gamma(i / 2, t_norm)
+            if X2 < r0 or X2 < R(x):
                 break
 
-        X3 = rng.uniform()
-        X4 = rng.uniform()
+        x3 = rng.uniform()
+        x4 = rng.uniform()
         u_mag = constants.c * np.sqrt(x * (x + 2))
-        u = u_mag * np.asarray([(2 * X3 - 1),
-                                2.0 * np.sqrt(X3 * (1.0 - X3)) * np.cos(2.0 * np.pi * X4),
-                                2.0 * np.sqrt(X3 * (1.0 - X3)) * np.sin(2.0 * np.pi * X4)])
+        u = u_mag * np.asarray([(2 * x3 - 1),
+                                2.0 * np.sqrt(x3 * (1.0 - x3)) * np.cos(2.0 * np.pi * x4),
+                                2.0 * np.sqrt(x3 * (1.0 - x3)) * np.sin(2.0 * np.pi * x4)])
         return u / np.sqrt(1 + (u @ u) / constants.c**2)
 
     velocities = np.zeros((num_particles, 3))

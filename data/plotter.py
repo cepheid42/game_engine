@@ -350,9 +350,9 @@ def plot_KE(groups, start, stop, step, file_dir):
 
 
 def main():
-    step = 5
+    step = 100
     start = 0
-    stop = 500
+    stop = 7500
 
     file_dir = '/lsi_test'
 
@@ -366,7 +366,7 @@ def main():
     # targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
     #    p.starmap(plot_metric, targs)
-    #
+
     # targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(8) as p:
     #    p.starmap(plot_fields, targs)

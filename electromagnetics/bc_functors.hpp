@@ -75,6 +75,7 @@ struct PMLFunctor : pml_t {
 
 template<EMFace F, bool Add>
 struct PeriodicFunctor : periodic_t {
+   #pragma omp declare simd notinbranch
    static void apply(auto& f, const auto& bc, const std::size_t i, const std::size_t j, const std::size_t k)
    {
       std::size_t idx1, idx2, idx3, idx4;

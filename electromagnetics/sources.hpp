@@ -218,11 +218,11 @@ void add_gaussianbeam(auto& em) {
 
    vec3 waist_pos{0.0, 0.0, 0.0};
 
-   constexpr auto x0 = PMLDepth + 10zu;
+   constexpr auto x0 = PMLDepth + 10lu;
    constexpr auto x1 = x0 + 1;
-   constexpr auto y0 = 0zu;
-   constexpr auto y1 = 1zu;
-   constexpr auto z0 = PMLDepth + 10zu;
+   constexpr auto y0 = 0lu;
+   constexpr auto y1 = 1lu;
+   constexpr auto z0 = PMLDepth + 10lu;
    constexpr auto z1 = Nz - z0;
 
    using continuous_t = ContinuousSource;

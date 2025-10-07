@@ -22,32 +22,29 @@ public:
    {}
 
    auto begin() { return data_.begin(); }
-   auto end() { return data_.end(); }
-
+   auto   end() { return data_.end(); }
    auto* data() { return data_.data(); }
-   // auto& vec_data() { return data_; }
-   [[nodiscard]] auto capacity() const { return data_.capacity(); }
-   [[nodiscard]] constexpr std::size_t size() const { return data_.size(); }
-   [[nodiscard]] constexpr std::size_t num_bytes() const { return size() * sizeof(T); }
-
-   [[nodiscard]] std::size_t get_scid(const std::size_t i, const std::size_t j, const std::size_t k) const {
-      return k + nz_ * j + nz_ * ny_ * i;
-   }
+   
+   [[nodiscard]] auto      size() const -> std::size_t { return data_.size(); }
+   [[nodiscard]] auto num_bytes() const -> std::size_t { return size() * sizeof(T); }
+   [[nodiscard]] auto get_scid(const auto i, const auto j, const auto k) const -> std::size_t { return k + nz_ * j + nz_ * ny_ * i; }
 
    // Specialized accessors
-   T& operator()(const std::size_t i, const std::size_t j, const std::size_t k) { return data_[get_scid(i, j, k)]; }
-   const T& operator()(const std::size_t i, const std::size_t j, const std::size_t k) const { return data_[get_scid(i, j, k)]; }
+   auto operator()(const auto i, const auto j, const auto k)       ->       T& { return data_[get_scid(i, j, k)]; }
+   auto operator()(const auto i, const auto j, const auto k) const -> const T& { return data_[get_scid(i, j, k)]; }
 
-   T& operator[](const std::size_t i) { return data_[i]; }
-   const T& operator[](const std::size_t i) const { return data_[i]; }
+   auto operator[](const auto i)       ->       T& { return data_[i]; }
+   auto operator[](const auto i) const -> const T& { return data_[i]; }
 
    void fill(T value) { for (auto& el: data_) el = value; }
 
+   // [[nodiscard]] bool is_inbounds(const std::size_t i, const std::size_t j, const std::size_t k) const { return i < nx_ and j < ny_ and k < nz_; }
+
    // Dims
-   [[nodiscard]] vec3<std::size_t> dims() const { return {nx_, ny_, nz_}; }
-   [[nodiscard]] std::size_t       nx() const { return nx_; }
-   [[nodiscard]] std::size_t       ny() const { return ny_; }
-   [[nodiscard]] std::size_t       nz() const { return nz_; }
+   [[nodiscard]] auto dims() const -> vec3<std::size_t> { return {nx_, ny_, nz_}; }
+   [[nodiscard]] auto nx() const -> std::size_t { return nx_; }
+   [[nodiscard]] auto ny() const -> std::size_t { return ny_; }
+   [[nodiscard]] auto nz() const -> std::size_t { return nz_; }
 
 private:
    // Stride data
@@ -70,8 +67,6 @@ public:
    constexpr auto operator[](const std::size_t) const { return 0.0f; }
    static constexpr void fill(auto) {}
 };
-
-constexpr std::string to_string(const auto& arr) { return "(" + arr.nx() + ", " + arr.ny() + ", " + arr.nz() + ")"; }
 } // end namespace tf
 
 #endif //EM_ARRAY_HPP

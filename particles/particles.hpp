@@ -95,7 +95,7 @@ struct ParticleGroup {
 }; // end struct ParticleGroup
 
 struct ParticleInitializer {
-   static ParticleGroup initializeFromFile(const std::string& filename) {
+   static auto initializeFromFile(const std::string& filename) -> ParticleGroup {
       std::ifstream file(filename);
 
       if (!file.is_open()) {

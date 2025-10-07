@@ -1,12 +1,12 @@
 project(
     'game_engine',
-    'cpp', 'cuda',
+    'cpp',
     version : '0.0.1',
     default_options : [
-#        'buildtype=debug',
-#        'buildtype=debugoptimized',
-        'buildtype=release',
+        'optimization=2',
+        'debug=true',
         'warning_level=3',
+        'werror=true',
         'cpp_std=c++20',
 #        'b_sanitize=address',
         'b_lto=true',
@@ -18,7 +18,6 @@ project(
 debug_opts = [
     '-Wconversion',
     '-Wnrvo',
-#    '-O0', '-g',
 #    '-fopt-info-note-vec-missed=missed.txt',
 #    '-DNDEBUG',
 #    '-fno-omit-frame-pointer',
@@ -45,13 +44,11 @@ includes = include_directories(
 
 sources = [
     'main.cpp',
-    'cuda/em_kernel.cu'
 ]
 
 deps = [
     dependency('adios2', required : true),
     dependency('OpenMP'),
-    dependency('cuda')
 ]
 
 game_engine = executable(

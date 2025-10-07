@@ -3,6 +3,7 @@
 
 #include "em_definitions.hpp"
 #include "em_data.hpp"
+#include "morton.hpp"
 #include "typelist.hpp"
 
 namespace tf::electromagnetics {
@@ -65,11 +66,43 @@ struct EMSolver {
       std::ranges::copy(emdata.Hx, emdata.Bx.begin());
       std::ranges::copy(emdata.Hy, emdata.By.begin());
       std::ranges::copy(emdata.Hz, emdata.Bz.begin());
-
+      
       HxUpdate::apply(emdata.Bx, emdata.Ey, emdata.Ez, emdata.empty, emdata.Chxh, emdata.Chxey2, emdata.Chxez2, emdata.empty, {0, 0, 0, 0, 0, 0});
       HyUpdate::apply(emdata.By, emdata.Ez, emdata.Ex, emdata.empty, emdata.Chyh, emdata.Chyez2, emdata.Chyex2, emdata.empty, {0, 0, 0, 0, 0, 0});
       HzUpdate::apply(emdata.Bz, emdata.Ex, emdata.Ey, emdata.empty, emdata.Chzh, emdata.Chzex2, emdata.Chzey2, emdata.empty, {0, 0, 0, 0, 0, 0});
 
+      // #pragma omp parallel for collapse(3) num_threads(nThreads)
+      // for (std::size_t i = 0; i < Nx; i++) {
+      //    for (std::size_t j = 0; j < Ny; j++) {
+      //       for (std::size_t k = 0; k < Nz; k++) {
+      //          const auto idx = morton_encode(i, j, k);
+      //          if (emdata.Ex.is_inbounds(i, j, k)) {
+      //             emdata.total_fields[idx].Ex = emdata.Ex(i, j, k) + emdata.Ex_app(i, j, k);
+      //          }
+      //
+      //          if (emdata.Ey.is_inbounds(i, j, k)) {
+      //             emdata.total_fields[idx].Ey = emdata.Ey(i, j, k) + emdata.Ey_app(i, j, k);
+      //          }
+      //
+      //          if (emdata.Ez.is_inbounds(i, j, k)) {
+      //             emdata.total_fields[idx].Ez = emdata.Ez(i, j, k) + emdata.Ez_app(i, j, k);
+      //          }
+      //
+      //          if (emdata.Bx.is_inbounds(i, j, k)) {
+      //             emdata.total_fields[idx].Bx = emdata.Bx(i, j, k) * constants::mu0<double> + emdata.Bx_app(i, j, k);
+      //          }
+      //
+      //          if (emdata.By.is_inbounds(i, j, k)) {
+      //             emdata.total_fields[idx].By = emdata.By(i, j, k) * constants::mu0<double> + emdata.By_app(i, j, k);
+      //          }
+      //
+      //          if (emdata.Bz.is_inbounds(i, j, k)) {
+      //             emdata.total_fields[idx].Bz = emdata.Bz(i, j, k) * constants::mu0<double> + emdata.Bz_app(i, j, k);
+      //          }
+      //
+      //       }
+      //    }
+      // }
       #pragma omp parallel num_threads(nThreads)
       {
          #pragma omp for

@@ -42,7 +42,8 @@ struct CurrentDeposition {
                          const auto p0, const auto p1,
                          const auto& shapeI0, const auto& shapeJ0,
                          const auto& shapeDI, const auto& shapeDJ, const auto&,
-                         const auto ci, const auto cj, const auto, const auto qA) {
+                         const auto ci, const auto cj, const auto, const auto qA)
+   {
       if (p0 == p1) { return; }
 
       for (int i = Shape::Begin; i <= Shape::End; ++i) {
@@ -52,7 +53,7 @@ struct CurrentDeposition {
             const auto& s0j = shapeJ0[j - Shape::Begin];
             const auto& dsj = shapeDJ[j - Shape::Begin];
             const auto result = qA * (s0i * s0j + 0.5 * (dsi * s0j + s0i * dsj) + (1.0 / 3.0) * dsj * dsi);
-            const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, 0zu);
+            const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, 0lu);
             #pragma omp atomic update
             J(x, y, z) += result;
          } // end for(j)

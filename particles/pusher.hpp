@@ -16,6 +16,7 @@ template <int D, typename Strategy>
 auto FieldToParticleInterp(const auto& F,
                            const auto& shapeI, const auto& shapeJ, const auto& shapeK,
                            const auto ci, const auto cj, const auto ck)
+-> double
 {
    using IShape = typename Strategy::OuterShape;
    using JShape = typename Strategy::MiddleShape;
@@ -37,7 +38,9 @@ auto FieldToParticleInterp(const auto& F,
 } // end FieldToParticle()
 
 
-static std::array<vec3<double>, 2> fieldAtParticle(const Particle& p, const auto& emdata, const auto qdt) {
+static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qdt)
+-> std::array<vec3<double>, 2>
+{
    using AssShape = interp::InterpolationShape<interpolation_order>;
    using RedShape = interp::InterpolationShape<interpolation_order - 1>;
    using EStrategy = interp::InterpolationStrategy<AssShape, AssShape, RedShape>;
@@ -71,7 +74,6 @@ static std::array<vec3<double>, 2> fieldAtParticle(const Particle& p, const auto
 } // end FieldAtParticle
 
 
-// template<typename Boundaries>
 struct BorisPush {
    using emdata_t = electromagnetics::EMData;
    using group_t = ParticleGroup;
@@ -120,10 +122,10 @@ struct BorisPush {
             old_loc[2] = fnz + old_loc[2] - 2.0 * std::floor(old_loc[2] + 0.5);
          }
       } else {
-         constexpr std::size_t BC_DEPTH = 3zu;
+         constexpr std::size_t BC_DEPTH = 3lu;
 
          // Outflow particle BCs
-         const auto& [inew, jnew, knew] = getCellIndices(new_loc);
+         const auto [inew, jnew, knew] = getCellIndices(new_loc);
          p.disabled = inew < BC_DEPTH or inew > Nx - 1 - BC_DEPTH or
                       // jnew < BC_DEPTH or jnew > Ny - 1 - BC_DEPTH or
                       knew < BC_DEPTH or knew > Nz - 1 - BC_DEPTH;

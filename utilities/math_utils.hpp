@@ -3,20 +3,18 @@
 
 #include <cmath>
 #include <vector>
-#include <cassert>
+// #include <cassert>
 
 namespace tf::math
 {
-template<typename T>
-constexpr T SQR(T x) { return x * x; }
-
-template<typename T>
-constexpr T CUBE(T x) { return x * x * x; }
+template<typename T> constexpr auto SQR(T x)  { return x * x; }
+template<typename T> constexpr auto CUBE(T x) { return x * x * x; }
 
 // This function create a uniform spread of points over a given range
 // This should mimic Numpy's linspace function exactly.
 template<typename T>
-std::vector<T> linspace(T start, T stop, std::size_t n_points, const bool endpoint = true)
+auto linspace(T start, T stop, std::size_t n_points, const bool endpoint = true)
+-> std::vector<T>
 {
    std::vector<T> result(n_points);
    if (endpoint)
@@ -33,50 +31,51 @@ std::vector<T> linspace(T start, T stop, std::size_t n_points, const bool endpoi
    }
    return result;
 }
+//
+// template<typename T>
+// auto findIndex(const T loc, const std::vector<T>& vec, const bool right = false)
+// -> std::size_t
+// {
+//    if (loc <= vec[0]) { return 0; }
+//    const auto last = vec.size() - 1;
+//    if (loc >= vec[last]) { return last; }
+//
+//    // Branchless Binary Search to find index for a given location on the full grid
+//    const T* base = vec.data();
+//    int      n    = vec.size();
+//
+//    while (n > 1)
+//    {
+//       const auto half = n / 2;
+//       base            = (base[half] < loc) ? &base[half] : base;
+//       n -= half;
+//    }
+//    return (*base < loc) + base - vec.data() - 1 + right;
+// }
 
-template<typename T>
-std::size_t findIndex(const T loc, const std::vector<T>& vec, const bool right = false)
-{
-   if (loc <= vec[0]) { return 0; }
-   const auto last = vec.size() - 1;
-   if (loc >= vec[last]) { return last; }
-
-   // Branchless Binary Search to find index for a given location on the full grid
-   const T* base = vec.data();
-   int      n    = vec.size();
-
-   while (n > 1)
-   {
-      const auto half = n / 2;
-      base            = (base[half] < loc) ? &base[half] : base;
-      n -= half;
-   }
-   return (*base < loc) + base - vec.data() - 1 + right;
-}
-
-  /*
-   * a - first input value
-   * b - second input value
-   * epsilon - maximum difference allowed, e.g. std::numeric_limits<T>::epsilon()
-   * abs_th - minimum finite value representable, e.g. std::numeric_limits<T>::min()
-   */
-  template<std::floating_point T>
-  bool nearly_equal(T a, T b,
-                    T epsilon = T(128.) * std::numeric_limits<T>::epsilon(),
-                    T abs_th = std::numeric_limits<T>::min())
-  {
-    // Brought to you by StackOverflow
-    // https://stackoverflow.com/questions/4915462/how-should-i-do-floating-point-comparison
-    assert(std::numeric_limits<T>::epsilon() <= epsilon);
-    assert(epsilon < T(1.0));
-
-    if (a == b) { return true; }
-    auto diff = std::abs(a - b);
-    auto norm = std::min((std::abs(a) + std::abs(b)), std::numeric_limits<T>::max());
-//  auto norm = std::min(std::abs(a + b), std::numeric_limits<T>::max());
-
-    return diff < std::max(abs_th, epsilon * norm);
-  }
+// /*
+// * a - first input value
+// * b - second input value
+// * epsilon - maximum difference allowed, e.g. std::numeric_limits<T>::epsilon()
+// * abs_th - minimum finite value representable, e.g. std::numeric_limits<T>::min()
+// */
+// template<std::floating_point T>
+// bool nearly_equal(T a, T b,
+//                   T epsilon = T(128.) * std::numeric_limits<T>::epsilon(),
+//                   T abs_th = std::numeric_limits<T>::min())
+// {
+//  // Brought to you by StackOverflow
+//  // https://stackoverflow.com/questions/4915462/how-should-i-do-floating-point-comparison
+//  assert(std::numeric_limits<T>::epsilon() <= epsilon);
+//  assert(epsilon < T(1.0));
+//
+//  if (a == b) { return true; }
+//  auto diff = std::abs(a - b);
+//  auto norm = std::min((std::abs(a) + std::abs(b)), std::numeric_limits<T>::max());
+// //  auto norm = std::min(std::abs(a + b), std::numeric_limits<T>::max());
+//
+//  return diff < std::max(abs_th, epsilon * norm);
+// }
 
 //  // This function checks if two values are within tolerance of each other
 //  template<class T>

@@ -96,12 +96,16 @@ struct ParticleDumpMetric final : detail::MetricBase {
    }
 
    void write(const std::string& dir, const std::string& step_ext, const std::size_t step) override {
+      static constexpr vec3 delta{dx, dy, dz};
+      static constexpr vec3 lb{x_range[0], y_range[0], z_range[0]};
+
       const std::string file{dir + "/" + group->name + "_dump_" + step_ext};
       const auto& nParticles = group->num_particles();
 
       io.DefineAttribute<std::string>("name", group->name);
       io.DefineAttribute<std::size_t>("step", step, "", "/", true);
       io.DefineAttribute<double>("dt", dt);
+      io.DefineAttribute<double>("deltas", delta.data, 3);
       io.DefineAttribute<double>("mass", group->mass);
       io.DefineAttribute<double>("charge", group->charge);
       // io.DefineAttribute<std::size_t>("atomic_number", group->atomic_number);
@@ -122,9 +126,6 @@ struct ParticleDumpMetric final : detail::MetricBase {
 
       adios2::Engine writer = io.Open(file, adios2::Mode::Write);
       writer.BeginStep();
-
-      static constexpr vec3 delta{dx, dy, dz};
-      static constexpr vec3 lb{x_range[0], y_range[0], z_range[0]};
 
       position.reserve(3 * nParticles);
       velocity.reserve(3 * nParticles);
