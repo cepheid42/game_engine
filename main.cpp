@@ -42,13 +42,13 @@ void add_group_metric(Metrics& metrics, const auto& pg) {
       )
    );
 
-   // metrics.addMetric(
-   //    std::make_unique<ParticleMetric>(
-   //       &pg,
-   //       metrics.adios.DeclareIO(pg.name + "_metrics"),
-   //       Nx - 1, Ny - 1, Nz - 1
-   //    )
-   // );
+   metrics.addMetric(
+      std::make_unique<ParticleMetric>(
+         &pg,
+         metrics.adios.DeclareIO(pg.name + "_metrics"),
+         Nx - 1, Ny - 1, Nz - 1
+      )
+   );
 }
 
 

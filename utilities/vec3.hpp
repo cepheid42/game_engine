@@ -66,8 +66,8 @@ struct vec3 {
    // }
 
    template <typename U>
-   constexpr auto as_type() const -> vec3 {
-      return vec3{static_cast<U>(data[0]),
+   constexpr auto as_type() const -> vec3<U> {
+      return vec3<U>{static_cast<U>(data[0]),
                   static_cast<U>(data[1]),
                   static_cast<U>(data[2])};
    }
