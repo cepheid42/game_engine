@@ -214,7 +214,7 @@ void add_gaussianbeam(auto& em) {
    constexpr auto w0 = 2.5479e-6; // meters, waste size
 
    constexpr auto width = 1.2739827e-14; // ~12.74 fs
-   constexpr auto delay = 2.0 * width;
+   constexpr auto delay = 3.0 * width;
 
    vec3 waist_pos{0.0, 0.0, 0.0};
 

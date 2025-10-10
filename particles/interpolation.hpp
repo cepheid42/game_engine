@@ -132,9 +132,9 @@ template<> struct InterpolationShape<3> { using Type = PQS; };
 
 template<typename Outer, typename Middle, typename Inner>
 struct InterpolationStrategy {
-   using OuterShape = typename Outer::Type;
-   using MiddleShape = typename Middle::Type;
-   using InnerShape = typename Inner::Type;
+   using OuterShape = Outer;
+   using MiddleShape = Middle;
+   using InnerShape = Inner;
 };
 } // end namespace tf::interp
 #endif //INTERPOLATION_HPP

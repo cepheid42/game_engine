@@ -1,21 +1,12 @@
 #ifndef EM_DATA_HPP
 #define EM_DATA_HPP
 
-
-#include <span>
-
 #include "program_params.hpp"
 #include "sources.hpp"
 #include "array.hpp"
 
-// #include <unordered_map>
-
 namespace tf::electromagnetics {
 struct EMData {
-   // struct FieldPoint {
-   //    double Ex{}, Ey{}, Ez{}, Bx{}, By{}, Bz{};
-   // };
-
    EMData() = delete;
 
    EMData(const std::size_t nx, const std::size_t ny, const std::size_t nz)
@@ -175,8 +166,6 @@ struct EMData {
    Array3D<double> Bx_total;
    Array3D<double> By_total;
    Array3D<double> Bz_total;
-
-   // std::pmr::unordered_map<std::size_t, FieldPoint> total_fields{};
 
    std::vector<GaussianBeam> beams{};
    std::vector<CurrentSource> srcs{};

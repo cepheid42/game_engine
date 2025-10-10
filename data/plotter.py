@@ -164,9 +164,8 @@ def plot_metric(n, step, metric, group_name, file_dir):
     im = ax.contourf(zs, xs, data[:, 0, :], levels=np.logspace(24, 28, 50), norm=norm, cmap='jet')
     fig.colorbar(ScalarMappable(norm=norm, cmap='jet'), ax=ax, shrink=0.82)
 
-    # im = ax.pcolormesh(xs, zs, data[:, ny // 2, :])
-    # im = ax.contourf(xs, zs, data[:, ny // 2, :], levels=levels, norm=colors.LogNorm(), cmap='plasma')
-    # im = ax.contourf(zs, xs, data[:, ny // 2, :], levels=100)
+
+    # im = ax.contourf(zs, xs, data[:, ny // 2, :], levels=100, vmin=0, vmax=10**25)
     # fig.colorbar(im, ax=ax)
 
     ax.set_title(f'{group_name.capitalize()} {metric} @ {time:.4e} ns')
@@ -190,28 +189,24 @@ def plot_single_field(n, step, name, file_dir):
 
     nnx, nny, nnz = field.shape
 
-    # fig, ax = plt.subplots(figsize=(10, 10), layout='constrained')
-    # # fig.supxlabel(r'z ($\mu$m)')
-    # # fig.supylabel(r'x ($\mu$m)')
-    # # fig.suptitle(f'{name} @ {time:.4e} ns')
-    #
-    # # ax.plot(xs, field[:, 0, 50], label=f'{name}')
-    # # ax.hlines([-1.0, 1.0], xmin=xs[10], xmax=xs[-10], linestyles='--')
-    #
-    # # im = ax.pcolormesh(field[:, nny // 2, :])
-    # # fig.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=0.8)
-    # # fig.colorbar(ScalarMappable(norm=norm, cmap='jet'), ax=ax, format='{x:3.1e}', pad=0.01, shrink=1.0)
-    # ax.set_aspect('equal')
-    #
-    # # plt.show()
-    # plt.savefig(data_dir + f'/pngs/{name}_{n // step:010}.png')
-    # plt.clf()
-    # plt.close(fig)
-    return np.max(field[:, nny // 2, :])
+    fig, ax = plt.subplots(figsize=(10, 10), layout='constrained')
+    # fig.supxlabel(r'z ($\mu$m)')
+    # fig.supylabel(r'x ($\mu$m)')
+    # fig.suptitle(f'{name} @ {time * s_to_ns:.4e} ns')
+
+    im = ax.pcolormesh(field[:, nny // 2, :], cmap='coolwarm')
+    fig.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=0.8)
+    ax.set_aspect('equal')
+
+    # plt.show()
+    plt.savefig(data_dir + f'/pngs/{name}_{n // step:010}.png')
+    plt.clf()
+    plt.close(fig)
+    # return np.max(field[:, nny // 2, :])
 
 
 def plot_fields(n, step, file_dir):
-    def plot(name, ax, figure, vmin=None, vmax=None):
+    def plot(name, ax, figure):
         field = load_field(n, name, file_dir)
         nnx, nny, nnz = field.shape
         # field = field[:, :, nnz // 2]
@@ -222,11 +217,10 @@ def plot_fields(n, step, file_dir):
 
         # xs = np.linspace(xmin, xmax, field.shape[0])
         # zs = np.linspace(zmin, zmax, field.shape[1])
-        # norm = colors.Normalize(vmin=vmin, vmax=vmax)
-        # im = ax.pcolormesh(field, cmap='plasma')
-        im = ax.contourf(field, cmap='plasma')
+        # norm = colors.Normalize(vmin=-10**15, vmax=10**15)
+        im = ax.pcolormesh(field, cmap='coolwarm')
         figure.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=0.5)
-        # figure.colorbar(ScalarMappable(norm=norm, cmap='plasma'), ax=ax, format='{x:3.1e}', pad=0.01, shrink=1.0)
+        # figure.colorbar(ScalarMappable(norm=norm, cmap='coolwarm'), ax=ax, format='{x:3.1e}', pad=0.01, shrink=1.0)
         ax.set_aspect('equal')
         ax.set_title(f'{name}')
 
@@ -285,7 +279,7 @@ def plot_field_energy(start, stop, step, file_dir):
     # ax.plot(lsp_data[:, 0], lsp_data[:, 1], label='LSP')
 
     ax.plot(time, result)
-
+    ax.set_yticks([0, 0.0005, 0.0010, 0.0015, 0.0020])
     # ax.set_ylim([0, 3.0e-6])
     ax.set_xlim([time[0], time[-1]])
     ax.set_xlabel('Time (ns)')
@@ -330,8 +324,8 @@ def plot_KE(groups, start, stop, step, file_dir):
     # lsp_data = np.loadtxt('/home/cepheid/TriForce/game_engine/data/seinfeld_lsp_particleke.csv', delimiter=',', dtype=np.float64)
     # ax.plot(lsp_data[:, 0], lsp_data[:, 1], label='LSP')
 
-    ke_sum = group_data['electrons'] + group_data['ions']
-    ax.plot(time, ke_sum)
+    # ke_sum = group_data['electrons'] + group_data['ions']
+    # ax.plot(time, ke_sum)
 
     for name, data in group_data.items():
         ax.plot(time, data, label=name)
@@ -350,30 +344,30 @@ def plot_KE(groups, start, stop, step, file_dir):
 
 
 def main():
-    step = 100
+    step = 20
     start = 0
-    stop = 7500
+    stop = 4000
 
     file_dir = '/lsi_test'
 
     # plot_distributions(start, stop, step, 'electrons', file_dir)
     # plot_distributions(start, stop, step, 'ions', file_dir)
 
-    # targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop + step, step)]
-    # with mp.Pool(16) as p:
-    #    p.starmap(plot_metric, targs)
-    # #
-    # targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop + step, step)]
-    # with mp.Pool(16) as p:
-    #    p.starmap(plot_metric, targs)
+    targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop + step, step)]
+    with mp.Pool(16) as p:
+       p.starmap(plot_metric, targs)
+
+    targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop + step, step)]
+    with mp.Pool(16) as p:
+       p.starmap(plot_metric, targs)
 
     # targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(8) as p:
     #    p.starmap(plot_fields, targs)
 
-    # targs = [(n, step, 'Ey', file_dir) for n in range(start, stop, step)]
+    # targs = [(n, step, 'Jz', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
-    #     max_fields = p.starmap(plot_single_field, targs)
+    #     p.starmap(plot_single_field, targs)
 
     # particle_positions(start, stop, step, 'electrons', file_dir)
 

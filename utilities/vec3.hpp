@@ -4,7 +4,6 @@
 #include <cmath>
 #include <utility>
 #include <string>
-#include <print>
 #include <iostream>
 
 // ===== Vector Types =====
@@ -68,8 +67,8 @@ struct vec3 {
    template <typename U>
    constexpr auto as_type() const -> vec3<U> {
       return vec3<U>{static_cast<U>(data[0]),
-                  static_cast<U>(data[1]),
-                  static_cast<U>(data[2])};
+                     static_cast<U>(data[1]),
+                     static_cast<U>(data[2])};
    }
 
    friend constexpr bool operator==(const vec3& u, const vec3& v) { return (u[0] == v[0] && u[1] == v[1] && u[2] == v[2]); }
@@ -177,6 +176,12 @@ constexpr auto cross(const tf::vec3<T>& u, const tf::vec3<T>& v) -> tf::vec3<T> 
            u[2] * v[0] - u[0] * v[2],
            u[0] * v[1] - u[1] * v[0]};
 }
+
+template<typename T>
+constexpr auto is_equal(const tf::vec3<T>& u, const tf::vec3<T>& v) -> tf::vec3<bool> {
+   return {u[0] == v[0], u[1] == v[1], u[2] == v[2]};
+}
+
 
 template <typename T>
 constexpr auto operator>>(std::istringstream& in, tf::vec3<T>& v) -> std::istringstream& {

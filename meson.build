@@ -6,7 +6,7 @@ project(
         'optimization=3',
         'debug=false',
         'warning_level=3',
-        'werror=true',
+#        'werror=true',
         'cpp_std=c++20',
 #        'b_sanitize=address',
         'b_lto=true',
@@ -15,9 +15,18 @@ project(
     ]
 )
 
+#if use_cuda
+#    add_languages('cuda')
+#    cuda_opts = [
+#        'example'
+#    ]
+#else
+#    cuda_opts = []
+#endif
+
 debug_opts = [
     '-Wconversion',
-    '-Wnrvo',
+#    '-Wnrvo',
 #    '-fopt-info-note-vec-missed=missed.txt',
 #    '-DNDEBUG',
 #    '-fno-omit-frame-pointer',
@@ -49,12 +58,13 @@ sources = [
 deps = [
     dependency('adios2', required : true),
     dependency('OpenMP'),
+#    dependency('cuda')
 ]
 
 game_engine = executable(
     'game_engine',
     sources : sources,
-    cpp_args : gcc_opts + debug_opts,
+    cpp_args : gcc_opts + debug_opts, # + cuda_opts,
     include_directories : includes,
     dependencies : deps
 )

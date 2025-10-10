@@ -7,6 +7,9 @@ import math
 from particle_generation import Particles, create_particles
 from domain_params import Simulation, update_header
 
+project_path = '/home/cepheid/TriForce/game_engine'
+particle_data = project_path + '/data'
+
 shape = (1501, 2, 1501)
 
 xmin, xmax = -15.0e-6, 15.0e-6
@@ -31,17 +34,18 @@ sim_params = Simulation(
     save_interval=100,
     nthreads=32,
     particle_bcs=1,
-    interp_order=1,
+    interp_order=2,
     em_bcs=(1, 1, 2, 2, 1, 1),
     pml_depth=15,
     dt=dt,
     t_end=t_end,
     nt=nt,
+    cfl=cfl,
     x_range=(xmin, xmax),
     y_range=(ymin, ymax),
     z_range=(zmin, zmax),
     deltas=(dx, dy, dz),
-    cfl=cfl
+    particle_data=('electrons', 'ions')
 )
 
 # ===== Particles =====
@@ -52,7 +56,7 @@ pz_range = (-1e-5, 1e-5)
 electrons = Particles(
     name='electrons',
     mass=constants.m_e,
-    charge=-1.0 * constants.e,
+    charge=-constants.e,
     temp=10000, # eV
     density=8.5e27, # m^-3,
     ppc=ppc,
@@ -65,7 +69,7 @@ electrons = Particles(
 ions = Particles(
     name='ions',
     mass=constants.m_p,
-    charge=constants.e,
+    charge=+constants.e,
     temp=10000, # eV
     density=8.5e27, # m^-3,
     ppc=ppc,
@@ -75,7 +79,6 @@ ions = Particles(
     pz_range=pz_range
 )
 
-data_path = '/home/cepheid/TriForce/game_engine/data'
-create_particles(sim_params, electrons, data_path)
-create_particles(sim_params, ions, data_path)
-update_header(sim_params)
+create_particles(sim_params, electrons, particle_data)
+create_particles(sim_params, ions, particle_data)
+update_header(sim_params, project_path=project_path)

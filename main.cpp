@@ -55,22 +55,24 @@ void add_group_metric(Metrics& metrics, const auto& pg) {
 int main() {
    auto timers = utilities::create_timers();
    timers["Main"].start_timer();
-   constexpr auto electron_file = "/home/cepheid/TriForce/game_engine/data/electrons.dat";
-   constexpr auto      ion_file = "/home/cepheid/TriForce/game_engine/data/ions.dat";
-   auto g1 = ParticleInitializer::initializeFromFile(electron_file);
-   auto g2 = ParticleInitializer::initializeFromFile(ion_file);
+
+   std::vector<ParticleGroup> particle_groups;
+   for (const auto& name: particle_data) {
+      ParticleInitializer::initializeFromFile(std::string{sim_path} + std::string{name}, particle_groups);
+   }
 
    EMSolver emsolver(Nx, Ny, Nz);
    add_gaussianbeam(emsolver);
-
    emsolver.particle_correction();
-   BorisPush::backstep_velocity(g1, emsolver.emdata);
-   BorisPush::backstep_velocity(g2, emsolver.emdata);
 
-   Metrics metrics("/home/cepheid/TriForce/game_engine/data/lsi_test");
+   Metrics metrics(std::string{sim_path} + "/data/" + std::string{sim_name});
    add_em_metrics(metrics, emsolver);
-   add_group_metric(metrics, g1);
-   add_group_metric(metrics, g2);
+
+   for (auto& g : particle_groups) {
+      BorisPush::backstep_velocity(g, emsolver.emdata);
+      add_group_metric(metrics, g);
+   }
+
 
    auto step = 0lu;
    const auto progress_bar =
@@ -95,15 +97,17 @@ int main() {
       timers["EM"].stop_timer();
 
       timers["Push"].start_timer();
-      g1.reset_y_positions();
-      g2.reset_y_positions();
-      BorisPush::advance(g1, emsolver.emdata, step);
-      BorisPush::advance(g2, emsolver.emdata, step);
+
+      for (auto& g : particle_groups) {
+         if constexpr (is_2D_XZ) { g.reset_y_positions(); }
+         BorisPush::advance(g, emsolver.emdata, step);
+      }
       timers["Push"].stop_timer();
 
       timers["Jdep"].start_timer();
-      CurrentDeposition::advance(g1, emsolver.emdata);
-      CurrentDeposition::advance(g2, emsolver.emdata);
+      for (auto& g : particle_groups) {
+         CurrentDeposition::advance(g, emsolver.emdata);
+      }
       timers["Jdep"].stop_timer();
 
       if (step % save_interval == 0 or step == Nt) {

@@ -55,7 +55,7 @@ struct PoissonSolver {
       const auto phi = calculatePhi();
    }
 
-   static void operator()(auto& emdata, const auto& p_groups) {
+   void operator()(auto& emdata, const auto& p_groups) {
       // todo: should p_groups be a vector? Do poisson one at a time?
 
       const auto P = createPoissonMatrix();

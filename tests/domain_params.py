@@ -1,5 +1,7 @@
 # import numpy as np
 # from scipy import constants
+import os
+from pathlib import Path
 from dataclasses import dataclass
 
 @dataclass
@@ -18,14 +20,15 @@ class Simulation:
     pml_grade: float = 3.5
     pml_alpha_max: float = 0.2
     nhalo: int = 0
+    cfl: float = 1.0
     x_range: tuple = ()
     y_range: tuple = ()
     z_range: tuple = ()
     deltas: tuple = ()
-    cfl: float = 1.0
+    particle_data: tuple = ()
 
 
-def update_header(params, header_path='/home/cepheid/TriForce/game_engine/params/'):
+def update_header(params, project_path):
     assert params.dt != 1.0
     print('Updating header...', end=' ')
     nx, ny, nz = params.shape
@@ -34,8 +37,22 @@ def update_header(params, header_path='/home/cepheid/TriForce/game_engine/params
     zmin, zmax = params.z_range
     dx, dy, dz = params.deltas
     em_bcs = params.em_bcs
+
+    project_path = Path(project_path)
+
+    # Get TriForce project root directory
+    # project_path = Path(os.getenv('TRIFORCE_ROOT', ''))
+    # if not project_path.exists():
+    #     raise EnvironmentError('Could not find TRIFORCE_ROOT env variable.')
+
+    header_path = project_path / "params/program_params.hpp"
+
+    # Check if 2D in Y direction
+    is_2d_xz = 'true' if ny == 2 else 'false'
+
     bc_str = f'{em_bcs[0]}lu, {em_bcs[1]}lu, {em_bcs[2]}lu, {em_bcs[3]}lu, {em_bcs[4]}lu, {em_bcs[5]}lu'
     particle_bc = 'ParticleBCType::Periodic' if params.particle_bcs == 0 else 'ParticleBCType::Outflow'
+    particle_data = ', '.join(['"/data/' + p + '.bp"' for p in params.particle_data])
 
     program_params = (
         '#ifndef PROGRAM_PARAM_HPP\n'
@@ -44,6 +61,8 @@ def update_header(params, header_path='/home/cepheid/TriForce/game_engine/params
         '#include <array>\n'
         '\n'
         f'inline constexpr auto nThreads = {params.nthreads};\n'
+        '\n'
+        f'inline constexpr auto is_2D_XZ = {is_2d_xz};\n'
         '\n'
         f'inline constexpr auto Nx = {nx}lu;\n'
         f'inline constexpr auto Ny = {ny}lu;\n'
@@ -63,6 +82,9 @@ def update_header(params, header_path='/home/cepheid/TriForce/game_engine/params
         f'inline constexpr auto Nt    = {params.nt}lu;\n'
         '\n'
         f'inline constexpr auto save_interval = {params.save_interval}lu;\n'
+        '\n'
+        f'inline constexpr auto sim_name = "{params.name}";\n'
+        f'inline constexpr auto sim_path = "{project_path}";\n'
         '\n'
         '/*---------------------------------------------------------------/\n'
         '/-                        EM Parameters                         -/\n'
@@ -89,10 +111,11 @@ def update_header(params, header_path='/home/cepheid/TriForce/game_engine/params
         '\n'
         f'inline constexpr auto PBCSelect = {particle_bc};\n'
         '\n'
+        f'inline constexpr std::array particle_data = {{{particle_data}}};\n'
         '#endif //PROGRAM_PARAM_HPP\n'
     )
 
-    with open(header_path + 'program_params.hpp', 'w+') as f:
+    with open(header_path, 'w+') as f:
         cur_header = f.read()
         if cur_header != program_params:
             f.write(program_params)
