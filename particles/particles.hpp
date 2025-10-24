@@ -6,15 +6,19 @@
 #include "program_params.hpp"
 #include "vec3.hpp"
 
-#include <gfx/timsort.hpp>
+#include <boost/sort/sort.hpp>
 #include <adios2.h>
 
+#include <span>
+#include <utility>
 #include <vector>
 #include <algorithm>
 #include <fstream>
 #include <sstream>
+#include <print>
 
-namespace tf::particles {
+namespace tf::particles
+{
 struct Particle {
    vec3<double> location;
    vec3<double> old_location;
@@ -25,7 +29,7 @@ struct Particle {
 }; // end struct Particle
 
 template <typename T = std::size_t>
-constexpr vec3<T> getCellIndices(const vec3<double>& loc) {
+constexpr vec3<T> getCellIndices(const auto& loc) {
    return {
       static_cast<T>(std::floor(loc[0])),
       static_cast<T>(std::floor(loc[1])),
@@ -33,21 +37,21 @@ constexpr vec3<T> getCellIndices(const vec3<double>& loc) {
    };
 }
 
-constexpr std::size_t getCellIndex(const vec3<double>& loc) {
-   const auto x = static_cast<std::size_t>(std::floor(loc[0]));
-   const auto y = static_cast<std::size_t>(std::floor(loc[1]));
-   const auto z = static_cast<std::size_t>(std::floor(loc[2]));
+constexpr std::size_t getCellIndex(const auto& loc) {
+   const auto x = static_cast<std::size_t>(std::floor(loc.x));
+   const auto y = static_cast<std::size_t>(std::floor(loc.y));
+   const auto z = static_cast<std::size_t>(std::floor(loc.z));
    return z + ((Nz - 1) * y) + ((Ny - 1) * (Nz - 1) * x);
 }
 
-constexpr auto calculateGamma(const auto& v) {
+constexpr auto calculateGammaV(const auto& v) {
    // Calculates gamma using regular velocity
    return 1.0 / std::sqrt(1.0 - v.length_squared() * constants::over_c_sqr<double>);
 }
 
-constexpr auto calculateGammaV(const auto& v) {
+constexpr auto calculateGammaP(const auto& p) {
    // Calculates gamma using gamma*v (e.g. relativistic momentum but with mass terms canceled)
-   return std::sqrt(1.0 + v.length_squared() * constants::over_c_sqr<double>);
+   return std::sqrt(1.0 + p.length_squared() * constants::over_c_sqr<double>);
 }
 
 struct ParticleGroup {
@@ -58,17 +62,36 @@ struct ParticleGroup {
    double qdt_over_2m;
    double initial_y_position{};
    std::vector<Particle> particles{};
-
-   ParticleGroup() = delete;
+   std::map<std::size_t, std::span<Particle>> cell_map{};
+   bool cell_map_updated{false};
 
    ParticleGroup(std::string name_, const double mass_, const double charge_)
-   : name(std::move(name_)),
-     mass(mass_),
-     charge(charge_),
-     qdt_over_2m(0.5 * charge * dt / mass)
-   {}
+      : name(std::move(name_)),
+        mass(mass_),
+        charge(charge_),
+        qdt_over_2m(0.5 * charge * dt / mass) {
+   }
 
    [[nodiscard]] std::size_t num_particles() const { return particles.size(); }
+
+   void update_cell_map() {
+      if (cell_map_updated) { return; }
+      cell_map.clear();
+      auto prev_iter = particles.begin();
+      auto prev_code = morton_encode(getCellIndices(prev_iter->location)); // first particles code
+      // loop over remaining particles
+      for (auto it = particles.begin(); it != particles.end(); ++it) {
+         const auto cur_code = morton_encode(getCellIndices(it->location));
+         if (prev_code != cur_code) {
+            cell_map.insert({prev_code, std::span{prev_iter, it}});
+            prev_code = cur_code;
+            prev_iter = it;
+         }
+      }
+      cell_map.insert_or_assign(prev_code, std::span{prev_iter, particles.end()});
+      cell_map_updated = true;
+   }
+
 
    void reset_y_positions() {
       #pragma omp parallel for simd num_threads(nThreads)
@@ -79,18 +102,21 @@ struct ParticleGroup {
 
    void sort_particles() {
       std::erase_if(particles, [](const Particle& p) { return p.disabled; });
-      gfx::timsort(
-         particles,
-         [](const Particle& a, const Particle& b) {
-            return morton_encode(getCellIndices<std::size_t>(a.location)) < morton_encode(getCellIndices<std::size_t>(b.location));
-         }
+      boost::sort::block_indirect_sort(
+         particles.begin(), particles.end(),
+         [](const Particle& a, const Particle& b)
+         {
+            return morton_encode(getCellIndices<std::size_t>(a.location)) < morton_encode(
+               getCellIndices<std::size_t>(b.location));
+         },
+         nThreads
       );
-
-      // std::ranges::sort(
-      //    particles,
+      // boost::sort::parallel_stable_sort(
+      //    particles.begin(), particles.end(),
       //    [](const Particle& a, const Particle& b) {
       //       return morton_encode(getCellIndices<std::size_t>(a.location)) < morton_encode(getCellIndices<std::size_t>(b.location));
-      //    }
+      //    },
+      //    nThreads
       // );
    }
 }; // end struct ParticleGroup
@@ -128,7 +154,7 @@ struct ParticleInitializer {
          location = (location - mins) / deltas;
 
          // compute Lorentz factor and relativistic momentum
-         const auto gamma = calculateGamma(velocity);
+         const auto gamma = calculateGammaV(velocity);
 
          // add particle to group
          g.particles.emplace_back(
@@ -177,11 +203,10 @@ struct ParticleInitializer {
          const auto weight = p_vec[i + 6];
 
          const auto loc = (pos - mins) / deltas;
-         const auto gamma = calculateGamma(vel);
+         const auto gamma = calculateGammaV(vel);
 
          g.particles.emplace_back(loc, loc, vel, weight, gamma, false);
       }
-
       reader.EndStep();
       reader.Close();
 
@@ -194,12 +219,14 @@ struct ParticleInitializer {
    }
 
    static void initializeFromFile(const std::string& filename, auto& group_vec) {
-      std::cout << "Loading particle file: " << filename << "..." << std::endl;
+      std::print("Loading particle file: {}... ", filename);
       if (filename.ends_with(".bp")) {
          read_adios(filename, group_vec);
-      } else {
+      }
+      else {
          read_dat(filename, group_vec);
       }
+      std::println("Done.");
    }
 }; // end struct ParticleInitializer
 } // end namespace tf::particles

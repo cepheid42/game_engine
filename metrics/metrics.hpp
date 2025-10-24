@@ -96,7 +96,7 @@ struct ParticleDumpMetric final : detail::MetricBase {
    }
 
    void write(const std::string& dir, const std::string& step_ext, const std::size_t step) override {
-      static constexpr vec3 delta{dx, dy, dz};
+      static constexpr std::array delta = {dx, dy, dz};
       static constexpr vec3 lb{x_range[0], y_range[0], z_range[0]};
 
       const std::string file{dir + "/" + group->name + "_dump_" + step_ext};
@@ -105,12 +105,11 @@ struct ParticleDumpMetric final : detail::MetricBase {
       io.DefineAttribute<std::string>("name", group->name);
       io.DefineAttribute<std::size_t>("step", step, "", "/", true);
       io.DefineAttribute<double>("dt", dt);
-      io.DefineAttribute<double>("deltas", delta.data, 3);
+      io.DefineAttribute<double>("deltas", delta.data(), 3);
       io.DefineAttribute<double>("mass", group->mass);
       io.DefineAttribute<double>("charge", group->charge);
       // io.DefineAttribute<std::size_t>("atomic_number", group->atomic_number);
       io.DefineAttribute<std::size_t>("num_particles", nParticles, "", "/", true);
-
 
       var_loc.SetShape({nParticles, 3});
       var_loc.SetSelection({{0, 0}, {nParticles, 3}}); // {{start}, {count}}
@@ -187,10 +186,9 @@ struct ParticleMetric final : detail::MetricBase {
    {}
 
    void update_metrics() {
-      using Shape = interp::InterpolationShape<1>::Type;
+      using Shape = interp::InterpolationShape<0>::Type;
       static constexpr auto V_cell_inv = 1.0 / (dx * dy * dz);
       // static constexpr auto temp_coef  = 2.0 / (3.0 * constants::q_e<double>);
-
       // const auto mc2 = group->mass * constants::c_sqr<double>;
 
       std::ranges::fill(density, 0.0);

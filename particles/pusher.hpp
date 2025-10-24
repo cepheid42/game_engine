@@ -27,7 +27,7 @@ auto FieldToParticleInterp(const auto& F,
          const auto& s0j = shapeJ[j - JShape::Begin];
          for (int k = KShape::Begin; k <= KShape::End; ++k) {
             const auto& s0k = shapeK[k - KShape::Begin];
-            const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
+            const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
             result += s0i * s0j * s0k * F(x, y, z);
          } // end for(k)
       } // end for(j)
@@ -111,7 +111,7 @@ struct BorisPush {
    static void update_velocity(Particle& p, const emdata_t& emdata, const auto qdt) {
       if (p.disabled) { return; }
 
-      const auto [eps, bet] = fieldAtParticle(p, emdata, qdt);
+      const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
 
       // u = gamma * v
       const auto um = p.gamma * p.velocity + eps;
@@ -121,7 +121,7 @@ struct BorisPush {
       const auto u_plus = um + cross(u_prime, s);
       const auto u = u_plus + eps;
 
-      p.gamma = calculateGammaV(u);
+      p.gamma = calculateGammaP(u);
       p.velocity = u / p.gamma;
    } // end update_velocity()
 
@@ -155,7 +155,7 @@ struct BorisPush {
          constexpr std::size_t BC_DEPTH = 3lu;
 
          // Outflow particle BCs
-         const auto [inew, jnew, knew] = getCellIndices(new_loc);
+         const auto& [inew, jnew, knew] = getCellIndices(new_loc);
          p.disabled = inew < BC_DEPTH or inew > Nx - 1 - BC_DEPTH or
                       // jnew < BC_DEPTH or jnew > Ny - 1 - BC_DEPTH or
                       knew < BC_DEPTH or knew > Nz - 1 - BC_DEPTH;
@@ -180,20 +180,25 @@ struct BorisPush {
       }
    } // end advance_position
 
-   static void backstep_velocity(group_t& g, const emdata_t& emdata) {
+   static void backstep_velocity(auto& g, const auto& emdata) requires(push_enabled) {
       #pragma omp parallel for num_threads(nThreads)
       for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
          update_velocity(g.particles[pid], emdata, -0.5 * g.qdt_over_2m);
       }
    }
 
-   static void advance(group_t& g, const emdata_t& emdata, const std::size_t step) {
+   static void advance(auto& g, const auto& emdata, const auto) requires(push_enabled) {
       advance_velocity(g, emdata);
       advance_position(g);
-      if (step % group_t::SORT_INTERVAL == 0) {
-         g.sort_particles();
-      }
-   } // end operator()
+
+      g.cell_map_updated = false;
+      // if (step % group_t::SORT_INTERVAL == 0) {
+      //    g.sort_particles();
+      // }
+   } // end advance()
+
+   static void advance(auto&, const auto&, const auto) requires (!push_enabled) {}
+   static void backstep_velocity(auto&, const auto&) requires (!push_enabled) {}
 }; // end struct BorisPush
 } // end namespace tf::particles
 

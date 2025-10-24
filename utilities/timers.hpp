@@ -4,7 +4,7 @@
 #include <chrono>
 #include <unordered_map>
 #include <string>
-#include <iostream>
+#include <print>
 
 namespace tf::utilities {
 //========== Timer Classes =========
@@ -41,6 +41,10 @@ struct Timer
       start   = clock::now();
       elapsed = duration_t::zero();
    }
+
+   [[nodiscard]] auto to_seconds() const {
+      return std::chrono::duration<double>(elapsed);
+   }
 }; // end struct Timer
 
 inline auto create_timers() {
@@ -48,25 +52,21 @@ inline auto create_timers() {
    timers["Main"] = Timer{};
    timers["EM"] = Timer{};
    timers["Push"] = Timer{};
-   // timers["Sort"] = Timer{};
+   timers["Sort"] = Timer{};
    timers["Jdep"] = Timer{};
+   timers["Collisions"] = Timer{};
    timers["IO"] = Timer{};
    return timers;
 } // end create_timers()
 
 void print_final_timers(auto& timers) {
-   std::cout << "   EM: " << std::chrono::hh_mm_ss(timers["EM"].elapsed) << '\n';
-   std::cout << " Push: " << std::chrono::hh_mm_ss(timers["Push"].elapsed) << '\n';
-   std::cout << " Jdep: " << std::chrono::hh_mm_ss(timers["Jdep"].elapsed) << '\n';
-   std::cout << "   IO: " << std::chrono::hh_mm_ss(timers["IO"].elapsed) << '\n';
-   std::cout << "Total: " << std::chrono::hh_mm_ss(timers["Main"].elapsed) << std::endl;
-
-   // std::println("   EM: {}", std::chrono::hh_mm_ss(timers["EM"].elapsed));
-   // std::println(" Push: {}", std::chrono::hh_mm_ss(timers["Push"].elapsed));
-   // // std::println(" Sort: {}", std::chrono::hh_mm_ss(timers["Sort"].elapsed));
-   // std::println(" Jdep: {}", std::chrono::hh_mm_ss(timers["Jdep"].elapsed));
-   // std::println("   IO: {}", std::chrono::hh_mm_ss(timers["IO"].elapsed));
-   // std::println("Total: {}", std::chrono::hh_mm_ss(timers["Main"].elapsed));
+   std::println("        EM: {}", std::chrono::hh_mm_ss(timers["EM"].elapsed));
+   std::println("      Push: {}", std::chrono::hh_mm_ss(timers["Push"].elapsed));
+   std::println("      Sort: {}", std::chrono::hh_mm_ss(timers["Sort"].elapsed));
+   std::println("      Jdep: {}", std::chrono::hh_mm_ss(timers["Jdep"].elapsed));
+   std::println("        IO: {}", std::chrono::hh_mm_ss(timers["IO"].elapsed));
+   std::println("Collisions: {}", std::chrono::hh_mm_ss(timers["Collisions"].elapsed));
+   std::println("     Total: {}", std::chrono::hh_mm_ss(timers["Main"].elapsed));
 }
 
 } // end namespace tf::utilities

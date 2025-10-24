@@ -1,20 +1,7 @@
 import numpy as np
 from scipy import constants
-from dataclasses import dataclass
 from adios2 import Stream
 
-@dataclass
-class Particles:
-    name: str
-    mass: float
-    charge: float
-    temp: float
-    density: float
-    ppc: tuple
-    distribution: str = 'relativistic'
-    px_range: tuple = ()
-    py_range: tuple = ()
-    pz_range: tuple = ()
 
 # ===== Position Sampling Utilities =====
 # =======================================
@@ -128,10 +115,7 @@ def maxwell_juttner_distribution_alt(mass, temperature, count):
 
 def create_particles(domain, particles, file_dir):
     print(f'Creating {particles.name}...', end=' ', flush=True)
-    # todo: add buffer flush
 
-    # ----- Temporary mesh generation -----
-    # <AJK> - This will be replaced with an input mesh when we get there
     nx, ny, nz = domain.shape
     dx, dy, dz = domain.deltas
 
@@ -203,12 +187,10 @@ def create_particles(domain, particles, file_dir):
         velocities = thermal_distribution(mass, temp, num_particles)
     else:
         velocities = maxwell_juttner_distribution_alt(mass, temp, num_particles)
-        # velocities = maxwell_juttner_distribution(mass, temp, num_particles)
 
     # print(velocities.shape)
+
     output = np.hstack((positions, velocities, weights))
-    # header = f'{name} {mass} {charge}'
-    # np.savetxt(file_dir + f'/{name}.dat', output, delimiter=' ', header=header)
     with Stream(file_dir + f'/{name}.bp', 'w') as f:
         f.write_attribute('name', name)
         f.write_attribute('mass', mass)

@@ -1,6 +1,8 @@
 #ifndef EM_UPDATES_HPP
 #define EM_UPDATES_HPP
 
+#include "traits.hpp"
+
 #include <array>
 
 namespace tf::electromagnetics {
@@ -38,6 +40,16 @@ struct FieldIntegrator {
          } // end for j
       } // end for i
    } // end operator()
+}; // end struct FieldIntegrator
+
+
+template<>
+struct FieldIntegrator<null_t> {
+   using offset_t = std::array<std::size_t, 6>;
+   static void apply(auto&, const auto&, const auto&, const auto&,
+                     const auto&, const auto&, const auto&, const auto&,
+                     const offset_t&)
+   {}
 }; // end struct FieldIntegrator
 
 } // end namespace tf::electromagnetics

@@ -4,8 +4,11 @@
 from scipy import constants
 import math
 
-from particle_generation import Particles, create_particles
-from domain_params import Simulation, update_header
+from particle_generation import create_particles
+from domain_params import *
+
+project_path = '/home/cepheid/TriForce/game_engine'
+particle_data = project_path + '/data'
 
 shape = (45, 2, 101)
 
@@ -23,23 +26,32 @@ t_end = 4000 * dt
 nt = int(t_end / dt) + 1
 cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
+em_params = EMParams(
+    pml_depth=8,
+    em_bcs=(1, 1, 2, 2, 1, 1),
+)
+
+particle_params = ParticleParams(
+    particle_bcs=1,
+    interp_order=2,
+    particle_data=('electrons', 'ions')
+)
+
 sim_params = Simulation(
     name='seinfeld3D',
     shape=shape,
     save_interval=10,
     nthreads=24,
-    particle_bcs=1,
-    interp_order=2,
-    em_bcs=(1, 1, 2, 2, 1, 1),
-    pml_depth=8,
     dt=dt,
     t_end=t_end,
     nt=nt,
+    cfl=cfl,
     x_range=(xmin, xmax),
     y_range=(ymin, ymax),
     z_range=(zmin, zmax),
     deltas=(dx, dy, dz),
-    cfl=cfl
+    em_params=em_params,
+    particle_params=particle_params
 )
 
 # ===== Particles =====
@@ -73,7 +85,6 @@ ions = Particles(
     pz_range=pz_range
 )
 
-data_path = '/home/cepheid/TriForce/game_engine/data'
-create_particles(sim_params, electrons, data_path)
-create_particles(sim_params, ions, data_path)
-update_header(sim_params)
+create_particles(sim_params, electrons, particle_data)
+create_particles(sim_params, ions, particle_data)
+update_header(sim_params, project_path=project_path)

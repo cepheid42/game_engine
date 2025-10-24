@@ -1,18 +1,12 @@
 #ifndef BC_FUNCTORS_HPP
 #define BC_FUNCTORS_HPP
 
-#include "program_params.hpp"
 #include "diff_operators.hpp"
+#include "program_params.hpp"
 #include "traits.hpp"
 
-#include <concepts>
-
-namespace tf::electromagnetics {
-
-
-template<typename T> concept is_periodic = std::derived_from<T, periodic_t>;
-template<typename T> concept is_pml = std::derived_from<T, pml_t>;
-
+namespace tf::electromagnetics
+{
 template<typename CurlFunc, bool isLo, bool Negate>
 struct PMLFunctor : pml_t {
    using Curl = CurlFunc;
@@ -113,7 +107,7 @@ struct PeriodicFunctor : periodic_t {
 
 template<typename U>
 struct BCIntegrator {
-   static constexpr void apply(const auto&, const auto&, const auto&, const auto&) {}
+   static constexpr void apply(const auto&, const auto&, const auto&, const auto&) requires is_null<U> {}
 
    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc)
    requires is_pml<U>
@@ -252,6 +246,7 @@ struct PMLImpl<EMFace::Z, S> {
    using Jz = BCIntegrator<null_t>;
 };
 
+template<EMFace, EMSide>
 struct ReflectingBoundary {
     using Ex = BCIntegrator<null_t>;
     using Ey = BCIntegrator<null_t>;

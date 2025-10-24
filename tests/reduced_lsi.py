@@ -4,8 +4,8 @@
 from scipy import constants
 import math
 
-from particle_generation import Particles, create_particles
-from domain_params import Simulation, update_header
+from particle_generation import create_particles
+from domain_params import *
 
 project_path = '/home/cepheid/TriForce/game_engine'
 particle_data = project_path + '/data'
@@ -28,15 +28,22 @@ t_end = 4000 * dt #3.0e-13
 nt = int(t_end / dt) + 1
 cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
+em_params = EMParams(
+    pml_depth=15,
+    em_bcs=(1, 1, 2, 2, 1, 1),
+)
+
+particle_params = ParticleParams(
+    particle_bcs=1,
+    interp_order=2,
+    particle_data=('electrons', 'ions')
+)
+
 sim_params = Simulation(
     name='lsi_test',
     shape=shape,
     save_interval=20,
     nthreads=32,
-    particle_bcs=1,
-    interp_order=2,
-    em_bcs=(1, 1, 2, 2, 1, 1),
-    pml_depth=15,
     dt=dt,
     t_end=t_end,
     nt=nt,
@@ -45,7 +52,8 @@ sim_params = Simulation(
     y_range=(ymin, ymax),
     z_range=(zmin, zmax),
     deltas=(dx, dy, dz),
-    particle_data=('electrons', 'ions')
+    em_params=em_params,
+    particle_params=particle_params
 )
 
 # ===== Particles =====

@@ -29,7 +29,7 @@ template<EMFace F, EMSide S>
 using BCFuncTypes = TypeList<
    PeriodicBoundary<F, S>,  // 0
    PMLBoundary<F, S>,       // 1
-   ReflectingBoundary       // 2
+   ReflectingBoundary<F, S>       // 2
 >;
 
 using boundary_t = TypeList<
@@ -40,6 +40,7 @@ using boundary_t = TypeList<
    TypeListAt<BCSelect[4], BCFuncTypes<EMFace::Z, EMSide::Lo>>, // z0
    TypeListAt<BCSelect[5], BCFuncTypes<EMFace::Z, EMSide::Hi>>  // z1
 >;
+
 
 // 2D TEy
 using field_t = TypeList<

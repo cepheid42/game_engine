@@ -18,6 +18,7 @@ EPS0 = 8.8541878188E-12 # F/m
 MU0 = 1.25663706127E-6 # N/A^2
 
 s_to_ns = 1.0e9
+s_to_ps = 1.0e12
 T_to_G = 1.0e4
 Vm_to_kVcm = 1.0e-5
 Am_to_Acm = 1.0e-4
@@ -92,39 +93,33 @@ H_to_B = MU0
 #     # plt.close(fig)
 
 
-# def plot_distributions(start, stop, step, group_name, file_dir):
-#     # n = 0
-#     # file1 = f'/{group_name}_dump_{n:010d}.bp'
-#     # with FileReader(data_dir + file_dir + file1) as f:
-#     #     # weight1 = f.read('Weight')
-#     #     gamma1 = f.read('Gamma')
-#
-#     n = 0
-#     n2 = stop
-#     file1 = f'/{group_name}_dump_{n:010d}.bp'
-#     file2 = f'/{group_name}_dump_{n2:010d}.bp'
-#     with FileReader(data_dir + '/lsi_test' + file1) as f:
-#         weight1 = f.read('Weight')
-#         gamma1 = f.read('Gamma')
-#
-#     with FileReader(data_dir + '/lsi_test' + file2) as f:
-#         weight2 = f.read('Weight')
-#         gamma2 = f.read('Gamma')
-#
-#     energy1 = (gamma1 - 1) * constants.m_e * constants.c**2 / constants.elementary_charge
-#     energy2 = (gamma2 - 1) * constants.m_e * constants.c**2 / constants.elementary_charge
-#     fig, ax = plt.subplots(figsize=(12,10))
-#
-#     n, bins, p = ax.hist(energy2, weights=weight2, color='r', bins=1000, density=True, histtype='step', log=False)
-#     ax.hist(energy1, weights=weight1, color='b', bins=bins, density=True, histtype='step', log=False)
-#
-#     # plt.grid(ls="--")
-#     # plt.ylabel("fraction")
-#     # plt.xlabel(f"energy (eV)")
-#
-#     filename= data_dir + f'/{group_name}_energy_distribution.png'
-#     plt.savefig(filename)
-#     plt.close()
+def plot_distributions(start, stop, step, group_name, file_dir):
+    n = 0
+    n2 = stop
+    file1 = f'/{group_name}_dump_{n:010d}.bp'
+    file2 = f'/{group_name}_dump_{n2:010d}.bp'
+    with FileReader(data_dir + file_dir + file1) as f:
+        weight1 = f.read('Weight')
+        gamma1 = f.read('Gamma')
+
+    with FileReader(data_dir + file_dir + file2) as f:
+        weight2 = f.read('Weight')
+        gamma2 = f.read('Gamma')
+
+    energy1 = (gamma1 - 1) * constants.m_e * constants.c**2 / constants.elementary_charge
+    energy2 = (gamma2 - 1) * constants.m_e * constants.c**2 / constants.elementary_charge
+    fig, ax = plt.subplots(figsize=(12,10))
+
+    n, bins, p = ax.hist(energy2, color='r', bins=1000, histtype='step', log=True)
+    ax.hist(energy1, color='b', bins=bins, histtype='step', log=True)
+
+    # plt.grid(ls="--")
+    # plt.ylabel("fraction")
+    # plt.xlabel(f"energy (eV)")
+
+    filename= data_dir + f'/{group_name}_energy_distribution.png'
+    plt.savefig(filename)
+    plt.close()
 
 
 def load_field(n, name, file_dir):
@@ -163,10 +158,6 @@ def plot_metric(n, step, metric, group_name, file_dir):
     norm = colors.LogNorm(vmin=1e24, vmax=1e28)
     im = ax.contourf(zs, xs, data[:, 0, :], levels=np.logspace(24, 28, 50), norm=norm, cmap='jet')
     fig.colorbar(ScalarMappable(norm=norm, cmap='jet'), ax=ax, shrink=0.82)
-
-
-    # im = ax.contourf(zs, xs, data[:, ny // 2, :], levels=100, vmin=0, vmax=10**25)
-    # fig.colorbar(im, ax=ax)
 
     ax.set_title(f'{group_name.capitalize()} {metric} @ {time:.4e} ns')
     ax.set_ylabel(r'x ($\mu$m)')
@@ -275,12 +266,8 @@ def plot_field_energy(start, stop, step, file_dir):
     time = np.linspace(0, stop * dt * s_to_ns, (stop + step) // step)
     fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
 
-    # lsp_data = np.loadtxt('/home/cepheid/TriForce/game_engine/data/seinfeld_lsp_fields.csv', delimiter=',', dtype=np.float64)
-    # ax.plot(lsp_data[:, 0], lsp_data[:, 1], label='LSP')
-
     ax.plot(time, result)
     ax.set_yticks([0, 0.0005, 0.0010, 0.0015, 0.0020])
-    # ax.set_ylim([0, 3.0e-6])
     ax.set_xlim([time[0], time[-1]])
     ax.set_xlabel('Time (ns)')
     ax.set_ylabel('Energy (J)')
@@ -290,16 +277,23 @@ def plot_field_energy(start, stop, step, file_dir):
     plt.close(fig)
     print('Done.')
 
+def calculate_Temp(n, group_name, file_dir):
+    filename = f'/{group_name}_dump_{n:010d}.bp'
+    with FileReader(data_dir + file_dir + filename) as f:
+        mass = f.read_attribute('mass')
+        weight = f.read('Weight')
+        velocity = f.read('Velocity')
+
+    ttl_weight = weight.sum(axis=0)[0]
+    avg_velocity = (weight * velocity).sum(axis=0) / ttl_weight
+    dv = velocity - avg_velocity[None, :]
+    ttl_sum_dv2 = (weight * (dv**2).sum(axis=1)[:, None]).sum(axis=0)[0]
+    avg_temp = ttl_sum_dv2 * mass / (3.0 * constants.e * ttl_weight)
+    return avg_temp
 
 def calculate_KE(n, group_name, file_dir):
     filename = f'/{group_name}_dump_{n:010d}.bp'
     with FileReader(data_dir + file_dir + filename) as f:
-        # step = f.read_attribute('step')
-        # dt = f.read_attribute('dt')
-        # dims = f.read_attribute('dims')
-        # x_range = f.read_attribute('x_range')
-        # y_range = f.read_attribute('y_range')
-        # z_range = f.read_attribute('z_range')
         mass = f.read_attribute('mass')
         weight = f.read('Weight')
         gamma = f.read('Gamma')
@@ -321,17 +315,10 @@ def plot_KE(groups, start, stop, step, file_dir):
     time = np.linspace(0, stop * dt * s_to_ns, (stop + step) // step)
     fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
 
-    # lsp_data = np.loadtxt('/home/cepheid/TriForce/game_engine/data/seinfeld_lsp_particleke.csv', delimiter=',', dtype=np.float64)
-    # ax.plot(lsp_data[:, 0], lsp_data[:, 1], label='LSP')
-
-    # ke_sum = group_data['electrons'] + group_data['ions']
-    # ax.plot(time, ke_sum)
-
     for name, data in group_data.items():
         ax.plot(time, data, label=name)
 
     ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
-    # ax.set_ylim([2.2745e-4, 2.305e-4])
     ax.set_xlim([time[0], time[-1]])
     ax.set_xlabel('Time (ns)')
     ax.set_ylabel('KE (J)')
@@ -343,23 +330,84 @@ def plot_KE(groups, start, stop, step, file_dir):
     print('Done.')
 
 
+def plot_Temp(groups, start, stop, step, file_dir):
+    print('Calculating total particle temperatures...', end=' ')
+    filename = f'/{groups[0]}_dump_{0:010d}.bp'
+    with FileReader(data_dir + file_dir + filename) as f:
+        dt = f.read_attribute('dt')
+
+    group_data = {}
+    for g in groups:
+        targs = [(n, g, file_dir) for n in range(start, stop + step, step)]
+        with mp.Pool(16) as p:
+            temp = p.starmap(calculate_Temp, targs)
+        group_data[g] = np.asarray(temp)
+
+    time = np.linspace(0, stop * dt * s_to_ps, (stop + step) // step)
+    fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
+
+    for name, data in group_data.items():
+        ax.plot(time, data, label=name)
+
+    # tau_ie_0 = 106.7e-12
+    # nu_ie_0 = 1.0 / tau_ie_0
+    # total_time = 15 * tau_ie_0
+    #
+    # T_electron = 10.0
+    # T_ion = 100.0
+    #
+    # c1 = 0.5 * (T_ion + T_electron)
+    # c2 = 0.5 * (T_ion - T_electron)
+    # c3 = -2.0 / 3.0 * nu_ie_0
+    #
+    # t_theory = np.linspace(0.0, 15.0 * total_time, 500)
+    # Ti_theory = c1 - c2 * np.exp(c3 * t_theory)
+    # Te_theory = c1 + c2 * np.exp(c3 * t_theory)
+    #
+    # ax.plot(t_theory / tau_ie_0, Te_theory, '--', label='Te (theory)')
+    # ax.plot(t_theory / tau_ie_0, Ti_theory, '--', label='Ti (theory)')
+
+    # ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
+    # ax.set_xlim([time[0], time[-1]])
+    ax.set_xlabel('Time (ns)')
+    ax.set_ylabel('T (eV)')
+    ax.set_title(f'Total Particle Temperature')
+    ax.legend()
+    plt.savefig(data_dir + f'/total_particle_temp.png')
+    plt.clf()
+    plt.close(fig)
+    print('Done.')
+
+
 def main():
-    step = 20
+    step = 100
     start = 0
-    stop = 4000
+    stop = 10000
 
-    file_dir = '/lsi_test'
+    file_dir = '/carbon_thermal_eq'
 
-    # plot_distributions(start, stop, step, 'electrons', file_dir)
-    # plot_distributions(start, stop, step, 'ions', file_dir)
+    plot_Temp(['carbon1', 'carbon2'], start, stop, step, file_dir)
 
-    targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop + step, step)]
-    with mp.Pool(16) as p:
-       p.starmap(plot_metric, targs)
+    # for n in range(10):
+    #     filename = f'/carbon1_dump_{n:010d}.bp'
+    #     with FileReader(data_dir + file_dir + filename) as f:
+    #         gamma = f.read('Gamma')
+    #         velocity = f.read('Velocity')
+    #     velocity = np.sqrt((velocity**2).sum(axis=1))
+    #     velocity = velocity.sum(axis=0) / velocity.shape[0]
+    #     gamma = gamma.sum(axis=0) / gamma.shape[0]
+    #     print(f'Gamma = {gamma[0]}, v_ave = {velocity}')
 
-    targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop + step, step)]
-    with mp.Pool(16) as p:
-       p.starmap(plot_metric, targs)
+    # plot_distributions(start, stop, step, 'carbon1', file_dir)
+    # plot_distributions(start, stop, step, 'carbon2', file_dir)
+
+    # targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop + step, step)]
+    # with mp.Pool(16) as p:
+    #    p.starmap(plot_metric, targs)
+    #
+    # targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop + step, step)]
+    # with mp.Pool(16) as p:
+    #    p.starmap(plot_metric, targs)
 
     # targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(8) as p:
@@ -371,8 +419,8 @@ def main():
 
     # particle_positions(start, stop, step, 'electrons', file_dir)
 
-    plot_KE(['electrons', 'ions'], start, stop, step, file_dir)
-    plot_field_energy(start, stop, step, file_dir)
+    # plot_KE(['electrons', 'ions'], start, stop, step, file_dir)
+    # plot_field_energy(start, stop, step, file_dir)
 
     # plot_single_field(0, 1, 'Ex', file_dir)
     # plot_single_field(0, 1, 'Ez', file_dir)

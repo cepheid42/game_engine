@@ -172,6 +172,8 @@ struct EMData {
 
    Array3D<null_t> empty{}; // for the shits and possibly also some giggles...
 };
+
+using emdata_t = EMData;
 } // end namespace tf::electromagnetics
 
 

@@ -3,9 +3,9 @@
 
 #include "em_definitions.hpp"
 #include "em_data.hpp"
-#include "typelist.hpp"
 
 namespace tf::electromagnetics {
+
 
 struct EMSolver {
    using offset_t = std::array<std::size_t, 6>;
@@ -38,7 +38,7 @@ struct EMSolver {
      bcdata(this->emdata)
    {}
 
-   void advance(const double t) {
+   void advance(const auto t) requires(em_enabled) {
       updateH();
       updateHBCs();
       updateJBCs();
@@ -46,8 +46,10 @@ struct EMSolver {
       updateE();
       updateEBCs();
       particle_correction(); // for the particles and shit
-      zero_currents();       // also for the particles, don't need last weeks currents
+      zero_currents();       // also for the particles, don't need last week's currents
    }
+
+   void advance(const auto) requires (!em_enabled) {}
 
    void updateE() {
       ExUpdate::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexhz, emdata.Cexhy, emdata.Cjx, Ex_offsets);
@@ -173,9 +175,11 @@ struct EMSolver {
       std::ranges::fill(emdata.Jz, 0.0);
    }
 
-   EMData emdata;
+   emdata_t emdata;
    bcdata_t bcdata;
 }; // end struct EMSolver
+
+using emsolver_t = EMSolver;
 } // end namespace tf::electromagnetics
 
 #endif //EM_SOLVER_HPP

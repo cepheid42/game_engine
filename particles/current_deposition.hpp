@@ -34,7 +34,7 @@ struct CurrentDeposition {
             auto acc = 0.0;
             for (int k = Inner::Begin; k <= Inner::End - 1; ++k) {
                acc += shapeDK[k - Inner::Begin] * tmp;
-               const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
+               const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
                #pragma omp atomic update
                J(x, y, z) += acc;
             } // end for(k)
@@ -66,7 +66,7 @@ struct CurrentDeposition {
             const auto jdx = j - Middle::Begin;
             const auto& s0j = shapeJ0[jdx];
             const auto& dsj = shapeDJ[jdx];
-            const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, 0lu);
+            const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, 0lu);
             #pragma omp atomic update
             J(x, y, z) +=  qA * (s0i * s0j + 0.5 * (dsi * s0j + s0i * dsj) + (1.0 / 3.0) * dsj * dsi);
          } // end for(j)
@@ -146,12 +146,14 @@ struct CurrentDeposition {
    } // end updateJ()
    
 
-   static void advance(const auto& g, auto& emdata) {
+   static void advance(const auto& g, auto& emdata) requires(jdep_enabled) {
       #pragma omp parallel for num_threads(nThreads)
       for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
          updateJ(g.particles[pid], emdata, g.charge);
       }
    }
+
+   static void advance(const auto&, auto&) requires(!jdep_enabled) {}
 }; // end struct CurrentDeposition
 } // namespace tf::particles
 

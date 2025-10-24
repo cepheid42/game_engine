@@ -7,7 +7,7 @@ project(
         'debug=false',
         'warning_level=3',
 #        'werror=true',
-        'cpp_std=c++20',
+        'cpp_std=c++23',
 #        'b_sanitize=address',
         'b_lto=true',
 #        'b_pgo=generate',
@@ -57,7 +57,7 @@ sources = [
 
 deps = [
     dependency('adios2', required : true),
-    dependency('OpenMP'),
+    dependency('OpenMP', required : true),
 #    dependency('cuda')
 ]
 
