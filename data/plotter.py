@@ -129,11 +129,10 @@ def load_field(n, name, file_dir):
 
 
 def plot_metric(n, step, metric, group_name, file_dir):
-    assert metric in ['Density', 'Temperature']
 
     filename = f'/{group_name}_{n:010d}.bp'
     with FileReader(data_dir + file_dir + filename) as f:
-        data = f.read(metric)
+        data = f.read('Weight')
         sim_step = f.read_attribute('step')
         dt = f.read_attribute('dt')
         dims = f.read_attribute('dims')
@@ -343,33 +342,34 @@ def plot_Temp(groups, start, stop, step, file_dir):
             temp = p.starmap(calculate_Temp, targs)
         group_data[g] = np.asarray(temp)
 
-    time = np.linspace(0, stop * dt * s_to_ps, (stop + step) // step)
+    time = np.linspace(0, stop * dt, (stop + step) // step)
     fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
 
     for name, data in group_data.items():
-        ax.plot(time, data, label=name)
+        ax.plot(time * s_to_ns, data, label=name)
 
-    # tau_ie_0 = 106.7e-12
-    # nu_ie_0 = 1.0 / tau_ie_0
-    # total_time = 15 * tau_ie_0
+    # eV_to_erg = 1.60218e-12
+    # T1 = 1250
+    # T2 = 250
+    # m = 1.9945e-23 # g
+    # n = 1e20 # cm^-3
+    # Z = 6
+    # lnL = 10.0
     #
-    # T_electron = 10.0
-    # T_ion = 100.0
+    # coef = (8 / 3) * np.sqrt(np.pi)
+    # Ts = 0.5 * (T1 + T2) * eV_to_erg
+    # mu = coef * (Z * 4.8e-10)**4 * lnL * n / (m**0.5 * Ts**1.5)
     #
-    # c1 = 0.5 * (T_ion + T_electron)
-    # c2 = 0.5 * (T_ion - T_electron)
-    # c3 = -2.0 / 3.0 * nu_ie_0
+    # Tc1 = 0.5 * (T1 + T2) + 0.5 * (T1 - T2) * np.exp(-mu * time)
+    # Tc2 = 0.5 * (T1 + T2) + 0.5 * (T2 - T1) * np.exp(-mu * time)
     #
-    # t_theory = np.linspace(0.0, 15.0 * total_time, 500)
-    # Ti_theory = c1 - c2 * np.exp(c3 * t_theory)
-    # Te_theory = c1 + c2 * np.exp(c3 * t_theory)
+    # # Tc1 = Tc1 * constants.e / constants.k
+    # # Tc2 = Tc2 * constants.e / constants.k
     #
-    # ax.plot(t_theory / tau_ie_0, Te_theory, '--', label='Te (theory)')
-    # ax.plot(t_theory / tau_ie_0, Ti_theory, '--', label='Ti (theory)')
+    # ax.plot(time * s_to_ps, Tc1, label='Carbon1 Theory')
+    # ax.plot(time * s_to_ps, Tc2, label='Carbon2 Theory')
 
-    # ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
-    # ax.set_xlim([time[0], time[-1]])
-    ax.set_xlabel('Time (ns)')
+    ax.set_xlabel('Time (ps)')
     ax.set_ylabel('T (eV)')
     ax.set_title(f'Total Particle Temperature')
     ax.legend()
@@ -382,21 +382,11 @@ def plot_Temp(groups, start, stop, step, file_dir):
 def main():
     step = 100
     start = 0
-    stop = 10000
+    stop = 7500
 
-    file_dir = '/carbon_thermal_eq'
+    file_dir = '/lsi_collisions'
 
-    plot_Temp(['carbon1', 'carbon2'], start, stop, step, file_dir)
-
-    # for n in range(10):
-    #     filename = f'/carbon1_dump_{n:010d}.bp'
-    #     with FileReader(data_dir + file_dir + filename) as f:
-    #         gamma = f.read('Gamma')
-    #         velocity = f.read('Velocity')
-    #     velocity = np.sqrt((velocity**2).sum(axis=1))
-    #     velocity = velocity.sum(axis=0) / velocity.shape[0]
-    #     gamma = gamma.sum(axis=0) / gamma.shape[0]
-    #     print(f'Gamma = {gamma[0]}, v_ave = {velocity}')
+    # plot_Temp(['carbon1', 'carbon2'], start, stop, step, file_dir)
 
     # plot_distributions(start, stop, step, 'carbon1', file_dir)
     # plot_distributions(start, stop, step, 'carbon2', file_dir)
@@ -419,8 +409,9 @@ def main():
 
     # particle_positions(start, stop, step, 'electrons', file_dir)
 
-    # plot_KE(['electrons', 'ions'], start, stop, step, file_dir)
-    # plot_field_energy(start, stop, step, file_dir)
+    plot_Temp(['electrons', 'ions'], start, stop, step, file_dir)
+    plot_KE(['electrons', 'ions'], start, stop, step, file_dir)
+    plot_field_energy(start, stop, step, file_dir)
 
     # plot_single_field(0, 1, 'Ex', file_dir)
     # plot_single_field(0, 1, 'Ez', file_dir)

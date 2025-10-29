@@ -4,6 +4,8 @@ meson-build-debug/
 .venv/
 __pycache__
 
+/data/*/
+
 *.png
 *.csv
 *.dat

@@ -21,7 +21,7 @@ def thermal_distribution(mass, T_M, num_particles, velocity=0.0):
     return velocities
 
 
-def maxwell_juttner_distribution(mass, t_M, num_particles):
+def maxwell_juttner_distribution_alt(mass, t_M, num_particles):
     rng = np.random.default_rng()
     t_norm = constants.elementary_charge * t_M / (mass * constants.c**2)
     a, b, r0 = 0.56, 0.35, 0.95
@@ -64,7 +64,7 @@ def maxwell_juttner_distribution(mass, t_M, num_particles):
         velocities[p, :] = sample()
     return velocities
 
-def maxwell_juttner_distribution_alt(mass, temperature, count):
+def maxwell_juttner_distribution(mass, temperature, count):
     rng = np.random.default_rng()
     a_MJ, b_MJ, R0_MJ = 0.56, 0.35, 0.95
     T_norm = constants.elementary_charge * temperature / (mass * constants.c**2)
@@ -186,7 +186,7 @@ def create_particles(domain, particles, file_dir):
     if distribution == 'thermal':
         velocities = thermal_distribution(mass, temp, num_particles)
     else:
-        velocities = maxwell_juttner_distribution_alt(mass, temp, num_particles)
+        velocities = maxwell_juttner_distribution(mass, temp, num_particles)
 
     # print(velocities.shape)
 

@@ -121,7 +121,7 @@ struct BorisPush {
       const auto u_plus = um + cross(u_prime, s);
       const auto u = u_plus + eps;
 
-      p.gamma = calculateGammaP(u);
+      p.gamma = calculateGammaV(u); // is this right?
       p.velocity = u / p.gamma;
    } // end update_velocity()
 

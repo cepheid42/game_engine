@@ -72,7 +72,7 @@ int main() {
    }
 
    emsolver_t emsolver(Nx, Ny, Nz);
-   // add_gaussianbeam(emsolver);
+   add_gaussianbeam(emsolver);
    emsolver.particle_correction();
 
    Metrics metrics(std::string{sim_path} + "/data/" + std::string{sim_name});
