@@ -1,6 +1,8 @@
 #ifndef EM_DATA_HPP
 #define EM_DATA_HPP
 
+#include <unordered_map>
+
 #include "program_params.hpp"
 #include "sources.hpp"
 #include "array.hpp"
@@ -171,6 +173,18 @@ struct EMData {
    std::vector<CurrentSource> srcs{};
 
    Array3D<null_t> empty{}; // for the shits and possibly also some giggles...
+
+   std::unordered_map<std::string, Array3D<double>&> em_map = {
+      {"Ex", Ex},
+      {"Ey", Ey},
+      {"Ez", Ez},
+      {"Hx", Hx},
+      {"Hy", Hy},
+      {"Hz", Hz},
+      {"Jx", Jx},
+      {"Jy", Jy},
+      {"Jz", Jz}
+   };
 };
 
 using emdata_t = EMData;

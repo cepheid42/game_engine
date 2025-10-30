@@ -20,12 +20,13 @@
 namespace tf::particles
 {
 struct Particle {
-   vec3<double> location;
-   vec3<double> old_location;
    vec3<double> velocity;
-   double weight;
    double gamma;
-   bool disabled{false};
+   vec3<float> location;
+   vec3<float> old_location;
+   float weight; // does this NEED to be a double?
+
+   [[nodiscard]] bool is_disabled() const { return weight < 0.0f; }
 }; // end struct Particle
 
 template <typename T = std::size_t>
@@ -63,18 +64,24 @@ struct ParticleGroup {
    std::string name;
    double mass;
    double charge;
+   std::size_t atomic_number;
    double qdt_over_2m;
-   double initial_y_position{};
+   vec3<float> initial_position{};
+   bool tracer;
+   bool sourcer;
    std::vector<Particle> particles{};
    std::map<std::size_t, std::span<Particle>> cell_map{};
    bool cell_map_updated{false};
 
-   ParticleGroup(std::string name_, const double mass_, const double charge_)
-      : name(std::move(name_)),
-        mass(mass_),
-        charge(charge_),
-        qdt_over_2m(0.5 * charge * dt / mass) {
-   }
+   ParticleGroup(std::string name_, const double mass_, const double charge_, const std::size_t atomic_number_, const bool tracer_flag = false, const bool sourcer_flag = false)
+   : name(std::move(name_)),
+     mass(mass_),
+     charge(charge_),
+     atomic_number(atomic_number_),
+     qdt_over_2m(0.5 * charge * dt / mass),
+     tracer(tracer_flag),
+     sourcer(sourcer_flag)
+   {}
 
    [[nodiscard]] std::size_t num_particles() const { return particles.size(); }
 
@@ -96,32 +103,27 @@ struct ParticleGroup {
       cell_map_updated = true;
    }
 
+   static void reset_positions() {}
 
-   void reset_y_positions() {
+   void reset_positions() requires (x_collapsed or y_collapsed or z_collapsed) {
       #pragma omp parallel for simd num_threads(nThreads)
       for (std::size_t pid = 0; pid < particles.size(); pid++) {
-         particles[pid].location[1] = initial_y_position;
+         if constexpr (x_collapsed) {particles[pid].location[0] = initial_position.x;}
+         if constexpr (y_collapsed) {particles[pid].location[1] = initial_position.y;}
+         if constexpr (z_collapsed) {particles[pid].location[2] = initial_position.z;}
       }
    }
 
    void sort_particles() {
-      std::erase_if(particles, [](const Particle& p) { return p.disabled; });
+      std::erase_if(particles, [](const Particle& p) { return p.is_disabled(); });
       boost::sort::block_indirect_sort(
          particles.begin(), particles.end(),
-         [](const Particle& a, const Particle& b)
-         {
-            return morton_encode(getCellIndices<std::size_t>(a.location)) < morton_encode(
-               getCellIndices<std::size_t>(b.location));
+         [](const Particle& a, const Particle& b) {
+            return morton_encode(getCellIndices<std::size_t>(a.location))
+                 < morton_encode(getCellIndices<std::size_t>(b.location));
          },
          nThreads
       );
-      // boost::sort::parallel_stable_sort(
-      //    particles.begin(), particles.end(),
-      //    [](const Particle& a, const Particle& b) {
-      //       return morton_encode(getCellIndices<std::size_t>(a.location)) < morton_encode(getCellIndices<std::size_t>(b.location));
-      //    },
-      //    nThreads
-      // );
    }
 }; // end struct ParticleGroup
 
@@ -140,9 +142,9 @@ struct ParticleInitializer {
       std::string name{};
       double mass{};
       double charge{};
-      vec3<double> location{};
+      vec3<double> pos{};
       vec3<double> velocity{};
-      double weight = 0.0;
+      float weight = 0.0;
 
       std::string line;
       std::getline(file, line);
@@ -150,24 +152,23 @@ struct ParticleInitializer {
 
       buff >> comment >> name >> mass >> charge;
 
-      ParticleGroup g(name, mass, charge);
+      ParticleGroup g(name, mass, charge, 0);
       while (std::getline(file, line)) {
          std::istringstream buffer(line);
-         buffer >> location >> velocity >> weight;
+         buffer >> pos >> velocity >> weight;
 
-         location = (location - mins) / deltas;
+         const auto loc = ((pos - mins) / deltas).as_type<float>();
 
          // compute Lorentz factor and relativistic momentum
          const auto gamma = calculateGammaV(velocity);
 
          // add particle to group
          g.particles.emplace_back(
-            location,
-            location,
             velocity,
-            weight,
             gamma,
-            false
+            pos.as_type<float>(),
+            pos.as_type<float>(),
+            weight
          );
       }
       file.close();
@@ -175,7 +176,7 @@ struct ParticleInitializer {
          throw std::runtime_error("Particle initialization failed: Particles vector is empty.");
       }
       g.sort_particles();
-      g.initial_y_position = g.particles.empty() ? 0.0 : g.particles[0].location[1];
+      g.initial_position = g.particles.empty() ? vec3<float>{} : g.particles[0].location;
       group_vec.push_back(g);
    } // end initializeFromFile
 
@@ -189,27 +190,48 @@ struct ParticleInitializer {
 
       reader.BeginStep();
 
-      const auto name = io.InquireAttribute<std::string>("name").Data()[0];
-      const auto mass = io.InquireAttribute<double>("mass").Data()[0];
-      const auto charge = io.InquireAttribute<double>("charge").Data()[0];
-      const auto num_particles = io.InquireAttribute<long int>("num_particles").Data()[0];
+      const auto name = io.InquireAttribute<std::string>("Name").Data()[0];
+      const auto mass = io.InquireAttribute<double>("Mass").Data()[0];
+      const auto charge = io.InquireAttribute<double>("Charge").Data()[0];
+      const std::size_t atomic_number = io.InquireAttribute<unsigned long int>("Atomic Number").Data()[0];
+      const bool tracer = static_cast<bool>(io.InquireAttribute<unsigned long int>("Tracer").Data()[0]);
+      const bool sourcer = static_cast<bool>(io.InquireAttribute<unsigned long int>("Sourcer").Data()[0]);
 
-      ParticleGroup g(name, mass, charge);
+      ParticleGroup g(name, mass, charge, atomic_number, tracer, sourcer);
 
-      const auto p_data = io.InquireVariable<double>("particles");
-      std::vector<double> p_vec(7 * num_particles);
+      const auto p_data = io.InquireVariable<double>("Position");
+      const auto v_data = io.InquireVariable<double>("Velocity");
+      const auto w_data = io.InquireVariable<double>("Weight");
+      const auto g_data = io.InquireVariable<double>("Gamma");
+
+      const auto num_particles = p_data.Shape()[0];
+
+      std::vector<double> p_vec(3 * num_particles);
+      std::vector<double> v_vec(3 * num_particles);
+      std::vector<double> w_vec(num_particles);
+      std::vector<double> g_vec(num_particles);
 
       reader.Get(p_data, p_vec, adios2::Mode::Sync);
+      reader.Get(v_data, v_vec, adios2::Mode::Sync);
+      reader.Get(w_data, w_vec, adios2::Mode::Sync);
+      reader.Get(g_data, g_vec, adios2::Mode::Sync);
 
-      for (auto i = 0lu; i < 7lu * num_particles; i += 7lu) {
-         const vec3 pos{p_vec[i], p_vec[i + 1], p_vec[i + 2]};
-         const vec3 vel{p_vec[i + 3], p_vec[i + 4], p_vec[i + 5]};
-         const auto weight = p_vec[i + 6];
+      for (auto i = 0lu; i < num_particles; i++) {
+         const vec3 pos{p_vec[3 * i], p_vec[3 * i + 1], p_vec[3 * i + 2]};
+         const vec3 vel{v_vec[3 * i], v_vec[3 * i + 1], v_vec[3 * i + 2]};
+         const auto weight = static_cast<float>(w_vec[i]);
 
-         const auto loc = (pos - mins) / deltas;
-         const auto gamma = calculateGammaV(vel);
+         const auto loc = ((pos - mins) / deltas);
+         // const auto gamma = calculateGamma(vel);
+         const auto gamma = g_vec[i];
 
-         g.particles.emplace_back(loc, loc, vel, weight, gamma, false);
+         g.particles.emplace_back(
+            vel,
+            gamma,
+            loc.as_type<float>(),
+            loc.as_type<float>(),
+            weight
+         );
       }
       reader.EndStep();
       reader.Close();
@@ -218,7 +240,7 @@ struct ParticleInitializer {
          throw std::runtime_error("Particle initialization failed: Particles vector is empty.");
       }
       g.sort_particles();
-      g.initial_y_position = g.particles.empty() ? 0.0 : g.particles[0].location[1];
+      g.initial_position = g.particles.empty() ? vec3<float>{} : g.particles[0].location;
       group_vec.push_back(g);
    }
 
@@ -226,8 +248,7 @@ struct ParticleInitializer {
       std::print("Loading particle file: {}... ", filename);
       if (filename.ends_with(".bp")) {
          read_adios(filename, group_vec);
-      }
-      else {
+      } else {
          read_dat(filename, group_vec);
       }
       std::println("Done.");

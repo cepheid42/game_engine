@@ -32,6 +32,16 @@ using BCFuncTypes = TypeList<
    ReflectingBoundary<F, S>       // 2
 >;
 
+using EMDiffTypes = TypeList<
+   noop,                   // 0
+   forward_dx,             // 1
+   backward_dx,            // 2
+   forward_dy,             // 3
+   backward_dy,            // 4
+   forward_dz,             // 5
+   backward_dz             // 6
+>;
+
 using boundary_t = TypeList<
    TypeListAt<BCSelect[0], BCFuncTypes<EMFace::X, EMSide::Lo>>, // x0
    TypeListAt<BCSelect[1], BCFuncTypes<EMFace::X, EMSide::Hi>>, // x1
@@ -41,26 +51,16 @@ using boundary_t = TypeList<
    TypeListAt<BCSelect[5], BCFuncTypes<EMFace::Z, EMSide::Hi>>  // z1
 >;
 
-
-// 2D TEy
+// turns differences on and off depending on simulation geometry
+// note that if x_collapsed, y_collapsed, and z_collapsed are all set (0D), the field solver won't do anything!
 using field_t = TypeList<
-   FieldIntegrator<ExplicitUpdateFunctor<       noop, backward_dz>>,
-   FieldIntegrator<ExplicitUpdateFunctor<backward_dz, backward_dx>>,
-   FieldIntegrator<ExplicitUpdateFunctor<backward_dx,        noop>>,
-   FieldIntegrator<ExplicitUpdateFunctor< forward_dz,        noop>>,
-   FieldIntegrator<ExplicitUpdateFunctor< forward_dx,  forward_dz>>,
-   FieldIntegrator<ExplicitUpdateFunctor<       noop,  forward_dx>>
+   FieldIntegrator<ExplicitUpdateFunctor<TypeListAt<y_collapsed ? 0 : 4, EMDiffTypes>, TypeListAt<z_collapsed ? 0 : 6, EMDiffTypes>>>,
+   FieldIntegrator<ExplicitUpdateFunctor<TypeListAt<z_collapsed ? 0 : 6, EMDiffTypes>, TypeListAt<x_collapsed ? 0 : 2, EMDiffTypes>>>,
+   FieldIntegrator<ExplicitUpdateFunctor<TypeListAt<x_collapsed ? 0 : 2, EMDiffTypes>, TypeListAt<y_collapsed ? 0 : 4, EMDiffTypes>>>,
+   FieldIntegrator<ExplicitUpdateFunctor<TypeListAt<z_collapsed ? 0 : 5, EMDiffTypes>, TypeListAt<y_collapsed ? 0 : 3, EMDiffTypes>>>,
+   FieldIntegrator<ExplicitUpdateFunctor<TypeListAt<x_collapsed ? 0 : 1, EMDiffTypes>, TypeListAt<z_collapsed ? 0 : 5, EMDiffTypes>>>,
+   FieldIntegrator<ExplicitUpdateFunctor<TypeListAt<y_collapsed ? 0 : 3, EMDiffTypes>, TypeListAt<x_collapsed ? 0 : 1, EMDiffTypes>>>
 >;
-
-// // 3D
-// using field_t = TypeList<
-//    FieldIntegrator<ExplicitUpdateFunctor<backward_dy, backward_dz>>,
-//    FieldIntegrator<ExplicitUpdateFunctor<backward_dz, backward_dx>>,
-//    FieldIntegrator<ExplicitUpdateFunctor<backward_dx, backward_dy>>,
-//    FieldIntegrator<ExplicitUpdateFunctor<forward_dz, forward_dy>>,
-//    FieldIntegrator<ExplicitUpdateFunctor<forward_dx, forward_dz>>,
-//    FieldIntegrator<ExplicitUpdateFunctor<forward_dy, forward_dx>>
-// >;
 
 } // end namespace tf::electromagnetics
 #endif //EM_DEFINITIONS_HPP

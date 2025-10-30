@@ -204,6 +204,124 @@ struct GaussianBeam : CurrentSource {
    std::vector<double> coeffs;
 }; // end struct GaussianBeam
 
+void add_linesource(auto& emsolver, const std::string component, const double amp, const std::array<double,6> bounds, const double omega, const double phase = 0.0, const double start = 0.0, const double stop = 1.0e30) {
+
+   using temporal_vec = std::vector<std::unique_ptr<TemporalSource>>;
+   using continuous_t = ContinuousSource;
+
+   // convert real-space bounds to node offsets
+   std::array offsets = {
+      static_cast<std::size_t>(std::floor((bounds[0] - x_range[0]) / dx)),
+      static_cast<std::size_t>(std::floor((bounds[1] - x_range[0]) / dx)),
+      static_cast<std::size_t>(std::floor((bounds[2] - y_range[0]) / dy)),
+      static_cast<std::size_t>(std::floor((bounds[3] - y_range[0]) / dy)),
+      static_cast<std::size_t>(std::floor((bounds[4] - z_range[0]) / dz)),
+      static_cast<std::size_t>(std::floor((bounds[5] - z_range[0]) / dz))
+   };
+
+   // ensure the line of nodes is at least one node thick
+   if (offsets[0] == offsets[1]) { offsets[1]++; }
+   if (offsets[2] == offsets[3]) { offsets[3]++; }
+   if (offsets[4] == offsets[5]) { offsets[5]++; }
+
+   // create temporal source
+   temporal_vec result{};
+   result.push_back(std::make_unique<continuous_t>(omega, phase, start, stop));
+
+   // create spatial source
+   if (component == "ex") {
+      emsolver.emdata.srcs.emplace_back(&emsolver.emdata.Ex, SpatialSource(std::move(result), amp, offsets));
+   }
+   else if (component == "ey") {
+      emsolver.emdata.srcs.emplace_back(&emsolver.emdata.Ey, SpatialSource(std::move(result), amp, offsets));
+   }
+   else if (component == "ez") {
+      emsolver.emdata.srcs.emplace_back(&emsolver.emdata.Ez, SpatialSource(std::move(result), amp, offsets));
+   }
+   else {
+      throw std::invalid_argument("add_linesource: Field Component can only be ['ex', 'ey', 'ez'] got '" + component + "' instead.");
+   }
+
+} // end add_linesource
+
+
+void add_rmf_antennas(auto& emsolver, const auto rmf_params) {
+   const auto [amp, freq, antenna_lz, antenna_lxy, antenna_r] = rmf_params;
+   const auto period = 1.0 / freq;
+   const auto omega = 2 * constants::pi<double> * freq;
+   const auto delay_lr = period / 4.0;
+
+   const auto amp_m = -amp;
+   const auto amp2 = 2 * amp;
+
+   // Segments are numbered 1-7 counterclockwise, starting at z0 side. Segment 7 is the centerline
+   // The "left" antenna is the z0 side, "right" is z1 side.
+   //    6   5
+   //   --- ---
+   // 1|  7|   | 4
+   //   --- ---
+   //    2   3
+
+   // antenna origin is in center of center conductor
+   const std::array origin_t = {0.0, antenna_r, 0.0};
+   const std::array origin_b = {0.0, -antenna_r, 0.0};
+   const std::array origin_l = {-antenna_r, 0.0, 0.0};
+   const std::array origin_r = {antenna_r, 0.0, 0.0};
+
+   const auto phase_tb = -constants::pi<double> / 2;
+   const auto start_tb = 0.0;
+   const auto phase_lr = 0.0;
+   const auto start_lr = delay_lr;
+
+   // bottom (-y) antenna
+   add_linesource(emsolver, "ex", amp_m, {origin_b[0] - antenna_lxy / 2.0, origin_b[0] + antenna_lxy / 2.0, origin_b[1], origin_b[1], origin_b[2] - antenna_lz / 2.0, origin_b[2] - antenna_lz / 2.0}, omega, phase_tb, start_tb);
+   add_linesource(emsolver, "ex", amp_m, {origin_b[0] - antenna_lxy / 2.0, origin_b[0] + antenna_lxy / 2.0, origin_b[1], origin_b[1], origin_b[2] + antenna_lz / 2.0, origin_b[2] + antenna_lz / 2.0}, omega, phase_tb, start_tb);
+
+   add_linesource(emsolver, "ez", amp, {origin_b[0] - antenna_lxy / 2.0, origin_b[0] - antenna_lxy / 2.0, origin_b[1], origin_b[1], origin_b[2] - antenna_lz / 2.0, origin_b[2]}, omega, phase_tb, start_tb);
+   add_linesource(emsolver, "ez", amp_m, {origin_b[0] + antenna_lxy / 2.0, origin_b[0] + antenna_lxy / 2.0, origin_b[1], origin_b[1], origin_b[2] - antenna_lz / 2.0, origin_b[2]}, omega, phase_tb, start_tb);
+
+   add_linesource(emsolver, "ez", amp_m, {origin_b[0] - antenna_lxy / 2.0, origin_b[0] - antenna_lxy / 2.0, origin_b[1], origin_b[1], origin_b[2], origin_b[2] + antenna_lz / 2.0}, omega, phase_tb, start_tb);
+   add_linesource(emsolver, "ez", amp, {origin_b[0] + antenna_lxy / 2.0, origin_b[0] + antenna_lxy / 2.0, origin_b[1], origin_b[1], origin_b[2], origin_b[2] + antenna_lz / 2.0}, omega, phase_tb, start_tb);
+
+   add_linesource(emsolver, "ex", amp2, {origin_b[0] - antenna_lxy / 2.0, origin_b[0] + antenna_lxy / 2.0, origin_b[1], origin_b[1], origin_b[2], origin_b[2]}, omega, phase_tb, start_tb);
+
+   // top (+y) antenna
+   add_linesource(emsolver, "ex", amp_m, {origin_t[0] - antenna_lxy / 2.0, origin_t[0] + antenna_lxy / 2.0, origin_t[1], origin_t[1], origin_t[2] - antenna_lz / 2.0, origin_t[2] - antenna_lz / 2.0}, omega, phase_tb, start_tb);
+   add_linesource(emsolver, "ex", amp_m, {origin_t[0] - antenna_lxy / 2.0, origin_t[0] + antenna_lxy / 2.0, origin_t[1], origin_t[1], origin_t[2] + antenna_lz / 2.0, origin_t[2] + antenna_lz / 2.0}, omega, phase_tb, start_tb);
+
+   add_linesource(emsolver, "ez", amp, {origin_t[0] - antenna_lxy / 2.0, origin_t[0] - antenna_lxy / 2.0, origin_t[1], origin_t[1], origin_t[2] - antenna_lz / 2.0, origin_t[2]}, omega, phase_tb, start_tb);
+   add_linesource(emsolver, "ez", amp_m, {origin_t[0] + antenna_lxy / 2.0, origin_t[0] + antenna_lxy / 2.0, origin_t[1], origin_t[1], origin_t[2] - antenna_lz / 2.0, origin_t[2]}, omega, phase_tb, start_tb);
+
+   add_linesource(emsolver, "ez", amp_m, {origin_t[0] - antenna_lxy / 2.0, origin_t[0] - antenna_lxy / 2.0, origin_t[1], origin_t[1], origin_t[2], origin_t[2] + antenna_lz / 2.0}, omega, phase_tb, start_tb);
+   add_linesource(emsolver, "ez", amp, {origin_t[0] + antenna_lxy / 2.0, origin_t[0] + antenna_lxy / 2.0, origin_t[1], origin_t[1], origin_t[2], origin_t[2] + antenna_lz / 2.0}, omega, phase_tb, start_tb);
+
+   add_linesource(emsolver, "ex", amp2, {origin_t[0] - antenna_lxy / 2.0, origin_t[0] + antenna_lxy / 2.0, origin_t[1], origin_t[1], origin_t[2], origin_t[2]}, omega, phase_tb, start_tb);
+
+   // left (-x) antenna
+   add_linesource(emsolver, "ey", amp_m, {origin_l[0], origin_l[0], origin_l[1] - antenna_lxy / 2.0, origin_l[1] + antenna_lxy / 2.0, origin_l[2] - antenna_lz / 2.0, origin_l[2] - antenna_lz / 2.0}, omega, phase_lr, start_lr);
+   add_linesource(emsolver, "ey", amp_m, {origin_l[0], origin_l[0], origin_l[1] - antenna_lxy / 2.0, origin_l[1] + antenna_lxy / 2.0, origin_l[2] + antenna_lz / 2.0, origin_l[2] + antenna_lz / 2.0}, omega, phase_lr, start_lr);
+
+   add_linesource(emsolver, "ez", amp, {origin_l[0], origin_l[0], origin_l[1] - antenna_lxy / 2.0, origin_l[1] - antenna_lxy / 2.0, origin_l[2] - antenna_lz / 2.0, origin_l[2]}, omega, phase_lr, start_lr);
+   add_linesource(emsolver, "ez", amp_m, {origin_l[0], origin_l[0], origin_l[1] + antenna_lxy / 2.0, origin_l[1] + antenna_lxy / 2.0, origin_l[2] - antenna_lz / 2.0, origin_l[2]}, omega, phase_lr, start_lr);
+
+   add_linesource(emsolver, "ez", amp_m, {origin_l[0], origin_l[0], origin_l[1] - antenna_lxy / 2.0, origin_l[1] - antenna_lxy / 2.0, origin_l[2], origin_l[2] + antenna_lz / 2.0}, omega, phase_lr, start_lr);
+   add_linesource(emsolver, "ez", amp, {origin_l[0], origin_l[0] , origin_l[1] + antenna_lxy / 2.0, origin_l[1]+ antenna_lxy / 2.0, origin_l[2], origin_l[2] + antenna_lz / 2.0}, omega, phase_lr, start_lr);
+
+   add_linesource(emsolver, "ey", amp2, {origin_l[0], origin_l[0], origin_l[1] - antenna_lxy / 2.0, origin_l[1] + antenna_lxy / 2.0, origin_l[2], origin_l[2]}, omega, phase_lr, start_lr);
+
+   // right (+x) antenna
+   add_linesource(emsolver, "ey", amp_m, {origin_r[0], origin_r[0], origin_r[1] - antenna_lxy / 2.0, origin_r[1] + antenna_lxy / 2.0, origin_r[2] - antenna_lz / 2.0, origin_r[2] - antenna_lz / 2.0}, omega, phase_lr, start_lr);
+   add_linesource(emsolver, "ey", amp_m, {origin_r[0], origin_r[0], origin_r[1] - antenna_lxy / 2.0, origin_r[1] + antenna_lxy / 2.0, origin_r[2] + antenna_lz / 2.0, origin_r[2] + antenna_lz / 2.0}, omega, phase_lr, start_lr);
+
+   add_linesource(emsolver, "ez", amp, {origin_r[0], origin_r[0], origin_r[1] - antenna_lxy / 2.0, origin_r[1] - antenna_lxy / 2.0, origin_r[2] - antenna_lz / 2.0, origin_r[2]}, omega, phase_lr, start_lr);
+   add_linesource(emsolver, "ez", amp_m, {origin_r[0], origin_r[0], origin_r[1] + antenna_lxy / 2.0, origin_r[1] + antenna_lxy / 2.0, origin_r[2] - antenna_lz / 2.0, origin_r[2]}, omega, phase_lr, start_lr);
+
+   add_linesource(emsolver, "ez", amp_m, {origin_r[0], origin_r[0], origin_r[1] - antenna_lxy / 2.0, origin_r[1] - antenna_lxy / 2.0, origin_r[2], origin_r[2] + antenna_lz / 2.0}, omega, phase_lr, start_lr);
+   add_linesource(emsolver, "ez", amp, {origin_r[0], origin_r[0] , origin_r[1] + antenna_lxy / 2.0, origin_r[1]+ antenna_lxy / 2.0, origin_r[2], origin_r[2] + antenna_lz / 2.0}, omega, phase_lr, start_lr);
+
+   add_linesource(emsolver, "ey", amp2, {origin_r[0], origin_r[0], origin_r[1] - antenna_lxy / 2.0, origin_r[1] + antenna_lxy / 2.0, origin_r[2], origin_r[2]}, omega, phase_lr, start_lr);
+}
+
 void add_gaussianbeam(auto& em) {
    using temporal_vec = std::vector<std::unique_ptr<TemporalSource>>;
 

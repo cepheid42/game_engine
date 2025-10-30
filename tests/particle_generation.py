@@ -1,3 +1,5 @@
+from collections.abc import Callable, Iterable
+
 import numpy as np
 from scipy import constants
 from adios2 import Stream
@@ -13,6 +15,26 @@ def generate_normalized_positions_3d(ppc):
                                                        generate_normalized_positions_1d(ppc[1]),
                                                        generate_normalized_positions_1d(ppc[2]),
                                                        indexing='ij')]
+
+
+def generate_density_mapping(density : float | Callable | Iterable, xcenter, ycenter, zcenter):
+    assert(xcenter.shape == ycenter.shape == zcenter.shape) # check shapes for self-consistency
+
+    # if centers aren't already meshed, mesh them
+    if xcenter.ndim == 1:
+        xmesh, ymesh, zmesh = np.meshgrid(xcenter, ycenter, zcenter, sparse=True)
+    elif xcenter.ndim == 3:
+        xmesh, ymesh, zmesh = xcenter, ycenter, zcenter
+    else:
+        raise ValueError
+
+    if isinstance(density, Iterable):
+        return density
+    elif isinstance(density, Callable):
+        return density(xmesh, ymesh, zmesh)
+    else:
+        return np.full(xmesh.shape, density)
+
 
 def thermal_distribution(mass, T_M, num_particles, velocity=0.0):
     rng = np.random.default_rng()
@@ -113,6 +135,25 @@ def maxwell_juttner_distribution(mass, temperature, count):
     velocities[:, :] = u
     return velocities
 
+def write_particle_file(name, file_dir, mass, charge, positions, velocities, weights, gammas, atomic_number = 0, tracer = False, sourcer = False):
+    with Stream(file_dir + f'/{name.lower().replace(" ","_")}.bp', 'w') as f:
+        f.write_attribute('Name', name)
+        f.write_attribute('Mass', mass)
+        f.write_attribute("Mass/Unit", "kg")
+        f.write_attribute('Charge', charge)
+        f.write_attribute("Charge/Unit", "C")
+        f.write_attribute("Atomic Number", np.array([atomic_number],np.uint64)[0])
+        f.write_attribute('Tracer', np.array([tracer],np.uint64)[0])
+        f.write_attribute('Sourcer', np.array([sourcer],np.uint64)[0])
+        f.write("Position", positions.copy(), positions.shape, [0,0], positions.shape)
+        f.write_attribute("Unit", "m", "Position")
+        f.write("Velocity", velocities.copy(), velocities.shape, [0,0], velocities.shape)
+        f.write_attribute("Unit", "m/s", "Velocity")
+        f.write("Weight", weights, weights.shape, [0], weights.shape)
+        f.write("Gamma", gammas, gammas.shape, [0], gammas.shape)
+
+
+
 def create_particles(domain, particles, file_dir):
     print(f'Creating {particles.name}...', end=' ', flush=True)
 
@@ -135,6 +176,7 @@ def create_particles(domain, particles, file_dir):
     name = particles.name
     mass = particles.mass
     charge = particles.charge
+    atomic_number = particles.atomic_number
     temp = particles.temp       # Eventually, these will have to be arrays, or maybe functions?
     density = particles.density # ^
     ppc_x, ppc_y, ppc_z = particles.ppc
@@ -155,6 +197,11 @@ def create_particles(domain, particles, file_dir):
     fake_geom = np.logical_and(fake_geom, (zz <= pz_max))
     fake_geom = np.argwhere(fake_geom)
 
+    if not fake_geom.shape[0]:
+        print(f'!!! Warning: Particle Geometry Empty !!!', end=' ', flush=True)
+        print(f'Done.', end='\n', flush=True)
+        return None
+
     # Get cell positions
     xc = x_coords[fake_geom[:, 0]]
     xcp1 = x_coords[fake_geom[:, 0] + 1]
@@ -173,14 +220,16 @@ def create_particles(domain, particles, file_dir):
     zp = (np.matmul(zc[:, None], (1.0 - z_norm)[:, None].T) + np.matmul(zcp1[:, None], z_norm[:, None].T)).flatten()
 
     positions = np.vstack((xp, yp, zp)).T
-    # print(positions.shape)
 
     # Generate particle weights
     ppc_total = ppc_x * ppc_y * ppc_z
     num_particles = ppc_total * fake_geom.shape[0]
 
-    weights = np.full((num_particles, 1), density * dx * dy * dz / ppc_total)
-    # print(weights.shape)
+    density_mesh = generate_density_mapping(density,
+                                            x_center[fake_geom[:, 0]],
+                                            y_center[fake_geom[:, 1]],
+                                            z_center[fake_geom[:, 2]])
+    weights = (dx * dy * dz / ppc_total) * np.matmul(density_mesh.flatten()[:, None], np.ones((ppc_total,))[:, None].T).flatten()
 
     # Sample particle velocities
     if distribution == 'thermal':
@@ -188,13 +237,6 @@ def create_particles(domain, particles, file_dir):
     else:
         velocities = maxwell_juttner_distribution(mass, temp, num_particles)
 
-    # print(velocities.shape)
-
-    output = np.hstack((positions, velocities, weights))
-    with Stream(file_dir + f'/{name}.bp', 'w') as f:
-        f.write_attribute('name', name)
-        f.write_attribute('mass', mass)
-        f.write_attribute('charge', charge)
-        f.write_attribute('num_particles', num_particles)
-        f.write('particles', output, output.shape, [0, 0], output.shape)
+    gammas = 1.0 / np.sqrt(1 - ((velocities/constants.c)**2).sum(axis=1))
+    write_particle_file(name, file_dir, mass, charge, positions, velocities, weights, gammas, atomic_number, False, False)
     print('Done')

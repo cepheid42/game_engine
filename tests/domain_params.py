@@ -1,6 +1,3 @@
-# import numpy as np
-# from scipy import constants
-import os
 from pathlib import Path
 from dataclasses import dataclass, field
 
@@ -32,6 +29,7 @@ class Collision:
 class Particles:
     name: str
     mass: float
+    atomic_num: int
     charge: float
     temp: float
     density: float
@@ -71,20 +69,17 @@ def update_header(params: Simulation, project_path: str):
     zmin, zmax = params.z_range
     dx, dy, dz = params.deltas
     em_params = params.em_params
+    em_bcs = em_params.em_bcs
     particles = params.particle_params
 
     project_path = Path(project_path)
-
-    # Get TriForce project root directory
-    # project_path = Path(os.getenv('TRIFORCE_ROOT', ''))
-    # if not project_path.exists():
-    #     raise EnvironmentError('Could not find TRIFORCE_ROOT env variable.')
-
     header_path = project_path / "params/program_params.hpp"
 
-    # Check if 2D in Y direction
-    is_2d_xz = 'true' if ny == 2 else 'false'
-    em_bcs = em_params.em_bcs
+    # Check if various dimensions are collapsed
+    x_collapsed = nx == 2
+    y_collapsed = ny == 2
+    z_collapsed = nz == 2
+
     bc_str = f'{em_bcs[0]}lu, {em_bcs[1]}lu, {em_bcs[2]}lu, {em_bcs[3]}lu, {em_bcs[4]}lu, {em_bcs[5]}lu'
     particle_bc = 'ParticleBCType::Periodic' if particles.particle_bcs == 0 else 'ParticleBCType::Outflow'
     particle_data = ', '.join(['"/data/' + p + '.bp"' for p in particles.particle_data])
@@ -109,7 +104,9 @@ def update_header(params: Simulation, project_path: str):
         '\n'
         f'inline constexpr auto nThreads = {params.nthreads};\n'
         '\n'
-        f'inline constexpr auto is_2D_XZ = {is_2d_xz};\n'
+        f'inline constexpr auto x_collapsed = {str(x_collapsed).lower()};\n'
+        f'inline constexpr auto y_collapsed = {str(y_collapsed).lower()};\n'
+        f'inline constexpr auto z_collapsed = {str(z_collapsed).lower()};\n'
         '\n'
         f'inline constexpr auto Nx = {nx}lu;\n'
         f'inline constexpr auto Ny = {ny}lu;\n'

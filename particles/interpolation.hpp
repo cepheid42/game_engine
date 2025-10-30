@@ -3,7 +3,6 @@
 
 #include "program_params.hpp"
 #include "math_utils.hpp"
-#include "vec3.hpp"
 
 #include <cmath>
 #include <array>

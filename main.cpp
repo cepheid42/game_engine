@@ -72,17 +72,27 @@ int main() {
    }
 
    emsolver_t emsolver(Nx, Ny, Nz);
-   add_gaussianbeam(emsolver);
+   if constexpr (laser_enabled) {
+      add_gaussianbeam(emsolver);
+   }
+
+   if constexpr (rmf_enabled) {
+      add_rmf_antennas(emsolver, rmf_params);
+   }
+
    emsolver.particle_correction();
 
    Metrics metrics(std::string{sim_path} + "/data/" + std::string{sim_name});
-   add_em_metrics(metrics, emsolver);
+   if constexpr (em_enabled) {
+      metrics.add_em_metrics(emsolver);
+   }
 
    for (auto& g : particle_groups) {
       BorisPush::backstep_velocity(g, emsolver.emdata);
-      add_group_metric(metrics, g);
+      metrics.add_particle_metric(g);
    }
 
+   auto time = 0.0;
    auto step = 0lu;
    const auto progress_bar =
       bk::ProgressBar(
@@ -96,22 +106,20 @@ int main() {
           .show = false});
 
    timers["IO"].start_timer();
-   metrics.write(step);
+   metrics.write(step, time);
    timers["IO"].stop_timer();
 
    progress_bar->show();
-   for (step = 1; step <= Nt; step++) {
-      // std::println("Step {}", step);
-
+   for (step = 1; step <= Nt; step++, time += dt) {
       // Electromagnetics
       timers["EM"].start_timer();
-      emsolver.advance(static_cast<double>(step) * dt);
+      emsolver.advance(time);
       timers["EM"].stop_timer();
 
       // Particle Push
       timers["Push"].start_timer();
       for (auto& g : particle_groups) {
-         if constexpr (is_2D_XZ) { g.reset_y_positions(); }
+         g.reset_positions();
          BorisPush::advance(g, emsolver.emdata, step);
       }
       timers["Push"].stop_timer();
@@ -142,7 +150,7 @@ int main() {
       // Metrics output
       if (step % save_interval == 0 or step == Nt) {
          timers["IO"].start_timer();
-         metrics.write(step);
+         metrics.write(step, time);
          timers["IO"].stop_timer();
       }
    }

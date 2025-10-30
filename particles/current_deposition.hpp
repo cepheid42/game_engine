@@ -44,7 +44,7 @@ struct CurrentDeposition {
 
 
    template<int D, typename Strategy>
-   requires(is_2D_XZ and D == 1)
+   requires((x_collapsed and D == 0) or (y_collapsed and D == 1) or (z_collapsed and D == 2))
    static void deposit(auto& J,
                        const auto p0, const auto p1,
                        const auto& shapeI0, const auto& shapeJ0,
@@ -73,39 +73,73 @@ struct CurrentDeposition {
       } // end for(i)
    } // end deposit()
 
+template<int D, typename Strategy>
+requires((!x_collapsed and D != 0) or (!y_collapsed and D != 1) or (!z_collapsed and D != 2))
+static void deposit(auto& J,
+                    const auto p0, const auto p1,
+                    const auto& shapeI0, const auto&,
+                    const auto& shapeDI, const auto&, const auto&,
+                    const auto ci, const auto, const auto, const auto qA)
+   {
+      // This is the 1D version of the deposition
+      // It only interpolates to the outer loop (x) and the charge density qA includes the velocity
+      // and is positive (not -qA like other version). See EZ-PIC or Esirkepov for more info.
+      using Outer = typename Strategy::OuterShape;
+      //using Middle = typename Strategy::MiddleShape;
+      // Return if particle has not moved in this direction (therefore no current)
+      if (p0 == p1) { return; }
+      for (int i = Outer::Begin; i <= Outer::End; ++i) {
+         const auto idx = i - Outer::Begin;;
+         const auto& s0i = shapeI0[idx];
+         const auto& dsi = shapeDI[idx];
+         //for (int j = Middle::Begin; j <= Middle::End; ++j) {
+            // const auto jdx = j - Middle::Begin;
+            // const auto& s0j = shapeJ0[jdx];
+            // const auto& dsj = shapeDJ[jdx];
+            const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, 0lu, 0lu);
+#pragma omp atomic update
+            J(x, y, z) +=  qA * (s0i + 0.5 * (dsi + s0i) + (1.0 / 3.0) * dsi);
+         //} // end for(j)
+      } // end for(i)
+   } // end deposit()
+
 
    static void updateJ(const auto& p, auto& emdata, const auto charge) {
       // Aliases for X/Y/Z shape functions
-      using XShape = interp::InterpolationShape<interpolation_order>::Type;
-      using YShape = interp::InterpolationShape<is_2D_XZ ? 1 : interpolation_order>::Type;
-      using ZShape = interp::InterpolationShape<interpolation_order>::Type;
+      using XShape = interp::InterpolationShape<x_collapsed ? 1 : interpolation_order>::Type;
+      using YShape = interp::InterpolationShape<y_collapsed ? 1 : interpolation_order>::Type;
+      using ZShape = interp::InterpolationShape<z_collapsed ? 1 : interpolation_order>::Type;
       // Interpolation Strategies for each J
       using JxStrategy = interp::InterpolationStrategy<YShape, ZShape, XShape>;
       using JyStrategy = interp::InterpolationStrategy<ZShape, XShape, YShape>;
       using JzStrategy = interp::InterpolationStrategy<XShape, YShape, ZShape>;
       // Precompute constants
-      static constexpr auto dtAxy = 1.0 / (dt * dx * dy);
-      static constexpr auto dtAxz = is_2D_XZ ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dx * dz);
-      static constexpr auto dtAyz = 1.0 / (dt * dy * dz);
+      static constexpr auto dtAxy = z_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dx * dy);
+      static constexpr auto dtAxz = y_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dx * dz);
+      static constexpr auto dtAyz = x_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dy * dz);
+      auto x_vel = 1.0;
       auto y_vel = 1.0;
-      if constexpr (is_2D_XZ) { y_vel = p.velocity[1]; }
+      auto z_vel = 1.0;
+      if constexpr (x_collapsed) { x_vel = p.velocity[0]; }
+      if constexpr (y_collapsed) { y_vel = p.velocity[1]; }
+      if constexpr (z_collapsed) { z_vel = p.velocity[2]; }
       // Early return if Jdep isn't needed
       if (p.disabled) { return; }
       // Current Density coefficients
-      const auto x_coeff = p.weight * charge * dtAyz;
+      const auto x_coeff = p.weight * charge * dtAyz * x_vel;
       const auto y_coeff = p.weight * charge * dtAxz * y_vel;
-      const auto z_coeff = p.weight * charge * dtAxy;
+      const auto z_coeff = p.weight * charge * dtAxy * z_vel;
       // Offsets for Even/Odd order interpolation
       static constexpr vec3 offsets{
-         XShape::Order % 2 == 0 ? 0.5 : 1.0,
-         YShape::Order % 2 == 0 ? 0.5 : 1.0,
-         ZShape::Order % 2 == 0 ? 0.5 : 1.0,
+         XShape::Order % 2 == 0 ? 0.5f : 1.0f,
+         YShape::Order % 2 == 0 ? 0.5f : 1.0f,
+         ZShape::Order % 2 == 0 ? 0.5f : 1.0f,
       };
       // Find cell indices and determine first relay point
-      const vec3<double> i0 = getCellIndices<double>(p.old_location + offsets);
-      const vec3<double> i1 = getCellIndices<double>(p.location + offsets);
+      const vec3<float> i0 = getCellIndices<float>(p.old_location + offsets);
+      const vec3<float> i1 = getCellIndices<float>(p.location + offsets);
       const auto same_idx = is_equal(i0, i1);
-      const vec3<double> relay{
+      const vec3<float> relay{
          same_idx[0] ? p.location[0] : std::fmax(i1[0], i0[0]) - offsets[0],
          same_idx[1] ? p.location[1] : std::fmax(i1[1], i0[1]) - offsets[1],
          same_idx[2] ? p.location[2] : std::fmax(i1[2], i0[2]) - offsets[2],

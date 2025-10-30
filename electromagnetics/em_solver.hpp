@@ -24,12 +24,10 @@ struct EMSolver {
    using Z0BC = TypeListAt<4, boundary_t>;
    using Z1BC = TypeListAt<5, boundary_t>;
 
-   // static constexpr offset_t Ex_offsets = {0, 0, 1, 1, 1, 1};
-   // static constexpr offset_t Ey_offsets = {1, 1, 0, 0, 1, 1};
-   // static constexpr offset_t Ez_offsets = {1, 1, 1, 1, 0, 0};
-   static constexpr offset_t Ex_offsets = {0, 0, 0, 0, 1, 1};
-   static constexpr offset_t Ey_offsets = {1, 1, 0, 0, 1, 1};
-   static constexpr offset_t Ez_offsets = {1, 1, 0, 0, 0, 0};
+   // todo: support other 2D modes and 1D
+   static constexpr offset_t Ex_offsets = {0,            0,            !y_collapsed, !y_collapsed, !z_collapsed, !z_collapsed};
+   static constexpr offset_t Ey_offsets = {!x_collapsed, !x_collapsed, 0,            0,            !z_collapsed, !z_collapsed};
+   static constexpr offset_t Ez_offsets = {!x_collapsed, !x_collapsed, !y_collapsed, !y_collapsed, 0,            0};
 
    explicit EMSolver() = delete;
 

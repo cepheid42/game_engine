@@ -60,25 +60,29 @@ auto FieldToParticleInterp(const auto& F,
 static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qdt)
 -> std::array<vec3<double>, 2>
 {
-   using FullShape  = interp::InterpolationShape<interpolation_order>::Type;
-   using RedShape   = interp::InterpolationShape<interpolation_order - 1>::Type;
-   using YFullShape = interp::InterpolationShape<is_2D_XZ ? 1 : interpolation_order>::Type;
-   using YRedShape  = interp::InterpolationShape<is_2D_XZ ? 0 : interpolation_order - 1>::Type;
+   // using FullShape  = interp::InterpolationShape<interpolation_order>::Type;
+   // using RedShape   = interp::InterpolationShape<interpolation_order - 1>::Type;
+   using XFullShape = interp::InterpolationShape<x_collapsed ? 1 : interpolation_order>::Type;
+   using XRedShape  = interp::InterpolationShape<x_collapsed ? 0 : interpolation_order - 1>::Type;
+   using YFullShape = interp::InterpolationShape<y_collapsed ? 1 : interpolation_order>::Type;
+   using YRedShape  = interp::InterpolationShape<y_collapsed ? 0 : interpolation_order - 1>::Type;
+   using ZFullShape = interp::InterpolationShape<z_collapsed ? 1 : interpolation_order>::Type;
+   using ZRedShape  = interp::InterpolationShape<z_collapsed ? 0 : interpolation_order - 1>::Type;
 
-   using ExStrategy = interp::InterpolationStrategy<YFullShape,  FullShape,  RedShape>;
-   using EyStrategy = interp::InterpolationStrategy< FullShape,  FullShape, YRedShape>;
-   using EzStrategy = interp::InterpolationStrategy< FullShape, YFullShape,  RedShape>;
-   using BxStrategy = interp::InterpolationStrategy<YRedShape,  RedShape,  FullShape>;
-   using ByStrategy = interp::InterpolationStrategy< RedShape,  RedShape, YFullShape>;
-   using BzStrategy = interp::InterpolationStrategy< RedShape, YRedShape,  FullShape>;
+   using ExStrategy = interp::InterpolationStrategy<YFullShape, ZFullShape, XRedShape>;
+   using EyStrategy = interp::InterpolationStrategy<ZFullShape, XFullShape, YRedShape>;
+   using EzStrategy = interp::InterpolationStrategy<XFullShape, YFullShape, ZRedShape>;
+   using BxStrategy = interp::InterpolationStrategy<YRedShape,  ZRedShape,  XFullShape>;
+   using ByStrategy = interp::InterpolationStrategy<ZRedShape,  XRedShape,  YFullShape>;
+   using BzStrategy = interp::InterpolationStrategy<XRedShape,  YRedShape,  ZFullShape>;
 
    static constexpr vec3 offset{
-       FullShape::Order % 2 == 0 ? 0.5 : 1.0,
-      YFullShape::Order % 2 == 0 ? 0.5 : 1.0,
-       FullShape::Order % 2 == 0 ? 0.5 : 1.0
+      XFullShape::Order % 2 == 0 ? 0.5f : 1.0f,
+      YFullShape::Order % 2 == 0 ? 0.5f : 1.0f,
+      ZFullShape::Order % 2 == 0 ? 0.5f : 1.0f
    };
-   const vec3 loc_full = getCellIndices<double>(p.location + offset);
-   const vec3 loc_half = loc_full + 0.5;
+   const vec3 loc_full = getCellIndices<float>(p.location + offset);
+   const vec3 loc_half = loc_full + 0.5f;
 
    const vec3 fid = loc_full.as_type<std::size_t>();
    const vec3 hid = loc_half.as_type<std::size_t>();
@@ -86,19 +90,19 @@ static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qd
    const vec3 p_full = p.location - loc_full;
    const vec3 p_half = p.location - loc_half;
 
-   const auto xh_r =   RedShape::shape_array(p_half[0]);
-   const auto yh_r =  YRedShape::shape_array(p_half[1]);
-   const auto zh_r =   RedShape::shape_array(p_half[2]);
-   const auto xf_a =  FullShape::shape_array(p_full[0]);
-   const auto yf_a = YFullShape::shape_array(p_full[1]);
-   const auto zf_a =  FullShape::shape_array(p_full[2]);
+   const auto xh_r =  XRedShape::shape_array(p_half.x);
+   const auto yh_r =  YRedShape::shape_array(p_half.y);
+   const auto zh_r =  ZRedShape::shape_array(p_half.z);
+   const auto xf_a = XFullShape::shape_array(p_full.x);
+   const auto yf_a = YFullShape::shape_array(p_full.y);
+   const auto zf_a = ZFullShape::shape_array(p_full.z);
 
-   const auto exc = FieldToParticleInterp<0, ExStrategy>(emdata.Ex_total, yf_a, zf_a, xh_r, fid[1], fid[2], hid[0]);
-   const auto eyc = FieldToParticleInterp<1, EyStrategy>(emdata.Ey_total, zf_a, xf_a, yh_r, fid[2], fid[0], hid[1]);
-   const auto ezc = FieldToParticleInterp<2, EzStrategy>(emdata.Ez_total, xf_a, yf_a, zh_r, fid[0], fid[1], hid[2]);
-   const auto bxc = FieldToParticleInterp<0, BxStrategy>(emdata.Bx_total, yh_r, zh_r, xf_a, hid[1], hid[2], fid[0]);
-   const auto byc = FieldToParticleInterp<1, ByStrategy>(emdata.By_total, zh_r, xh_r, yf_a, hid[2], hid[0], fid[1]);
-   const auto bzc = FieldToParticleInterp<2, BzStrategy>(emdata.Bz_total, xh_r, yh_r, zf_a, hid[0], hid[1], fid[2]);
+   const auto exc = FieldToParticleInterp<0, ExStrategy>(emdata.Ex_total, yf_a, zf_a, xh_r, fid.y, fid.z, hid.x);
+   const auto eyc = FieldToParticleInterp<1, EyStrategy>(emdata.Ey_total, zf_a, xf_a, yh_r, fid.z, fid.x, hid.y);
+   const auto ezc = FieldToParticleInterp<2, EzStrategy>(emdata.Ez_total, xf_a, yf_a, zh_r, fid.x, fid.y, hid.z);
+   const auto bxc = FieldToParticleInterp<0, BxStrategy>(emdata.Bx_total, yh_r, zh_r, xf_a, hid.y, hid.z, fid.x);
+   const auto byc = FieldToParticleInterp<1, ByStrategy>(emdata.By_total, zh_r, xh_r, yf_a, hid.z, hid.x, fid.y);
+   const auto bzc = FieldToParticleInterp<2, BzStrategy>(emdata.Bz_total, xh_r, yh_r, zf_a, hid.x, hid.y, fid.z);
 
    return {qdt * vec3{exc, eyc, ezc}, qdt * vec3{bxc, byc, bzc}};
 } // end FieldAtParticle
@@ -128,9 +132,9 @@ struct BorisPush {
    static void update_position(Particle& p) {
       static constexpr vec3 delta_inv{dt / dx, dt / dy, dt / dz};
 
-      // if (p.disabled) { return; }
+      if (p.is_disabled()) { return; }
 
-      auto new_loc = p.location + delta_inv * p.velocity;
+      auto new_loc = p.location + (delta_inv * p.velocity).as_type<float>();
       auto old_loc = p.location;
 
       if constexpr (PBCSelect == ParticleBCType::Periodic) {
@@ -156,9 +160,13 @@ struct BorisPush {
 
          // Outflow particle BCs
          const auto& [inew, jnew, knew] = getCellIndices(new_loc);
-         p.disabled = inew < BC_DEPTH or inew > Nx - 1 - BC_DEPTH or
-                      // jnew < BC_DEPTH or jnew > Ny - 1 - BC_DEPTH or
-                      knew < BC_DEPTH or knew > Nz - 1 - BC_DEPTH;
+         // todo: this needs to be updated for collapsed dimensions
+         const auto disabled = inew < BC_DEPTH or inew > Nx - 1 - BC_DEPTH or
+                               jnew < BC_DEPTH or jnew > Ny - 1 - BC_DEPTH or
+                               knew < BC_DEPTH or knew > Nz - 1 - BC_DEPTH;
+         if (disabled) {
+            p.weight = -1.0;
+         }
       }
 
       p.old_location = old_loc;
@@ -190,7 +198,6 @@ struct BorisPush {
    static void advance(auto& g, const auto& emdata, const auto) requires(push_enabled) {
       advance_velocity(g, emdata);
       advance_position(g);
-
       g.cell_map_updated = false;
       // if (step % group_t::SORT_INTERVAL == 0) {
       //    g.sort_particles();
