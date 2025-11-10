@@ -20,11 +20,11 @@
 namespace tf::particles
 {
 struct Particle {
-   vec3<double> velocity;
+   vec3<double> velocity; // change to beta and make it a float
    double gamma;
    vec3<float> location;
    vec3<float> old_location;
-   float weight; // does this NEED to be a double?
+   float weight;
 
    [[nodiscard]] bool is_disabled() const { return weight < 0.0f; }
 }; // end struct Particle
@@ -60,24 +60,25 @@ constexpr auto calculateGammaP(const auto& p, const auto m) {
 }
 
 struct ParticleGroup {
-   static constexpr std::size_t SORT_INTERVAL = 50;
+   // static constexpr std::size_t SORT_INTERVAL = 50;
    std::string name;
+   std::size_t atomic_number;
    double mass;
    double charge;
-   std::size_t atomic_number;
    double qdt_over_2m;
    vec3<float> initial_position{};
    bool tracer;
    bool sourcer;
+   bool cell_map_updated{false};
+   bool is_sorted{true};
    std::vector<Particle> particles{};
    std::map<std::size_t, std::span<Particle>> cell_map{};
-   bool cell_map_updated{false};
 
-   ParticleGroup(std::string name_, const double mass_, const double charge_, const std::size_t atomic_number_, const bool tracer_flag = false, const bool sourcer_flag = false)
+   ParticleGroup(std::string name_, const double mass_, const double charge_, const std::size_t atomic_number_, const bool tracer_flag=false, const bool sourcer_flag=false)
    : name(std::move(name_)),
+     atomic_number(atomic_number_),
      mass(mass_),
      charge(charge_),
-     atomic_number(atomic_number_),
      qdt_over_2m(0.5 * charge * dt / mass),
      tracer(tracer_flag),
      sourcer(sourcer_flag)
@@ -88,6 +89,7 @@ struct ParticleGroup {
    void update_cell_map() {
       if (cell_map_updated) { return; }
       cell_map.clear();
+      sort_particles();
       auto prev_iter = particles.begin();
       auto prev_code = morton_encode(getCellIndices(prev_iter->location)); // first particles code
       // loop over remaining particles
@@ -103,18 +105,19 @@ struct ParticleGroup {
       cell_map_updated = true;
    }
 
-   static void reset_positions() {}
-
-   void reset_positions() requires (x_collapsed or y_collapsed or z_collapsed) {
+   void reset_positions() {
+      if constexpr (x_collapsed or y_collapsed or z_collapsed) {
       #pragma omp parallel for simd num_threads(nThreads)
-      for (std::size_t pid = 0; pid < particles.size(); pid++) {
-         if constexpr (x_collapsed) {particles[pid].location[0] = initial_position.x;}
-         if constexpr (y_collapsed) {particles[pid].location[1] = initial_position.y;}
-         if constexpr (z_collapsed) {particles[pid].location[2] = initial_position.z;}
+         for (std::size_t pid = 0; pid < particles.size(); pid++) {
+            if constexpr (x_collapsed) { particles[pid].location[0] = initial_position.x; }
+            if constexpr (y_collapsed) { particles[pid].location[1] = initial_position.y; }
+            if constexpr (z_collapsed) { particles[pid].location[2] = initial_position.z; }
+         }
       }
    }
 
    void sort_particles() {
+      if (is_sorted) { return; }
       std::erase_if(particles, [](const Particle& p) { return p.is_disabled(); });
       boost::sort::block_indirect_sort(
          particles.begin(), particles.end(),
@@ -124,6 +127,7 @@ struct ParticleGroup {
          },
          nThreads
       );
+      is_sorted = true;
    }
 }; // end struct ParticleGroup
 
@@ -166,8 +170,8 @@ struct ParticleInitializer {
          g.particles.emplace_back(
             velocity,
             gamma,
-            pos.as_type<float>(),
-            pos.as_type<float>(),
+            loc,
+            loc,
             weight
          );
       }
@@ -194,10 +198,10 @@ struct ParticleInitializer {
       const auto mass = io.InquireAttribute<double>("Mass").Data()[0];
       const auto charge = io.InquireAttribute<double>("Charge").Data()[0];
       const std::size_t atomic_number = io.InquireAttribute<unsigned long int>("Atomic Number").Data()[0];
-      const bool tracer = static_cast<bool>(io.InquireAttribute<unsigned long int>("Tracer").Data()[0]);
-      const bool sourcer = static_cast<bool>(io.InquireAttribute<unsigned long int>("Sourcer").Data()[0]);
+      // const bool tracer = static_cast<bool>(io.InquireAttribute<unsigned long int>("Tracer").Data()[0]);
+      // const bool sourcer = static_cast<bool>(io.InquireAttribute<unsigned long int>("Sourcer").Data()[0]);
 
-      ParticleGroup g(name, mass, charge, atomic_number, tracer, sourcer);
+      ParticleGroup g(name, mass, charge, atomic_number);
 
       const auto p_data = io.InquireVariable<double>("Position");
       const auto v_data = io.InquireVariable<double>("Velocity");
@@ -221,15 +225,15 @@ struct ParticleInitializer {
          const vec3 vel{v_vec[3 * i], v_vec[3 * i + 1], v_vec[3 * i + 2]};
          const auto weight = static_cast<float>(w_vec[i]);
 
-         const auto loc = ((pos - mins) / deltas);
+         const auto loc = ((pos - mins) / deltas).as_type<float>();
          // const auto gamma = calculateGamma(vel);
          const auto gamma = g_vec[i];
 
          g.particles.emplace_back(
             vel,
             gamma,
-            loc.as_type<float>(),
-            loc.as_type<float>(),
+            loc,
+            loc,
             weight
          );
       }

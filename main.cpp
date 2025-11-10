@@ -17,42 +17,6 @@ using namespace tf::metrics;
 
 namespace bk = barkeep;
 
-void add_em_metrics(Metrics& metrics, auto& em) {
-   metrics.addMetric(
-      std::make_unique<EMFieldsMetric>(
-         std::unordered_map<std::string, Array3D<double>*>{
-            {"Ex", &em.emdata.Ex},
-            {"Ey", &em.emdata.Ey},
-            {"Ez", &em.emdata.Ez},
-            {"Hx", &em.emdata.Hx},
-            {"Hy", &em.emdata.Hy},
-            {"Hz", &em.emdata.Hz},
-            {"Jx", &em.emdata.Jx},
-            {"Jy", &em.emdata.Jy},
-            {"Jz", &em.emdata.Jz}
-         },
-         metrics.adios.DeclareIO("EMFields")
-      )
-   );
-}
-
-void add_group_metric(Metrics& metrics, const auto& pg) {
-   metrics.addMetric(
-      std::make_unique<ParticleDumpMetric>(
-         &pg,
-         metrics.adios.DeclareIO(pg.name + "_dump")
-      )
-   );
-
-   // metrics.addMetric(
-   //    std::make_unique<ParticleMetric>(
-   //       &pg,
-   //       metrics.adios.DeclareIO(pg.name + "_metrics"),
-   //       Nx - 1, Ny - 1, Nz - 1
-   //    )
-   // );
-}
-
 int main() {
    auto timers = utilities::create_timers();
    timers["Main"].start_timer();
@@ -72,24 +36,27 @@ int main() {
    }
 
    emsolver_t emsolver(Nx, Ny, Nz);
-   if constexpr (laser_enabled) {
-      add_gaussianbeam(emsolver);
-   }
+   // if constexpr (laser_enabled) {
+   //    add_gaussianbeam(emsolver);
+   // }
+   //
+   // if constexpr (rmf_enabled) {
+   //    add_rmf_antennas(emsolver, rmf_params);
+   // }
 
-   if constexpr (rmf_enabled) {
-      add_rmf_antennas(emsolver, rmf_params);
-   }
 
-   emsolver.particle_correction();
 
    Metrics metrics(std::string{sim_path} + "/data/" + std::string{sim_name});
    if constexpr (em_enabled) {
       metrics.add_em_metrics(emsolver);
    }
 
-   for (auto& g : particle_groups) {
-      BorisPush::backstep_velocity(g, emsolver.emdata);
-      metrics.add_particle_metric(g);
+   if constexpr (push_enabled or coll_enabled) {
+      emsolver.particle_correction();
+      for (auto& g : particle_groups) {
+         BorisPush::backstep_velocity(g, emsolver.emdata);
+         metrics.add_particle_metric(g);
+      }
    }
 
    auto time = 0.0;
@@ -124,15 +91,6 @@ int main() {
       }
       timers["Push"].stop_timer();
 
-      // Particle Sort (for timing)
-      if (step % ParticleGroup::SORT_INTERVAL == 0) {
-         timers["Sort"].start_timer();
-         for (auto& g : particle_groups) {
-            g.sort_particles();
-         }
-         timers["Sort"].stop_timer();
-      }
-
       // Current Deposition
       timers["Jdep"].start_timer();
       for (auto& g : particle_groups) {
@@ -148,11 +106,9 @@ int main() {
       timers["Collisions"].stop_timer();
 
       // Metrics output
-      if (step % save_interval == 0 or step == Nt) {
-         timers["IO"].start_timer();
-         metrics.write(step, time);
-         timers["IO"].stop_timer();
-      }
+      timers["IO"].start_timer();
+      metrics.write(step, time);
+      timers["IO"].stop_timer();
    }
    progress_bar->done();
    timers["Main"].stop_timer();

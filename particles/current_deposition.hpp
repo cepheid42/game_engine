@@ -97,7 +97,7 @@ static void deposit(auto& J,
             // const auto& s0j = shapeJ0[jdx];
             // const auto& dsj = shapeDJ[jdx];
             const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, 0lu, 0lu);
-#pragma omp atomic update
+            #pragma omp atomic update
             J(x, y, z) +=  qA * (s0i + 0.5 * (dsi + s0i) + (1.0 / 3.0) * dsi);
          //} // end for(j)
       } // end for(i)

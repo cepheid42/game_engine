@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class EMParams:
+    save_interval: int = 1
     nhalo: int = 0
     pml_depth: int = 10
     pml_grade: float = 3.5
@@ -11,7 +12,8 @@ class EMParams:
 
 @dataclass
 class ParticleParams:
-    particle_bcs: int = 2
+    save_interval: int = 1
+    particle_bcs: str = 'outflow'
     interp_order: int = 2
     particle_data: tuple = ()
     collisions: tuple = ()
@@ -29,7 +31,7 @@ class Collision:
 class Particles:
     name: str
     mass: float
-    atomic_num: int
+    atomic_number: int
     charge: float
     temp: float
     density: float
@@ -43,7 +45,6 @@ class Particles:
 class Simulation:
     name: str
     shape: tuple
-    save_interval: int
     nthreads: int
     nt: int
     dt: float
@@ -80,8 +81,13 @@ def update_header(params: Simulation, project_path: str):
     y_collapsed = ny == 2
     z_collapsed = nz == 2
 
+    particle_bcs = {
+        'reflecting': 'ParticleBCType::Reflecting',
+        'periodic': 'ParticleBCType::Periodic',
+        'outflow': 'ParticleBCType::Outflow'
+    }
+
     bc_str = f'{em_bcs[0]}lu, {em_bcs[1]}lu, {em_bcs[2]}lu, {em_bcs[3]}lu, {em_bcs[4]}lu, {em_bcs[5]}lu'
-    particle_bc = 'ParticleBCType::Periodic' if particles.particle_bcs == 0 else 'ParticleBCType::Outflow'
     particle_data = ', '.join(['"/data/' + p + '.bp"' for p in particles.particle_data])
 
     collision_params = params.particle_params.collisions
@@ -125,8 +131,6 @@ def update_header(params: Simulation, project_path: str):
         f'inline constexpr auto t_end = {params.t_end};\n'
         f'inline constexpr auto Nt    = {params.nt}lu;\n'
         '\n'
-        f'inline constexpr auto save_interval = {params.save_interval}lu;\n'
-        '\n'
         f'inline constexpr auto sim_name = "{params.name}";\n'
         f'inline constexpr auto sim_path = "{project_path}";\n'
         '\n'
@@ -140,6 +144,8 @@ def update_header(params: Simulation, project_path: str):
         '/---------------------------------------------------------------*/\n'
         'enum class EMFace { X, Y, Z };\n'
         'enum class EMSide { Lo, Hi };\n'
+        '\n'
+        f'inline constexpr auto em_save_interval = {em_params.save_interval}lu;\n'
         '\n'
         f'inline constexpr auto PMLDepth    = {em_params.pml_depth}lu;\n'
         f'inline constexpr auto PMLGrade    = {em_params.pml_grade};\n'
@@ -155,11 +161,12 @@ def update_header(params: Simulation, project_path: str):
         '/-                     Particle Parameters                      -/\n'
         '/---------------------------------------------------------------*/\n'
         'using collision_spec = std::tuple<std::string, std::string, double, double, int, bool>;\n'
-        'enum class ParticleBCType { Periodic, Outflow };\n'
+        'enum class ParticleBCType { Static, Reflecting, Periodic, Outflow };\n'
         '\n'
+        f'inline constexpr auto particle_save_interval = {particles.save_interval}lu;\n'
         f'inline constexpr auto interpolation_order = {particles.interp_order}lu;\n'
         '\n'
-        f'inline constexpr auto PBCSelect = {particle_bc};\n'
+        f'inline constexpr auto PBCSelect = {particle_bcs[particles.particle_bcs]};\n'
         '\n'
         f'inline constexpr std::array particle_data = {{{particle_data}}};\n'
         '\n'

@@ -242,9 +242,9 @@ def total_field_energy(n, file_dir):
         ex = f.read('Ex')[:, :-1, :-1]
         ey = f.read('Ey')[:-1, :, :-1]
         ez = f.read('Ez')[:-1, :-1, :]
-        hx = f.read('Hx')[:-1, :, :]
-        hy = f.read('Hy')[:, :-1, :]
-        hz = f.read('Hz')[:, :, :-1]
+        hx = f.read('Bx')[:-1, :, :]
+        hy = f.read('By')[:, :-1, :]
+        hz = f.read('Bz')[:, :, :-1]
         cell_volume = f.read_attribute('cell_volume')
 
     e_field = 0.5 * EPS0 * (ex**2 + ey**2 + ez**2)
@@ -279,7 +279,7 @@ def plot_field_energy(start, stop, step, file_dir):
 def calculate_Temp(n, group_name, file_dir):
     filename = f'/{group_name}_dump_{n:010d}.bp'
     with FileReader(data_dir + file_dir + filename) as f:
-        mass = f.read_attribute('mass')
+        mass = f.read_attribute('Mass')
         weight = f.read('Weight')
         velocity = f.read('Velocity')
 
@@ -293,7 +293,7 @@ def calculate_Temp(n, group_name, file_dir):
 def calculate_KE(n, group_name, file_dir):
     filename = f'/{group_name}_dump_{n:010d}.bp'
     with FileReader(data_dir + file_dir + filename) as f:
-        mass = f.read_attribute('mass')
+        mass = f.read_attribute('Mass')
         weight = f.read('Weight')
         gamma = f.read('Gamma')
     return (weight * (gamma - 1.0) * constants.c**2 * mass).sum()
@@ -331,9 +331,10 @@ def plot_KE(groups, start, stop, step, file_dir):
 
 def plot_Temp(groups, start, stop, step, file_dir):
     print('Calculating total particle temperatures...', end=' ')
-    filename = f'/{groups[0]}_dump_{0:010d}.bp'
+    filename = f'/{groups[0]}_dump_{stop:010d}.bp'
     with FileReader(data_dir + file_dir + filename) as f:
-        dt = f.read_attribute('dt')
+        dt = f.read('dt')
+        ts = f.read('Time')
 
     group_data = {}
     for g in groups:
@@ -342,32 +343,32 @@ def plot_Temp(groups, start, stop, step, file_dir):
             temp = p.starmap(calculate_Temp, targs)
         group_data[g] = np.asarray(temp)
 
-    time = np.linspace(0, stop * dt, (stop + step) // step)
+    time = np.linspace(0, ts, (stop + step) // step)
     fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
 
     for name, data in group_data.items():
-        ax.plot(time * s_to_ns, data, label=name)
+        ax.plot(time * s_to_ps, data, label=name)
 
-    # eV_to_erg = 1.60218e-12
-    # T1 = 1250
-    # T2 = 250
-    # m = 1.9945e-23 # g
-    # n = 1e20 # cm^-3
-    # Z = 6
-    # lnL = 10.0
-    #
-    # coef = (8 / 3) * np.sqrt(np.pi)
-    # Ts = 0.5 * (T1 + T2) * eV_to_erg
-    # mu = coef * (Z * 4.8e-10)**4 * lnL * n / (m**0.5 * Ts**1.5)
-    #
-    # Tc1 = 0.5 * (T1 + T2) + 0.5 * (T1 - T2) * np.exp(-mu * time)
-    # Tc2 = 0.5 * (T1 + T2) + 0.5 * (T2 - T1) * np.exp(-mu * time)
-    #
-    # # Tc1 = Tc1 * constants.e / constants.k
-    # # Tc2 = Tc2 * constants.e / constants.k
-    #
-    # ax.plot(time * s_to_ps, Tc1, label='Carbon1 Theory')
-    # ax.plot(time * s_to_ps, Tc2, label='Carbon2 Theory')
+    eV_to_erg = 1.60218e-12
+    T1 = 1250
+    T2 = 250
+    m = 1.9945e-23 # g
+    n = 1e20 # cm^-3
+    Z = 6
+    lnL = 10.0
+
+    coef = (8 / 3) * np.sqrt(np.pi)
+    Ts = 0.5 * (T1 + T2) * eV_to_erg
+    mu = coef * (Z * 4.8e-10)**4 * lnL * n / (m**0.5 * Ts**1.5)
+
+    Tc1 = 0.5 * (T1 + T2) + 0.5 * (T1 - T2) * np.exp(-mu * time)
+    Tc2 = 0.5 * (T1 + T2) + 0.5 * (T2 - T1) * np.exp(-mu * time)
+
+    # Tc1 = Tc1 * constants.e / constants.k
+    # Tc2 = Tc2 * constants.e / constants.k
+
+    ax.plot(time * s_to_ps, Tc1, label='Carbon1 Theory')
+    ax.plot(time * s_to_ps, Tc2, label='Carbon2 Theory')
 
     ax.set_xlabel('Time (ps)')
     ax.set_ylabel('T (eV)')
@@ -382,11 +383,11 @@ def plot_Temp(groups, start, stop, step, file_dir):
 def main():
     step = 100
     start = 0
-    stop = 7500
+    stop = 10000
 
-    file_dir = '/lsi_collisions'
+    file_dir = '/carbon_thermal_eq'
 
-    # plot_Temp(['carbon1', 'carbon2'], start, stop, step, file_dir)
+    plot_Temp(['carbon1', 'carbon2'], start, stop, step, file_dir)
 
     # plot_distributions(start, stop, step, 'carbon1', file_dir)
     # plot_distributions(start, stop, step, 'carbon2', file_dir)
@@ -409,9 +410,9 @@ def main():
 
     # particle_positions(start, stop, step, 'electrons', file_dir)
 
-    plot_Temp(['electrons', 'ions'], start, stop, step, file_dir)
-    plot_KE(['electrons', 'ions'], start, stop, step, file_dir)
-    plot_field_energy(start, stop, step, file_dir)
+    # plot_Temp(['electrons', 'ions'], start, stop, step, file_dir)
+    # plot_KE(['electrons', 'ions'], start, stop, step, file_dir)
+    # plot_field_energy(start, stop, step, file_dir)
 
     # plot_single_field(0, 1, 'Ex', file_dir)
     # plot_single_field(0, 1, 'Ez', file_dir)

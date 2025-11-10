@@ -12,7 +12,7 @@
 #include <map>
 #include <numeric>
 #include <span>
-#include <print>
+// #include <print>
 
 namespace tf::collisions
 {
@@ -356,7 +356,6 @@ struct Collisions {
 
       for (auto& [z_code, cell1] : g1.cell_map) {
          if (!g2.cell_map.contains(z_code)) {
-            // std::println("Cell {} not found in Group2.", z_code);
             continue;
          }
 
@@ -443,9 +442,8 @@ struct Collisions {
          } // end for(npairs)
       } // end for(z_code, cell1)
 
-      // if (added_particles_to_group1) { g1.cell_map_updated = false; }
-      // if (added_particles_to_group2) { g2.cell_map_updated = false; }
-
+      // if (added_particles_to_group1) { g1.cell_map_updated = false; g1.is_sorted = false; }
+      // if (added_particles_to_group2) { g2.cell_map_updated = false; g2.is_sorted = false; }
    } // end update()
 
    static void advance(const auto) requires (!coll_enabled) {}

@@ -143,8 +143,8 @@ def write_particle_file(name, file_dir, mass, charge, positions, velocities, wei
         f.write_attribute('Charge', charge)
         f.write_attribute("Charge/Unit", "C")
         f.write_attribute("Atomic Number", np.array([atomic_number],np.uint64)[0])
-        f.write_attribute('Tracer', np.array([tracer],np.uint64)[0])
-        f.write_attribute('Sourcer', np.array([sourcer],np.uint64)[0])
+        # f.write_attribute('Tracer', np.array([tracer],np.uint64)[0])
+        # f.write_attribute('Sourcer', np.array([sourcer],np.uint64)[0])
         f.write("Position", positions.copy(), positions.shape, [0,0], positions.shape)
         f.write_attribute("Unit", "m", "Position")
         f.write("Velocity", velocities.copy(), velocities.shape, [0,0], velocities.shape)
@@ -200,7 +200,7 @@ def create_particles(domain, particles, file_dir):
     if not fake_geom.shape[0]:
         print(f'!!! Warning: Particle Geometry Empty !!!', end=' ', flush=True)
         print(f'Done.', end='\n', flush=True)
-        return None
+        return
 
     # Get cell positions
     xc = x_coords[fake_geom[:, 0]]

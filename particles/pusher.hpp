@@ -107,13 +107,60 @@ static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qd
    return {qdt * vec3{exc, eyc, ezc}, qdt * vec3{bxc, byc, bzc}};
 } // end FieldAtParticle
 
+template<ParticleBCType BC>
+requires (BC == ParticleBCType::Reflecting)
+void apply_particle_bcs(auto& p, const auto& new_loc, const auto& old_loc) {
+   (void) p;
+   (void) new_loc;
+   (void) old_loc;
+   assert(false);
+}
+
+template<ParticleBCType BC>
+requires (BC == ParticleBCType::Periodic)
+void apply_particle_bcs(auto& p, auto& new_loc, auto& old_loc) {
+   constexpr auto fnx = static_cast<double>(Nx - 1);
+   constexpr auto fny = static_cast<double>(Ny - 1);
+   constexpr auto fnz = static_cast<double>(Nz - 1);
+
+   if (new_loc[0] <= nHalo or new_loc[0] >= fnx - nHalo) {
+      new_loc[0] = fnx + new_loc[0] - 2.0 * std::floor(new_loc[0] + 0.5);
+      old_loc[0] = fnx + old_loc[0] - 2.0 * std::floor(old_loc[0] + 0.5);
+   }
+   if (new_loc[1] <= nHalo or new_loc[1] >= fny - nHalo) {
+      new_loc[1] = fny + new_loc[1] - 2.0 * std::floor(new_loc[1] + 0.5);
+      old_loc[1] = fny + old_loc[1] - 2.0 * std::floor(old_loc[1] + 0.5);
+   }
+   if (new_loc[2] <= nHalo or new_loc[2] >= fnz - nHalo) {
+      new_loc[2] = fnz + new_loc[2] - 2.0 * std::floor(new_loc[2] + 0.5);
+      old_loc[2] = fnz + old_loc[2] - 2.0 * std::floor(old_loc[2] + 0.5);
+   }
+   p.old_location = old_loc;
+   p.location = new_loc;
+}
+
+template<ParticleBCType BC>
+requires (BC == ParticleBCType::Outflow)
+void apply_particle_bcs(auto& p, const auto& new_loc, const auto& old_loc) {
+   constexpr std::size_t BC_DEPTH = 3lu;
+
+   const auto& [inew, jnew, knew] = getCellIndices(new_loc);
+   const auto disabled = ((inew < BC_DEPTH or inew > Nx - 1 - BC_DEPTH) and !x_collapsed) or
+                         ((jnew < BC_DEPTH or jnew > Ny - 1 - BC_DEPTH) and !y_collapsed) or
+                         ((knew < BC_DEPTH or knew > Nz - 1 - BC_DEPTH) and !z_collapsed);
+   if (disabled) {
+      p.weight = -1.0;
+   }
+   p.old_location = old_loc;
+   p.location = new_loc;
+}
 
 struct BorisPush {
    using emdata_t = electromagnetics::EMData;
    using group_t = ParticleGroup;
 
    static void update_velocity(Particle& p, const emdata_t& emdata, const auto qdt) {
-      if (p.disabled) { return; }
+      if (p.is_disabled()) { return; }
 
       const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
 
@@ -137,40 +184,7 @@ struct BorisPush {
       auto new_loc = p.location + (delta_inv * p.velocity).as_type<float>();
       auto old_loc = p.location;
 
-      if constexpr (PBCSelect == ParticleBCType::Periodic) {
-         // Periodic particle BCs
-         constexpr auto fnx = static_cast<double>(Nx - 1);
-         constexpr auto fny = static_cast<double>(Ny - 1);
-         constexpr auto fnz = static_cast<double>(Nz - 1);
-
-         if (new_loc[0] <= nHalo or new_loc[0] >= fnx - nHalo) {
-            new_loc[0] = fnx + new_loc[0] - 2.0 * std::floor(new_loc[0] + 0.5);
-            old_loc[0] = fnx + old_loc[0] - 2.0 * std::floor(old_loc[0] + 0.5);
-         }
-         if (new_loc[1] <= nHalo or new_loc[1] >= fny - nHalo) {
-            new_loc[1] = fny + new_loc[1] - 2.0 * std::floor(new_loc[1] + 0.5);
-            old_loc[1] = fny + old_loc[1] - 2.0 * std::floor(old_loc[1] + 0.5);
-         }
-         if (new_loc[2] <= nHalo or new_loc[2] >= fnz - nHalo) {
-            new_loc[2] = fnz + new_loc[2] - 2.0 * std::floor(new_loc[2] + 0.5);
-            old_loc[2] = fnz + old_loc[2] - 2.0 * std::floor(old_loc[2] + 0.5);
-         }
-      } else {
-         constexpr std::size_t BC_DEPTH = 3lu;
-
-         // Outflow particle BCs
-         const auto& [inew, jnew, knew] = getCellIndices(new_loc);
-         // todo: this needs to be updated for collapsed dimensions
-         const auto disabled = inew < BC_DEPTH or inew > Nx - 1 - BC_DEPTH or
-                               jnew < BC_DEPTH or jnew > Ny - 1 - BC_DEPTH or
-                               knew < BC_DEPTH or knew > Nz - 1 - BC_DEPTH;
-         if (disabled) {
-            p.weight = -1.0;
-         }
-      }
-
-      p.old_location = old_loc;
-      p.location = new_loc;
+      apply_particle_bcs<PBCSelect>(p, new_loc, old_loc);
    } // end update_position()
 
 
@@ -199,9 +213,7 @@ struct BorisPush {
       advance_velocity(g, emdata);
       advance_position(g);
       g.cell_map_updated = false;
-      // if (step % group_t::SORT_INTERVAL == 0) {
-      //    g.sort_particles();
-      // }
+      g.is_sorted = false;
    } // end advance()
 
    static void advance(auto&, const auto&, const auto) requires (!push_enabled) {}

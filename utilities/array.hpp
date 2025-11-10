@@ -21,6 +21,8 @@ public:
      data_(nx * ny * nz)
    {}
 
+   explicit Array3D(const vec3<T>& dims_) : Array3D(dims_.x, dims_.y, dims_.z) {}
+
    auto begin() { return data_.begin(); }
    auto   end() { return data_.end(); }
    auto* data() { return data_.data(); }
