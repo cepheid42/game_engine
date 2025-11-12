@@ -2,6 +2,7 @@
 #define PARTICLE_HPP
 
 #include "constants.hpp"
+#include "math_utils.hpp"
 #include "morton.hpp"
 #include "program_params.hpp"
 #include "vec3.hpp"

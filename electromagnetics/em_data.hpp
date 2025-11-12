@@ -1,15 +1,18 @@
 #ifndef EM_DATA_HPP
 #define EM_DATA_HPP
 
-#include <unordered_map>
-
+#include "array.hpp"
+#include "mdspan.hpp"
 #include "program_params.hpp"
 #include "sources.hpp"
-#include "array.hpp"
+
+#include <unordered_map>
 
 namespace tf::electromagnetics {
 struct EMData {
-   EMData() = delete;
+   // using ex_extent =
+
+
 
    EMData(const std::size_t nx, const std::size_t ny, const std::size_t nz)
    : Ex(nx - 1, ny, nz),
@@ -103,7 +106,7 @@ struct EMData {
       Chyez2.fill(0.5 * h_coeff / dx);
       Chzex2.fill(0.5 * h_coeff / dy);
       Chzey2.fill(0.5 * h_coeff / dx);
-   }
+   }.
 
    Array3D<double> Ex;
    Array3D<double> Jx;

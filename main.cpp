@@ -44,20 +44,18 @@ int main() {
    //    add_rmf_antennas(emsolver, rmf_params);
    // }
 
-
-
-   Metrics metrics(std::string{sim_path} + "/data/" + std::string{sim_name});
-   if constexpr (em_enabled) {
-      metrics.add_em_metrics(emsolver);
-   }
-
-   if constexpr (push_enabled or coll_enabled) {
-      emsolver.particle_correction();
-      for (auto& g : particle_groups) {
-         BorisPush::backstep_velocity(g, emsolver.emdata);
-         metrics.add_particle_metric(g);
-      }
-   }
+   // Metrics metrics(std::string{sim_path} + "/data/" + std::string{sim_name});
+   // if constexpr (em_enabled) {
+   //    metrics.add_em_metrics(emsolver);
+   // }
+   //
+   // if constexpr (push_enabled or coll_enabled) {
+   //    emsolver.particle_correction();
+   //    for (auto& g : particle_groups) {
+   //       BorisPush::backstep_velocity(g, emsolver.emdata);
+   //       metrics.add_particle_metric(g);
+   //    }
+   // }
 
    auto time = 0.0;
    auto step = 0lu;
