@@ -39,8 +39,8 @@ inline constexpr auto coll_enabled = true;
 /*---------------------------------------------------------------/
 /-                        EM Parameters                         -/
 /---------------------------------------------------------------*/
-enum class EMFace { X, Y, Z };
-enum class EMSide { Lo, Hi };
+// enum class EMFace { X, Y, Z };
+// enum class EMSide { Lo, Hi };
 
 inline constexpr auto em_save_interval = 1lu;
 
@@ -72,5 +72,12 @@ inline constexpr std::array<collision_spec, 3> collision_params = {
    std::tuple("carbon1", "carbon1", 10, 1.0, 1, true),
    std::tuple("carbon2", "carbon2", 10, 1.0, 1, true),
 };
+
+/*---------------------------------------------------------------/
+/-                      Metrics Parameters                      -/
+/---------------------------------------------------------------*/
+// inline constexpr std::array field_slices = {
+//    {"Ex", 0, -1, -1} // Name, x, y, z (-1 is full extent)
+// };
 
 #endif //PROGRAM_PARAM_HPP
