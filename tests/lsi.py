@@ -34,7 +34,7 @@ em_params = EMParams(
 )
 
 particle_params = ParticleParams(
-    particle_bcs=1,
+    save_interval=nt//100,
     interp_order=2,
     particle_data=('electrons', 'ions')
 )
@@ -42,7 +42,6 @@ particle_params = ParticleParams(
 sim_params = Simulation(
     name='lsi',
     shape=shape,
-    save_interval=100,
     nthreads=32,
     dt=dt,
     t_end=t_end,
@@ -64,6 +63,7 @@ pz_range = (-1e-5, 1e-5)
 electrons = Particles(
     name='electrons',
     mass=constants.m_e,
+    atomic_number=1,
     charge=-constants.e,
     temp=10000, # eV
     density=8.5e27, # m^-3,
@@ -77,6 +77,7 @@ electrons = Particles(
 ions = Particles(
     name='ions',
     mass=constants.m_p,
+    atomic_number=1,
     charge=+constants.e,
     temp=10000, # eV
     density=8.5e27, # m^-3,

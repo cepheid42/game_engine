@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <map>
 #include <numeric>
+#include <ranges>
 #include <span>
 // #include <print>
 
@@ -19,7 +20,7 @@ namespace tf::collisions
 
 struct Collisions {
    using group_t = particles::ParticleGroup;
-
+   using particle_vec = std::vector<particles::Particle>;
    group_t& g1; // electrons
    group_t& g2; // ions
 
@@ -28,16 +29,17 @@ struct Collisions {
    int step_interval;
    bool self_scatter;
 
-   // std::vector<particles::Particle> e_products;
-   // std::vector<particles::Particle> i_products;
+   particle_vec g1_products; // electrons
+   particle_vec g2_products; // ions
+
    // Array3D<double> E_ionization_metric;
-   // double E_ionization;
-   // double P_mult;
-   // double P_scatter;
-   // double P_search_area;
-   // double M_prod;
-   // double M_rejection;
-   // double cross_section;
+   double E_ionization{};
+   double P_mult{};
+   double P_scatter{};
+   double P_search_area{};
+   double M_prod{};
+   double M_rejection{};
+   double cross_section{};
 
    std::array<std::mt19937_64, nThreads> generator;
 
@@ -211,125 +213,123 @@ struct Collisions {
       );
    }
 
-   // void ionizationCollision(auto& particle1, auto& particle2,
-   //    const auto weight1, const auto weight2, const auto max_weight,
-   //    const auto rand0, const auto rand1, const auto rand2, const auto rand3, const auto rand4,
-   //    const auto dups, const auto scatter_coef)
-   // {
-   //    const auto wi_eff = weight2 / M_rejection;
-   //    const auto dv_length = (particle1.velocity - particle2.velocity).length();
-   //    const auto m_reduced = (g1.mass * g2.mass) / (g1.mass + g2.mass);
-   //
-   //    auto target_ionizes = weight1 >= wi_eff or (weight1 / wi_eff) >= rand2;
-   //    auto electron_scatters = weight1 < wi_eff or (wi_eff / weight1) >= rand2;
-   //    if (rand0 > P_scatter or !(target_ionizes or electron_scatters) or dv_length == 0.0) {
-   //       return;
-   //    }
-   //
-   //    const auto& [
-   //       vcm, p1, p2,
-   //       p1_star,
-   //       mg1, mg2,
-   //       gamma_cm,
-   //       gamma1_cm, gamma2_cm,
-   //       vcm_dot_v1, vcm_dot_v2,
-   //       vcm_len2
-   //    ] = getCOMData(particle1, particle2, g1.mass, g2.mass);
-   //
-   //    const vec3 v1_cm = particle1.velocity + vcm * ((gamma_cm - 1.0) / vcm_len2 * vcm_dot_v1 - gamma_cm * particle1.gamma);
-   //    const vec3 v2_cm = particle2.velocity + vcm * ((gamma_cm - 1.0) / vcm_len2 * vcm_dot_v2 - gamma_cm * particle2.gamma);
-   //
-   //    const auto dv2_cm = (v1_cm / gamma1_cm - v2_cm / gamma2_cm).length_squared();
-   //    const auto vrel2_cm = dv2_cm * particles::calculateGamma(dv2_cm);
-   //
-   //    const auto gamma_rel = calculateGamma(vrel2_cm);
-   //    const auto energy_com_eV = (gamma_rel - 1.0) * m_reduced * constants::c_sqr<double> / constants::q_e<double>;
-   //
-   //    if  (energy_com_eV < E_ionization) { return; }
-   //
-   //    const auto probability_coef = cross_section * max_weight * scatter_coef * dv_length * rate_mult;
-   //    auto prod_mult = M_prod;
-   //    auto probability_to_scatter = probability_coef * prod_mult;
-   //
-   //    while (probability_to_scatter > P_search_area and prod_mult > 1.0) {
-   //       prod_mult /= 2.0;
-   //       probability_to_scatter = probability_coef * prod_mult;
-   //    }
-   //
-   //    const auto Ee_scatter = rand1 * (energy_com_eV - E_ionization);
-   //    const auto pe_scatter = p1 * std::sqrt(Ee_scatter / energy_com_eV);
-   //    const auto gamma_e_scatter = calculateGammaP(pe_scatter, constants::m_e<double>);
-   //    const auto ve_scatter = pe_scatter / (gamma_e_scatter * g1.mass);
-   //
-   //    if (target_ionizes) {
-   //       const auto product_weight = std::min(particle2.weight, wi_eff * dups / M_prod);
-   //       const auto Ee_ejected = energy_com_eV - E_ionization - Ee_scatter;
-   //       const auto pe_ejected = p1 * std::sqrt(Ee_ejected / energy_com_eV);
-   //       const auto gamma_e_ejected = particles::calculateGammaP(pe_ejected, constants::m_e<double>);
-   //       const auto v_e_ejected = pe_ejected / (gamma_e_ejected * constants::m_e<double>);
-   //       e_products.emplace_back(
-   //          particle2.location,
-   //          particle2.location,
-   //          v_e_ejected,
-   //          gamma_e_ejected,
-   //          product_weight,
-   //          false
-   //       );
-   //
-   //       i_products.emplace_back(
-   //          particle2.location,
-   //          particle2.location,
-   //          particle2.velocity,
-   //          particle2.gamma,
-   //          product_weight,
-   //          false
-   //       );
-   //
-   //       if (product_weight == particle2.weight) {
-   //          particle2.disabled = true;
-   //       }
-   //       else {
-   //          particle2.weight -= product_weight;
-   //       }
-   //
-   //       // const auto& [x, y, z] = particles::getCellIndices(particle2.location);
-   //       // E_ionization_metric(x, y, z) += product_weight * E_ionization * constants::q_e<double>;
-   //    } // end target_ionizes
-   //
-   //    particles::Particle e_scattered{
-   //       {},
-   //       {},
-   //       ve_scatter,
-   //       0.0,
-   //       gamma_e_scatter,
-   //       false
-   //    };
-   //
-   //    const auto& [
-   //       vcm_scatter, p1_scatter, p2_scatter,
-   //       p1_star_scatter,
-   //       mg1_scattered, mg2_scattered,
-   //       gamma_cm_scatter,
-   //       gamma1_cm_scattered, gamma2_cm_scattered,
-   //       vcm_dot_ve_scatter, vcm_dot_v2_scatter, vcm_len2_scatter
-   //    ] = getCOMData(e_scattered, particle2, g1.mass, g2.mass);
-   //
-   //    const auto gamma1_star = gamma_e_scatter * gamma_cm_scatter * (1.0 - vcm_dot_ve_scatter * constants::over_c_sqr<double>);
-   //    const auto gamma2_star = particle2.gamma * gamma_cm_scatter * (1.0 - vcm_dot_v2_scatter * constants::over_c_sqr<double>);
-   //
-   //    auto getScatteringAngle = [&]() -> std::array<double, 2> {
-   //       const auto cos_theta = 2.0 * rand1 - 1.0;
-   //       return {cos_theta, std::sqrt(1.0 - math::SQR(cos_theta))};
-   //    };
-   //
-   //    const auto& [p1f_star_scatter, pcoef_lab_scatter] = calculate_P1final(p1_star_scatter, vcm_scatter, vcm_len2_scatter, gamma_cm_scatter, rand3, getScatteringAngle);
-   //    updateParticles(
-   //       particle1, particle2,
-   //       vcm_scatter, p1f_star_scatter, pcoef_lab_scatter,
-   //       gamma1_star, gamma2_star, gamma_cm_scatter,
-   //       electron_scatters, target_ionizes
-   //    );
-   // }
+   void ionizationCollision(auto& particle1, auto& particle2,
+      const auto weight1, const auto weight2, const auto max_weight,
+      const auto rand0, const auto rand1, const auto rand2, const auto rand3, const auto rand4,
+      const auto dups, const auto scatter_coef)
+   {
+      const auto wi_eff = weight2 / M_rejection;
+      const auto dv_length = (particle1.velocity - particle2.velocity).length();
+      const auto m_reduced = (g1.mass * g2.mass) / (g1.mass + g2.mass);
+
+      auto target_ionizes = weight1 >= wi_eff or (weight1 / wi_eff) >= rand2;
+      auto electron_scatters = weight1 < wi_eff or (wi_eff / weight1) >= rand2;
+      if (rand0 > P_scatter or !(target_ionizes or electron_scatters) or dv_length == 0.0) {
+         return;
+      }
+
+      const auto& [
+         vcm, p1, p2,
+         p1_star,
+         mg1, mg2,
+         gamma_cm,
+         gamma1_cm, gamma2_cm,
+         vcm_dot_v1, vcm_dot_v2,
+         vcm_len2
+      ] = getCOMData(particle1, particle2, g1.mass, g2.mass);
+
+      const vec3 v1_cm = particle1.velocity + vcm * ((gamma_cm - 1.0) / vcm_len2 * vcm_dot_v1 - gamma_cm * particle1.gamma);
+      const vec3 v2_cm = particle2.velocity + vcm * ((gamma_cm - 1.0) / vcm_len2 * vcm_dot_v2 - gamma_cm * particle2.gamma);
+
+      const auto dv2_cm = (v1_cm / gamma1_cm - v2_cm / gamma2_cm).length_squared();
+      const auto vrel2_cm = dv2_cm * particles::calculateGammaV(dv2_cm);
+
+      const auto gamma_rel = calculateGamma(vrel2_cm);
+      const auto energy_com_eV = (gamma_rel - 1.0) * m_reduced * constants::c_sqr<double> / constants::q_e<double>;
+
+      if  (energy_com_eV < E_ionization) { return; }
+
+      const auto probability_coef = cross_section * max_weight * scatter_coef * dv_length * rate_mult;
+      auto prod_mult = M_prod;
+      auto probability_to_scatter = probability_coef * prod_mult;
+
+      while (probability_to_scatter > P_search_area and prod_mult > 1.0) {
+         prod_mult /= 2.0;
+         probability_to_scatter = probability_coef * prod_mult;
+      }
+
+      const auto Ee_scatter = rand1 * (energy_com_eV - E_ionization);
+      const auto pe_scatter = p1 * std::sqrt(Ee_scatter / energy_com_eV);
+      const auto gamma_e_scatter = calculateGammaP(pe_scatter, constants::m_e<double>);
+      const auto ve_scatter = pe_scatter / (gamma_e_scatter * g1.mass);
+
+      if (target_ionizes) {
+         const auto product_weight = std::min(particle2.weight, wi_eff * dups / M_prod);
+         const auto Ee_ejected = energy_com_eV - E_ionization - Ee_scatter;
+         const auto pe_ejected = p1 * std::sqrt(Ee_ejected / energy_com_eV);
+         const auto gamma_e_ejected = particles::calculateGammaP(pe_ejected, constants::m_e<double>);
+         const auto v_e_ejected = pe_ejected / (gamma_e_ejected * constants::m_e<double>);
+
+         #pragma omp atomic
+         g1_products.emplace_back(
+            v_e_ejected,
+            gamma_e_ejected,
+            particle2.location,
+            particle2.location,
+            product_weight
+         );
+
+         #pragma omp atomic
+         g2_products.emplace_back(
+            particle2.velocity,
+            particle2.gamma,
+            particle2.location,
+            particle2.location,
+            product_weight
+         );
+
+         if (product_weight == particle2.weight) {
+            particle2.weight = -1.0;
+         }
+         else {
+            particle2.weight -= product_weight;
+         }
+      } // end target_ionizes
+
+      particles::Particle e_scattered{
+         {},
+         {},
+         ve_scatter,
+         0.0,
+         gamma_e_scatter,
+         false
+      };
+
+      const auto& [
+         vcm_scatter, p1_scatter, p2_scatter,
+         p1_star_scatter,
+         mg1_scattered, mg2_scattered,
+         gamma_cm_scatter,
+         gamma1_cm_scattered, gamma2_cm_scattered,
+         vcm_dot_ve_scatter, vcm_dot_v2_scatter, vcm_len2_scatter
+      ] = getCOMData(e_scattered, particle2, g1.mass, g2.mass);
+
+      const auto gamma1_star = gamma_e_scatter * gamma_cm_scatter * (1.0 - vcm_dot_ve_scatter * constants::over_c_sqr<double>);
+      const auto gamma2_star = particle2.gamma * gamma_cm_scatter * (1.0 - vcm_dot_v2_scatter * constants::over_c_sqr<double>);
+
+      auto getScatteringAngle = [&]() -> std::array<double, 2> {
+         const auto cos_theta = 2.0 * rand1 - 1.0;
+         return {cos_theta, std::sqrt(1.0 - math::SQR(cos_theta))};
+      };
+
+      const auto& [p1f_star_scatter, pcoef_lab_scatter] = calculate_P1final(p1_star_scatter, vcm_scatter, vcm_len2_scatter, gamma_cm_scatter, rand3, getScatteringAngle);
+      updateParticles(
+         particle1, particle2,
+         vcm_scatter, p1f_star_scatter, pcoef_lab_scatter,
+         gamma1_star, gamma2_star, gamma_cm_scatter,
+         electron_scatters, target_ionizes
+      );
+   }
 
    void advance(const auto step) requires (coll_enabled) {
       static constexpr auto cell_vol_inv = 1.0 / (dx * dy * dz);
@@ -353,6 +353,9 @@ struct Collisions {
 
       g1.update_cell_map();
       g2.update_cell_map();
+
+      g1_products.clear();
+      g2_products.clear();
 
       for (auto& [z_code, cell1] : g1.cell_map) {
          if (!g2.cell_map.contains(z_code)) {
@@ -433,17 +436,24 @@ struct Collisions {
                coef1, coef2, bmax2, scatter_coef, scatter_lowT
             );
 
-            // ionizationCollision(
-            //    particle1, particle2,
-            //    weight1, weight2, max_weight,
-            //    rng(generator[tid]), rng(generator[tid]), rng(generator[tid]), rng(generator[tid]), rng(generator[tid]),
-            //    nDups[pids1[i]], scatter_coef
-            // );
+            ionizationCollision(
+               particle1, particle2,
+               weight1, weight2, max_weight,
+               rng(generator[tid]), rng(generator[tid]), rng(generator[tid]), rng(generator[tid]), rng(generator[tid]),
+               nDups[pids1[i]], scatter_coef
+            );
          } // end for(npairs)
       } // end for(z_code, cell1)
 
-      // if (added_particles_to_group1) { g1.cell_map_updated = false; g1.is_sorted = false; }
-      // if (added_particles_to_group2) { g2.cell_map_updated = false; g2.is_sorted = false; }
+      if (!g1_products.empty()) {
+         for (auto& [key, span] : g1.cell_map | std::views::reverse) {
+
+         }
+      }
+
+
+
+      if (added_particles_to_group2) { g2.cell_map_updated = false; g2.is_sorted = false; }
    } // end update()
 
    static void advance(const auto) requires (!coll_enabled) {}

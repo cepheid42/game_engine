@@ -67,6 +67,8 @@ inline constexpr auto PBCSelect = ParticleBCType::Outflow;
 
 inline constexpr std::array particle_data = {"/data/carbon1.bp", "/data/carbon2.bp"};
 
+inline constexpr std::array particle_beam_data = {"/data/electron_beam.bp"};
+
 inline constexpr std::array<collision_spec, 3> collision_params = {
    std::tuple("carbon1", "carbon2", 10, 1.0, 1, false),
    std::tuple("carbon1", "carbon1", 10, 1.0, 1, true),
