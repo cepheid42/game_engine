@@ -1,6 +1,8 @@
 #ifndef PROGRAM_PARAM_HPP
 #define PROGRAM_PARAM_HPP
 
+#include "particle_params.hpp"
+
 #include <array>
 #include <string>
 #include <tuple>
@@ -26,7 +28,7 @@ inline constexpr auto dz = 1e-06;
 inline constexpr auto cfl   = 0.2596278844909794;
 inline constexpr auto dt    = 5e-16;
 inline constexpr auto t_end = 5e-12;
-inline constexpr auto Nt    = 10000lu;
+inline constexpr auto Nt    = 10000lzu;
 
 inline constexpr auto sim_name = "carbon_thermal_eq";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
@@ -49,10 +51,10 @@ inline constexpr auto PMLGrade    = 3.5;
 inline constexpr auto PMLAlphaMax = 0.2;
 //inline constexpr auto PMLKappaMax = 1.0;
 
-inline constexpr auto nHalo = 0lu;
+inline constexpr auto nHalo = 0zu;
 
 // Periodic = 0, PML = 1, Reflecting = 2
-inline constexpr std::array BCSelect = {2lu, 2lu, 2lu, 2lu, 2lu, 2lu};
+inline constexpr std::array BCSelect = {2zu, 2zu, 2zu, 2zu, 2zu, 2zu};
 
 /*---------------------------------------------------------------/
 /-                     Particle Parameters                      -/
@@ -60,17 +62,16 @@ inline constexpr std::array BCSelect = {2lu, 2lu, 2lu, 2lu, 2lu, 2lu};
 using collision_spec = std::tuple<std::string, std::string, double, double, int, bool>;
 enum class ParticleBCType { Static, Reflecting, Periodic, Outflow };
 
-inline constexpr auto particle_save_interval = 100lu;
-inline constexpr auto interpolation_order = 2lu;
+inline constexpr auto particle_save_interval = 100zu;
+inline constexpr auto interpolation_order = 2zu;
 
 inline constexpr auto PBCSelect = ParticleBCType::Outflow;
 
 inline constexpr std::array particle_data = {"/data/carbon1.bp", "/data/carbon2.bp"};
-
 inline constexpr std::array<collision_spec, 3> collision_params = {
-   std::tuple("carbon1", "carbon2", 10, 1.0, 1, false),
-   std::tuple("carbon1", "carbon1", 10, 1.0, 1, true),
-   std::tuple("carbon2", "carbon2", 10, 1.0, 1, true),
+   std::tuple("carbon1", "carbon2", 10.0, 1.0, 1, false),
+   std::tuple("carbon1", "carbon1", 10.0, 1.0, 1, true),
+   std::tuple("carbon2", "carbon2", 10.0, 1.0, 1, true),
 };
 
 /*---------------------------------------------------------------/

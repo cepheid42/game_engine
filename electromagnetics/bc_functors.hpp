@@ -3,12 +3,12 @@
 
 #include "diff_operators.hpp"
 #include "program_params.hpp"
-#include "traits.hpp"
+#include "em_params.hpp"
 
 namespace tf::electromagnetics
 {
 template<typename CurlFunc, bool isLo, bool Negate>
-struct PMLFunctor : pml_t {
+struct PMLFunctor {
    using Curl = CurlFunc;
 
    #pragma omp declare simd notinbranch
@@ -67,19 +67,19 @@ struct PMLFunctor : pml_t {
 };   // end struct Pml3DFunctor
 
 
-template<EMFace F, bool Add>
-struct PeriodicFunctor : periodic_t {
+template<Derivative D, bool Add>
+struct PeriodicFunctor {
    #pragma omp declare simd notinbranch
    static void apply(auto& f, const auto& bc, const std::size_t i, const std::size_t j, const std::size_t k)
    {
       std::size_t idx1, idx2, idx3, idx4;
-      if constexpr (F == EMFace::X) {
+      if constexpr (D == Derivative::DX) {
          const auto pm = i % bc.numInterior;
          idx1 = f.get_scid(nHalo - 1 - i, j, k);
          idx2 = f.get_scid(bc.hiIndex - pm, j, k);
          idx3 = f.get_scid(bc.hiIndex + 1 + i, j, k);
          idx4 = f.get_scid(nHalo + pm, j, k);
-      } else if constexpr (F == EMFace::Y) {
+      } else if constexpr (D == Derivative::DY) {
          const auto pm = j % bc.numInterior;
          idx1 = f.get_scid(i, nHalo - 1 - j, k);
          idx2 = f.get_scid(i, bc.hiIndex - pm, k);
@@ -105,45 +105,47 @@ struct PeriodicFunctor : periodic_t {
 }; // end struct PeriodicFunctor
 
 
-template<typename U>
+template<typename U, typename Curl, bool isLo, bool Negate>
 struct BCIntegrator {
-   static constexpr void apply(const auto&, const auto&, const auto&, const auto&) requires is_null<U> {}
+   static constexpr void apply(const auto&, const auto&, const auto&, const auto&) {}
 
    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc)
-   requires is_pml<U>
+   requires std::same_as<U, PMLData>
    {
-      static constexpr Derivative CurlType = U::Curl::type;
+      static constexpr Derivative D = Curl::type;
       const auto& [x0, x1, y0, y1, z0, z1] = bc.offsets;
    
       std::size_t pml_offset;
-      if constexpr      (CurlType == Derivative::DX) { pml_offset = x0; }
-      else if constexpr (CurlType == Derivative::DY) { pml_offset = y0; }
-      else                                           { pml_offset = z0; }
+      if constexpr      (Curl::type == Derivative::DX) { pml_offset = x0; }
+      else if constexpr (Curl::type == Derivative::DY) { pml_offset = y0; }
+      else                                             { pml_offset = z0; }
    
       #pragma omp parallel for simd collapse(3) num_threads(nThreads)
       for (std::size_t i = x0; i < x1; ++i) {
          for (std::size_t j = y0; j < y1; ++j) {
             for (std::size_t k = z0; k < z1; ++k) {
-               U::apply(f1, f2, c1, bc, i, j, k, pml_offset);
+               PMLFunctor<Curl, isLo, Negate>::apply(f1, f2, c1, bc, i, j, k, pml_offset);
             } // end for k
          } // end for j
       } // end for i
    } // end operator()
    
    static void apply(auto& f1, const auto&, const auto&, const auto& bc)
-   requires is_periodic<U>
+   requires std::same_as<U, PeriodicData>
    {
       const auto& [x0, x1, y0, y1, z0, z1] = bc.offsets;
       #pragma omp parallel for simd collapse(3) num_threads(nThreads)
       for (std::size_t i = x0; i < x1; ++i) {
          for (std::size_t j = y0; j < y1; ++j) {
             for (std::size_t k = z0; k < z1; ++k) {
-               U::apply(f1, bc, i, j, k);
+               // todo: Need to make this work with J periodic, aka ad
+               PeriodicFunctor<Curl::type, false>::apply(f1, bc, i, j, k);
             }
          }
       }
    }
 }; // end struct BCIntegrator
+
 } // end namespace tf::electromagnetics
 
 

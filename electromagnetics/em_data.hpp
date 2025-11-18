@@ -42,16 +42,16 @@ struct emdata_t {
    vector_t By;
    vector_t Bz;
    
-   vector_t Cj;
-   vector_t Cexy;
-   vector_t Cexz;
-   vector_t Ceyz;
-   vector_t Chxy;
-   vector_t Chxz;
-   vector_t Chyz;
-   vector_t Chxy2;
-   vector_t Chxz2;
-   vector_t Chyz2;
+   // vector_t Cj;
+   // vector_t Cexy;
+   // vector_t Cexz;
+   // vector_t Ceyz;
+   // vector_t Chxy;
+   // vector_t Chxz;
+   // vector_t Chyz;
+   // vector_t Chxy2;
+   // vector_t Chxz2;
+   // vector_t Chyz2;
 
    x0bc_t x0_Ey;
    x0bc_t x0_Ez;
@@ -81,7 +81,7 @@ struct emdata_t {
    z1bc_t z1_Ex;
    z1bc_t z1_Ey;
    z1bc_t z1_Hx;
-   z1bc_t z1_Hy;
+   z1bc_t z1_Hy;a// todo: replace extents with constantsueeeeeeeeeeeee
 }; // end struct emdata_t
 
 
@@ -127,7 +127,7 @@ auto init_bc(auto& bc, const auto& dims) {
 
 template<typename T, EMFace F, EMSide, bool>
 requires std::same_as<T, PeriodicData>
-auto init_bc(auto& bc, auto, const auto& dims) {
+auto init_bc(auto& bc, const auto& dims) {
    auto get_numInterior = [&] {
       if      constexpr (is_XFace<F>) { return dims.extent(0) - (2 * nHalo); }
       else if constexpr (is_YFace<F>) { return dims.extent(1) - (2 * nHalo); }
@@ -172,16 +172,16 @@ inline auto make_emdata() -> emdata_t {
    emdata.Hz = vector_t(hz_size);
    emdata.Bz = vector_t(hz_size);
 
-   emdata.Cexy = vector_t(e_max, e_coeff / dz);
-   emdata.Cexz = vector_t(e_max, e_coeff / dy);
-   emdata.Ceyz = vector_t(e_max, e_coeff / dx);
-   emdata.Chxy = vector_t(h_max, h_coeff / dz);
-   emdata.Chxz = vector_t(h_max, h_coeff / dy);
-   emdata.Chyz = vector_t(h_max, h_coeff / dx);
-   emdata.Chxy2 = vector_t(h_max, 0.5 * h_coeff / dz);
-   emdata.Chxz2 = vector_t(h_max, 0.5 * h_coeff / dy);
-   emdata.Chyz2 = vector_t(h_max, 0.5 * h_coeff / dx);
-   
+   // emdata.Cexy = vector_t(e_max, e_coeff / dz);
+   // emdata.Cexz = vector_t(e_max, e_coeff / dy);
+   // emdata.Ceyz = vector_t(e_max, e_coeff / dx);
+   // emdata.Chxy = vector_t(h_max, h_coeff / dz);
+   // emdata.Chxz = vector_t(h_max, h_coeff / dy);
+   // emdata.Chyz = vector_t(h_max, h_coeff / dx);
+   // emdata.Chxy2 = vector_t(h_max, 0.5 * h_coeff / dz);
+   // emdata.Chxz2 = vector_t(h_max, 0.5 * h_coeff / dy);
+   // emdata.Chyz2 = vector_t(h_max, 0.5 * h_coeff / dx);
+
    init_bc<x0bc_t, X, Lo,  true>(emdata.x0_Ey, eyx_ext{});
    init_bc<x0bc_t, X, Lo,  true>(emdata.x0_Ez, ezx_ext{});
    init_bc<x0bc_t, X, Lo, false>(emdata.x0_Hy, hyx_ext{});
