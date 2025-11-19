@@ -1,7 +1,7 @@
 #ifndef PROGRAM_PARAM_HPP
 #define PROGRAM_PARAM_HPP
 
-#include "particle_params.hpp"
+// #include "particle_params.hpp"
 
 #include <array>
 #include <string>
@@ -28,7 +28,7 @@ inline constexpr auto dz = 1e-06;
 inline constexpr auto cfl   = 0.2596278844909794;
 inline constexpr auto dt    = 5e-16;
 inline constexpr auto t_end = 5e-12;
-inline constexpr auto Nt    = 10000lzu;
+inline constexpr auto Nt    = 10000zu;
 
 inline constexpr auto sim_name = "carbon_thermal_eq";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";

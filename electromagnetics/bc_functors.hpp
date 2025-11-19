@@ -116,9 +116,9 @@ struct BCIntegrator {
       const auto& [x0, x1, y0, y1, z0, z1] = bc.offsets;
    
       std::size_t pml_offset;
-      if constexpr      (Curl::type == Derivative::DX) { pml_offset = x0; }
-      else if constexpr (Curl::type == Derivative::DY) { pml_offset = y0; }
-      else                                             { pml_offset = z0; }
+      if constexpr      (D == Derivative::DX) { pml_offset = x0; }
+      else if constexpr (D == Derivative::DY) { pml_offset = y0; }
+      else                                    { pml_offset = z0; }
    
       #pragma omp parallel for simd collapse(3) num_threads(nThreads)
       for (std::size_t i = x0; i < x1; ++i) {
@@ -138,7 +138,7 @@ struct BCIntegrator {
       for (std::size_t i = x0; i < x1; ++i) {
          for (std::size_t j = y0; j < y1; ++j) {
             for (std::size_t k = z0; k < z1; ++k) {
-               // todo: Need to make this work with J periodic, aka ad
+               // todo: Need to make this work with J periodic, aka add = true
                PeriodicFunctor<Curl::type, false>::apply(f1, bc, i, j, k);
             }
          }

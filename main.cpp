@@ -7,8 +7,8 @@
 // #include "particles/current_deposition.hpp"
 // #include "particles/collisions.hpp"
 
-#include "particle_params.hpp"
-#include "em_params.hpp"
+// #include "particle_params.hpp"
+// #include "em_params.hpp"
 #include "em_data.hpp"
 #include "em_solver.hpp"
 // #include "sources.hpp"

@@ -11,7 +11,7 @@ template<typename CurlA, typename CurlB>
 struct FieldIntegrator {
    using offset_t = std::array<std::size_t, 6>;
 
-   static void operator()(auto& f, const auto& d1, const auto& d2, const auto& src,
+   static void apply(auto& f, const auto& d1, const auto& d2, const auto& src,
                           const auto c_d1, const auto c_d2, const auto c_src)
    {
       #pragma omp parallel for simd collapse(3) num_threads(nThreads)
@@ -71,11 +71,11 @@ struct EMSolver {
    
    static void advance(auto& emdata, const auto t) requires(em_enabled) {
       updateH(emdata);
-      // updateHBCs();
+      updateHBCs(emdata);
       // updateJBCs();
       // apply_srcs(t);
       updateE(emdata);
-      // updateEBCs();
+      updateEBCs(emdata);
       // particle_correction(); // for the particles and shit
       // zero_currents();       // also for the particles, don't need last week's currents
    }
@@ -98,9 +98,9 @@ struct EMSolver {
       constexpr auto Ceyz = dt / (constants::eps0<double> * dx);
       constexpr auto Cj = dt / constants::eps0<double>;
       
-      ExUpdate(Ex, Hz, Hy, Jx, Ceyz, Cexy, Cj);
-      EyUpdate(Ey, Hx, Hz, Jy, Cexy, Ceyz, Cj);
-      EzUpdate(Ez, Hy, Hx, Jz, Ceyz, Cexz, Cj);
+      ExUpdate::apply(Ex, Hz, Hy, Jx, Ceyz, Cexy, Cj);
+      EyUpdate::apply(Ey, Hx, Hz, Jy, Cexy, Ceyz, Cj);
+      EzUpdate::apply(Ez, Hy, Hx, Jz, Ceyz, Cexz, Cj);
    }
 
    static void updateH(auto& emdata) {
@@ -114,12 +114,12 @@ struct EMSolver {
       constexpr auto Chxz = dt / (constants::mu0<double> * dy);
       constexpr auto Chyz = dt / (constants::mu0<double> * dx);  
       
-      HxUpdate(Hx, Ey, Ez, empty{}, Chxy, Chxz, 0.0);
-      HyUpdate(Hy, Ez, Ex, empty{}, Chyz, Chxy, 0.0);
-      HzUpdate(Hz, Ex, Ey, empty{}, Chxz, Chyz, 0.0);
+      HxUpdate::apply(Hx, Ey, Ez, empty{}, Chxy, Chxz, 0.0);
+      HyUpdate::apply(Hy, Ez, Ex, empty{}, Chyz, Chxy, 0.0);
+      HzUpdate::apply(Hz, Ex, Ey, empty{}, Chxz, Chyz, 0.0);
    }
 
-   void particle_correction(auto& emdata) {
+   static void particle_correction(auto& emdata) {
       const auto Bx = mdspan_t{&emdata.Bx[0, 0, 0], std::extents{Nx, Ny - 1, Nz - 1}};
       const auto By = mdspan_t{&emdata.By[0, 0, 0], std::extents{Nx - 1, Ny, Nz - 1}};
       const auto Bz = mdspan_t{&emdata.Bz[0, 0, 0], std::extents{Nx - 1, Ny - 1, Nz}};
@@ -133,17 +133,39 @@ struct EMSolver {
       std::ranges::copy(emdata.Hy, emdata.By.begin());
       std::ranges::copy(emdata.Hz, emdata.Bz.begin());
    
-      HxUpdate(Bx, Ey, Ez, empty{}, Chxy2, Chxz2, 0.0);
-      HyUpdate(By, Ez, Ex, empty{}, Chyz2, Chxy2, 0.0);
-      HzUpdate(Bz, Ex, Ey, empty{}, Chxz2, Chyz2, 0.0);
+      HxUpdate::apply(Bx, Ey, Ez, empty{}, Chxy2, Chxz2, 0.0);
+      HyUpdate::apply(By, Ez, Ex, empty{}, Chyz2, Chxy2, 0.0);
+      HzUpdate::apply(Bz, Ex, Ey, empty{}, Chxz2, Chyz2, 0.0);
    }
    
-   void updateEBCs(auto& emdata) {
-      const auto Eyx0 = mdspan_t{&emdata.Ey[0, 0, 0], std::extents{PMLDepth, Ny - 1, Nz}};
-      const auto Eyx1 = mdspan_t{&emdata.Ey[Nx - PMLDepth, 0, 0], std::extents{PMLDepth, Ny - 1, Nz}};
+   static void updateEBCs(auto& emdata) {
+      const auto Eyx0 = mdspan_t{&emdata.Ey[0, 0, 0], std::extents{PMLDepth, Ny - 1  , Nz      }};
+      const auto Ezx0 = mdspan_t{&emdata.Ez[0, 0, 0], std::extents{PMLDepth, Ny      , Nz - 1  }};
+      const auto Exy0 = mdspan_t{&emdata.Ex[0, 0, 0], std::extents{Nx - 1  , PMLDepth, Nz      }};
+      const auto Ezy0 = mdspan_t{&emdata.Ez[0, 0, 0], std::extents{Nx      , PMLDepth, Nz - 1  }};
+      const auto Exz0 = mdspan_t{&emdata.Ex[0, 0, 0], std::extents{Nx - 1  , Ny      , PMLDepth}};
+      const auto Eyz0 = mdspan_t{&emdata.Ey[0, 0, 0], std::extents{Nx      , Ny - 1  , PMLDepth}};
 
-      const auto Hzx0 = mdspan_t{&emdata.Hz[0, 0, 0], std::extents{PMLDepth, Ny - 1, Nz}};
-      const auto Hzx1 = mdspan_t{&emdata.Hz[Nx - PMLDepth, 0, 0], std::extents{PMLDepth, Ny - 1, Nz}};
+      const auto Eyx1 = mdspan_t{&emdata.Ey[Nx - PMLDepth, 0, 0], std::extents{PMLDepth, Ny - 1  , Nz      }};
+      const auto Ezx1 = mdspan_t{&emdata.Ez[Nx - PMLDepth, 0, 0], std::extents{PMLDepth, Ny      , Nz - 1  }};
+      const auto Exy1 = mdspan_t{&emdata.Ex[0, Ny - PMLDepth, 0], std::extents{Nx - 1  , PMLDepth, Nz      }};
+      const auto Ezy1 = mdspan_t{&emdata.Ez[0, Ny - PMLDepth, 0], std::extents{Nx      , PMLDepth, Nz - 1  }};
+      const auto Exz1 = mdspan_t{&emdata.Ex[0, 0, Nz - PMLDepth], std::extents{Nx - 1  , Ny      , PMLDepth}};
+      const auto Eyz1 = mdspan_t{&emdata.Ey[0, 0, Nz - PMLDepth], std::extents{Nx      , Ny - 1  , PMLDepth}};
+
+      const auto Hyx0 = mdspan_t{&emdata.Hy[0, 0, 0], std::extents{PMLDepth, Ny      , Nz - 1  }};
+      const auto Hzx0 = mdspan_t{&emdata.Hz[0, 0, 0], std::extents{PMLDepth, Ny - 1  , Nz      }};
+      const auto Hxy0 = mdspan_t{&emdata.Hx[0, 0, 0], std::extents{Nx      , PMLDepth, Nz - 1  }};
+      const auto Hzy0 = mdspan_t{&emdata.Hz[0, 0, 0], std::extents{Nx - 1  , PMLDepth, Nz      }};
+      const auto Hxz0 = mdspan_t{&emdata.Hx[0, 0, 0], std::extents{Nx      , Ny - 1  , PMLDepth}};
+      const auto Hyz0 = mdspan_t{&emdata.Hy[0, 0, 0], std::extents{Nx - 1  , Ny      , PMLDepth}};
+      
+      const auto Hyx1 = mdspan_t{&emdata.Hy[Nx - PMLDepth, 0, 0], std::extents{PMLDepth, Ny      , Nz - 1  }};
+      const auto Hzx1 = mdspan_t{&emdata.Hz[Nx - PMLDepth, 0, 0], std::extents{PMLDepth, Ny - 1  , Nz      }};
+      const auto Hxy1 = mdspan_t{&emdata.Hx[0, Ny - PMLDepth, 0], std::extents{Nx      , PMLDepth, Nz - 1  }};
+      const auto Hzy1 = mdspan_t{&emdata.Hz[0, Ny - PMLDepth, 0], std::extents{Nx - 1  , PMLDepth, Nz      }};
+      const auto Hxz1 = mdspan_t{&emdata.Hx[0, 0, Nz - PMLDepth], std::extents{Nx      , Ny - 1  , PMLDepth}};
+      const auto Hyz1 = mdspan_t{&emdata.Hy[0, 0, Nz - PMLDepth], std::extents{Nx - 1  , Ny      , PMLDepth}};
 
       constexpr auto Cexy = dt / (constants::eps0<double> * dz);
       constexpr auto Cexz = dt / (constants::eps0<double> * dy);
@@ -152,40 +174,72 @@ struct EMSolver {
       X0Ey::apply(Eyx0, Hzx0, Ceyz, emdata.x0_Ey);
       X1Ey::apply(Eyx1, Hzx1, Ceyz, emdata.x1_Ey);
    
-      X0Ez::apply(emdata.Ez, emdata.Hy, emdata.Cezhy, emdata.x0.Ez);
-      X1Ez::apply(emdata.Ez, emdata.Hy, emdata.Cezhy, emdata.x1.Ez);
+      X0Ez::apply(Ezx0, Hyx0, Ceyz, emdata.x0_Ez);
+      X1Ez::apply(Ezx1, Hyx1, Ceyz, emdata.x1_Ez);
    
-      Y0Ex::apply(emdata.Ex, emdata.Hz, emdata.Cexhz, emdata.y0.Ex);
-      Y1Ex::apply(emdata.Ex, emdata.Hz, emdata.Cexhz, emdata.y1.Ex);
+      Y0Ex::apply(Exy0, Hzy0, Cexz, emdata.y0_Ex);
+      Y1Ex::apply(Exy1, Hzy1, Cexz, emdata.y1_Ex);
    
-      Y0Ez::apply(emdata.Ez, emdata.Hx, emdata.Cezhx, emdata.y0.Ez);
-      Y1Ez::apply(emdata.Ez, emdata.Hx, emdata.Cezhx, emdata.y1.Ez);
+      Y0Ez::apply(Ezy0, Hxy0, Cexz, emdata.y0_Ez);
+      Y1Ez::apply(Ezy1, Hxy1, Cexz, emdata.y1_Ez);
    
-      Z0Ex::apply(emdata.Ex, emdata.Hy, emdata.Cexhy, emdata.z0.Ex);
-      Z1Ex::apply(emdata.Ex, emdata.Hy, emdata.Cexhy, emdata.z1.Ex);
+      Z0Ex::apply(Exz0, Hyz0, Cexy, emdata.z0_Ex);
+      Z1Ex::apply(Exz1, Hyz1, Cexy, emdata.z1_Ex);
    
-      Z0Ey::apply(emdata.Ey, emdata.Hx, emdata.Ceyhx, emdata.z0.Ey);
-      Z1Ey::apply(emdata.Ey, emdata.Hx, emdata.Ceyhx, emdata.z1.Ey);
+      Z0Ey::apply(Eyz0, Hxz0, Cexy, emdata.z0_Ey);
+      Z1Ey::apply(Eyz1, Hxz1, Cexy, emdata.z1_Ey);
    }
    
-   void updateHBCs(auto& emdata) {
-      X0Hy::apply(emdata.Hy, emdata.Ez, emdata.Chyez, emdata.x0_Hy);
-      X1Hy::apply(emdata.Hy, emdata.Ez, emdata.Chyez, emdata.x1_Hy);
+   static void updateHBCs(auto& emdata) {
+      const auto Hyx0 = mdspan_t{&emdata.Hy[0, 0, 0], std::extents{PMLDepth, Ny      , Nz - 1  }};
+      const auto Hzx0 = mdspan_t{&emdata.Hz[0, 0, 0], std::extents{PMLDepth, Ny - 1  , Nz      }};
+      const auto Hxy0 = mdspan_t{&emdata.Hx[0, 0, 0], std::extents{Nx      , PMLDepth, Nz - 1  }};
+      const auto Hzy0 = mdspan_t{&emdata.Hz[0, 0, 0], std::extents{Nx - 1  , PMLDepth, Nz      }};
+      const auto Hxz0 = mdspan_t{&emdata.Hx[0, 0, 0], std::extents{Nx      , Ny - 1  , PMLDepth}};
+      const auto Hyz0 = mdspan_t{&emdata.Hy[0, 0, 0], std::extents{Nx - 1  , Ny      , PMLDepth}};
+
+      const auto Hyx1 = mdspan_t{&emdata.Hy[Nx - PMLDepth, 0, 0], std::extents{PMLDepth, Ny      , Nz - 1  }};
+      const auto Hzx1 = mdspan_t{&emdata.Hz[Nx - PMLDepth, 0, 0], std::extents{PMLDepth, Ny - 1  , Nz      }};
+      const auto Hxy1 = mdspan_t{&emdata.Hx[0, Ny - PMLDepth, 0], std::extents{Nx      , PMLDepth, Nz - 1  }};
+      const auto Hzy1 = mdspan_t{&emdata.Hz[0, Ny - PMLDepth, 0], std::extents{Nx - 1  , PMLDepth, Nz      }};
+      const auto Hxz1 = mdspan_t{&emdata.Hx[0, 0, Nz - PMLDepth], std::extents{Nx      , Ny - 1  , PMLDepth}};
+      const auto Hyz1 = mdspan_t{&emdata.Hy[0, 0, Nz - PMLDepth], std::extents{Nx - 1  , Ny      , PMLDepth}};
+
+      const auto Eyx0 = mdspan_t{&emdata.Ey[0, 0, 0], std::extents{PMLDepth, Ny - 1  , Nz      }};
+      const auto Ezx0 = mdspan_t{&emdata.Ez[0, 0, 0], std::extents{PMLDepth, Ny      , Nz - 1  }};
+      const auto Exy0 = mdspan_t{&emdata.Ex[0, 0, 0], std::extents{Nx - 1  , PMLDepth, Nz      }};
+      const auto Ezy0 = mdspan_t{&emdata.Ez[0, 0, 0], std::extents{Nx      , PMLDepth, Nz - 1  }};
+      const auto Exz0 = mdspan_t{&emdata.Ex[0, 0, 0], std::extents{Nx - 1  , Ny      , PMLDepth}};
+      const auto Eyz0 = mdspan_t{&emdata.Ey[0, 0, 0], std::extents{Nx      , Ny - 1  , PMLDepth}};
+
+      const auto Eyx1 = mdspan_t{&emdata.Ey[Nx - PMLDepth, 0, 0], std::extents{PMLDepth, Ny - 1  , Nz      }};
+      const auto Ezx1 = mdspan_t{&emdata.Ez[Nx - PMLDepth, 0, 0], std::extents{PMLDepth, Ny      , Nz - 1  }};
+      const auto Exy1 = mdspan_t{&emdata.Ex[0, Ny - PMLDepth, 0], std::extents{Nx - 1  , PMLDepth, Nz      }};
+      const auto Ezy1 = mdspan_t{&emdata.Ez[0, Ny - PMLDepth, 0], std::extents{Nx      , PMLDepth, Nz - 1  }};
+      const auto Exz1 = mdspan_t{&emdata.Ex[0, 0, Nz - PMLDepth], std::extents{Nx - 1  , Ny      , PMLDepth}};
+      const auto Eyz1 = mdspan_t{&emdata.Ey[0, 0, Nz - PMLDepth], std::extents{Nx      , Ny - 1  , PMLDepth}};
+
+      constexpr auto Chxy = dt / (constants::mu0<double> * dz);
+      constexpr auto Chxz = dt / (constants::mu0<double> * dy);
+      constexpr auto Chyz = dt / (constants::mu0<double> * dx);
+
+      X0Hy::apply(Hyx0, Ezx0, Chyz, emdata.x0_Hy);
+      X1Hy::apply(Hyx1, Ezx1, Chyz, emdata.x1_Hy);
    
-      X0Hz::apply(emdata.Hz, emdata.Ey, emdata.Chzey, emdata.x0_Hz);
-      X1Hz::apply(emdata.Hz, emdata.Ey, emdata.Chzey, emdata.x1_Hz);
+      X0Hz::apply(Hzx0, Eyx0, Chyz, emdata.x0_Hz);
+      X1Hz::apply(Hzx1, Eyx1, Chyz, emdata.x1_Hz);
    
-      Y0Hx::apply(emdata.Hx, emdata.Ez, emdata.Chxez, emdata.y0_Hx);
-      Y1Hx::apply(emdata.Hx, emdata.Ez, emdata.Chxez, emdata.y1_Hx);
+      Y0Hx::apply(Hxy0, Ezy0, Chxz, emdata.y0_Hx);
+      Y1Hx::apply(Hxy1, Ezy1, Chxz, emdata.y1_Hx);
    
-      Y0Hz::apply(emdata.Hz, emdata.Ex, emdata.Chzex, emdata.y0_Hz);
-      Y1Hz::apply(emdata.Hz, emdata.Ex, emdata.Chzex, emdata.y1_Hz);
+      Y0Hz::apply(Hzy0, Exy0, Chxz, emdata.y0_Hz);
+      Y1Hz::apply(Hzy1, Exy1, Chxz, emdata.y1_Hz);
    
-      Z0Hx::apply(emdata.Hx, emdata.Ey, emdata.Chxey, emdata.z0_Hx);
-      Z1Hx::apply(emdata.Hx, emdata.Ey, emdata.Chxey, emdata.z1_Hx);
+      Z0Hx::apply(Hxz0, Eyz0, Chxy, emdata.z0_Hx);
+      Z1Hx::apply(Hxz1, Eyz1, Chxy, emdata.z1_Hx);
    
-      Z0Hy::apply(emdata.Hy, emdata.Ex, emdata.Chyex, emdata.z0_Hy);
-      Z1Hy::apply(emdata.Hy, emdata.Ex, emdata.Chyex, emdata.z1_Hy);
+      Z0Hy::apply(Hyz0, Exz0, Chxy, emdata.z0_Hy);
+      Z1Hy::apply(Hyz1, Exz1, Chxy, emdata.z1_Hy);
    }
    
    // void updateJBCs() {

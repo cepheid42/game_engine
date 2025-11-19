@@ -81,7 +81,7 @@ struct emdata_t {
    z1bc_t z1_Ex;
    z1bc_t z1_Ey;
    z1bc_t z1_Hx;
-   z1bc_t z1_Hy;a// todo: replace extents with constantsueeeeeeeeeeeee
+   z1bc_t z1_Hy;
 }; // end struct emdata_t
 
 
@@ -148,10 +148,10 @@ inline auto make_emdata() -> emdata_t {
    using enum EMFace;
    using enum EMSide;
    
-   constexpr auto e_coeff = dt / constants::eps0<double>;
-   constexpr auto h_coeff = dt / constants::mu0<double>;
-   constexpr auto e_max = std::max(ex_size, std::max(ey_size, ez_size));
-   constexpr auto h_max = std::max(hx_size, std::max(hy_size, hz_size));
+   // constexpr auto e_coeff = dt / constants::eps0<double>;
+   // constexpr auto h_coeff = dt / constants::mu0<double>;
+   // constexpr auto e_max = std::max(ex_size, std::max(ey_size, ez_size));
+   // constexpr auto h_max = std::max(hx_size, std::max(hy_size, hz_size));
    
    emdata_t emdata;
    emdata.Ex = vector_t(ex_size);
