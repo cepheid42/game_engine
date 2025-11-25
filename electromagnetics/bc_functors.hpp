@@ -7,16 +7,17 @@
 
 namespace tf::electromagnetics
 {
+
 template<typename CurlFunc, bool isLo, bool Negate>
 struct PMLFunctor {
    using Curl = CurlFunc;
 
    #pragma omp declare simd notinbranch
    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc,
-                     const std::size_t i, const std::size_t j, const std::size_t k, const std::size_t x0)
+                     const auto i, const auto j, const auto k, const auto x0)
       requires (Curl::type == Derivative::DX)
    {
-      std::size_t ipml;
+      auto ipml;
       if constexpr (isLo) { ipml = i; }
       else { ipml = i - x0 + Curl::Forward; }
 
@@ -31,10 +32,10 @@ struct PMLFunctor {
 
    #pragma omp declare simd notinbranch
    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc,
-                     const std::size_t i, const std::size_t j, const std::size_t k, const std::size_t y0)
+                     const auto i, const auto j, const auto k, const auto y0)
       requires (Curl::type == Derivative::DY)
    {
-      std::size_t jpml;
+      auto jpml;
       if constexpr (isLo) { jpml = j; }
       else { jpml = j - y0 + Curl::Forward; }
 
@@ -49,10 +50,10 @@ struct PMLFunctor {
 
    #pragma omp declare simd notinbranch
    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc,
-                     const std::size_t i, const std::size_t j, const std::size_t k, const std::size_t z0)
+                     const auto i, const auto j, const auto k, const auto z0)
       requires (Curl::type == Derivative::DZ)
    {
-      std::size_t kpml;
+      auto kpml;
       if constexpr (isLo) { kpml = k; }
       else { kpml = k - z0 + Curl::Forward; }
 
@@ -70,9 +71,9 @@ struct PMLFunctor {
 template<Derivative D, bool Add>
 struct PeriodicFunctor {
    #pragma omp declare simd notinbranch
-   static void apply(auto& f, const auto& bc, const std::size_t i, const std::size_t j, const std::size_t k)
+   static void apply(auto& f, const auto& bc, const auto i, const auto j, const auto k)
    {
-      std::size_t idx1, idx2, idx3, idx4;
+      auto idx1, idx2, idx3, idx4;
       if constexpr (D == Derivative::DX) {
          const auto pm = i % bc.numInterior;
          idx1 = f.get_scid(nHalo - 1 - i, j, k);
@@ -105,45 +106,38 @@ struct PeriodicFunctor {
 }; // end struct PeriodicFunctor
 
 
-template<typename U, typename Curl, bool isLo, bool Negate>
+template<bool Negate>
 struct BCIntegrator {
    static constexpr void apply(const auto&, const auto&, const auto&, const auto&) {}
 
-   static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc)
-   requires std::same_as<U, PMLData>
+   static void apply(auto& psi, const auto& b, const auto& c, auto& f, const auto& d, const auto& cf)
+   // requires std::same_as<U, PMLData>
    {
-      static constexpr Derivative D = Curl::type;
-      const auto& [x0, x1, y0, y1, z0, z1] = bc.offsets;
-   
-      std::size_t pml_offset;
-      if constexpr      (D == Derivative::DX) { pml_offset = x0; }
-      else if constexpr (D == Derivative::DY) { pml_offset = y0; }
-      else                                    { pml_offset = z0; }
-   
-      #pragma omp parallel for simd collapse(3) num_threads(nThreads)
-      for (std::size_t i = x0; i < x1; ++i) {
-         for (std::size_t j = y0; j < y1; ++j) {
-            for (std::size_t k = z0; k < z1; ++k) {
-               PMLFunctor<Curl, isLo, Negate>::apply(f1, f2, c1, bc, i, j, k, pml_offset);
+      // #pragma omp parallel for simd collapse(3) num_threads(nThreads)
+      for (auto i = 0zu; i < psi.extent(0); ++i) {
+         for (auto j = 0zu; j < psi.extent(1); ++j) {
+            for (auto k = 0zu; k < psi.extent(2); ++k) {
+               psi[i, j, k] = b[k] * psi[i, j, k] + c[k] * (d[i, j, k + 1] - d[i, j, k]);
+               f[i, j, k] += cf * psi[i, j, k]; // cf comes with -1 baked in for += or -=
             } // end for k
          } // end for j
       } // end for i
    } // end operator()
-   
-   static void apply(auto& f1, const auto&, const auto&, const auto& bc)
-   requires std::same_as<U, PeriodicData>
-   {
-      const auto& [x0, x1, y0, y1, z0, z1] = bc.offsets;
-      #pragma omp parallel for simd collapse(3) num_threads(nThreads)
-      for (std::size_t i = x0; i < x1; ++i) {
-         for (std::size_t j = y0; j < y1; ++j) {
-            for (std::size_t k = z0; k < z1; ++k) {
-               // todo: Need to make this work with J periodic, aka add = true
-               PeriodicFunctor<Curl::type, false>::apply(f1, bc, i, j, k);
-            }
-         }
-      }
-   }
+
+   // static void apply(auto& f1, const auto&, const auto&, const auto& bc)
+   // requires std::same_as<U, PeriodicData>
+   // {
+   //    const auto& [x0, x1, y0, y1, z0, z1] = bc.offsets;
+   //    #pragma omp parallel for simd collapse(3) num_threads(nThreads)
+   //    for (auto i = x0; i < x1; ++i) {
+   //       for (auto j = y0; j < y1; ++j) {
+   //          for (auto k = z0; k < z1; ++k) {
+   //             // todo: Need to make this work with J periodic, aka add = true
+   //             PeriodicFunctor<Curl::type, false>::apply(f1, bc, i, j, k);
+   //          }
+   //       }
+   //    }
+   // }
 }; // end struct BCIntegrator
 
 } // end namespace tf::electromagnetics

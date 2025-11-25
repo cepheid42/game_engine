@@ -9,10 +9,11 @@
 #include "traits.hpp"
 
 #include <cmath>
-#include <unordered_map>
+// #include <unordered_map>
 #include <algorithm>
 
-namespace tf::electromagnetics {
+namespace tf::electromagnetics
+{
 
 struct ReflectingData {};
 
@@ -53,35 +54,35 @@ struct emdata_t {
    // vector_t Chxz2;
    // vector_t Chyz2;
 
-   x0bc_t x0_Ey;
-   x0bc_t x0_Ez;
-   x0bc_t x0_Hy;
-   x0bc_t x0_Hz;
+   x0bc_t Eyx0;
+   x0bc_t Ezx0;
+   x0bc_t Hyx0;
+   x0bc_t Hzx0;
    
-   x1bc_t x1_Ey;
-   x1bc_t x1_Ez;
-   x1bc_t x1_Hy;
-   x1bc_t x1_Hz;
+   x1bc_t Eyx1;
+   x1bc_t Ezx1;
+   x1bc_t Hyx1;
+   x1bc_t Hzx1;
 
-   y0bc_t y0_Ex;
-   y0bc_t y0_Ez;
-   y0bc_t y0_Hx;
-   y0bc_t y0_Hz;
+   y0bc_t Exy0;
+   y0bc_t Ezy0;
+   y0bc_t Hxy0;
+   y0bc_t Hzy0;
    
-   y1bc_t y1_Ex;
-   y1bc_t y1_Ez;
-   y1bc_t y1_Hx;
-   y1bc_t y1_Hz;
+   y1bc_t Exy1;
+   y1bc_t Ezy1;
+   y1bc_t Hxy1;
+   y1bc_t Hzy1;
 
-   z0bc_t z0_Ex;
-   z0bc_t z0_Ey;
-   z0bc_t z0_Hx;
-   z0bc_t z0_Hy;
+   z0bc_t Exz0;
+   z0bc_t Eyz0;
+   z0bc_t Hxz0;
+   z0bc_t Hyz0;
    
-   z1bc_t z1_Ex;
-   z1bc_t z1_Ey;
-   z1bc_t z1_Hx;
-   z1bc_t z1_Hy;
+   z1bc_t Exz1;
+   z1bc_t Eyz1;
+   z1bc_t Hxz1;
+   z1bc_t Hyz1;
 }; // end struct emdata_t
 
 
@@ -182,50 +183,38 @@ inline auto make_emdata() -> emdata_t {
    // emdata.Chxz2 = vector_t(h_max, 0.5 * h_coeff / dy);
    // emdata.Chyz2 = vector_t(h_max, 0.5 * h_coeff / dx);
 
-   init_bc<x0bc_t, X, Lo,  true>(emdata.x0_Ey, eyx_ext{});
-   init_bc<x0bc_t, X, Lo,  true>(emdata.x0_Ez, ezx_ext{});
-   init_bc<x0bc_t, X, Lo, false>(emdata.x0_Hy, hyx_ext{});
-   init_bc<x0bc_t, X, Lo, false>(emdata.x0_Hz, hzx_ext{});
-
-   init_bc<x1bc_t, X, Hi,  true>(emdata.x1_Ey, eyx_ext{});
-   init_bc<x1bc_t, X, Hi,  true>(emdata.x1_Ez, ezx_ext{});
-   init_bc<x1bc_t, X, Hi, false>(emdata.x1_Hy, hyx_ext{});
-   init_bc<x1bc_t, X, Hi, false>(emdata.x1_Hz, ezx_ext{});
-
-   init_bc<y0bc_t, Y, Lo,  true>(emdata.y0_Ex, exy_ext{});
-   init_bc<y0bc_t, Y, Lo,  true>(emdata.y0_Ez, ezy_ext{});
-   init_bc<y0bc_t, Y, Lo, false>(emdata.y0_Hx, hxy_ext{});
-   init_bc<y0bc_t, Y, Lo, false>(emdata.y0_Hz, hzy_ext{});
-
-   init_bc<y1bc_t, Y, Hi,  true>(emdata.y1_Ex, exy_ext{});
-   init_bc<y1bc_t, Y, Hi,  true>(emdata.y1_Ez, ezy_ext{});
-   init_bc<y1bc_t, Y, Hi, false>(emdata.y1_Hx, hxy_ext{});
-   init_bc<y1bc_t, Y, Hi, false>(emdata.y1_Hz, hzy_ext{});
-
-   init_bc<z0bc_t, Z, Lo,  true>(emdata.z0_Ex, exz_ext{});
-   init_bc<z0bc_t, Z, Lo,  true>(emdata.z0_Ey, eyz_ext{});
-   init_bc<z0bc_t, Z, Lo, false>(emdata.z0_Hx, hxz_ext{});
-   init_bc<z0bc_t, Z, Lo, false>(emdata.z0_Hy, hyz_ext{});
-
-   init_bc<z1bc_t, Z, Hi,  true>(emdata.z1_Ex, exz_ext{});
-   init_bc<z1bc_t, Z, Hi,  true>(emdata.z1_Ey, eyz_ext{});
-   init_bc<z1bc_t, Z, Hi, false>(emdata.z1_Hx, hxz_ext{});
-   init_bc<z1bc_t, Z, Hi, false>(emdata.z1_Hy, hyz_ext{});
+   // init_bc<x0bc_t, X, Lo,  true>(emdata.Eyx0, eyx_ext{});
+   // init_bc<x0bc_t, X, Lo,  true>(emdata.Ezx0, ezx_ext{});
+   // init_bc<x0bc_t, X, Lo, false>(emdata.Hyx0, hyx_ext{});
+   // init_bc<x0bc_t, X, Lo, false>(emdata.Hzx0, hzx_ext{});
+   //
+   // init_bc<x1bc_t, X, Hi,  true>(emdata.Eyx1, eyx_ext{});
+   // init_bc<x1bc_t, X, Hi,  true>(emdata.Ezx1, ezx_ext{});
+   // init_bc<x1bc_t, X, Hi, false>(emdata.Hyx1, hyx_ext{});
+   // init_bc<x1bc_t, X, Hi, false>(emdata.Hzx1, ezx_ext{});
+   //
+   // init_bc<y0bc_t, Y, Lo,  true>(emdata.Exy0, exy_ext{});
+   // init_bc<y0bc_t, Y, Lo,  true>(emdata.Ezy0, ezy_ext{});
+   // init_bc<y0bc_t, Y, Lo, false>(emdata.Hxy0, hxy_ext{});
+   // init_bc<y0bc_t, Y, Lo, false>(emdata.Hzy0, hzy_ext{});
+   //
+   // init_bc<y1bc_t, Y, Hi,  true>(emdata.Exy1, exy_ext{});
+   // init_bc<y1bc_t, Y, Hi,  true>(emdata.Ezy1, ezy_ext{});
+   // init_bc<y1bc_t, Y, Hi, false>(emdata.Hxy1, hxy_ext{});
+   // init_bc<y1bc_t, Y, Hi, false>(emdata.Hzy1, hzy_ext{});
+   //
+   // init_bc<z0bc_t, Z, Lo,  true>(emdata.Exz0, exz_ext{});
+   // init_bc<z0bc_t, Z, Lo,  true>(emdata.Eyz0, eyz_ext{});
+   // init_bc<z0bc_t, Z, Lo, false>(emdata.Hxz0, hxz_ext{});
+   // init_bc<z0bc_t, Z, Lo, false>(emdata.Hyz0, hyz_ext{});
+   //
+   // init_bc<z1bc_t, Z, Hi,  true>(emdata.Exz1, exz_ext{});
+   // init_bc<z1bc_t, Z, Hi,  true>(emdata.Eyz1, eyz_ext{});
+   // init_bc<z1bc_t, Z, Hi, false>(emdata.Hxz1, hxz_ext{});
+   // init_bc<z1bc_t, Z, Hi, false>(emdata.Hyz1, hyz_ext{});
    
    return emdata;
 } // end make_emdata()
-
-auto get_EMMap(const auto& emdata) -> std::unordered_map<std::string, mdspan_t> {
-   return {{"Ex", {emdata.Ex.data(), std::extents{Nx - 1, Ny, Nz}}},
-           {"Ey", {emdata.Ey.data(), std::extents{Nx, Ny - 1, Nz}}},
-           {"Ez", {emdata.Ez.data(), std::extents{Nx, Ny, Nz - 1}}},
-           {"Jx", {emdata.Jx.data(), std::extents{Nx - 1, Ny, Nz}}},
-           {"Jy", {emdata.Jy.data(), std::extents{Nx, Ny - 1, Nz}}},
-           {"Jz", {emdata.Jz.data(), std::extents{Nx, Ny, Nz - 1}}},
-           {"Hx", {emdata.Hx.data(), std::extents{Nx, Ny - 1, Nz - 1}}},
-           {"Hy", {emdata.Hy.data(), std::extents{Nx - 1, Ny, Nz - 1}}},
-           {"Hz", {emdata.Hz.data(), std::extents{Nx - 1, Ny - 1, Nz}}}};
-} // end get_EMMap()
 } // end namespace tf::electromagnetics
 
 

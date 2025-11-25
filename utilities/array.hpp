@@ -56,7 +56,7 @@ private:
    std::vector<T> data_{};
 }; // end class Array3D
 
-
+struct null_t {};
 
 template<>
 class Array3D<null_t> {

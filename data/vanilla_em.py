@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -20,8 +22,6 @@ def update_Ez(Ez, Hy, Hx, ceze, cezh):
     Ez[1:-1, 1:-1, :] = (ceze[1:-1, 1:-1, :] *   Ez[1:-1, 1:-1, :]
                       +  cezh[1:-1, 1:-1, :] * ((Hy[1:, 1:-1, :] - Hy[:-1, 1:-1, :])
                                              -  (Hx[1:-1, 1:, :] - Hx[1:-1, :-1, :])))
-
-
 
 def update_Hx(Hx, Ey, Ez, chxh, chxe):
     Hx[:, :, :] = (chxh[:, :, :] * Hx[:, :, :]
@@ -47,10 +47,10 @@ def ricker(n, cfl):
 
 
 def main():
-    nx = 51
-    ny = 51
-    nz = 51
-    nt = 400
+    nx = 50
+    ny = 55
+    nz = 60
+    nt = 1
     cfl = 0.9 / np.sqrt(3)
     imp0 = 377.0
 
@@ -75,7 +75,7 @@ def main():
     chye = np.full_like(Hy, cfl / imp0)
     chze = np.full_like(Hz, cfl / imp0)
 
-    save_step = 4
+    save_step = 1
     count = 0
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
@@ -99,7 +99,7 @@ def main():
 
         if n % save_step == 0:
             cax.clear()
-            im = ax.contourf(Hx[:, 25, :], levels=100, cmap='plasma')
+            im = ax.contourf(Ex[:, 25, :], levels=100)
             fig.colorbar(im, cax=cax)
             fig.savefig(f'/home/cepheid/TriForce/game_engine/data/pngs/Ez_{count:04d}.png')
             count += 1

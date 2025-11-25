@@ -184,7 +184,7 @@ def plot_single_field(n, step, name, file_dir):
     # fig.supylabel(r'x ($\mu$m)')
     # fig.suptitle(f'{name} @ {time * s_to_ns:.4e} ns')
 
-    im = ax.pcolormesh(field[:, nny // 2, :], cmap='coolwarm')
+    im = ax.pcolormesh(field[:, :, nnz // 2])
     fig.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=0.8)
     ax.set_aspect('equal')
 
@@ -192,7 +192,6 @@ def plot_single_field(n, step, name, file_dir):
     plt.savefig(data_dir + f'/pngs/{name}_{n // step:010}.png')
     plt.clf()
     plt.close(fig)
-    # return np.max(field[:, nny // 2, :])
 
 
 def plot_fields(n, step, file_dir):
@@ -200,17 +199,15 @@ def plot_fields(n, step, file_dir):
         field = load_field(n, name, file_dir)
         nnx, nny, nnz = field.shape
         # field = field[:, :, nnz // 2]
-        field = field[:, 0, :]
+        field = field[:, nny // 2, :]
 
         if name[0] == 'H':
             field *= H_to_B
 
-        # xs = np.linspace(xmin, xmax, field.shape[0])
-        # zs = np.linspace(zmin, zmax, field.shape[1])
-        # norm = colors.Normalize(vmin=-10**15, vmax=10**15)
-        im = ax.pcolormesh(field, cmap='coolwarm')
+
+        im = ax.pcolormesh(field)
         figure.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=0.5)
-        # figure.colorbar(ScalarMappable(norm=norm, cmap='coolwarm'), ax=ax, format='{x:3.1e}', pad=0.01, shrink=1.0)
+
         ax.set_aspect('equal')
         ax.set_title(f'{name}')
 
@@ -218,7 +215,7 @@ def plot_fields(n, step, file_dir):
     # with FileReader(data_dir + file_dir + filename) as f:
     #     step = f.read_attribute('step')
 
-    fig, axes = plt.subplots(nrows=3, ncols=3, figsize=(12, 8), layout='constrained', sharex=True, sharey=False)
+    fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(12, 8), layout='constrained', sharex=True, sharey=False)
     fig.supxlabel(r'z ($\mu$m)')
     fig.supylabel(r'x ($\mu$m)')
     # fig.suptitle(f'Fields @ {time:.4e} ns')
@@ -228,9 +225,9 @@ def plot_fields(n, step, file_dir):
     plot('Hx', axes[1, 0], fig)
     plot('Hy', axes[1, 1], fig)
     plot('Hz', axes[1, 2], fig)
-    plot('Jx', axes[2, 0], fig)
-    plot('Jy', axes[2, 1], fig)
-    plot('Jz', axes[2, 2], fig)
+    # plot('Jx', axes[2, 0], fig)
+    # plot('Jy', axes[2, 1], fig)
+    # plot('Jz', axes[2, 2], fig)
 
     plt.savefig(data_dir + f'/pngs/fields_{n // step:010}.png')
     plt.clf()
@@ -381,13 +378,13 @@ def plot_Temp(groups, start, stop, step, file_dir):
 
 
 def main():
-    step = 100
+    step = 4
     start = 0
-    stop = 10000
+    stop = 400
 
-    file_dir = '/carbon_thermal_eq'
+    file_dir = '/em_test'
 
-    plot_Temp(['carbon1', 'carbon2'], start, stop, step, file_dir)
+    # plot_Temp(['carbon1', 'carbon2'], start, stop, step, file_dir)
 
     # plot_distributions(start, stop, step, 'carbon1', file_dir)
     # plot_distributions(start, stop, step, 'carbon2', file_dir)
@@ -400,11 +397,11 @@ def main():
     # with mp.Pool(16) as p:
     #    p.starmap(plot_metric, targs)
 
-    # targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
-    # with mp.Pool(8) as p:
-    #    p.starmap(plot_fields, targs)
+    targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
+    with mp.Pool(8) as p:
+       p.starmap(plot_fields, targs)
 
-    # targs = [(n, step, 'Jz', file_dir) for n in range(start, stop + step, step)]
+    # targs = [(n, step, 'Ez', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
     #     p.starmap(plot_single_field, targs)
 

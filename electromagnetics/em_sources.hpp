@@ -22,7 +22,7 @@ struct RickerSource final : TemporalSource {
 
    [[nodiscard]] double eval(const double t) const override {
       constexpr auto Md = 2.0;
-      const auto alpha = math::SQR(static_cast<double>(constants::pi<double>) * freq * (t - Md / freq));
+      const auto alpha = math::SQR(constants::pi<double> * freq * (t - Md / freq));
       const auto temp = (1.0 - 2.0 * alpha) * std::exp(-alpha);
       return temp;
    }
