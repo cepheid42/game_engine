@@ -7,6 +7,7 @@
 #include "em_sources.hpp"
 
 #include <print>
+#include <cassert>
 
 namespace tf::electromagnetics {
 
@@ -17,19 +18,17 @@ struct FieldIntegrator {
       if      constexpr (D == Derivative::FDx) { return d[i + 1, j, k] - d[i, j, k]; }
       else if constexpr (D == Derivative::FDy) { return d[i, j + 1, k] - d[i, j, k]; }
       else if constexpr (D == Derivative::FDz) { return d[i, j, k + 1] - d[i, j, k]; }
-      else if constexpr (D == Derivative::BDx) { return d[i, j, k] - d[i - 1, j, k]; }
-      else if constexpr (D == Derivative::BDy) { return d[i, j, k] - d[i, j - 1, k]; }
-      else if constexpr (D == Derivative::BDz) { return d[i, j, k] - d[i, j, k - 1]; }
+      // else if constexpr (D == Derivative::BDx) { return d[i, j, k] - d[i - 1, j, k]; }
+      // else if constexpr (D == Derivative::BDy) { return d[i, j, k] - d[i, j - 1, k]; }
+      // else if constexpr (D == Derivative::BDz) { return d[i, j, k] - d[i, j, k - 1]; }
    }
 
    static void apply(auto& f, const auto& d1, const auto& d2, const auto& src,
-                     const auto c_d1, const auto c_d2, const auto c_src, const auto& offsets)
+                     const auto c_d1, const auto c_d2, const auto c_src)
    {
-      const auto& [x0, x1, y0, y1, z0, z1] = offsets;
-      // #pragma omp parallel for simd collapse(3) num_threads(nThreads)
-      for (std::size_t i = x0; i < f.extent(0) - x1; ++i) {
-         for (std::size_t j = y0; j < f.extent(1) - y1; ++j) {
-            for (std::size_t k = z0; k < f.extent(2) - z1; ++k) {
+      for (std::size_t i = 0; i < f.extent(0); ++i) {
+         for (std::size_t j = 0; j < f.extent(1); ++j) {
+            for (std::size_t k = 0; k < f.extent(2); ++k) {
                const auto diff1   = c_d1 * diff<D1>(d1, i, j, k);
                const auto diff2   = c_d2 * diff<D2>(d2, i, j, k);
                const auto current = c_src * src[i, j, k];
@@ -57,7 +56,7 @@ struct EMSolver {
 
       // const auto Ex = mdspan_t{emdata.Ex.data(), Nx - 1, Ny, Nz};
       // const auto Ey = mdspan_t{emdata.Ey.data(), Nx, Ny - 1, Nz};
-      const auto Ez = mdspan_t{emdata.Ez.data(), Nx, Ny, Nz - 1};
+      const auto Ez = mdspan_t{emdata.Ez.data(), {std::extents{Nx, Ny, Nz - 1}, std::array{Ny * (Nz - 1), Nz - 1, 1zu}}};
 
       updateH(emdata);
       // updateHBCs(emdata);
@@ -73,42 +72,56 @@ struct EMSolver {
    static void advance(auto&, const auto) requires (!em_enabled) {}
 
    static void updateE(auto& emdata) {
-      const auto Ex = mdspan_t{emdata.Ex.data(), Nx - 1, Ny, Nz};
-      const auto Ey = mdspan_t{emdata.Ey.data(), Nx, Ny - 1, Nz};
-      const auto Ez = mdspan_t{emdata.Ez.data(), Nx, Ny, Nz - 1};
-      const auto Jx = mdspan_t{emdata.Jx.data(), Nx - 1, Ny, Nz};
-      const auto Jy = mdspan_t{emdata.Jy.data(), Nx, Ny - 1, Nz};
-      const auto Jz = mdspan_t{emdata.Jz.data(), Nx, Ny, Nz - 1};
+      const auto Exf = mdspan_t{emdata.Ex.data(), {std::extents{Nx - 1, Ny, Nz}, std::array{Ny * Nz, Nz, 1zu}}};
+      const auto Eyf = mdspan_t{emdata.Ey.data(), {std::extents{Nx, Ny - 1, Nz}, std::array{(Ny - 1) * Nz, Nz, 1zu}}};
+      const auto Ezf = mdspan_t{emdata.Ez.data(), {std::extents{Nx, Ny, Nz - 1}, std::array{Ny * (Nz - 1), Nz - 1, 1zu}}};
+      const auto Jxf = mdspan_t{emdata.Jx.data(), {std::extents{Nx - 1, Ny, Nz}, std::array{Ny * Nz, Nz, 1zu}}};
+      const auto Jyf = mdspan_t{emdata.Jy.data(), {std::extents{Nx, Ny - 1, Nz}, std::array{(Ny - 1) * Nz, Nz, 1zu}}};
+      const auto Jzf = mdspan_t{emdata.Jz.data(), {std::extents{Nx, Ny, Nz - 1}, std::array{Ny * (Nz - 1), Nz - 1, 1zu}}};
+      const auto Hxf = mdspan_t{emdata.Hx.data(), {std::extents{Nx, Ny - 1, Nz - 1}, std::array{(Ny - 1) * (Nz - 1), Nz - 1, 1zu}}};
+      const auto Hyf = mdspan_t{emdata.Hy.data(), {std::extents{Nx - 1, Ny, Nz - 1}, std::array{Ny * (Nz - 1), Nz - 1, 1zu}}};
+      const auto Hzf = mdspan_t{emdata.Hz.data(), {std::extents{Nx - 1, Ny - 1, Nz}, std::array{(Ny - 1) * Nz, Nz, 1zu}}};
 
-      const auto Hx = mdspan_t{emdata.Hx.data(), Nx, Ny - 1, Nz - 1};
-      const auto Hy = mdspan_t{emdata.Hy.data(), Nx - 1, Ny, Nz - 1};
-      const auto Hz = mdspan_t{emdata.Hz.data(), Nx - 1, Ny - 1, Nz};
+      const auto   Ex = mdspan_t{&Exf[0, 1, 1], {std::extents{Nx - 1, Ny - 2, Nz - 2}, std::array{ Ny      *  Nz     , Nz    , 1zu}}};
+      const auto   Jx = mdspan_t{&Jxf[0, 1, 1], {std::extents{Nx - 1, Ny - 2, Nz - 2}, std::array{ Ny      *  Nz     , Nz    , 1zu}}};
+      const auto Hzdy = mdspan_t{&Hzf[0, 0, 1], {std::extents{Nx - 1, Ny - 2, Nz - 2}, std::array{(Ny - 1) *  Nz     , Nz    , 1zu}}};
+      const auto Hydz = mdspan_t{&Hyf[0, 1, 0], {std::extents{Nx - 1, Ny - 2, Nz - 2}, std::array{ Ny      * (Nz - 1), Nz - 1, 1zu}}};
+
+      const auto   Ey = mdspan_t{&Eyf[1, 0, 1], {std::extents{Nx - 2, Ny - 1, Nz - 2}, std::array{(Ny - 1) *  Nz     , Nz    , 1zu}}};
+      const auto   Jy = mdspan_t{&Jyf[1, 0, 1], {std::extents{Nx - 2, Ny - 1, Nz - 2}, std::array{(Ny - 1) *  Nz     , Nz    , 1zu}}};
+      const auto Hxdz = mdspan_t{&Hxf[1, 0, 0], {std::extents{Nx - 2, Ny - 1, Nz - 2}, std::array{(Ny - 1) * (Nz - 1), Nz - 1, 1zu}}};
+      const auto Hzdx = mdspan_t{&Hzf[0, 0, 1], {std::extents{Nx - 2, Ny - 1, Nz - 2}, std::array{(Ny - 1) *  Nz     , Nz    , 1zu}}};
+
+      const auto   Ez = mdspan_t{&Ezf[1, 1, 0], {std::extents{Nx - 2, Ny - 2, Nz - 1}, std::array{ Ny      * (Nz - 1), Nz - 1, 1zu}}};
+      const auto   Jz = mdspan_t{&Jzf[1, 1, 0], {std::extents{Nx - 2, Ny - 2, Nz - 1}, std::array{ Ny      * (Nz - 1), Nz - 1, 1zu}}};
+      const auto Hydx = mdspan_t{&Hxf[0, 1, 0], {std::extents{Nx - 2, Ny - 2, Nz - 2}, std::array{(Ny - 1) * (Nz - 1), Nz - 1, 1zu}}};
+      const auto Hxdy = mdspan_t{&Hzf[1, 0, 0], {std::extents{Nx - 2, Ny - 2, Nz - 1}, std::array{(Ny - 1) *  Nz     , Nz    , 1zu}}};
 
       constexpr auto Cexy = dt / (constants::eps0<double> * dz);
       constexpr auto Cexz = dt / (constants::eps0<double> * dy);
       constexpr auto Ceyz = dt / (constants::eps0<double> * dx);
       constexpr auto Cj = dt / constants::eps0<double>;
 
-      FieldIntegrator<Derivative::BDy, Derivative::BDz>::apply(Ex, Hz, Hy, Jx, Cexz, Ceyz, Cj, std::array{0, 0, 1, 1, 1, 1});
-      FieldIntegrator<Derivative::BDz, Derivative::BDx>::apply(Ey, Hx, Hz, Jy, Cexy, Ceyz, Cj, std::array{1, 1, 0, 0, 1, 1});
-      FieldIntegrator<Derivative::BDx, Derivative::BDy>::apply(Ez, Hy, Hx, Jz, Ceyz, Cexz, Cj, std::array{1, 1, 1, 1, 0, 0});
+      FieldIntegrator<Derivative::FDy, Derivative::FDz>::apply(Ex, Hzdy, Hydz, Jx, Cexz, Ceyz, Cj);
+      FieldIntegrator<Derivative::FDz, Derivative::FDx>::apply(Ey, Hxdz, Hzdx, Jy, Cexy, Ceyz, Cj);
+      FieldIntegrator<Derivative::FDx, Derivative::FDy>::apply(Ez, Hydx, Hxdy, Jz, Ceyz, Cexz, Cj);
    }
 
    static void updateH(auto& emdata) {
-      const auto Ex = mdspan_t{emdata.Ex.data(), Nx - 1, Ny, Nz};
-      const auto Ey = mdspan_t{emdata.Ey.data(), Nx, Ny - 1, Nz};
-      const auto Ez = mdspan_t{emdata.Ez.data(), Nx, Ny, Nz - 1};
-      const auto Hx = mdspan_t{emdata.Hx.data(), Nx, Ny - 1, Nz - 1};
-      const auto Hy = mdspan_t{emdata.Hy.data(), Nx - 1, Ny, Nz - 1};
-      const auto Hz = mdspan_t{emdata.Hz.data(), Nx - 1, Ny - 1, Nz};
-
+      const auto Ex = mdspan_t{emdata.Ex.data(), {std::extents{Nx - 1, Ny, Nz}, std::array{Ny * Nz, Nz, 1zu}}};
+      const auto Ey = mdspan_t{emdata.Ey.data(), {std::extents{Nx, Ny - 1, Nz}, std::array{(Ny - 1) * Nz, Nz, 1zu}}};
+      const auto Ez = mdspan_t{emdata.Ez.data(), {std::extents{Nx, Ny, Nz - 1}, std::array{Ny * (Nz - 1), Nz - 1, 1zu}}};
+      const auto Hx = mdspan_t{emdata.Hx.data(), {std::extents{Nx, Ny - 1, Nz - 1}, std::array{(Ny - 1) * (Nz - 1), Nz - 1, 1zu}}};
+      const auto Hy = mdspan_t{emdata.Hy.data(), {std::extents{Nx - 1, Ny, Nz - 1}, std::array{Ny * (Nz - 1), Nz - 1, 1zu}}};
+      const auto Hz = mdspan_t{emdata.Hz.data(), {std::extents{Nx - 1, Ny - 1, Nz}, std::array{(Ny - 1) * Nz, Nz, 1zu}}};
+      
       constexpr auto Chxy = dt / (constants::mu0<double> * dz);
       constexpr auto Chxz = dt / (constants::mu0<double> * dy);
       constexpr auto Chyz = dt / (constants::mu0<double> * dx);
-
-      FieldIntegrator<Derivative::FDz, Derivative::FDy>::apply(Hx, Ey, Ez, empty{}, Chxy, Chxz, 0.0, std::array{0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
-      FieldIntegrator<Derivative::FDx, Derivative::FDz>::apply(Hy, Ez, Ex, empty{}, Chyz, Chxy, 0.0, std::array{0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
-      FieldIntegrator<Derivative::FDy, Derivative::FDx>::apply(Hz, Ex, Ey, empty{}, Chxz, Chyz, 0.0, std::array{0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
+      
+      FieldIntegrator<Derivative::FDz, Derivative::FDy>::apply(Hx, Ey, Ez, empty{}, Chxy, Chxz, 0.0);
+      FieldIntegrator<Derivative::FDx, Derivative::FDz>::apply(Hy, Ez, Ex, empty{}, Chyz, Chxy, 0.0);
+      FieldIntegrator<Derivative::FDy, Derivative::FDx>::apply(Hz, Ex, Ey, empty{}, Chxz, Chyz, 0.0);
    }
 
    // static void particle_correction(auto& emdata) {
@@ -138,90 +151,6 @@ struct EMSolver {
    // }
 
    // static void updateEBCs(auto& emdata) {
-   //    // X0 EyHz
-   //    constexpr auto Eyx0_b = std::span{&emdata.Eyx0.b[0], BCDepth - 1};
-   //    constexpr auto Eyx0_c = std::span{&emdata.Eyx0.c[0], BCDepth - 1};
-   //    constexpr auto     Eyx0 = mdspan_t{      &emdata.Ey[1, 0, 0], {ey_shape_pml{}, ey_stride_pml}};
-   //    constexpr auto Hzx0_bck = mdspan_t{      &emdata.Hz[1, 0, 0], {hzdx_shape_pml{}, hzdx_stride_pml}};
-   //    constexpr auto Eyx0_psi = mdspan_t{&emdata.Eyx0.psi[1, 0, 0], {ey_shape_pml{}, ey_stride_pml}};
-   //
-   //    // X0 EzHy
-   //    constexpr auto Ezx0_b = std::span{&emdata.Ezx0.b[0], BCDepth - 1};
-   //    constexpr auto Ezx0_c = std::span{&emdata.Ezx0.c[0], BCDepth - 1};
-   //    constexpr auto     Ezx0 = mdspan_t{      &emdata.Ez[1, 0, 0], {ez_shape_pml{}  , ez_stride_pml}};
-   //    constexpr auto Hyx0_bck = mdspan_t{      &emdata.Hy[1, 0, 0], {hydx_shape_pml{}, hydx_stride_pml}};
-   //    constexpr auto Ezx0_psi = mdspan_t{&emdata.Ezx0.psi[1, 0, 0], {ez_shape_pml{}  , ez_stride_pml}};
-   //
-   //    // X1 EyHz
-   //    constexpr auto Eyx1_b = std::span{&emdata.Eyx1.b[0], BCDepth - 1};
-   //    constexpr auto Eyx1_c = std::span{&emdata.Eyx1.c[0], BCDepth - 1};
-   //    constexpr auto     Eyx1 = mdspan_t{      &emdata.Ey[Nx - BCDepth, 0, 0], {ey_shape_pml{}  , ey_stride_pml}};
-   //    constexpr auto Hzx1_bck = mdspan_t{      &emdata.Hz[Nx - BCDepth, 0, 0], {hzdx_shape_pml{}, hzdx_stride_pml}};
-   //    constexpr auto Eyx1_psi = mdspan_t{&emdata.Eyx1.psi[Nx - BCDepth, 0, 0], {ey_shape_pml{}  , ey_stride_pml}};
-   //
-   //    // X1 EzHy
-   //    constexpr auto Ezx1_b = std::span{&emdata.Ezx1.b[0], BCDepth - 1};
-   //    constexpr auto Ezx1_c = std::span{&emdata.Ezx1.c[0], BCDepth - 1};
-   //    constexpr auto     Ezx1 = mdspan_t{      &emdata.Ez[Nx - BCDepth, 0, 0], {ez_shape_pml{}  , ez_stride_pml}};
-   //    constexpr auto Hyx1_bck = mdspan_t{      &emdata.Hy[Nx - BCDepth, 0, 0], {hydx_shape_pml{}, hydx_stride_pml}};
-   //    constexpr auto Ezx1_psi = mdspan_t{&emdata.Ezx1.psi[Nx - BCDepth, 0, 0], {ez_shape_pml{}  , ez_stride_pml}};
-   //
-   //    // Y0 ExHz
-   //    constexpr auto Exy0_b = std::span{&emdata.Exy0.b[0], BCDepth - 1};
-   //    constexpr auto Exy0_c = std::span{&emdata.Exy0.c[0], BCDepth - 1};
-   //    constexpr auto     Exy0 = mdspan_t{      &emdata.Ex[0, 1, 0], {ex_shape_pml{}  , ex_stride_pml}};
-   //    constexpr auto Hzy0_bck = mdspan_t{      &emdata.Hz[0, 1, 0], {hzdx_shape_pml{}, hzdx_stride_pml}};
-   //    constexpr auto Exy0_psi = mdspan_t{&emdata.Exy0.psi[0, 1, 0], {ex_shape_pml{}  , ex_stride_pml}};
-   //
-   //    // Y0 EzHx
-   //    constexpr auto Ezy0_b = std::span{&emdata.Ezy0.b[0], BCDepth - 1};
-   //    constexpr auto Ezy0_c = std::span{&emdata.Ezy0.c[0], BCDepth - 1};
-   //    constexpr auto     Ezy0 = mdspan_t{      &emdata.Ez[0, 1, 0], {ez_shape_pml{}  , ez_stride_pml}};
-   //    constexpr auto Hxy0_bck = mdspan_t{      &emdata.Hx[0, 1, 0], {hxdy_shape_pml{}, hxdy_stride_pml}};
-   //    constexpr auto Ezy0_psi = mdspan_t{&emdata.Ezy0.psi[0, 1, 0], {ez_shape_pml{}  , ez_stride_pml}};
-   //
-   //    // Y1 ExHz
-   //    constexpr auto Exy1_b = std::span{&emdata.Exy1.b[0], BCDepth - 1};
-   //    constexpr auto Exy1_c = std::span{&emdata.Exy1.c[0], BCDepth - 1};
-   //    constexpr auto     Exy1 = mdspan_t{      &emdata.Ex[0, Ny - BCDepth, 0], {ex_shape_pml{}  , ex_stride_pml}};
-   //    constexpr auto Hzy1_bck = mdspan_t{      &emdata.Hz[0, Ny - BCDepth, 0], {hzdx_shape_pml{}, hzdx_stride_pml}};
-   //    constexpr auto Exy1_psi = mdspan_t{&emdata.Exy1.psi[0, Ny - BCDepth, 0], {ex_shape_pml{}  , ex_stride_pml}};
-   //
-   //    // Y1 EzHx
-   //    constexpr auto Ezy1_b = std::span{&emdata.Ezy1.b[0], BCDepth - 1};
-   //    constexpr auto Ezy1_c = std::span{&emdata.Ezy1.c[0], BCDepth - 1};
-   //    constexpr auto     Ezy1 = mdspan_t{      &emdata.Ez[0, Ny - BCDepth, 0], {ez_shape_pml{}  , ez_stride_pml}};
-   //    constexpr auto Hxy1_bck = mdspan_t{      &emdata.Hx[0, Ny - BCDepth, 0], {hxdy_shape_pml{}, hxdy_stride_pml}};
-   //    constexpr auto Ezy1_psi = mdspan_t{&emdata.Ezy1.psi[0, Ny - BCDepth, 0], {ez_shape_pml{}  , ez_stride_pml}};
-   //
-   //    // Z0 ExHy
-   //    constexpr auto Exz0_b = std::span{&emdata.Exz0.b[0], BCDepth - 1};
-   //    constexpr auto Exz0_c = std::span{&emdata.Exz0.c[0], BCDepth - 1};
-   //    constexpr auto     Exz0 = mdspan_t{      &emdata.Ex[0, 0, 1], {ex_shape_pml{}  , ex_stride_pml}};
-   //    constexpr auto Hyz0_bck = mdspan_t{      &emdata.Hy[0, 0, 1], {hydx_shape_pml{}, hydx_stride_pml}};
-   //    constexpr auto Exz0_psi = mdspan_t{&emdata.Exz0.psi[0, 0, 1], {ex_shape_pml{}  , ex_stride_pml}};
-   //
-   //    // z0 EyHx
-   //    constexpr auto Eyz0_b = std::span{&emdata.Eyz0.b[0], BCDepth - 1};
-   //    constexpr auto Eyz0_c = std::span{&emdata.Eyz0.c[0], BCDepth - 1};
-   //    constexpr auto     Eyz0 = mdspan_t{      &emdata.Ey[0, 0, 1], {ey_shape_pml{}  , ey_stride_pml}};
-   //    constexpr auto Hxz0_bck = mdspan_t{      &emdata.Hx[0, 0, 1], {hxdy_shape_pml{}, hxdy_stride_pml}};
-   //    constexpr auto Eyz0_psi = mdspan_t{&emdata.Eyz0.psi[0, 0, 1], {ey_shape_pml{}  , ey_stride_pml}};
-   //
-   //    // z1 ExHy
-   //    constexpr auto Exz1_b = std::span{&emdata.Exz1.b[0], BCDepth - 1};
-   //    constexpr auto Exz1_c = std::span{&emdata.Exz1.c[0], BCDepth - 1};
-   //    constexpr auto     Exz1 = mdspan_t{      &emdata.Ex[0, 0, Nz - BCDepth], {ex_shape_pml{}  , ex_stride_pml}};
-   //    constexpr auto Hyz1_bck = mdspan_t{      &emdata.Hy[0, 0, Nz - BCDepth], {hzdx_shape_pml{}, hydx_stride_pml}};
-   //    constexpr auto Exz1_psi = mdspan_t{&emdata.Exz1.psi[0, 0, Nz - BCDepth], {ex_shape_pml{}  , ex_stride_pml}};
-   //
-   //    // z1 EyHx
-   //    constexpr auto Eyz1_b = std::span{&emdata.Eyz1.b[0], BCDepth - 1};
-   //    constexpr auto Eyz1_c = std::span{&emdata.Eyz1.c[0], BCDepth - 1};
-   //    constexpr auto     Eyz1 = mdspan_t{      &emdata.Ey[0, 0, Nz - BCDepth], {ey_shape_pml{}  , ey_stride_pml}};
-   //    constexpr auto Hxz1_bck = mdspan_t{      &emdata.Hx[0, 0, Nz - BCDepth], {hxdy_shape_pml{}, hxdy_stride_pml}};
-   //    constexpr auto Eyz1_psi = mdspan_t{&emdata.Eyz1.psi[0, 0, Nz - BCDepth], {ey_shape_pml{}  , ey_stride_pml}};
-   //
    //    constexpr auto Cdx = dt / (constants::eps0<double> * dx);
    //    constexpr auto Cdy = dt / (constants::eps0<double> * dy);
    //    constexpr auto Cdz = dt / (constants::eps0<double> * dz);

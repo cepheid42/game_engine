@@ -16,7 +16,7 @@ inline constexpr auto hy_size = (Nx - 1) * Ny * (Nz - 1);
 inline constexpr auto hz_size = (Nx - 1) * (Ny - 1) * Nz;
 
 using vector_t = std::vector<double>;
-using mdspan_t = std::mdspan<double, std::dextents<std::size_t, 3>>;
+using mdspan_t = std::mdspan<double, std::dextents<std::size_t, 3>, std::layout_stride>;
 
 struct PMLData;
 struct PeriodicData;
