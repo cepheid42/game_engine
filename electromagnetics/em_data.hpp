@@ -64,25 +64,25 @@ struct emdata_t {
    x1bc_t Hyx1;
    x1bc_t Hzx1;
 
-   y0bc_t Exy0;
-   y0bc_t Ezy0;
-   y0bc_t Hxy0;
-   y0bc_t Hzy0;
-   
-   y1bc_t Exy1;
-   y1bc_t Ezy1;
-   y1bc_t Hxy1;
-   y1bc_t Hzy1;
-
-   z0bc_t Exz0;
-   z0bc_t Eyz0;
-   z0bc_t Hxz0;
-   z0bc_t Hyz0;
-   
-   z1bc_t Exz1;
-   z1bc_t Eyz1;
-   z1bc_t Hxz1;
-   z1bc_t Hyz1;
+   // y0bc_t Exy0;
+   // y0bc_t Ezy0;
+   // y0bc_t Hxy0;
+   // y0bc_t Hzy0;
+   //
+   // y1bc_t Exy1;
+   // y1bc_t Ezy1;
+   // y1bc_t Hxy1;
+   // y1bc_t Hzy1;
+   //
+   // z0bc_t Exz0;
+   // z0bc_t Eyz0;
+   // z0bc_t Hxz0;
+   // z0bc_t Hyz0;
+   //
+   // z1bc_t Exz1;
+   // z1bc_t Eyz1;
+   // z1bc_t Hxz1;
+   // z1bc_t Hyz1;
 }; // end struct emdata_t
 
 
@@ -126,24 +126,24 @@ auto init_bc(auto& bc, const auto& dims) {
    }
 }
 
-template<typename T, EMFace F, EMSide, bool>
-requires std::same_as<T, PeriodicData>
-auto init_bc(auto& bc, const auto& dims) {
-   auto get_numInterior = [&] {
-      if      constexpr (is_XFace<F>) { return dims.extent(0) - (2 * nHalo); }
-      else if constexpr (is_YFace<F>) { return dims.extent(1) - (2 * nHalo); }
-      else                            { return dims.extent(2) - (2 * nHalo); }
-   };
-
-   auto get_hiIndex = [&] {
-      if      constexpr (is_XFace<F>) { return dims.extent(0) - 1 - nHalo; }
-      else if constexpr (is_YFace<F>) { return dims.extent(1) - 1 - nHalo; }
-      else                            { return dims.extent(2) - 1 - nHalo; }
-   };
-
-   bc.numInterior = get_numInterior();
-   bc.hiIndex = get_hiIndex();
-}
+// template<typename T, EMFace F, EMSide, bool>
+// requires std::same_as<T, PeriodicData>
+// auto init_bc(auto& bc, const auto& dims) {
+//    auto get_numInterior = [&] {
+//       if      constexpr (is_XFace<F>) { return dims.extent(0) - (2 * nHalo); }
+//       else if constexpr (is_YFace<F>) { return dims.extent(1) - (2 * nHalo); }
+//       else                            { return dims.extent(2) - (2 * nHalo); }
+//    };
+//
+//    auto get_hiIndex = [&] {
+//       if      constexpr (is_XFace<F>) { return dims.extent(0) - 1 - nHalo; }
+//       else if constexpr (is_YFace<F>) { return dims.extent(1) - 1 - nHalo; }
+//       else                            { return dims.extent(2) - 1 - nHalo; }
+//    };
+//
+//    bc.numInterior = get_numInterior();
+//    bc.hiIndex = get_hiIndex();
+// }
 
 inline auto make_emdata() -> emdata_t {
    using enum EMFace;
@@ -153,7 +153,7 @@ inline auto make_emdata() -> emdata_t {
    // constexpr auto h_coeff = dt / constants::mu0<double>;
    // constexpr auto e_max = std::max(ex_size, std::max(ey_size, ez_size));
    // constexpr auto h_max = std::max(hx_size, std::max(hy_size, hz_size));
-   
+
    emdata_t emdata;
    emdata.Ex = vector_t(ex_size);
    emdata.Jx = vector_t(ex_size);
@@ -183,16 +183,16 @@ inline auto make_emdata() -> emdata_t {
    // emdata.Chxz2 = vector_t(h_max, 0.5 * h_coeff / dy);
    // emdata.Chyz2 = vector_t(h_max, 0.5 * h_coeff / dx);
 
-   // init_bc<x0bc_t, X, Lo,  true>(emdata.Eyx0, eyx_ext{});
-   // init_bc<x0bc_t, X, Lo,  true>(emdata.Ezx0, ezx_ext{});
-   // init_bc<x0bc_t, X, Lo, false>(emdata.Hyx0, hyx_ext{});
-   // init_bc<x0bc_t, X, Lo, false>(emdata.Hzx0, hzx_ext{});
-   //
-   // init_bc<x1bc_t, X, Hi,  true>(emdata.Eyx1, eyx_ext{});
-   // init_bc<x1bc_t, X, Hi,  true>(emdata.Ezx1, ezx_ext{});
+   init_bc<x0bc_t, X, Lo,  true>(emdata.Eyx0, eyx0_ext);
+   init_bc<x0bc_t, X, Lo,  true>(emdata.Ezx0, ezx0_ext);
+   // init_bc<x0bc_t, X, Lo, false>(emdata.Hyx0, hyx_ext);
+   // init_bc<x0bc_t, X, Lo, false>(emdata.Hzx0, hzx_ext);
+
+   init_bc<x1bc_t, X, Hi,  true>(emdata.Eyx1, eyx0_ext);
+   init_bc<x1bc_t, X, Hi,  true>(emdata.Ezx1, ezx0_ext);
    // init_bc<x1bc_t, X, Hi, false>(emdata.Hyx1, hyx_ext{});
    // init_bc<x1bc_t, X, Hi, false>(emdata.Hzx1, ezx_ext{});
-   //
+
    // init_bc<y0bc_t, Y, Lo,  true>(emdata.Exy0, exy_ext{});
    // init_bc<y0bc_t, Y, Lo,  true>(emdata.Ezy0, ezy_ext{});
    // init_bc<y0bc_t, Y, Lo, false>(emdata.Hxy0, hxy_ext{});

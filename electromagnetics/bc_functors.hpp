@@ -1,7 +1,6 @@
 #ifndef BC_FUNCTORS_HPP
 #define BC_FUNCTORS_HPP
 
-#include "diff_operators.hpp"
 #include "program_params.hpp"
 #include "em_params.hpp"
 
@@ -15,7 +14,7 @@ struct PMLFunctor {
    #pragma omp declare simd notinbranch
    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc,
                      const auto i, const auto j, const auto k, const auto x0)
-      requires (Curl::type == Derivative::DX)
+      requires (Curl::type == Derivative::Dx)
    {
       auto ipml;
       if constexpr (isLo) { ipml = i; }
@@ -33,7 +32,7 @@ struct PMLFunctor {
    #pragma omp declare simd notinbranch
    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc,
                      const auto i, const auto j, const auto k, const auto y0)
-      requires (Curl::type == Derivative::DY)
+      requires (Curl::type == Derivative::Dy)
    {
       auto jpml;
       if constexpr (isLo) { jpml = j; }
@@ -51,7 +50,7 @@ struct PMLFunctor {
    #pragma omp declare simd notinbranch
    static void apply(auto& f1, const auto& f2, const auto& c1, auto& bc,
                      const auto i, const auto j, const auto k, const auto z0)
-      requires (Curl::type == Derivative::DZ)
+      requires (Curl::type == Derivative::Dz)
    {
       auto kpml;
       if constexpr (isLo) { kpml = k; }
@@ -68,47 +67,53 @@ struct PMLFunctor {
 };   // end struct Pml3DFunctor
 
 
-template<Derivative D, bool Add>
-struct PeriodicFunctor {
-   #pragma omp declare simd notinbranch
-   static void apply(auto& f, const auto& bc, const auto i, const auto j, const auto k)
-   {
-      auto idx1, idx2, idx3, idx4;
-      if constexpr (D == Derivative::DX) {
-         const auto pm = i % bc.numInterior;
-         idx1 = f.get_scid(nHalo - 1 - i, j, k);
-         idx2 = f.get_scid(bc.hiIndex - pm, j, k);
-         idx3 = f.get_scid(bc.hiIndex + 1 + i, j, k);
-         idx4 = f.get_scid(nHalo + pm, j, k);
-      } else if constexpr (D == Derivative::DY) {
-         const auto pm = j % bc.numInterior;
-         idx1 = f.get_scid(i, nHalo - 1 - j, k);
-         idx2 = f.get_scid(i, bc.hiIndex - pm, k);
-         idx3 = f.get_scid(i, bc.hiIndex + 1 + j, k);
-         idx4 = f.get_scid(i, nHalo + pm, k);
-      } else {
-         const auto pm = k % bc.numInterior;
-         idx1 = f.get_scid(i, j, nHalo - 1 - k);
-         idx2 = f.get_scid(i, j, bc.hiIndex - pm);
-         idx3 = f.get_scid(i, j, bc.hiIndex + 1 + k);
-         idx4 = f.get_scid(i, j, nHalo + pm);
-      }
+// template<Derivative D, bool Add>
+// struct PeriodicFunctor {
+//    #pragma omp declare simd notinbranch
+//    static void apply(auto& f, const auto& bc, const auto i, const auto j, const auto k)
+//    {
+//       auto idx1, idx2, idx3, idx4;
+//       if constexpr (D == Derivative::Dx) {
+//          const auto pm = i % bc.numInterior;
+//          idx1 = f.get_scid(nHalo - 1 - i, j, k);
+//          idx2 = f.get_scid(bc.hiIndex - pm, j, k);
+//          idx3 = f.get_scid(bc.hiIndex + 1 + i, j, k);
+//          idx4 = f.get_scid(nHalo + pm, j, k);
+//       } else if constexpr (D == Derivative::Dy) {
+//          const auto pm = j % bc.numInterior;
+//          idx1 = f.get_scid(i, nHalo - 1 - j, k);
+//          idx2 = f.get_scid(i, bc.hiIndex - pm, k);
+//          idx3 = f.get_scid(i, bc.hiIndex + 1 + j, k);
+//          idx4 = f.get_scid(i, nHalo + pm, k);
+//       } else {
+//          const auto pm = k % bc.numInterior;
+//          idx1 = f.get_scid(i, j, nHalo - 1 - k);
+//          idx2 = f.get_scid(i, j, bc.hiIndex - pm);
+//          idx3 = f.get_scid(i, j, bc.hiIndex + 1 + k);
+//          idx4 = f.get_scid(i, j, nHalo + pm);
+//       }
+//
+//       // This allows for cumulative boundaries for current density
+//       if constexpr (Add) {
+//          f[idx1] += f[idx2];
+//          f[idx3] += f[idx4];
+//       } else {
+//          f[idx1] = f[idx2];
+//          f[idx3] = f[idx4];
+//       }
+//    } // end apply()
+// }; // end struct PeriodicFunctor
 
-      // This allows for cumulative boundaries for current density
-      if constexpr (Add) {
-         f[idx1] += f[idx2];
-         f[idx3] += f[idx4];
-      } else {
-         f[idx1] = f[idx2];
-         f[idx3] = f[idx4];
-      }
-   } // end apply()
-}; // end struct PeriodicFunctor
 
-
-template<bool Negate>
+template<Derivative D>
 struct BCIntegrator {
    static constexpr void apply(const auto&, const auto&, const auto&, const auto&) {}
+
+   static auto diff(const auto& d, const auto i, const auto j, const auto k) {
+      if      constexpr (D == Derivative::Dx) { return d[i + 1, j, k] - d[i, j, k]; }
+      else if constexpr (D == Derivative::Dy) { return d[i, j + 1, k] - d[i, j, k]; }
+      else if constexpr (D == Derivative::Dz) { return d[i, j, k + 1] - d[i, j, k]; }
+   }
 
    static void apply(auto& psi, const auto& b, const auto& c, auto& f, const auto& d, const auto& cf)
    // requires std::same_as<U, PMLData>
@@ -117,7 +122,7 @@ struct BCIntegrator {
       for (auto i = 0zu; i < psi.extent(0); ++i) {
          for (auto j = 0zu; j < psi.extent(1); ++j) {
             for (auto k = 0zu; k < psi.extent(2); ++k) {
-               psi[i, j, k] = b[k] * psi[i, j, k] + c[k] * (d[i, j, k + 1] - d[i, j, k]);
+               psi[i, j, k] = b[k] * psi[i, j, k] + c[k] * diff(d, i, j, k);
                f[i, j, k] += cf * psi[i, j, k]; // cf comes with -1 baked in for += or -=
             } // end for k
          } // end for j

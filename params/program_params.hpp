@@ -39,9 +39,7 @@ inline constexpr auto coll_enabled = false;
 /*---------------------------------------------------------------/
 /-                        EM Parameters                         -/
 /---------------------------------------------------------------*/
-// enum class EMFace { X, Y, Z };
-// enum class EMSide { Lo, Hi };
-enum class Derivative { FDx, FDy, FDz, BDx, BDy, BDz };
+enum class Derivative { Dx, Dy, Dz };
 
 inline constexpr auto em_save_interval = 4lu;
 
