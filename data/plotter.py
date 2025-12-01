@@ -239,11 +239,12 @@ def total_field_energy(n, file_dir):
         ex = f.read('Ex')[:, :-1, :-1]
         ey = f.read('Ey')[:-1, :, :-1]
         ez = f.read('Ez')[:-1, :-1, :]
-        hx = f.read('Bx')[:-1, :, :]
-        hy = f.read('By')[:, :-1, :]
-        hz = f.read('Bz')[:, :, :-1]
-        cell_volume = f.read_attribute('cell_volume')
+        hx = f.read('Hx')[:-1, :, :]
+        hy = f.read('Hy')[:, :-1, :]
+        hz = f.read('Hz')[:, :, :-1]
+        # cell_volume = f.read_attribute('cell_volume')
 
+    cell_volume = 0.01**3
     e_field = 0.5 * EPS0 * (ex**2 + ey**2 + ez**2)
     h_field = 0.5 * MU0 * (hx**2 + hy**2 + hz**2)
     return (e_field + h_field).sum() * cell_volume
@@ -251,20 +252,20 @@ def total_field_energy(n, file_dir):
 def plot_field_energy(start, stop, step, file_dir):
     print('Calculating total field energy...', end=' ')
     filename = f'/fields_{0:010d}.bp'
-    with FileReader(data_dir + file_dir + filename) as f:
-        dt = f.read_attribute('dt')
+    # with FileReader(data_dir + file_dir + filename) as f:
+    #     dt = f.read_attribute('dt')
 
     targs = [(n, file_dir) for n in range(start, stop + step, step)]
     with mp.Pool(16) as p:
         result = p.starmap(total_field_energy, targs)
     result = np.asarray(result)
 
-    time = np.linspace(0, stop * dt * s_to_ns, (stop + step) // step)
+    # time = np.linspace(0, stop * dt * s_to_ns, (stop + step) // step)
     fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
-
-    ax.plot(time, result)
-    ax.set_yticks([0, 0.0005, 0.0010, 0.0015, 0.0020])
-    ax.set_xlim([time[0], time[-1]])
+    ax.plot(result)
+    # ax.plot(time, result)
+    # ax.set_yticks([0, 0.0005, 0.0010, 0.0015, 0.0020])
+    # ax.set_xlim([time[0], time[-1]])
     ax.set_xlabel('Time (ns)')
     ax.set_ylabel('Energy (J)')
     ax.set_title(f'Total Field Energy')
@@ -396,10 +397,10 @@ def main():
     # targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
     #    p.starmap(plot_metric, targs)
-
-    targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
-    with mp.Pool(8) as p:
-       p.starmap(plot_fields, targs)
+    #
+    # targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
+    # with mp.Pool(8) as p:
+    #    p.starmap(plot_fields, targs)
 
     # targs = [(n, step, 'Ez', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
@@ -409,7 +410,7 @@ def main():
 
     # plot_Temp(['electrons', 'ions'], start, stop, step, file_dir)
     # plot_KE(['electrons', 'ions'], start, stop, step, file_dir)
-    # plot_field_energy(start, stop, step, file_dir)
+    plot_field_energy(start, stop, step, file_dir)
 
     # plot_single_field(0, 1, 'Ex', file_dir)
     # plot_single_field(0, 1, 'Ez', file_dir)
