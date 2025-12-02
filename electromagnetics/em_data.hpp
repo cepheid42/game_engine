@@ -194,11 +194,6 @@ auto init_bc(auto& bc, const auto& dims) {
 inline auto make_emdata() -> emdata_t {
    using enum EMFace;
    using enum EMSide;
-   
-   // constexpr auto e_coeff = dt / constants::eps0<double>;
-   // constexpr auto h_coeff = dt / constants::mu0<double>;
-   // constexpr auto e_max = std::max(ex_size, std::max(ey_size, ez_size));
-   // constexpr auto h_max = std::max(hx_size, std::max(hy_size, hz_size));
 
    emdata_t emdata;
    emdata.Ex = vector_t(ex_size);
@@ -229,6 +224,10 @@ inline auto make_emdata() -> emdata_t {
    emdata.Hyf = mdspan_t{emdata.Hy.data(), {hy_ext, hy_stride}};
    emdata.Hzf = mdspan_t{emdata.Hz.data(), {hz_ext, hz_stride}};
 
+   // constexpr auto e_coeff = dt / constants::eps0<double>;
+   // constexpr auto h_coeff = dt / constants::mu0<double>;
+   // constexpr auto e_max = std::max(ex_size, std::max(ey_size, ez_size));
+   // constexpr auto h_max = std::max(hx_size, std::max(hy_size, hz_size));
    // emdata.Cexy = vector_t(e_max, e_coeff / dz);
    // emdata.Cexz = vector_t(e_max, e_coeff / dy);
    // emdata.Ceyz = vector_t(e_max, e_coeff / dx);
@@ -275,20 +274,20 @@ inline auto make_emdata() -> emdata_t {
    init_bc<z1bc_t, Z, Hi, false>(emdata.Hxz1, std::extents{Nx, Ny - 1, BCDepth});
    init_bc<z1bc_t, Z, Hi, false>(emdata.Hyz1, std::extents{Nx - 1, Ny, BCDepth});
 
-   emdata.eyx0_psi = mdspan_t{emdata.Eyx0.psi.data(), {eyhz_x_ext, eyhz_x_stride}};
-   emdata.eyx1_psi = mdspan_t{emdata.Eyx1.psi.data(), {eyhz_x_ext, eyhz_x_stride}};
-   emdata.ezx0_psi = mdspan_t{emdata.Ezx0.psi.data(), {hyez_x_ext, hyez_x_stride}};
-   emdata.ezx1_psi = mdspan_t{emdata.Ezx1.psi.data(), {hyez_x_ext, hyez_x_stride}};
+   emdata.eyx0_psi = mdspan_t{emdata.Eyx0.psi.data(), {eyhz_x_full_ext, eyhz_x_stride}};
+   emdata.eyx1_psi = mdspan_t{emdata.Eyx1.psi.data(), {eyhz_x_full_ext, eyhz_x_stride}};
+   emdata.ezx0_psi = mdspan_t{emdata.Ezx0.psi.data(), {hyez_x_full_ext, hyez_x_stride}};
+   emdata.ezx1_psi = mdspan_t{emdata.Ezx1.psi.data(), {hyez_x_full_ext, hyez_x_stride}};
    
-   emdata.exy0_psi = mdspan_t{emdata.Exy0.psi.data(), {exhz_y_ext, exhz_y_stride}};
-   emdata.exy1_psi = mdspan_t{emdata.Exy1.psi.data(), {exhz_y_ext, exhz_y_stride}};
-   emdata.ezy0_psi = mdspan_t{emdata.Ezy0.psi.data(), {hxez_y_ext, hxez_y_stride}};
-   emdata.ezy1_psi = mdspan_t{emdata.Ezy1.psi.data(), {hxez_y_ext, hxez_y_stride}};
+   emdata.exy0_psi = mdspan_t{emdata.Exy0.psi.data(), {exhz_y_full_ext, exhz_y_stride}};
+   emdata.exy1_psi = mdspan_t{emdata.Exy1.psi.data(), {exhz_y_full_ext, exhz_y_stride}};
+   emdata.ezy0_psi = mdspan_t{emdata.Ezy0.psi.data(), {hxez_y_full_ext, hxez_y_stride}};
+   emdata.ezy1_psi = mdspan_t{emdata.Ezy1.psi.data(), {hxez_y_full_ext, hxez_y_stride}};
    
-   emdata.exz0_psi = mdspan_t{emdata.Exz0.psi.data(), {exhy_z_ext, exhy_z_stride}};
-   emdata.exz1_psi = mdspan_t{emdata.Exz1.psi.data(), {exhy_z_ext, exhy_z_stride}};
-   emdata.eyz0_psi = mdspan_t{emdata.Eyz0.psi.data(), {hxey_z_ext, hxey_z_stride}};
-   emdata.eyz1_psi = mdspan_t{emdata.Eyz1.psi.data(), {hxey_z_ext, hxey_z_stride}};
+   emdata.exz0_psi = mdspan_t{emdata.Exz0.psi.data(), {exhy_z_full_ext, exhy_z_stride}};
+   emdata.exz1_psi = mdspan_t{emdata.Exz1.psi.data(), {exhy_z_full_ext, exhy_z_stride}};
+   emdata.eyz0_psi = mdspan_t{emdata.Eyz0.psi.data(), {hxey_z_full_ext, hxey_z_stride}};
+   emdata.eyz1_psi = mdspan_t{emdata.Eyz1.psi.data(), {hxey_z_full_ext, hxey_z_stride}};
 
    emdata.hyx0_psi = mdspan_t{emdata.Hyx0.psi.data(), {hyez_x_full_ext, hyez_x_stride}};
    emdata.hyx1_psi = mdspan_t{emdata.Hyx1.psi.data(), {hyez_x_full_ext, hyez_x_stride}};
