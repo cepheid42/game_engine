@@ -1,16 +1,14 @@
 #ifndef EM_DATA_HPP
 #define EM_DATA_HPP
 
-#include "array_utils.hpp"
 #include "constants.hpp"
 #include "em_params.hpp"
 #include "math_utils.hpp"
 #include "mdspan.hpp"
 #include "program_params.hpp"
-#include "traits.hpp"
 
 #include <cmath>
-// #include <unordered_map>
+#include <concepts>
 #include <algorithm>
 
 namespace tf::electromagnetics

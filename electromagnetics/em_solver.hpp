@@ -37,7 +37,7 @@ struct FieldUpdate {
 
 template<Derivative D>
 struct BoundaryUpdate {
-   static void apply(const auto& psi, const auto& b, const auto& c, const auto& f, const auto& d, const auto cf)
+   static void apply(const auto& f, const auto& d, const auto& psi, const auto& b, const auto& c, const auto cf)
    {
       std::size_t ipml;
       for (auto i = 0zu; i < psi.extent(0); ++i) {
@@ -99,26 +99,26 @@ struct EMSolver {
 
    static void updateE(auto& emdata) {
       FieldUpdate<Dy, Dz>::apply(
-         mdspan_t{&emdata.Exf[0, 1, 1], {ex_update_ext, ex_stride}},
-         mdspan_t{&emdata.Hzf[0, 0, 1], {ex_update_ext, hz_stride}},
-         mdspan_t{&emdata.Hyf[0, 1, 0], {ex_update_ext, hy_stride}},
-         mdspan_t{&emdata.Jxf[0, 1, 1], {ex_update_ext, ex_stride}},
+         {&emdata.Exf[0, 1, 1], {ex_update_ext, ex_stride}},
+         {&emdata.Hzf[0, 0, 1], {ex_update_ext, hz_stride}},
+         {&emdata.Hyf[0, 1, 0], {ex_update_ext, hy_stride}},
+         {&emdata.Jxf[0, 1, 1], {ex_update_ext, ex_stride}},
          dtdy_eps, dtdx_eps, dt_eps
       );
 
       FieldUpdate<Dz, Dx>::apply(
-         mdspan_t{&emdata.Eyf[1, 0, 1], {ey_update_ext, ey_stride}},
-         mdspan_t{&emdata.Hxf[1, 0, 0], {ey_update_ext, hx_stride}},
-         mdspan_t{&emdata.Hzf[0, 0, 1], {ey_update_ext, hz_stride}},
-         mdspan_t{&emdata.Jyf[1, 0, 1], {ey_update_ext, ey_stride}},
+         {&emdata.Eyf[1, 0, 1], {ey_update_ext, ey_stride}},
+         {&emdata.Hxf[1, 0, 0], {ey_update_ext, hx_stride}},
+         {&emdata.Hzf[0, 0, 1], {ey_update_ext, hz_stride}},
+         {&emdata.Jyf[1, 0, 1], {ey_update_ext, ey_stride}},
          dtdz_eps, dtdx_eps, dt_eps
       );
       
       FieldUpdate<Dx, Dy>::apply(
-         mdspan_t{&emdata.Ezf[1, 1, 0], {ez_update_ext, ez_stride}},
-         mdspan_t{&emdata.Hyf[0, 1, 0], {ez_update_ext, hy_stride}},
-         mdspan_t{&emdata.Hxf[1, 0, 0], {ez_update_ext, hx_stride}},
-         mdspan_t{&emdata.Jzf[1, 1, 0], {ez_update_ext, ez_stride}},
+         {&emdata.Ezf[1, 1, 0], {ez_update_ext, ez_stride}},
+         {&emdata.Hyf[0, 1, 0], {ez_update_ext, hy_stride}},
+         {&emdata.Hxf[1, 0, 0], {ez_update_ext, hx_stride}},
+         {&emdata.Jzf[1, 1, 0], {ez_update_ext, ez_stride}},
          dtdx_eps, dtdy_eps, dt_eps
       );
    }
@@ -137,127 +137,128 @@ struct EMSolver {
       FieldUpdate<Dz, Dy>::apply(emdata.Bxf, emdata.Eyf, emdata.Ezf, empty{}, 0.5 *	dtdz_mu, 0.5 *	dtdy_mu, 0.0);
       FieldUpdate<Dx, Dz>::apply(emdata.Byf, emdata.Ezf, emdata.Exf, empty{}, 0.5 *	dtdx_mu, 0.5 *	dtdz_mu, 0.0);
       FieldUpdate<Dy, Dx>::apply(emdata.Bzf, emdata.Exf, emdata.Eyf, empty{}, 0.5 *	dtdy_mu, 0.5 *	dtdx_mu, 0.0);
+
+      // todo: add up total fields here
    }
 
    static void updateEBCs(auto& emdata) {
       // Eyx0
       BoundaryUpdate<Dx>::apply(
+         mdspan_t{&emdata.Eyf[1, 0, 0], {eyhz_x_ext, ey_stride}},
+         mdspan_t{&emdata.Hzf[0, 0, 0], {eyhz_x_ext, hz_stride}},
          mdspan_t{&emdata.eyx0_psi[1, 0, 0], {eyhz_x_ext, eyhz_x_stride}},
          std::span{emdata.Eyx0.b},
          std::span{emdata.Eyx0.c},
-         mdspan_t{&emdata.Eyf[1, 0, 0], {eyhz_x_ext, ey_stride}},
-         mdspan_t{&emdata.Hzf[0, 0, 0], {eyhz_x_ext, hz_stride}},
          -dtdx_eps
       );
 
       // Eyx1
       BoundaryUpdate<Dx>::apply(
+         mdspan_t{&emdata.Eyf[Nx - BCDepth, 0, 0], {eyhz_x_ext, ey_stride}},
+         mdspan_t{&emdata.Hzf[Nx - BCDepth - 1, 0, 0], {eyhz_x_ext, hz_stride}},
          mdspan_t{&emdata.eyx1_psi[0, 0, 0], {eyhz_x_ext, eyhz_x_stride}},
          std::span{emdata.Eyx1.b},
          std::span{emdata.Eyx1.c},
-         mdspan_t{&emdata.Eyf[Nx - BCDepth, 0, 0], {eyhz_x_ext, ey_stride}},
-         mdspan_t{&emdata.Hzf[Nx - BCDepth - 1, 0, 0], {eyhz_x_ext, hz_stride}},
          -dtdx_eps
       );
 
       // Ezx0
       BoundaryUpdate<Dx>::apply(
+         mdspan_t{&emdata.Ezf[1, 0, 0], {hyez_x_ext, ez_stride}},
+         mdspan_t{&emdata.Hyf[0, 0, 0], {hyez_x_ext, hy_stride}},
          mdspan_t{&emdata.ezx0_psi[1, 0, 0], {hyez_x_ext, hyez_x_stride}},
          std::span{emdata.Ezx0.b},
          std::span{emdata.Ezx0.c},
-         mdspan_t{&emdata.Ezf[1, 0, 0], {hyez_x_ext, ez_stride}},
-         mdspan_t{&emdata.Hyf[0, 0, 0], {hyez_x_ext, hy_stride}},
          dtdx_eps
       );
 
       // Ezx1
       BoundaryUpdate<Dx>::apply(
+         mdspan_t{&emdata.Ezf[Nx - BCDepth, 0, 0], {hyez_x_ext, ez_stride}},
+         mdspan_t{&emdata.Hyf[Nx - BCDepth - 1, 0, 0], {hyez_x_ext, hy_stride}},
    		mdspan_t{&emdata.ezx1_psi[0, 0, 0], {hyez_x_ext, hyez_x_stride}},
    		std::span{emdata.Ezx1.b},
    		std::span{emdata.Ezx1.c},
-   		mdspan_t{&emdata.Ezf[Nx - BCDepth, 0, 0], {hyez_x_ext, ez_stride}},
-   		mdspan_t{&emdata.Hyf[Nx - BCDepth - 1, 0, 0], {hyez_x_ext, hy_stride}},
          dtdx_eps
       );
 
       // Exy0
       BoundaryUpdate<Dy>::apply(
+         mdspan_t{&emdata.Exf[0, 1, 0], {exhz_y_ext, ex_stride}},
+         mdspan_t{&emdata.Hzf[0, 0, 0], {exhz_y_ext, hz_stride}},
    		mdspan_t{&emdata.exy0_psi[0, 1, 0], {exhz_y_ext, exhz_y_stride}},
    		std::span{emdata.Exy0.b},
    		std::span{emdata.Exy0.c},
-   		mdspan_t{&emdata.Exf[0, 1, 0], {exhz_y_ext, ex_stride}},
-   		mdspan_t{&emdata.Hzf[0, 0, 0], {exhz_y_ext, hz_stride}},
          dtdy_eps
       );
 
       // Exy1
-      // const auto hzy1 = mdspan_t{&emdata.Hzf[0, Ny - BCDepth - 1, 0], {exhz_y_ext, hz_stride}};
       BoundaryUpdate<Dy>::apply(
+         mdspan_t{&emdata.Exf[0, Ny - BCDepth, 0], {exhz_y_ext, ex_stride}},
+         mdspan_t{&emdata.Hzf[0, Ny - BCDepth - 1, 0], {exhz_y_ext, hz_stride}},
    		mdspan_t{&emdata.exy1_psi[0, 0, 0], {exhz_y_ext, exhz_y_stride}},
    		std::span{emdata.Exy1.b},
    		std::span{emdata.Exy1.c},
-   		mdspan_t{&emdata.Exf[0, Ny - BCDepth, 0], {exhz_y_ext, ex_stride}},
-   		mdspan_t{&emdata.Hzf[0, Ny - BCDepth - 1, 0], {exhz_y_ext, hz_stride}},
          dtdy_eps
       );
 
       // Ezy0
       BoundaryUpdate<Dy>::apply(
+         mdspan_t{&emdata.Ezf[0, 1, 0], {hxez_y_ext, ez_stride}},
+         mdspan_t{&emdata.Hxf[0, 0, 0], {hxez_y_ext, hx_stride}},
    		mdspan_t{&emdata.ezy0_psi[0, 1, 0], {hxez_y_ext, hxez_y_stride}},
    		std::span{emdata.Ezy0.b},
    		std::span{emdata.Ezy0.c},
-   		mdspan_t{&emdata.Ezf[0, 1, 0], {hxez_y_ext, ez_stride}},
-   		mdspan_t{&emdata.Hxf[0, 0, 0], {hxez_y_ext, hx_stride}},
          -dtdy_eps
       );
 
       // Ezy1
       BoundaryUpdate<Dy>::apply(
+         mdspan_t{&emdata.Ezf[0, Ny - BCDepth, 0], {hxez_y_ext, ez_stride}},
+         mdspan_t{&emdata.Hxf[0, Ny - BCDepth - 1, 0], {hxez_y_ext, hx_stride}},
    		mdspan_t{&emdata.ezy1_psi[0, 0, 0], {hxez_y_ext, hxez_y_stride}},
    		std::span{emdata.Ezy1.b},
    		std::span{emdata.Ezy1.c},
-   		mdspan_t{&emdata.Ezf[0, Ny - BCDepth, 0], {hxez_y_ext, ez_stride}},
-   		mdspan_t{&emdata.Hxf[0, Ny - BCDepth - 1, 0], {hxez_y_ext, hx_stride}},
          -dtdy_eps
       );
 
       // Exz0
       BoundaryUpdate<Dz>::apply(
+         mdspan_t{&emdata.Exf[0, 0, 1], {exhy_z_ext, ex_stride}},
+         mdspan_t{&emdata.Hyf[0, 0, 0], {exhy_z_ext, hy_stride}},
    		mdspan_t{&emdata.exz0_psi[0, 0, 1], {exhy_z_ext, exhy_z_stride}},
    		std::span{emdata.Exz0.b},
    		std::span{emdata.Exz0.c},
-   		mdspan_t{&emdata.Exf[0, 0, 1], {exhy_z_ext, ex_stride}},
-   		mdspan_t{&emdata.Hyf[0, 0, 0], {exhy_z_ext, hy_stride}},
          -dtdz_eps
       );
 
       // Exz1
       BoundaryUpdate<Dz>::apply(
+         mdspan_t{&emdata.Exf[0, 0, Nz - BCDepth], {exhy_z_ext, ex_stride}},
+         mdspan_t{&emdata.Hyf[0, 0, Nz - BCDepth - 1], {exhy_z_ext, hy_stride}},
    		mdspan_t{&emdata.exz1_psi[0, 0, 0], {exhy_z_ext, exhy_z_stride}},
    		std::span{emdata.Exz1.b},
    		std::span{emdata.Exz1.c},
-   		mdspan_t{&emdata.Exf[0, 0, Nz - BCDepth], {exhy_z_ext, ex_stride}},
-   		mdspan_t{&emdata.Hyf[0, 0, Nz - BCDepth - 1], {exhy_z_ext, hy_stride}},
          -dtdz_eps
       );
 
       // Eyz0
       BoundaryUpdate<Dz>::apply(
+         mdspan_t{&emdata.Eyf[0, 0, 1], {hxey_z_ext, ey_stride}},
+         mdspan_t{&emdata.Hxf[0, 0, 0], {hxey_z_ext, hx_stride}},
    		mdspan_t{&emdata.eyz0_psi[0, 0, 1], {hxey_z_ext, hxey_z_stride}},
    		std::span{emdata.Eyz0.b},
    		std::span{emdata.Eyz0.c},
-   		mdspan_t{&emdata.Eyf[0, 0, 1], {hxey_z_ext, ey_stride}},
-   		mdspan_t{&emdata.Hxf[0, 0, 0], {hxey_z_ext, hx_stride}},
          dtdz_eps
       );
 
       // Eyz1
       BoundaryUpdate<Dz>::apply(
+         mdspan_t{&emdata.Eyf[0, 0, Nz - BCDepth], {hxey_z_ext, ey_stride}},
+         mdspan_t{&emdata.Hxf[0, 0, Nz - BCDepth - 1], {hxey_z_ext, hx_stride}},
    		mdspan_t{&emdata.eyz1_psi[0, 0, 0], {hxey_z_ext, hxey_z_stride}},
    		std::span{emdata.Eyz1.b},
    		std::span{emdata.Eyz1.c},
-   		mdspan_t{&emdata.Eyf[0, 0, Nz - BCDepth], {hxey_z_ext, ey_stride}},
-   		mdspan_t{&emdata.Hxf[0, 0, Nz - BCDepth - 1], {hxey_z_ext, hx_stride}},
          dtdz_eps
       );
    } // end updateEBCs()
@@ -265,121 +266,121 @@ struct EMSolver {
    static void updateHBCs(auto& emdata) {
       // Hyx0
       BoundaryUpdate<Dx>::apply(
+         mdspan_t{&emdata.Hyf[0, 0, 0], {hyez_x_ext, hy_stride}},
+         mdspan_t{&emdata.Ezf[0, 0, 0], {hyez_x_ext, ez_stride}},
          mdspan_t{&emdata.hyx0_psi[0, 0, 0], {hyez_x_ext, hyez_x_stride}},
          std::span{emdata.Hyx0.b},
          std::span{emdata.Hyx0.c},
-         mdspan_t{&emdata.Hyf[0, 0, 0], {hyez_x_ext, hy_stride}},
-         mdspan_t{&emdata.Ezf[0, 0, 0], {hyez_x_ext, ez_stride}},
 			dtdx_mu
 		);
 
       // Hyx1
       BoundaryUpdate<Dx>::apply(
+         mdspan_t{&emdata.Hyf[Nx - BCDepth, 0, 0], {hyez_x_ext, hy_stride}},
+         mdspan_t{&emdata.Ezf[Nx - BCDepth, 0, 0], {hyez_x_ext, ez_stride}},
          mdspan_t{&emdata.hyx1_psi[0, 0, 0], {hyez_x_ext, hyez_x_stride}},
          std::span{emdata.Hyx1.b},
          std::span{emdata.Hyx1.c},
-         mdspan_t{&emdata.Hyf[Nx - BCDepth, 0, 0], {hyez_x_ext, hy_stride}},
-         mdspan_t{&emdata.Ezf[Nx - BCDepth, 0, 0], {hyez_x_ext, ez_stride}},
 			dtdx_mu
 		);
 
       // Hzx0
       BoundaryUpdate<Dx>::apply(
+         mdspan_t{&emdata.Hzf[0, 0, 0], {eyhz_x_ext, hz_stride}},
+         mdspan_t{&emdata.Eyf[0, 0, 0], {eyhz_x_ext, ey_stride}},
          mdspan_t{&emdata.hzx0_psi[0, 0, 0], {eyhz_x_ext, eyhz_x_stride}},
          std::span{emdata.Hzx0.b},
          std::span{emdata.Hzx0.c},
-         mdspan_t{&emdata.Hzf[0, 0, 0], {eyhz_x_ext, hz_stride}},
-         mdspan_t{&emdata.Eyf[0, 0, 0], {eyhz_x_ext, ey_stride}},
 			-dtdx_mu
 		);
 
       // Hzx1
       BoundaryUpdate<Dx>::apply(
+         mdspan_t{&emdata.Hzf[Nx - BCDepth, 0, 0], {eyhz_x_ext, hz_stride}},
+         mdspan_t{&emdata.Eyf[Nx - BCDepth, 0, 0], {eyhz_x_ext, ey_stride}},
          mdspan_t{&emdata.hzx1_psi[0, 0, 0], {eyhz_x_ext, eyhz_x_stride}},
          std::span{emdata.Hzx1.b},
          std::span{emdata.Hzx1.c},
-         mdspan_t{&emdata.Hzf[Nx - BCDepth, 0, 0], {eyhz_x_ext, hz_stride}},
-         mdspan_t{&emdata.Eyf[Nx - BCDepth, 0, 0], {eyhz_x_ext, ey_stride}},
 			-dtdx_mu
 		);
 
       // Hxy0
       BoundaryUpdate<Dy>::apply(
+         mdspan_t{&emdata.Hxf[0, 0, 0], {hxez_y_ext, hx_stride}},
+         mdspan_t{&emdata.Ezf[0, 0, 0], {hxez_y_ext, ez_stride}},
          mdspan_t{&emdata.hxy0_psi[0, 0, 0], {hxez_y_ext, hxez_y_stride}},
          std::span{emdata.Hxy0.b},
          std::span{emdata.Hxy0.c},
-         mdspan_t{&emdata.Hxf[0, 0, 0], {hxez_y_ext, hx_stride}},
-         mdspan_t{&emdata.Ezf[0, 0, 0], {hxez_y_ext, ez_stride}},
 			-dtdy_mu
 		);
 
       // Hxy1
       BoundaryUpdate<Dy>::apply(
+         mdspan_t{&emdata.Hxf[0, Ny - BCDepth, 0], {hxez_y_ext, hx_stride}},
+         mdspan_t{&emdata.Ezf[0, Ny - BCDepth, 0], {hxez_y_ext, ez_stride}},
          mdspan_t{&emdata.hxy1_psi[0, 0, 0], {hxez_y_ext, hxez_y_stride}},
          std::span{emdata.Hxy1.b},
          std::span{emdata.Hxy1.c},
-         mdspan_t{&emdata.Hxf[0, Ny - BCDepth, 0], {hxez_y_ext, hx_stride}},
-         mdspan_t{&emdata.Ezf[0, Ny - BCDepth, 0], {hxez_y_ext, ez_stride}},
 			-dtdy_mu
 		);
 
       // Hzy0
       BoundaryUpdate<Dy>::apply(
+         mdspan_t{&emdata.Hzf[0, 0, 0], {exhz_y_ext, hz_stride}},
+         mdspan_t{&emdata.Exf[0, 0, 0], {exhz_y_ext, ex_stride}},
          mdspan_t{&emdata.hzy0_psi[0, 0, 0], {exhz_y_ext, exhz_y_stride}},
          std::span{emdata.Hzy0.b},
          std::span{emdata.Hzy0.c},
-         mdspan_t{&emdata.Hzf[0, 0, 0], {exhz_y_ext, hz_stride}},
-         mdspan_t{&emdata.Exf[0, 0, 0], {exhz_y_ext, ex_stride}},
 			dtdy_mu
 		);
 
       // Hzy1
       BoundaryUpdate<Dy>::apply(
+         mdspan_t{&emdata.Hzf[0, Ny - BCDepth, 0], {exhz_y_ext, hz_stride}},
+         mdspan_t{&emdata.Exf[0, Ny - BCDepth, 0], {exhz_y_ext, ex_stride}},
          mdspan_t{&emdata.hzy1_psi[0, 0, 0], {exhz_y_ext, exhz_y_stride}},
          std::span{emdata.Hzy1.b},
          std::span{emdata.Hzy1.c},
-         mdspan_t{&emdata.Hzf[0, Ny - BCDepth, 0], {exhz_y_ext, hz_stride}},
-         mdspan_t{&emdata.Exf[0, Ny - BCDepth, 0], {exhz_y_ext, ex_stride}},
 			dtdy_mu
 		);
 
       // Hxz0
       BoundaryUpdate<Dz>::apply(
+         mdspan_t{&emdata.Hxf[0, 0, 0], {hxey_z_ext, hx_stride}},
+         mdspan_t{&emdata.Eyf[0, 0, 0], {hxey_z_ext, ey_stride}},
    		mdspan_t{&emdata.hxz0_psi[0, 0, 0], {hxey_z_ext, hxey_z_stride}},
    		std::span{emdata.Hxz0.b},
    		std::span{emdata.Hxz0.c},
-   		mdspan_t{&emdata.Hxf[0, 0, 0], {hxey_z_ext, hx_stride}},
-   		mdspan_t{&emdata.Eyf[0, 0, 0], {hxey_z_ext, ey_stride}},
 			dtdz_mu
 		);
 
       // Hxz1
       BoundaryUpdate<Dz>::apply(
+         mdspan_t{&emdata.Hxf[0, 0, Nz - BCDepth], {hxey_z_ext, hx_stride}},
+         mdspan_t{&emdata.Eyf[0, 0, Nz - BCDepth], {hxey_z_ext, ey_stride}},
    		mdspan_t{&emdata.hxz1_psi[0, 0, 0], {hxey_z_ext, hxey_z_stride}},
    		std::span{emdata.Hxz1.b},
    		std::span{emdata.Hxz1.c},
-   		mdspan_t{&emdata.Hxf[0, 0, Nz - BCDepth], {hxey_z_ext, hx_stride}},
-   		mdspan_t{&emdata.Eyf[0, 0, Nz - BCDepth], {hxey_z_ext, ey_stride}},
 			dtdz_mu
 		);
 
       // Hyz0
       BoundaryUpdate<Dz>::apply(
+         mdspan_t{&emdata.Hyf[0, 0, 0], {exhy_z_ext, hy_stride}},
+         mdspan_t{&emdata.Exf[0, 0, 0], {exhy_z_ext, ex_stride}},
    		mdspan_t{&emdata.hyz0_psi[0, 0, 0], {exhy_z_ext, exhy_z_stride}},
    		std::span{emdata.Hyz0.b},
    		std::span{emdata.Hyz0.c},
-   		mdspan_t{&emdata.Hyf[0, 0, 0], {exhy_z_ext, hy_stride}},
-   		mdspan_t{&emdata.Exf[0, 0, 0], {exhy_z_ext, ex_stride}},
 			-dtdz_mu
 		);
 
       // Hyz1
       BoundaryUpdate<Dz>::apply(
+         mdspan_t{&emdata.Hyf[0, 0, Nz - BCDepth], {exhy_z_ext, hy_stride}},
+         mdspan_t{&emdata.Exf[0, 0, Nz - BCDepth], {exhy_z_ext, ex_stride}},
    		mdspan_t{&emdata.hyz1_psi[0, 0, 0], {exhy_z_ext, exhy_z_stride}},
    		std::span{emdata.Hyz1.b},
    		std::span{emdata.Hyz1.c},
-   		mdspan_t{&emdata.Hyf[0, 0, Nz - BCDepth], {exhy_z_ext, hy_stride}},
-   		mdspan_t{&emdata.Exf[0, 0, Nz - BCDepth], {exhy_z_ext, ex_stride}},
          -dtdz_mu
 		);
    } // end updateHBCs()
