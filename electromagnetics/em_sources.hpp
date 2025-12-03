@@ -140,7 +140,7 @@ struct GaussianBeam {
       for (auto i = 0zu; i < field.extent(0); i++) {
          for (auto j = 0zu; j < field.extent(1); j++) {
             for (auto k = 0zu; k < field.extent(2); k++) {
-               field[i, j, k] += result;
+               field[i, j, k] += coeffs[k] * result;
             } // end for(k)
          } // end for(j)
       } // end for(i)
