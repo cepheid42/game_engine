@@ -103,13 +103,13 @@ struct GaussianBeam {
    GaussianBeam(const mdspan_t& f_, temporal_vec tsrc_, const double amp_, const double omega_, const double w0_, const vec3<double>& wpos_)
    : field(f_),
      time_srcs(std::move(tsrc_)),
-     coeffs(Nz - 2 * BCDepth - 10),
+     coeffs(Nz - 2 * (BCDepth + 10)),
      waist_pos(wpos_),
      waist_size(w0_),
      amp(amp_)
    {
-      constexpr auto x0 = static_cast<double>(BCDepth + 5);
-      constexpr auto z0 = BCDepth + 5;
+      constexpr auto x0 = static_cast<double>(BCDepth + 10);
+      constexpr auto z0 = BCDepth + 10;
       constexpr auto z1 = Nz - z0;
 
       constexpr auto zmin = z_range[0] + dz * static_cast<double>(z0);
@@ -178,7 +178,7 @@ void add_gaussianbeam(auto& emdata) {
    emdata.beams.push_back(
       GaussianBeam{
       // mdspan_t{&emdata.Eyf[25, 0, 25], {std::extents{1, 1, Nz - 50}, ey_stride}},
-      mdspan_t{&emdata.Eyf[BCDepth + 5, 0, BCDepth + 5], {std::extents{1, Ny - 1, Nz - 2 * (BCDepth + 5)}, ey_stride}},
+      mdspan_t{&emdata.Eyf[BCDepth + 10, 0, BCDepth + 10], {std::extents{1, Ny - 1, Nz - 2 * (BCDepth + 10)}, ey_stride}},
       make_srcvec(),
       amp,
       omega,

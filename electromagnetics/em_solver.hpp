@@ -45,7 +45,7 @@ struct BoundaryUpdate {
 
    static void apply(const auto& f, const auto& d, const auto& psi, const auto& b, const auto& c, const auto cf)
    {
-      // #pragma omp parallel for simd num_threads(nThreads)
+      #pragma omp parallel for simd num_threads(nThreads)
       for (auto i = 0zu; i < psi.extent(0); ++i) {
          for (auto j = 0zu; j < psi.extent(1); ++j) {
             for (auto k = 0zu; k < psi.extent(2); ++k) {

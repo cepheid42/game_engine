@@ -23,7 +23,7 @@ inline constexpr auto dx = 2.0e-8;
 inline constexpr auto dy = 2.0e-8;
 inline constexpr auto dz = 2.0e-8;
 
-inline constexpr auto cfl   = 0.8479411200023808;
+inline constexpr auto cfl   = 1.0385115379639174;
 inline constexpr auto dt    = 4e-17;
 inline constexpr auto t_end = 3e-13;
 inline constexpr auto Nt    = 7501zu;
