@@ -4,10 +4,9 @@
 #include "metrics.hpp"
 #include "timers.hpp"
 // #include "particles/particles.hpp"
-// #include "particles/pusher.hpp"
+#include "particles/pusher.hpp"
 // #include "particles/current_deposition.hpp"
 // #include "particles/collisions.hpp"
-
 
 #include "barkeep.h"
 
@@ -15,7 +14,7 @@
 
 using namespace tf;
 using namespace tf::electromagnetics;
-// using namespace tf::particles;
+using namespace tf::particles;
 // using namespace tf::collisions;
 // using namespace tf::metrics;
 
@@ -42,58 +41,83 @@ int main() {
 
    const auto data_path = std::string{sim_path} + "/data/" + std::string{sim_name};
    auto emdata = make_emdata();
+   add_gaussianbeam(emdata);
 
+   timers["IO"].start_timer();
    size_t padding = 10;
    std::string count_padded = std::to_string(0);
    count_padded.insert(count_padded.begin(), padding - count_padded.length(), '0');
    count_padded += ".bp"; // default extension is .bp
 
    metrics::EMFieldsMetric::write(emdata, data_path, count_padded);
+   timers["IO"].stop_timer();
 
-   // Metrics metrics(std::string{sim_path} + "/data/" + std::string{sim_name});
-   // if constexpr (em_enabled) {
-   //    metrics.add_em_metrics(emdata);
-   // }
-
-   // if constexpr (push_enabled or coll_enabled) {
-   //    emsolver.particle_correction();
-   //    for (auto& g : particle_groups) {
-   //       BorisPush::backstep_velocity(g, emsolver.emdata);
-   //       metrics.add_particle_metric(g);
-   //    }
-   // }
+   // // Metrics metrics(std::string{sim_path} + "/data/" + std::string{sim_name});
+   // // if constexpr (em_enabled) {
+   // //    metrics.add_em_metrics(emdata);
+   // // }
+   //
+   // // if constexpr (push_enabled or coll_enabled) {
+   // //    emsolver.particle_correction();
+   // //    for (auto& g : particle_groups) {
+   // //       BorisPush::backstep_velocity(g, emsolver.emdata);
+   // //       metrics.add_particle_metric(g);
+   // //    }
+   // // }
 
    auto time = 0.0;
    auto step = 0zu;
-   // const auto progress_bar =
-   //    bk::ProgressBar(
-   //       &step,
-   //       {.total = Nt,
-   //        .message = "Step",
-   //        .speed = 0.,
-   //        .speed_unit = "steps/s",
-   //        .interval = 1.,
-   //        // .no_tty = true,
-   //        .show = false});
+   const auto progress_bar =
+      bk::ProgressBar(
+         &step,
+         {.total = Nt,
+          .message = "Step",
+          .speed = 0.,
+          .speed_unit = "steps/s",
+          .interval = 1.,
+          // .no_tty = true,
+          .show = false});
 
-   // timers["IO"].start_timer();
-   // metrics.write(step, time);
-   // timers["IO"].stop_timer();
+   // // timers["IO"].start_timer();
+   // // metrics.write(step, time);
+   // // timers["IO"].stop_timer();
 
-   // progress_bar->show();
+
+//    (52.33 steps/s)
+//         EM: 00:02:14.895301056
+//       Push: 00:00:00.000000000
+//       Jdep: 00:00:00.000000000
+//         IO: 00:00:08.531251556
+// Collisions: 00:00:00.000000000
+//      Total: 00:02:24.455501017
+
+//    (145.34 steps/s)
+//         EM: 00:00:42.516979313
+//       Push: 00:00:00.000000000
+//       Jdep: 00:00:00.000000000
+//         IO: 00:00:09.172651284
+// Collisions: 00:00:00.000000000
+//      Total: 00:00:52.768088420
+
+   progress_bar->show();
    for (step = 1; step <= Nt; step++, time += dt) {
-      std::println("Step {}", step);
+      // std::println("Step {}", step);
+
       // Electromagnetics
       timers["EM"].start_timer();
-      EMSolver::advance(emdata, time, step);
+      EMSolver::advance(emdata, time);
       timers["EM"].stop_timer();
 
-      padding = 10;
-      count_padded = std::to_string(step);
-      count_padded.insert(count_padded.begin(), padding - count_padded.length(), '0');
-      count_padded += ".bp"; // default extension is .bp
+      timers["IO"].start_timer();
+      if (step % em_save_interval == 0) {
+         padding = 10;
+         count_padded = std::to_string(step);
+         count_padded.insert(count_padded.begin(), padding - count_padded.length(), '0');
+         count_padded += ".bp"; // default extension is .bp
 
-      metrics::EMFieldsMetric::write(emdata, data_path, count_padded);
+         metrics::EMFieldsMetric::write(emdata, data_path, count_padded);
+      }
+      timers["IO"].stop_timer();
 
       // // Particle Push
       // timers["Push"].start_timer();
@@ -122,7 +146,7 @@ int main() {
       // metrics.write(step, time);
       // timers["IO"].stop_timer();
    }
-   // progress_bar->done();
+   progress_bar->done();
    timers["Main"].stop_timer();
 
    print_final_timers(timers);

@@ -221,7 +221,7 @@ struct ParticleInitializer {
       reader.Get(w_data, w_vec, adios2::Mode::Sync);
       reader.Get(g_data, g_vec, adios2::Mode::Sync);
 
-      for (auto i = 0lu; i < num_particles; i++) {
+      for (auto i = 0zu; i < num_particles; i++) {
          const vec3 pos{p_vec[3 * i], p_vec[3 * i + 1], p_vec[3 * i + 2]};
          const vec3 vel{v_vec[3 * i], v_vec[3 * i + 1], v_vec[3 * i + 2]};
          const auto weight = static_cast<float>(w_vec[i]);

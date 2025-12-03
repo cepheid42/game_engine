@@ -199,13 +199,14 @@ def plot_fields(n, step, file_dir):
         field = load_field(n, name, file_dir)
         nnx, nny, nnz = field.shape
         # field = field[:, :, nnz // 2]
-        field = field[:, nny // 2, :]
+        field = field[:, 0, :]
 
         if name[0] == 'H':
             field *= H_to_B
 
 
         im = ax.pcolormesh(field)
+        # im = ax.contourf(field, levels=200)
         figure.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=0.5)
 
         ax.set_aspect('equal')
@@ -379,9 +380,9 @@ def plot_Temp(groups, start, stop, step, file_dir):
 
 
 def main():
-    step = 4
+    step = 75
     start = 0
-    stop = 400
+    stop = 2500
 
     file_dir = '/em_test'
 
@@ -397,10 +398,10 @@ def main():
     # targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
     #    p.starmap(plot_metric, targs)
-    #
-    # targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
-    # with mp.Pool(8) as p:
-    #    p.starmap(plot_fields, targs)
+
+    targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
+    with mp.Pool(8) as p:
+       p.starmap(plot_fields, targs)
 
     # targs = [(n, step, 'Ez', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
@@ -410,7 +411,7 @@ def main():
 
     # plot_Temp(['electrons', 'ions'], start, stop, step, file_dir)
     # plot_KE(['electrons', 'ions'], start, stop, step, file_dir)
-    plot_field_energy(start, stop, step, file_dir)
+    # plot_field_energy(start, stop, step, file_dir)
 
     # plot_single_field(0, 1, 'Ex', file_dir)
     # plot_single_field(0, 1, 'Ez', file_dir)

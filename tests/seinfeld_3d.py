@@ -10,21 +10,20 @@ import math
 project_path = '/home/cepheid/TriForce/game_engine'
 particle_data = project_path + '/data'
 
-shape = (101, 101, 101)
+shape = (1501, 2, 1501)
 
-xmin, xmax = 0.0, 1.0
-ymin, ymax = 0.0, 1.0
-zmin, zmax = 0.0, 1.0
+xmin, xmax = -15.0e-6, 15.0e-6
+zmin, zmax = -15.0e-6, 15.0e-6
 
 dx = (xmax - xmin) / (shape[0] - 1)
-dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
+ymin, ymax = 0.0, 0.01
+dy = 0.01
 
-cfl = 0.95 #constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
-dt = cfl * dx / (math.sqrt(3) * constants.c)
-t_end = 400 * dt
+dt = 4.0e-17
+t_end = 3.0e-13
 nt = int(t_end / dt) + 1
-
+cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
 print(dx, dy, dz)
 print(cfl, dt, t_end, nt)

@@ -1,20 +1,21 @@
 #ifndef EM_SOLVER_HPP
 #define EM_SOLVER_HPP
 
-#include "array_utils.hpp"
 #include "constants.hpp"
+#include "em_data.hpp"
 #include "em_params.hpp"
-#include "em_sources.hpp"
+// #include "em_sources.hpp"
 #include "program_params.hpp"
 
-// #include <print>
+#include <print>
 
 namespace tf::electromagnetics {
 template<Derivative D>
 static auto diff(const auto& d, const auto i, const auto j, const auto k) {
-   if      constexpr (D == Derivative::Dx) { return d[i + 1, j, k] - d[i, j, k]; }
-   else if constexpr (D == Derivative::Dy) { return d[i, j + 1, k] - d[i, j, k]; }
-   else if constexpr (D == Derivative::Dz) { return d[i, j, k + 1] - d[i, j, k]; }
+   if      constexpr (D == Derivative::Dx and !x_collapsed) { return d[i + 1, j, k] - d[i, j, k]; }
+   else if constexpr (D == Derivative::Dy and !y_collapsed) { return d[i, j + 1, k] - d[i, j, k]; }
+   else if constexpr (D == Derivative::Dz and !z_collapsed) { return d[i, j, k + 1] - d[i, j, k]; }
+   else { return 0.0; }
 }
 
 template<Derivative D1, Derivative D2, typename T=mdspan_t>
@@ -22,6 +23,7 @@ struct FieldUpdate {
    static void apply(const mdspan_t& f, const mdspan_t& d1, const mdspan_t& d2, const T& src,
                      const auto c_d1, const auto c_d2, const auto c_src)
    {
+      #pragma omp parallel for simd num_threads(nThreads)
       for (std::size_t i = 0; i < f.extent(0); ++i) {
          for (std::size_t j = 0; j < f.extent(1); ++j) {
             for (std::size_t k = 0; k < f.extent(2); ++k) {
@@ -37,12 +39,17 @@ struct FieldUpdate {
 
 template<Derivative D>
 struct BoundaryUpdate {
+   static void apply(const auto&, const auto&, const auto&, const auto&, const auto&, const auto)
+   requires (D == Derivative::Dy and y_collapsed)
+   {}
+
    static void apply(const auto& f, const auto& d, const auto& psi, const auto& b, const auto& c, const auto cf)
    {
-      std::size_t ipml;
+      // #pragma omp parallel for simd num_threads(nThreads)
       for (auto i = 0zu; i < psi.extent(0); ++i) {
          for (auto j = 0zu; j < psi.extent(1); ++j) {
             for (auto k = 0zu; k < psi.extent(2); ++k) {
+               std::size_t ipml;
                if      constexpr (D == Derivative::Dx) { ipml = i; }
                else if constexpr (D == Derivative::Dy) { ipml = j; }
                else if constexpr (D == Derivative::Dz) { ipml = k; }
@@ -68,34 +75,22 @@ struct EMSolver {
    static constexpr auto dtdz_eps = dt / (constants::eps0<double> * dz);
    static constexpr auto   dt_eps = dt /  constants::eps0<double>;
 
-   struct empty {
-      static constexpr auto operator[](const auto, const auto, const auto) { return 0.0; }
-   };
-   
-   static void advance(auto& emdata, const auto t, const auto n) requires(em_enabled) {
-      auto ricker = [&n]()
-      {
-         constexpr auto Md = 2.0;
-         constexpr auto ppw = 20.0;
-         const auto alpha = math::SQR(constants::pi<double> * (cfl * static_cast<double>(n) / ppw - Md));
-         return (1.0 - 2.0 * alpha) * std::exp(-alpha);
-      };
+   struct empty { static constexpr auto operator[](const auto, const auto, const auto) { return 0.0; } };
+   static void advance(auto&, const auto) requires (!em_enabled) {}
 
+   static void advance(auto& emdata, const auto t) requires(em_enabled) {
       updateH(emdata);
       updateHBCs(emdata);
 
       // updateJBCs();
-      // apply_srcs(t);
+      apply_srcs(emdata, t);
 
-      emdata.Ezf[Nx / 2, Ny / 2, Nz / 2] += ricker();
       updateE(emdata);
       updateEBCs(emdata);
 
-      // particle_correction(); // for the particles and shit
-      // zero_currents();       // also for the particles, don't need last week's currents
+      // particle_correction(emdata); // for the particles and shit
+      // zero_currents(emdata);       // also for the particles, don't need last week's currents
    }
-
-   static void advance(auto&, const auto) requires (!em_enabled) {}
 
    static void updateE(auto& emdata) {
       FieldUpdate<Dy, Dz>::apply(
@@ -124,9 +119,9 @@ struct EMSolver {
    }
 
    static void updateH(auto& emdata) {
-      FieldUpdate<Dz, Dy, empty>::apply(emdata.Hxf, emdata.Eyf, emdata.Ezf, empty{}, dtdz_mu,	dtdy_mu, 0.0);
-      FieldUpdate<Dx, Dz, empty>::apply(emdata.Hyf, emdata.Ezf, emdata.Exf, empty{}, dtdx_mu,	dtdz_mu, 0.0);
-      FieldUpdate<Dy, Dx, empty>::apply(emdata.Hzf, emdata.Exf, emdata.Eyf, empty{}, dtdy_mu,	dtdx_mu, 0.0);
+      FieldUpdate<Dz, Dy, empty>::apply(emdata.Hxf, emdata.Eyf, emdata.Ezf, empty{}, dtdz_mu, dtdy_mu, 0.0);
+      FieldUpdate<Dx, Dz, empty>::apply(emdata.Hyf, emdata.Ezf, emdata.Exf, empty{}, dtdx_mu, dtdz_mu, 0.0);
+      FieldUpdate<Dy, Dx, empty>::apply(emdata.Hzf, emdata.Exf, emdata.Eyf, empty{}, dtdy_mu, dtdx_mu, 0.0);
    }
 
    static void particle_correction(auto& emdata) {
@@ -134,33 +129,33 @@ struct EMSolver {
       std::ranges::copy(emdata.Hy, emdata.By.begin());
       std::ranges::copy(emdata.Hz, emdata.Bz.begin());
 
-      FieldUpdate<Dz, Dy>::apply(emdata.Bxf, emdata.Eyf, emdata.Ezf, empty{}, 0.5 *	dtdz_mu, 0.5 *	dtdy_mu, 0.0);
-      FieldUpdate<Dx, Dz>::apply(emdata.Byf, emdata.Ezf, emdata.Exf, empty{}, 0.5 *	dtdx_mu, 0.5 *	dtdz_mu, 0.0);
-      FieldUpdate<Dy, Dx>::apply(emdata.Bzf, emdata.Exf, emdata.Eyf, empty{}, 0.5 *	dtdy_mu, 0.5 *	dtdx_mu, 0.0);
+      FieldUpdate<Dz, Dy, empty>::apply(emdata.Bxf, emdata.Eyf, emdata.Ezf, empty{}, 0.5 * dtdz_mu, 0.5 * dtdy_mu, 0.0);
+      FieldUpdate<Dx, Dz, empty>::apply(emdata.Byf, emdata.Ezf, emdata.Exf, empty{}, 0.5 * dtdx_mu, 0.5 * dtdz_mu, 0.0);
+      FieldUpdate<Dy, Dx, empty>::apply(emdata.Bzf, emdata.Exf, emdata.Eyf, empty{}, 0.5 * dtdy_mu, 0.5 * dtdx_mu, 0.0);
 
       // todo: add up total fields here
    }
 
    static void updateEBCs(auto& emdata) {
-      // Eyx0
-      BoundaryUpdate<Dx>::apply(
-         mdspan_t{&emdata.Eyf[1, 0, 0], {eyhz_x_ext, ey_stride}},
-         mdspan_t{&emdata.Hzf[0, 0, 0], {eyhz_x_ext, hz_stride}},
-         mdspan_t{&emdata.eyx0_psi[1, 0, 0], {eyhz_x_ext, eyhz_x_stride}},
-         std::span{emdata.Eyx0.b},
-         std::span{emdata.Eyx0.c},
-         -dtdx_eps
-      );
+     // Eyx0
+     BoundaryUpdate<Dx>::apply(
+        mdspan_t{&emdata.Eyf[1, 0, 0], {eyhz_x_ext, ey_stride}},
+        mdspan_t{&emdata.Hzf[0, 0, 0], {eyhz_x_ext, hz_stride}},
+        mdspan_t{&emdata.eyx0_psi[1, 0, 0], {eyhz_x_ext, eyhz_x_stride}},
+        std::span{emdata.Eyx0.b},
+        std::span{emdata.Eyx0.c},
+        -dtdx_eps
+     );
 
-      // Eyx1
-      BoundaryUpdate<Dx>::apply(
-         mdspan_t{&emdata.Eyf[Nx - BCDepth, 0, 0], {eyhz_x_ext, ey_stride}},
-         mdspan_t{&emdata.Hzf[Nx - BCDepth - 1, 0, 0], {eyhz_x_ext, hz_stride}},
-         mdspan_t{&emdata.eyx1_psi[0, 0, 0], {eyhz_x_ext, eyhz_x_stride}},
-         std::span{emdata.Eyx1.b},
-         std::span{emdata.Eyx1.c},
-         -dtdx_eps
-      );
+     // Eyx1
+     BoundaryUpdate<Dx>::apply(
+        mdspan_t{&emdata.Eyf[Nx - BCDepth, 0, 0], {eyhz_x_ext, ey_stride}},
+        mdspan_t{&emdata.Hzf[Nx - BCDepth - 1, 0, 0], {eyhz_x_ext, hz_stride}},
+        mdspan_t{&emdata.eyx1_psi[0, 0, 0], {eyhz_x_ext, eyhz_x_stride}},
+        std::span{emdata.Eyx1.b},
+        std::span{emdata.Eyx1.c},
+        -dtdx_eps
+     );
 
       // Ezx0
       BoundaryUpdate<Dx>::apply(
@@ -396,23 +391,23 @@ struct EMSolver {
    //    Z0BC::Jx::apply(emdata.Jx, empty{}, empty{}, bcdata.z0.Jx);
    //    Z0BC::Jy::apply(emdata.Jy, empty{}, empty{}, bcdata.z0.Jy);
    // }
-   //
-   //
-   // void apply_srcs(const double t) {
-   //    for (const auto& src: emdata.srcs) {
-   //       src.apply(t);
-   //    }
-   //
-   //    for (const auto& src: emdata.beams) {
-   //       src.apply(t);
-   //    }
-   // }
-   //
-   // void zero_currents() {
-   //    std::ranges::fill(emdata.Jx, 0.0);
-   //    std::ranges::fill(emdata.Jy, 0.0);
-   //    std::ranges::fill(emdata.Jz, 0.0);
-   // }
+
+
+   static void apply_srcs(auto& emdata, const auto t) {
+      // for (const auto& src: emdata.srcs) {
+      //    src.apply(t);
+      // }
+
+      for (const auto& src: emdata.beams) {
+         src.apply(t);
+      }
+   }
+
+   static void zero_currents(auto& emdata) {
+      std::ranges::fill(emdata.Jx, 0.0);
+      std::ranges::fill(emdata.Jy, 0.0);
+      std::ranges::fill(emdata.Jz, 0.0);
+   }
 }; // end struct EMSolver
 
 } // end namespace tf::electromagnetics

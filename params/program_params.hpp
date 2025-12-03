@@ -8,25 +8,25 @@
 inline constexpr auto nThreads = 24;
 
 inline constexpr auto x_collapsed = false;
-inline constexpr auto y_collapsed = false;
+inline constexpr auto y_collapsed = true;
 inline constexpr auto z_collapsed = false;
 
-inline constexpr auto Nx = 101lu;
-inline constexpr auto Ny = 101lu;
-inline constexpr auto Nz = 101lu;
+inline constexpr auto Nx = 1501lu;
+inline constexpr auto Ny = 2lu;
+inline constexpr auto Nz = 1501lu;
 
-inline constexpr std::array x_range = {0.0, 1.0};
-inline constexpr std::array y_range = {0.0, 1.0};
-inline constexpr std::array z_range = {0.0, 1.0};
+inline constexpr std::array x_range = {-15.0e-6, 15.0e-6};
+inline constexpr std::array y_range = {0.0, 2.0e-8};
+inline constexpr std::array z_range = {-15.0e-6, 15.0e-6};
 
-inline constexpr auto dx = 0.01;
-inline constexpr auto dy = 0.01;
-inline constexpr auto dz = 0.01;
+inline constexpr auto dx = 2.0e-8;
+inline constexpr auto dy = 2.0e-8;
+inline constexpr auto dz = 2.0e-8;
 
-inline constexpr auto cfl   = 0.95;
-inline constexpr auto dt    = 1.829541541469147e-11;
-inline constexpr auto t_end = 7.3181661658765885e-09;
-inline constexpr auto Nt    = 401zu;
+inline constexpr auto cfl   = 0.8479411200023808;
+inline constexpr auto dt    = 4e-17;
+inline constexpr auto t_end = 3e-13;
+inline constexpr auto Nt    = 7501zu;
 
 inline constexpr auto sim_name = "em_test";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
@@ -39,11 +39,13 @@ inline constexpr auto coll_enabled = false;
 /*---------------------------------------------------------------/
 /-                        EM Parameters                         -/
 /---------------------------------------------------------------*/
+enum class EMFace { X, Y, Z };
+enum class EMSide { Lo, Hi };
 enum class Derivative { Dx, Dy, Dz };
 
-inline constexpr auto em_save_interval = 4lu;
+inline constexpr auto em_save_interval = 75zu;
 
-inline constexpr auto PMLDepth    = 10lu;
+inline constexpr auto PMLDepth    = 15lu;
 inline constexpr auto PMLGrade    = 3.5;
 inline constexpr auto PMLAlphaMax = 0.2;
 //inline constexpr auto PMLKappaMax = 1.0;

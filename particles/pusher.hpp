@@ -17,9 +17,9 @@ auto FieldToParticleInterp(const auto& F,
                            const auto ci, const auto cj, const auto ck)
 -> double
 {
-   using IShape = typename Strategy::OuterShape;
-   using JShape = typename Strategy::MiddleShape;
-   using KShape = typename Strategy::InnerShape;
+   using IShape = Strategy::OuterShape;
+   using JShape = Strategy::MiddleShape;
+   using KShape = Strategy::InnerShape;
    auto result = 0.0;
    for (int i = IShape::Begin; i <= IShape::End; ++i) {
       const auto& s0i = shapeI[i - IShape::Begin];
@@ -28,7 +28,7 @@ auto FieldToParticleInterp(const auto& F,
          for (int k = KShape::Begin; k <= KShape::End; ++k) {
             const auto& s0k = shapeK[k - KShape::Begin];
             const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
-            result += s0i * s0j * s0k * F(x, y, z);
+            result += s0i * s0j * s0k * F[x, y, z];
          } // end for(k)
       } // end for(j)
    } // end for(i)
@@ -97,12 +97,13 @@ static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qd
    const auto yf_a = YFullShape::shape_array(p_full.y);
    const auto zf_a = ZFullShape::shape_array(p_full.z);
 
-   const auto exc = FieldToParticleInterp<0, ExStrategy>(emdata.Ex_total, yf_a, zf_a, xh_r, fid.y, fid.z, hid.x);
-   const auto eyc = FieldToParticleInterp<1, EyStrategy>(emdata.Ey_total, zf_a, xf_a, yh_r, fid.z, fid.x, hid.y);
-   const auto ezc = FieldToParticleInterp<2, EzStrategy>(emdata.Ez_total, xf_a, yf_a, zh_r, fid.x, fid.y, hid.z);
-   const auto bxc = FieldToParticleInterp<0, BxStrategy>(emdata.Bx_total, yh_r, zh_r, xf_a, hid.y, hid.z, fid.x);
-   const auto byc = FieldToParticleInterp<1, ByStrategy>(emdata.By_total, zh_r, xh_r, yf_a, hid.z, hid.x, fid.y);
-   const auto bzc = FieldToParticleInterp<2, BzStrategy>(emdata.Bz_total, xh_r, yh_r, zf_a, hid.x, hid.y, fid.z);
+   // todo: add total fields back in eventually
+   const auto exc = FieldToParticleInterp<0, ExStrategy>(emdata.Exf, yf_a, zf_a, xh_r, fid.y, fid.z, hid.x);
+   const auto eyc = FieldToParticleInterp<1, EyStrategy>(emdata.Eyf, zf_a, xf_a, yh_r, fid.z, fid.x, hid.y);
+   const auto ezc = FieldToParticleInterp<2, EzStrategy>(emdata.Ezf, xf_a, yf_a, zh_r, fid.x, fid.y, hid.z);
+   const auto bxc = FieldToParticleInterp<0, BxStrategy>(emdata.Bxf, yh_r, zh_r, xf_a, hid.y, hid.z, fid.x);
+   const auto byc = FieldToParticleInterp<1, ByStrategy>(emdata.Byf, zh_r, xh_r, yf_a, hid.z, hid.x, fid.y);
+   const auto bzc = FieldToParticleInterp<2, BzStrategy>(emdata.Bzf, xh_r, yh_r, zf_a, hid.x, hid.y, fid.z);
 
    return {qdt * vec3{exc, eyc, ezc}, qdt * vec3{bxc, byc, bzc}};
 } // end FieldAtParticle
@@ -110,6 +111,7 @@ static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qd
 template<ParticleBCType BC>
 requires (BC == ParticleBCType::Reflecting)
 void apply_particle_bcs(auto& p, const auto& new_loc, const auto& old_loc) {
+   // todo: implement this
    (void) p;
    (void) new_loc;
    (void) old_loc;
@@ -156,7 +158,7 @@ void apply_particle_bcs(auto& p, const auto& new_loc, const auto& old_loc) {
 }
 
 struct BorisPush {
-   using emdata_t = electromagnetics::EMData;
+   using emdata_t = electromagnetics::emdata_t;
    using group_t = ParticleGroup;
 
    static void update_velocity(Particle& p, const emdata_t& emdata, const auto qdt) {
