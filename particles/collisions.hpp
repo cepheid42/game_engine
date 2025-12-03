@@ -270,24 +270,24 @@ struct Collisions {
          const auto gamma_e_ejected = particles::calculateGammaP(pe_ejected, constants::m_e<double>);
          const auto v_e_ejected = pe_ejected / (gamma_e_ejected * constants::m_e<double>);
 
-         #pragma omp atomic
-         g1_products.emplace_back(
-            v_e_ejected,
-            gamma_e_ejected,
-            particle2.location,
-            particle2.location,
-            product_weight
-         );
+         #pragma omp critical
+         {
+            g1_products.emplace_back(
+               v_e_ejected,
+               gamma_e_ejected,
+               particle2.location,
+               particle2.location,
+               product_weight
+            );
 
-         #pragma omp atomic
-         g2_products.emplace_back(
-            particle2.velocity,
-            particle2.gamma,
-            particle2.location,
-            particle2.location,
-            product_weight
-         );
-
+            g2_products.emplace_back(
+               particle2.velocity,
+               particle2.gamma,
+               particle2.location,
+               particle2.location,
+               product_weight
+            );
+         }
          if (product_weight == particle2.weight) {
             particle2.weight = -1.0;
          }

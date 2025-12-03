@@ -39,12 +39,12 @@ struct EMSolver {
    void advance(const auto t) requires(em_enabled) {
       updateH();
       updateHBCs();
-      updateJBCs();
+      // updateJBCs();
       apply_srcs(t);
       updateE();
       updateEBCs();
-      particle_correction(); // for the particles and shit
-      zero_currents();       // also for the particles, don't need last week's currents
+      // particle_correction(); // for the particles and shit
+      // zero_currents();       // also for the particles, don't need last week's currents
    }
 
    void advance(const auto) requires (!em_enabled) {}

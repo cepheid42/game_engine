@@ -202,13 +202,13 @@ def plot_fields(n, step, file_dir):
         # field = field[:, :, nnz // 2]
         field = field[:, 0, :]
 
-        if name[0] == 'H':
-            field *= H_to_B
+        # if name[0] == 'H':
+        #     field *= H_to_B
 
         # xs = np.linspace(xmin, xmax, field.shape[0])
         # zs = np.linspace(zmin, zmax, field.shape[1])
         # norm = colors.Normalize(vmin=-10**15, vmax=10**15)
-        im = ax.pcolormesh(field, cmap='coolwarm')
+        im = ax.pcolormesh(field)
         figure.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=0.5)
         # figure.colorbar(ScalarMappable(norm=norm, cmap='coolwarm'), ax=ax, format='{x:3.1e}', pad=0.01, shrink=1.0)
         ax.set_aspect('equal')
@@ -218,19 +218,19 @@ def plot_fields(n, step, file_dir):
     # with FileReader(data_dir + file_dir + filename) as f:
     #     step = f.read_attribute('step')
 
-    fig, axes = plt.subplots(nrows=3, ncols=3, figsize=(12, 8), layout='constrained', sharex=True, sharey=False)
+    fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(12, 8), layout='constrained', sharex=True, sharey=False)
     fig.supxlabel(r'z ($\mu$m)')
     fig.supylabel(r'x ($\mu$m)')
     # fig.suptitle(f'Fields @ {time:.4e} ns')
     plot('Ex', axes[0, 0], fig)
     plot('Ey', axes[0, 1], fig)
     plot('Ez', axes[0, 2], fig)
-    plot('Hx', axes[1, 0], fig)
-    plot('Hy', axes[1, 1], fig)
-    plot('Hz', axes[1, 2], fig)
-    plot('Jx', axes[2, 0], fig)
-    plot('Jy', axes[2, 1], fig)
-    plot('Jz', axes[2, 2], fig)
+    plot('Bx', axes[1, 0], fig)
+    plot('By', axes[1, 1], fig)
+    plot('Bz', axes[1, 2], fig)
+    # plot('Jx', axes[2, 0], fig)
+    # plot('Jy', axes[2, 1], fig)
+    # plot('Jz', axes[2, 2], fig)
 
     plt.savefig(data_dir + f'/pngs/fields_{n // step:010}.png')
     plt.clf()
@@ -381,13 +381,13 @@ def plot_Temp(groups, start, stop, step, file_dir):
 
 
 def main():
-    step = 100
+    step = 75
     start = 0
-    stop = 10000
+    stop = 7500
 
-    file_dir = '/carbon_thermal_eq'
+    file_dir = '/lsi'
 
-    plot_Temp(['carbon1', 'carbon2'], start, stop, step, file_dir)
+    # plot_Temp(['carbon1', 'carbon2'], start, stop, step, file_dir)
 
     # plot_distributions(start, stop, step, 'carbon1', file_dir)
     # plot_distributions(start, stop, step, 'carbon2', file_dir)
@@ -400,9 +400,9 @@ def main():
     # with mp.Pool(16) as p:
     #    p.starmap(plot_metric, targs)
 
-    # targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
-    # with mp.Pool(8) as p:
-    #    p.starmap(plot_fields, targs)
+    targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
+    with mp.Pool(8) as p:
+       p.starmap(plot_fields, targs)
 
     # targs = [(n, step, 'Jz', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:

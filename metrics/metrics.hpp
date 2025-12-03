@@ -38,22 +38,27 @@ struct EMFieldsMetric final : detail::MetricBase {
    : io(io_),
      var_step(io.DefineVariable<std::size_t>("Step")),
      var_dt(io.DefineVariable<double>("dt")),
-     var_time(io.DefineVariable<double>("Time")),
-     BFields({
-        {"Bx", Array3D<double>{em_map["Hx"].dims()}},
-        {"By", Array3D<double>{em_map["Hy"].dims()}},
-        {"Bz", Array3D<double>{em_map["Hz"].dims()}}
-     })
+     var_time(io.DefineVariable<double>("Time"))
+     // BFields({
+     //    {"Bx", Array3D<double>{em_map["Hx"].dims()}},
+     //    {"By", Array3D<double>{em_map["Hy"].dims()}},
+     //    {"Bz", Array3D<double>{em_map["Hz"].dims()}}
+     // })
    {
+      BFields.insert({"Bx", Array3D<double>(Nx, Ny - 1, Nz - 1)});
+      BFields.insert({"By", Array3D<double>(Nx - 1, Ny, Nz - 1)});
+      BFields.insert({"Bz", Array3D<double>(Nx - 1, Ny - 1, Nz)});
+
       for (auto& [name, field] : em_map) {
-         if (name[0] == 'H') {
-            name[0] = 'B';
+         auto nm = name;
+         if (nm[0] == 'H') {
+            nm[0] = 'B';
          }
          const auto [xs, ys, zs] = field.dims();
          fields.push_back(FieldVariable{
-            .field = field,
+            .field = &field,
             .variable = io.DefineVariable<double>(
-               name,
+               nm,
                {xs, ys, zs}, // shape
                {0, 0, 0},    // start
                {xs, ys, zs}, // count
