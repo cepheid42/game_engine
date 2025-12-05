@@ -129,36 +129,35 @@ def load_field(n, name, file_dir):
 
 
 def plot_metric(n, step, metric, group_name, file_dir):
-
-    filename = f'/{group_name}_{n:010d}.bp'
+    filename = f'/{group_name}_dump_{n:010d}.bp'
     with FileReader(data_dir + file_dir + filename) as f:
         data = f.read('Weight')
-        sim_step = f.read_attribute('step')
-        dt = f.read_attribute('dt')
-        dims = f.read_attribute('dims')
-        x_range = f.read_attribute('x_range')
-        y_range = f.read_attribute('y_range')
-        z_range = f.read_attribute('z_range')
+        # sim_step = f.read_attribute('step')
+        # dt = f.read_attribute('dt')
+        # dims = f.read_attribute('dims')
+        # x_range = f.read_attribute('x_range')
+        # y_range = f.read_attribute('y_range')
+        # z_range = f.read_attribute('z_range')
 
 
-    time = sim_step * dt * s_to_ns
-    nx, ny, nz = np.asarray(dims, dtype=int)
-    xmin, xmax = x_range
-    ymin, ymax = y_range
-    zmin, zmax = z_range
+    # time = sim_step * dt * s_to_ns
+    # nx, ny, nz = np.asarray(dims, dtype=int)
+    # xmin, xmax = x_range
+    # ymin, ymax = y_range
+    # zmin, zmax = z_range
 
-    xs = np.linspace(xmin, xmax, nx)
-    ys = np.linspace(ymin, ymax, ny)
-    zs = np.linspace(zmin, zmax, nz)
+    # xs = np.linspace(xmin, xmax, nx)
+    # ys = np.linspace(ymin, ymax, ny)
+    # zs = np.linspace(zmin, zmax, nz)
 
     fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
     # ax.set_aspect('equal')
 
     norm = colors.LogNorm(vmin=1e24, vmax=1e28)
-    im = ax.contourf(zs, xs, data[:, 0, :], levels=np.logspace(24, 28, 50), norm=norm, cmap='jet')
+    im = ax.contourf(data[:, 0, :], levels=np.logspace(24, 28, 50), norm=norm, cmap='jet')
     fig.colorbar(ScalarMappable(norm=norm, cmap='jet'), ax=ax, shrink=0.82)
 
-    ax.set_title(f'{group_name.capitalize()} {metric} @ {time:.4e} ns')
+    # ax.set_title(f'{group_name.capitalize()} {metric} @ {time:.4e} ns')
     ax.set_ylabel(r'x ($\mu$m)')
     ax.set_xlabel(r'z ($\mu$m)')
 
@@ -382,7 +381,7 @@ def plot_Temp(groups, start, stop, step, file_dir):
 def main():
     step = 75
     start = 0
-    stop = 2500
+    stop = 7500
 
     file_dir = '/em_test'
 
@@ -391,17 +390,17 @@ def main():
     # plot_distributions(start, stop, step, 'carbon1', file_dir)
     # plot_distributions(start, stop, step, 'carbon2', file_dir)
 
-    # targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop + step, step)]
-    # with mp.Pool(16) as p:
-    #    p.starmap(plot_metric, targs)
-    #
+    targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop + step, step)]
+    with mp.Pool(16) as p:
+       p.starmap(plot_metric, targs)
+
     # targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
     #    p.starmap(plot_metric, targs)
 
-    targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
-    with mp.Pool(8) as p:
-       p.starmap(plot_fields, targs)
+    # targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
+    # with mp.Pool(8) as p:
+    #    p.starmap(plot_fields, targs)
 
     # targs = [(n, step, 'Ez', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:

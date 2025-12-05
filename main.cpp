@@ -3,7 +3,7 @@
 #include "em_data.hpp"
 #include "metrics.hpp"
 #include "timers.hpp"
-// #include "particles/particles.hpp"
+#include "particles/particles.hpp"
 #include "particles/pusher.hpp"
 // #include "particles/current_deposition.hpp"
 // #include "particles/collisions.hpp"
@@ -25,10 +25,10 @@ int main() {
    auto timers = utilities::create_timers();
    timers["Main"].start_timer();
 
-   // std::vector<ParticleGroup> particle_groups;
-   // for (const auto& name: particle_data) {
-   //    ParticleInitializer::initializeFromFile(std::string{sim_path} + std::string{name}, particle_groups);
-   // }
+   std::vector<ParticleGroup> particle_groups;
+   for (const auto& name: particle_data) {
+      ParticleInitializer::initializeFromFile(std::string{sim_path} + std::string{name}, particle_groups);
+   }
 
    // std::vector<Collisions> collisions;
    // for (const auto& col : collision_params) {
@@ -43,27 +43,22 @@ int main() {
    auto emdata = make_emdata();
    add_gaussianbeam(emdata);
 
-   timers["IO"].start_timer();
-   size_t padding = 10;
-   std::string count_padded = std::to_string(0);
-   count_padded.insert(count_padded.begin(), padding - count_padded.length(), '0');
-   count_padded += ".bp"; // default extension is .bp
+   EMSolver::particle_correction(emdata);
+   for (auto& g : particle_groups) {
+      BorisPush::backstep_velocity(g, emdata);
+   }
 
-   metrics::EMFieldsMetric::write(emdata, data_path, count_padded);
-   timers["IO"].stop_timer();
-
-   // // Metrics metrics(std::string{sim_path} + "/data/" + std::string{sim_name});
-   // // if constexpr (em_enabled) {
-   // //    metrics.add_em_metrics(emdata);
-   // // }
+   // timers["IO"].start_timer();
+   // size_t padding = 10;
+   // std::string count_padded = std::to_string(0);
+   // count_padded.insert(count_padded.begin(), padding - count_padded.length(), '0');
+   // count_padded += ".bp"; // default extension is .bp
    //
-   // // if constexpr (push_enabled or coll_enabled) {
-   // //    emsolver.particle_correction();
-   // //    for (auto& g : particle_groups) {
-   // //       BorisPush::backstep_velocity(g, emsolver.emdata);
-   // //       metrics.add_particle_metric(g);
-   // //    }
-   // // }
+   // metrics::EMFieldsMetric::write(emdata, data_path, count_padded);
+   // metrics::ParticleDumpMetric::write(particle_groups[0], data_path, count_padded);
+   // // metrics::ParticleDumpMetric::write(particle_groups[1], data_path, count_padded);
+   // timers["IO"].stop_timer();
+
 
    auto time = 0.0;
    auto step = 0zu;
@@ -78,26 +73,6 @@ int main() {
           // .no_tty = true,
           .show = false});
 
-   // // timers["IO"].start_timer();
-   // // metrics.write(step, time);
-   // // timers["IO"].stop_timer();
-
-
-//    (52.33 steps/s)
-//         EM: 00:02:14.895301056
-//       Push: 00:00:00.000000000
-//       Jdep: 00:00:00.000000000
-//         IO: 00:00:08.531251556
-// Collisions: 00:00:00.000000000
-//      Total: 00:02:24.455501017
-
-//    (145.34 steps/s)
-//         EM: 00:00:42.516979313
-//       Push: 00:00:00.000000000
-//       Jdep: 00:00:00.000000000
-//         IO: 00:00:09.172651284
-// Collisions: 00:00:00.000000000
-//      Total: 00:00:52.768088420
 
    progress_bar->show();
    for (step = 1; step <= Nt; step++, time += dt) {
@@ -108,25 +83,15 @@ int main() {
       EMSolver::advance(emdata, time);
       timers["EM"].stop_timer();
 
-      timers["IO"].start_timer();
-      if (step % em_save_interval == 0) {
-         padding = 10;
-         count_padded = std::to_string(step);
-         count_padded.insert(count_padded.begin(), padding - count_padded.length(), '0');
-         count_padded += ".bp"; // default extension is .bp
-
-         metrics::EMFieldsMetric::write(emdata, data_path, count_padded);
+      // Particle Push
+      timers["Push"].start_timer();
+      for (auto& g : particle_groups) {
+         if (step % 50 == 0) { g.sort_particles(); }
+         g.reset_positions();
+         BorisPush::advance(g, emdata);
       }
-      timers["IO"].stop_timer();
+      timers["Push"].stop_timer();
 
-      // // Particle Push
-      // timers["Push"].start_timer();
-      // for (auto& g : particle_groups) {
-      //    g.reset_positions();
-      //    BorisPush::advance(g, emsolver.emdata, step);
-      // }
-      // timers["Push"].stop_timer();
-      //
       // // Current Deposition
       // timers["Jdep"].start_timer();
       // for (auto& g : particle_groups) {
@@ -141,9 +106,17 @@ int main() {
       // }
       // timers["Collisions"].stop_timer();
 
-      // // Metrics output
       // timers["IO"].start_timer();
-      // metrics.write(step, time);
+      // if (step % em_save_interval == 0) {
+      //    padding = 10;
+      //    count_padded = std::to_string(step);
+      //    count_padded.insert(count_padded.begin(), padding - count_padded.length(), '0');
+      //    count_padded += ".bp"; // default extension is .bp
+      //
+      //    metrics::EMFieldsMetric::write(emdata, data_path, count_padded);
+      //    metrics::ParticleDumpMetric::write(particle_groups[0], data_path, count_padded);
+      //    // metrics::ParticleDumpMetric::write(particle_groups[1], data_path, count_padded);
+      // }
       // timers["IO"].stop_timer();
    }
    progress_bar->done();

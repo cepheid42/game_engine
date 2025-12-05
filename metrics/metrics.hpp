@@ -9,6 +9,8 @@
 
 #include <adios2.h>
 
+#include "particles.hpp"
+
 // #include <unordered_map>
 // #include <memory>
 // #include <ctime>
@@ -125,39 +127,107 @@ struct EMFieldsMetric {
 
 }; // end struct EMFieldsMetric
 
-// // =========================================
-// // ========= Particle Dump Metric ==========
-// struct ParticleDumpMetric final : detail::MetricBase {
-//    using group_t = particles::ParticleGroup;
-//
-//    ParticleDumpMetric(const group_t& group_, adios2::IO&& io_)
-//    : io(io_),
-//      group(group_),
-//      var_loc(io.DefineVariable<double>("Position", {group.num_particles(), 3}, {0, 0}, {group.num_particles(), 3})),
-//      var_vel(io.DefineVariable<double>("Velocity", {group.num_particles(), 3}, {0, 0}, {group.num_particles(), 3})),
-//      var_w(io.DefineVariable<double>("Weight", {group.num_particles(), 1}, {0, 0}, {group.num_particles(), 1})),
-//      var_gamma(io.DefineVariable<double>("Gamma", {group.num_particles(), 1}, {0, 0}, {group.num_particles(), 1})),
-//      var_step(io.DefineVariable<std::size_t>("Step", {1}, {0}, {1}, adios2::ConstantDims)),
-//      var_dt(io.DefineVariable<double>("dt", {1}, {0}, {1}, adios2::ConstantDims)),
-//      var_time(io.DefineVariable<double>("Time", {1}, {0}, {1}, adios2::ConstantDims))
-//    {
-//    }
-//
-//    static void write(const auto&, const auto&, const auto, const auto) requires(!(push_enabled and coll_enabled)) {}
-//
-//    void write(const std::string& dir, const std::string& step_ext, const std::size_t step, const double time) override {   }
-//
-//    adios2::IO                    io;
-//    const group_t&                group;
-//    adios2::Variable<double>      var_loc;
-//    adios2::Variable<double>      var_vel;
-//    adios2::Variable<double>      var_w;
-//    adios2::Variable<double>      var_gamma;
-//    adios2::Variable<std::size_t> var_step;
-//    adios2::Variable<double>      var_dt;
-//    adios2::Variable<double>      var_time;
-//
-// }; // end struct ParticleDumpMetric
+// =========================================
+// ========= Particle Dump Metric ==========
+struct ParticleDumpMetric  {
+   static void write(const auto& grp, const std::string& dir, const std::string& step_ext) {
+      static constexpr auto V_cell_inv = 1.0 / (dx * dy * dz);
+
+      const std::string file = dir + "/" + grp.name + "_dump_" + step_ext;
+      adios2::ADIOS adios{};
+      adios2::IO io = adios.DeclareIO("ParticleDump");
+
+      const auto density_var = io.DefineVariable<double>(
+         "Density",
+         {Nx - 1, Ny - 1, Nz - 1}, // shape (global)
+         {0, 0, 0},                // start (local)
+         {Nx - 1, Ny - 1, Nz - 1}, // count (local)
+         adios2::ConstantDims
+      );
+
+      std::vector<double> density((Nx - 1) * (Ny - 1) * (Nz - 1));
+
+      for (const auto& p : grp.particles) {
+         const auto cid = particles::getCellIndex(p.location);
+         density[cid] += p.weight;
+      }
+
+      for (auto& i : density) {
+         i *= V_cell_inv;
+      }
+
+      adios2::Engine writer = io.Open(file, adios2::Mode::Write);
+      writer.BeginStep();
+      writer.Put(density_var, density.data());
+      writer.EndStep();
+      writer.Close();
+   }
+   
+   // static void write(auto& grp, const std::string& dir, const std::string& step_ext) {
+   //    static constexpr vec3 delta{dx, dy, dz};
+   //    static constexpr vec3 lb{x_range[0], y_range[0], z_range[0]};
+   //    const std::string file = dir + "/" + grp.name + "_dump_" + step_ext;
+   //    adios2::ADIOS adios{};
+   //    adios2::IO io = adios.DeclareIO("ParticleDump");
+   //
+   //    const auto num_particles = grp.particles.size();
+   //
+   //    const auto vel_var = io.DefineVariable<double>(
+   //       "Velocity",
+   //       {num_particles, 3}, // shape (global)
+   //       {0, 0},             // start (local)
+   //       {num_particles, 3}, // count (local)
+   //       adios2::ConstantDims
+   //    );
+   //
+   //    const auto pos_var = io.DefineVariable<double>(
+   //       "Position",
+   //       {num_particles, 3}, // shape (global)
+   //       {0, 0},             // start (local)
+   //       {num_particles, 3}, // count (local)
+   //       adios2::ConstantDims
+   //    );
+   //
+   //    const auto weight_var = io.DefineVariable<double>(
+   //       "Weight",
+   //       {num_particles, 1}, // shape (global)
+   //       {0, 0},             // start (local)
+   //       {num_particles, 1}, // count (local)
+   //       adios2::ConstantDims
+   //    );
+   //
+   //    const auto gamma_var = io.DefineVariable<double>(
+   //       "Gamma",
+   //       {num_particles, 1}, // shape (global)
+   //       {0, 0},             // start (local)
+   //       {num_particles, 1}, // count (local)
+   //       adios2::ConstantDims
+   //    );
+   //
+   //    std::vector<double> velocities{};
+   //    std::vector<double> positions{};
+   //    std::vector<double> weights{};
+   //    std::vector<double> gamma{};
+   //
+   //    for (const auto& p : grp.particles) {
+   //       for (auto d = 0; d < 3; ++d) {
+   //          velocities.push_back(p.velocity[d]);
+   //          positions.push_back(lb[d] + delta[d] * p.location[d]);
+   //       }
+   //       weights.push_back(p.weight);
+   //       gamma.push_back(p.gamma);
+   //    }
+   //
+   //    adios2::Engine writer = io.Open(file, adios2::Mode::Write);
+   //    writer.BeginStep();
+   //    writer.Put(vel_var, velocities.data());
+   //    writer.Put(pos_var, positions.data());
+   //    writer.Put(weight_var, weights.data());
+   //    writer.Put(gamma_var, gamma.data());
+   //    writer.EndStep();
+   //    writer.Close();
+   // }
+}; // end struct ParticleDumpMetric
 
 
 // // =======================================

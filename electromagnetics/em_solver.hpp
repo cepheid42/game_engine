@@ -7,6 +7,7 @@
 // #include "em_sources.hpp"
 #include "program_params.hpp"
 
+#include <cassert>
 #include <print>
 
 namespace tf::electromagnetics {
@@ -23,7 +24,7 @@ struct FieldUpdate {
    static void apply(const mdspan_t& f, const mdspan_t& d1, const mdspan_t& d2, const T& src,
                      const auto c_d1, const auto c_d2, const auto c_src)
    {
-      #pragma omp parallel for simd num_threads(nThreads)
+      #pragma omp parallel for simd collapse(3) num_threads(nThreads)
       for (std::size_t i = 0; i < f.extent(0); ++i) {
          for (std::size_t j = 0; j < f.extent(1); ++j) {
             for (std::size_t k = 0; k < f.extent(2); ++k) {
@@ -45,7 +46,7 @@ struct BoundaryUpdate {
 
    static void apply(const auto& f, const auto& d, const auto& psi, const auto& b, const auto& c, const auto cf)
    {
-      #pragma omp parallel for simd num_threads(nThreads)
+      #pragma omp parallel for simd collapse(3) num_threads(nThreads)
       for (auto i = 0zu; i < psi.extent(0); ++i) {
          for (auto j = 0zu; j < psi.extent(1); ++j) {
             for (auto k = 0zu; k < psi.extent(2); ++k) {
@@ -53,6 +54,7 @@ struct BoundaryUpdate {
                if      constexpr (D == Derivative::Dx) { ipml = i; }
                else if constexpr (D == Derivative::Dy) { ipml = j; }
                else if constexpr (D == Derivative::Dz) { ipml = k; }
+               else { assert(false); }
                psi[i, j, k] = b[ipml] * psi[i, j, k] + c[ipml] * diff<D>(d, i, j, k);
                f[i, j, k] += cf * psi[i, j, k]; // cf comes with -1 baked in for += or -=
             } // end for k
@@ -88,8 +90,8 @@ struct EMSolver {
       updateE(emdata);
       updateEBCs(emdata);
 
-      // particle_correction(emdata); // for the particles and shit
-      // zero_currents(emdata);       // also for the particles, don't need last week's currents
+      particle_correction(emdata); // for the particles and shit
+      zero_currents(emdata);       // also for the particles, don't need last week's currents
    }
 
    static void updateE(auto& emdata) {
@@ -133,6 +135,22 @@ struct EMSolver {
       FieldUpdate<Dx, Dz, empty>::apply(emdata.Byf, emdata.Ezf, emdata.Exf, empty{}, 0.5 * dtdx_mu, 0.5 * dtdz_mu, 0.0);
       FieldUpdate<Dy, Dx, empty>::apply(emdata.Bzf, emdata.Exf, emdata.Eyf, empty{}, 0.5 * dtdy_mu, 0.5 * dtdx_mu, 0.0);
 
+      // std::ranges::for_each(emdata.Bx, [](auto& b){ b *= constants::mu0<double>; });
+      // std::ranges::for_each(emdata.By, [](auto& b){ b *= constants::mu0<double>; });
+      // std::ranges::for_each(emdata.Bz, [](auto& b){ b *= constants::mu0<double>; });
+
+      for (std::size_t i = 0; i < emdata.Bx.size(); i++) {
+         emdata.Bx[i] = emdata.Bx[i] * constants::mu0<double>;
+      }
+
+      for (std::size_t i = 0; i < emdata.By.size(); i++) {
+         emdata.By[i] = emdata.By[i] * constants::mu0<double>;
+      }
+
+      for (std::size_t i = 0; i < emdata.Bz.size(); i++) {
+         emdata.Bz[i] = emdata.Bz[i] * constants::mu0<double>;
+      }
+
       // todo: add up total fields here
    }
 
@@ -142,8 +160,8 @@ struct EMSolver {
         mdspan_t{&emdata.Eyf[1, 0, 0], {eyhz_x_ext, ey_stride}},
         mdspan_t{&emdata.Hzf[0, 0, 0], {eyhz_x_ext, hz_stride}},
         mdspan_t{&emdata.eyx0_psi[1, 0, 0], {eyhz_x_ext, eyhz_x_stride}},
-        std::span{emdata.Eyx0.b},
-        std::span{emdata.Eyx0.c},
+        std::span{emdata.Eyx0.b.begin() + 1, BCDepth - 1},
+        std::span{emdata.Eyx0.c.begin() + 1, BCDepth - 1},
         -dtdx_eps
      );
 
@@ -152,8 +170,8 @@ struct EMSolver {
         mdspan_t{&emdata.Eyf[Nx - BCDepth, 0, 0], {eyhz_x_ext, ey_stride}},
         mdspan_t{&emdata.Hzf[Nx - BCDepth - 1, 0, 0], {eyhz_x_ext, hz_stride}},
         mdspan_t{&emdata.eyx1_psi[0, 0, 0], {eyhz_x_ext, eyhz_x_stride}},
-        std::span{emdata.Eyx1.b},
-        std::span{emdata.Eyx1.c},
+        std::span{emdata.Eyx1.b.begin(), BCDepth - 1},
+        std::span{emdata.Eyx1.c.begin(), BCDepth - 1},
         -dtdx_eps
      );
 
@@ -162,8 +180,8 @@ struct EMSolver {
          mdspan_t{&emdata.Ezf[1, 0, 0], {hyez_x_ext, ez_stride}},
          mdspan_t{&emdata.Hyf[0, 0, 0], {hyez_x_ext, hy_stride}},
          mdspan_t{&emdata.ezx0_psi[1, 0, 0], {hyez_x_ext, hyez_x_stride}},
-         std::span{emdata.Ezx0.b},
-         std::span{emdata.Ezx0.c},
+         std::span{emdata.Ezx0.b.begin() + 1, BCDepth - 1},
+         std::span{emdata.Ezx0.c.begin() + 1, BCDepth - 1},
          dtdx_eps
       );
 
@@ -172,8 +190,8 @@ struct EMSolver {
          mdspan_t{&emdata.Ezf[Nx - BCDepth, 0, 0], {hyez_x_ext, ez_stride}},
          mdspan_t{&emdata.Hyf[Nx - BCDepth - 1, 0, 0], {hyez_x_ext, hy_stride}},
    		mdspan_t{&emdata.ezx1_psi[0, 0, 0], {hyez_x_ext, hyez_x_stride}},
-   		std::span{emdata.Ezx1.b},
-   		std::span{emdata.Ezx1.c},
+   		std::span{emdata.Ezx1.b.begin(), BCDepth - 1},
+   		std::span{emdata.Ezx1.c.begin(), BCDepth - 1},
          dtdx_eps
       );
 
@@ -182,8 +200,8 @@ struct EMSolver {
          mdspan_t{&emdata.Exf[0, 1, 0], {exhz_y_ext, ex_stride}},
          mdspan_t{&emdata.Hzf[0, 0, 0], {exhz_y_ext, hz_stride}},
    		mdspan_t{&emdata.exy0_psi[0, 1, 0], {exhz_y_ext, exhz_y_stride}},
-   		std::span{emdata.Exy0.b},
-   		std::span{emdata.Exy0.c},
+   		std::span{emdata.Exy0.b.begin() + 1, BCDepth - 1},
+   		std::span{emdata.Exy0.c.begin() + 1, BCDepth - 1},
          dtdy_eps
       );
 
@@ -192,8 +210,8 @@ struct EMSolver {
          mdspan_t{&emdata.Exf[0, Ny - BCDepth, 0], {exhz_y_ext, ex_stride}},
          mdspan_t{&emdata.Hzf[0, Ny - BCDepth - 1, 0], {exhz_y_ext, hz_stride}},
    		mdspan_t{&emdata.exy1_psi[0, 0, 0], {exhz_y_ext, exhz_y_stride}},
-   		std::span{emdata.Exy1.b},
-   		std::span{emdata.Exy1.c},
+   		std::span{emdata.Exy1.b.begin(), BCDepth - 1},
+   		std::span{emdata.Exy1.c.begin(), BCDepth - 1},
          dtdy_eps
       );
 
@@ -202,8 +220,8 @@ struct EMSolver {
          mdspan_t{&emdata.Ezf[0, 1, 0], {hxez_y_ext, ez_stride}},
          mdspan_t{&emdata.Hxf[0, 0, 0], {hxez_y_ext, hx_stride}},
    		mdspan_t{&emdata.ezy0_psi[0, 1, 0], {hxez_y_ext, hxez_y_stride}},
-   		std::span{emdata.Ezy0.b},
-   		std::span{emdata.Ezy0.c},
+   		std::span{emdata.Ezy0.b.begin() + 1, BCDepth - 1},
+   		std::span{emdata.Ezy0.c.begin() + 1, BCDepth - 1},
          -dtdy_eps
       );
 
@@ -212,8 +230,8 @@ struct EMSolver {
          mdspan_t{&emdata.Ezf[0, Ny - BCDepth, 0], {hxez_y_ext, ez_stride}},
          mdspan_t{&emdata.Hxf[0, Ny - BCDepth - 1, 0], {hxez_y_ext, hx_stride}},
    		mdspan_t{&emdata.ezy1_psi[0, 0, 0], {hxez_y_ext, hxez_y_stride}},
-   		std::span{emdata.Ezy1.b},
-   		std::span{emdata.Ezy1.c},
+   		std::span{emdata.Ezy1.b.begin(), BCDepth - 1},
+   		std::span{emdata.Ezy1.c.begin(), BCDepth - 1},
          -dtdy_eps
       );
 
@@ -222,8 +240,8 @@ struct EMSolver {
          mdspan_t{&emdata.Exf[0, 0, 1], {exhy_z_ext, ex_stride}},
          mdspan_t{&emdata.Hyf[0, 0, 0], {exhy_z_ext, hy_stride}},
    		mdspan_t{&emdata.exz0_psi[0, 0, 1], {exhy_z_ext, exhy_z_stride}},
-   		std::span{emdata.Exz0.b},
-   		std::span{emdata.Exz0.c},
+   		std::span{emdata.Exz0.b.begin() + 1, BCDepth - 1},
+   		std::span{emdata.Exz0.c.begin() + 1, BCDepth - 1},
          -dtdz_eps
       );
 
@@ -232,8 +250,8 @@ struct EMSolver {
          mdspan_t{&emdata.Exf[0, 0, Nz - BCDepth], {exhy_z_ext, ex_stride}},
          mdspan_t{&emdata.Hyf[0, 0, Nz - BCDepth - 1], {exhy_z_ext, hy_stride}},
    		mdspan_t{&emdata.exz1_psi[0, 0, 0], {exhy_z_ext, exhy_z_stride}},
-   		std::span{emdata.Exz1.b},
-   		std::span{emdata.Exz1.c},
+   		std::span{emdata.Exz1.b.begin(), BCDepth - 1},
+   		std::span{emdata.Exz1.c.begin(), BCDepth - 1},
          -dtdz_eps
       );
 
@@ -242,8 +260,8 @@ struct EMSolver {
          mdspan_t{&emdata.Eyf[0, 0, 1], {hxey_z_ext, ey_stride}},
          mdspan_t{&emdata.Hxf[0, 0, 0], {hxey_z_ext, hx_stride}},
    		mdspan_t{&emdata.eyz0_psi[0, 0, 1], {hxey_z_ext, hxey_z_stride}},
-   		std::span{emdata.Eyz0.b},
-   		std::span{emdata.Eyz0.c},
+   		std::span{emdata.Eyz0.b.begin() + 1, BCDepth - 1},
+   		std::span{emdata.Eyz0.c.begin() + 1, BCDepth - 1},
          dtdz_eps
       );
 
@@ -252,8 +270,8 @@ struct EMSolver {
          mdspan_t{&emdata.Eyf[0, 0, Nz - BCDepth], {hxey_z_ext, ey_stride}},
          mdspan_t{&emdata.Hxf[0, 0, Nz - BCDepth - 1], {hxey_z_ext, hx_stride}},
    		mdspan_t{&emdata.eyz1_psi[0, 0, 0], {hxey_z_ext, hxey_z_stride}},
-   		std::span{emdata.Eyz1.b},
-   		std::span{emdata.Eyz1.c},
+   		std::span{emdata.Eyz1.b.begin(), BCDepth - 1},
+   		std::span{emdata.Eyz1.c.begin(), BCDepth - 1},
          dtdz_eps
       );
    } // end updateEBCs()
@@ -264,8 +282,8 @@ struct EMSolver {
          mdspan_t{&emdata.Hyf[0, 0, 0], {hyez_x_ext, hy_stride}},
          mdspan_t{&emdata.Ezf[0, 0, 0], {hyez_x_ext, ez_stride}},
          mdspan_t{&emdata.hyx0_psi[0, 0, 0], {hyez_x_ext, hyez_x_stride}},
-         std::span{emdata.Hyx0.b},
-         std::span{emdata.Hyx0.c},
+         std::span{emdata.Hyx0.b.begin(), BCDepth - 1},
+         std::span{emdata.Hyx0.c.begin(), BCDepth - 1},
 			dtdx_mu
 		);
 
@@ -274,8 +292,8 @@ struct EMSolver {
          mdspan_t{&emdata.Hyf[Nx - BCDepth, 0, 0], {hyez_x_ext, hy_stride}},
          mdspan_t{&emdata.Ezf[Nx - BCDepth, 0, 0], {hyez_x_ext, ez_stride}},
          mdspan_t{&emdata.hyx1_psi[0, 0, 0], {hyez_x_ext, hyez_x_stride}},
-         std::span{emdata.Hyx1.b},
-         std::span{emdata.Hyx1.c},
+         std::span{emdata.Hyx1.b.begin() + 1, BCDepth - 1},
+         std::span{emdata.Hyx1.c.begin() + 1, BCDepth - 1},
 			dtdx_mu
 		);
 
@@ -284,8 +302,8 @@ struct EMSolver {
          mdspan_t{&emdata.Hzf[0, 0, 0], {eyhz_x_ext, hz_stride}},
          mdspan_t{&emdata.Eyf[0, 0, 0], {eyhz_x_ext, ey_stride}},
          mdspan_t{&emdata.hzx0_psi[0, 0, 0], {eyhz_x_ext, eyhz_x_stride}},
-         std::span{emdata.Hzx0.b},
-         std::span{emdata.Hzx0.c},
+         std::span{emdata.Hzx0.b.begin(), BCDepth - 1},
+         std::span{emdata.Hzx0.c.begin(), BCDepth - 1},
 			-dtdx_mu
 		);
 
@@ -294,8 +312,8 @@ struct EMSolver {
          mdspan_t{&emdata.Hzf[Nx - BCDepth, 0, 0], {eyhz_x_ext, hz_stride}},
          mdspan_t{&emdata.Eyf[Nx - BCDepth, 0, 0], {eyhz_x_ext, ey_stride}},
          mdspan_t{&emdata.hzx1_psi[0, 0, 0], {eyhz_x_ext, eyhz_x_stride}},
-         std::span{emdata.Hzx1.b},
-         std::span{emdata.Hzx1.c},
+         std::span{emdata.Hzx1.b.begin() + 1, BCDepth - 1},
+         std::span{emdata.Hzx1.c.begin() + 1, BCDepth - 1},
 			-dtdx_mu
 		);
 
@@ -304,8 +322,8 @@ struct EMSolver {
          mdspan_t{&emdata.Hxf[0, 0, 0], {hxez_y_ext, hx_stride}},
          mdspan_t{&emdata.Ezf[0, 0, 0], {hxez_y_ext, ez_stride}},
          mdspan_t{&emdata.hxy0_psi[0, 0, 0], {hxez_y_ext, hxez_y_stride}},
-         std::span{emdata.Hxy0.b},
-         std::span{emdata.Hxy0.c},
+         std::span{emdata.Hxy0.b.begin(), BCDepth - 1},
+         std::span{emdata.Hxy0.c.begin(), BCDepth - 1},
 			-dtdy_mu
 		);
 
@@ -314,8 +332,8 @@ struct EMSolver {
          mdspan_t{&emdata.Hxf[0, Ny - BCDepth, 0], {hxez_y_ext, hx_stride}},
          mdspan_t{&emdata.Ezf[0, Ny - BCDepth, 0], {hxez_y_ext, ez_stride}},
          mdspan_t{&emdata.hxy1_psi[0, 0, 0], {hxez_y_ext, hxez_y_stride}},
-         std::span{emdata.Hxy1.b},
-         std::span{emdata.Hxy1.c},
+         std::span{emdata.Hxy1.b.begin() + 1, BCDepth - 1},
+         std::span{emdata.Hxy1.c.begin() + 1, BCDepth - 1},
 			-dtdy_mu
 		);
 
@@ -324,8 +342,8 @@ struct EMSolver {
          mdspan_t{&emdata.Hzf[0, 0, 0], {exhz_y_ext, hz_stride}},
          mdspan_t{&emdata.Exf[0, 0, 0], {exhz_y_ext, ex_stride}},
          mdspan_t{&emdata.hzy0_psi[0, 0, 0], {exhz_y_ext, exhz_y_stride}},
-         std::span{emdata.Hzy0.b},
-         std::span{emdata.Hzy0.c},
+         std::span{emdata.Hzy0.b.begin(), BCDepth - 1},
+         std::span{emdata.Hzy0.c.begin(), BCDepth - 1},
 			dtdy_mu
 		);
 
@@ -334,8 +352,8 @@ struct EMSolver {
          mdspan_t{&emdata.Hzf[0, Ny - BCDepth, 0], {exhz_y_ext, hz_stride}},
          mdspan_t{&emdata.Exf[0, Ny - BCDepth, 0], {exhz_y_ext, ex_stride}},
          mdspan_t{&emdata.hzy1_psi[0, 0, 0], {exhz_y_ext, exhz_y_stride}},
-         std::span{emdata.Hzy1.b},
-         std::span{emdata.Hzy1.c},
+         std::span{emdata.Hzy1.b.begin() + 1, BCDepth - 1},
+         std::span{emdata.Hzy1.c.begin() + 1, BCDepth - 1},
 			dtdy_mu
 		);
 
@@ -344,8 +362,8 @@ struct EMSolver {
          mdspan_t{&emdata.Hxf[0, 0, 0], {hxey_z_ext, hx_stride}},
          mdspan_t{&emdata.Eyf[0, 0, 0], {hxey_z_ext, ey_stride}},
    		mdspan_t{&emdata.hxz0_psi[0, 0, 0], {hxey_z_ext, hxey_z_stride}},
-   		std::span{emdata.Hxz0.b},
-   		std::span{emdata.Hxz0.c},
+   		std::span{emdata.Hxz0.b.begin(), BCDepth - 1},
+   		std::span{emdata.Hxz0.c.begin(), BCDepth - 1},
 			dtdz_mu
 		);
 
@@ -354,8 +372,8 @@ struct EMSolver {
          mdspan_t{&emdata.Hxf[0, 0, Nz - BCDepth], {hxey_z_ext, hx_stride}},
          mdspan_t{&emdata.Eyf[0, 0, Nz - BCDepth], {hxey_z_ext, ey_stride}},
    		mdspan_t{&emdata.hxz1_psi[0, 0, 0], {hxey_z_ext, hxey_z_stride}},
-   		std::span{emdata.Hxz1.b},
-   		std::span{emdata.Hxz1.c},
+   		std::span{emdata.Hxz1.b.begin() + 1, BCDepth - 1},
+   		std::span{emdata.Hxz1.c.begin() + 1, BCDepth - 1},
 			dtdz_mu
 		);
 
@@ -364,8 +382,8 @@ struct EMSolver {
          mdspan_t{&emdata.Hyf[0, 0, 0], {exhy_z_ext, hy_stride}},
          mdspan_t{&emdata.Exf[0, 0, 0], {exhy_z_ext, ex_stride}},
    		mdspan_t{&emdata.hyz0_psi[0, 0, 0], {exhy_z_ext, exhy_z_stride}},
-   		std::span{emdata.Hyz0.b},
-   		std::span{emdata.Hyz0.c},
+   		std::span{emdata.Hyz0.b.begin(), BCDepth - 1},
+   		std::span{emdata.Hyz0.c.begin(), BCDepth - 1},
 			-dtdz_mu
 		);
 
@@ -374,8 +392,8 @@ struct EMSolver {
          mdspan_t{&emdata.Hyf[0, 0, Nz - BCDepth], {exhy_z_ext, hy_stride}},
          mdspan_t{&emdata.Exf[0, 0, Nz - BCDepth], {exhy_z_ext, ex_stride}},
    		mdspan_t{&emdata.hyz1_psi[0, 0, 0], {exhy_z_ext, exhy_z_stride}},
-   		std::span{emdata.Hyz1.b},
-   		std::span{emdata.Hyz1.c},
+   		std::span{emdata.Hyz1.b.begin() + 1, BCDepth - 1},
+   		std::span{emdata.Hyz1.c.begin() + 1, BCDepth - 1},
          -dtdz_mu
 		);
    } // end updateHBCs()

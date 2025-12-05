@@ -21,10 +21,10 @@
 namespace tf::particles
 {
 struct Particle {
-   vec3<double> velocity; // change to beta and make it a float
+   vec3<double> velocity;
+   vec3<double> location;
+   vec3<double> old_location;
    double gamma;
-   vec3<float> location;
-   vec3<float> old_location;
    float weight;
 
    [[nodiscard]] bool is_disabled() const { return weight < 0.0f; }
@@ -67,7 +67,7 @@ struct ParticleGroup {
    double mass;
    double charge;
    double qdt_over_2m;
-   vec3<float> initial_position{};
+   vec3<double> initial_position{};
    bool tracer;
    bool sourcer;
    bool cell_map_updated{false};
@@ -108,7 +108,7 @@ struct ParticleGroup {
 
    void reset_positions() {
       if constexpr (x_collapsed or y_collapsed or z_collapsed) {
-      #pragma omp parallel for simd num_threads(nThreads)
+         #pragma omp parallel for simd num_threads(nThreads)
          for (std::size_t pid = 0; pid < particles.size(); pid++) {
             if constexpr (x_collapsed) { particles[pid].location[0] = initial_position.x; }
             if constexpr (y_collapsed) { particles[pid].location[1] = initial_position.y; }
@@ -162,7 +162,7 @@ struct ParticleInitializer {
          std::istringstream buffer(line);
          buffer >> pos >> velocity >> weight;
 
-         const auto loc = ((pos - mins) / deltas).as_type<float>();
+         const auto loc = ((pos - mins) / deltas);
 
          // compute Lorentz factor and relativistic momentum
          const auto gamma = calculateGammaV(velocity);
@@ -170,9 +170,9 @@ struct ParticleInitializer {
          // add particle to group
          g.particles.emplace_back(
             velocity,
+            loc,
+            loc,
             gamma,
-            loc,
-            loc,
             weight
          );
       }
@@ -181,7 +181,7 @@ struct ParticleInitializer {
          throw std::runtime_error("Particle initialization failed: Particles vector is empty.");
       }
       g.sort_particles();
-      g.initial_position = g.particles.empty() ? vec3<float>{} : g.particles[0].location;
+      g.initial_position = g.particles.empty() ? vec3<double>{} : g.particles[0].location;
       group_vec.push_back(g);
    } // end initializeFromFile
 
@@ -226,15 +226,15 @@ struct ParticleInitializer {
          const vec3 vel{v_vec[3 * i], v_vec[3 * i + 1], v_vec[3 * i + 2]};
          const auto weight = static_cast<float>(w_vec[i]);
 
-         const auto loc = ((pos - mins) / deltas).as_type<float>();
+         const auto loc = ((pos - mins) / deltas);
          // const auto gamma = calculateGamma(vel);
          const auto gamma = g_vec[i];
 
          g.particles.emplace_back(
             vel,
+            loc,
+            loc,
             gamma,
-            loc,
-            loc,
             weight
          );
       }
@@ -245,7 +245,7 @@ struct ParticleInitializer {
          throw std::runtime_error("Particle initialization failed: Particles vector is empty.");
       }
       g.sort_particles();
-      g.initial_position = g.particles.empty() ? vec3<float>{} : g.particles[0].location;
+      g.initial_position = g.particles.empty() ? vec3<double>{} : g.particles[0].location;
       group_vec.push_back(g);
    }
 

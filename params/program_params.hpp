@@ -32,7 +32,7 @@ inline constexpr auto sim_name = "em_test";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
 
 inline constexpr auto   em_enabled = true;
-inline constexpr auto push_enabled = false;
+inline constexpr auto push_enabled = true;
 inline constexpr auto jdep_enabled = false;
 inline constexpr auto coll_enabled = false;
 
@@ -63,12 +63,13 @@ inline constexpr std::array BCSelect = {2zu, 2zu, 2zu, 2zu, 2zu, 2zu};
 using collision_spec = std::tuple<std::string, std::string, double, double, int, bool>;
 enum class ParticleBCType { Static, Reflecting, Periodic, Outflow };
 
-inline constexpr auto particle_save_interval = 100zu;
-inline constexpr auto interpolation_order = 2zu;
+inline constexpr auto particle_save_interval = 75zu;
+inline constexpr auto interpolation_order = 1zu;
 
 inline constexpr auto PBCSelect = ParticleBCType::Outflow;
 
-inline constexpr std::array particle_data = {"/data/carbon1.bp", "/data/carbon2.bp"};
+inline constexpr std::array particle_data = {"/data/electrons.bp", "/data/ions.bp"};
+
 inline constexpr std::array<collision_spec, 3> collision_params = {
    std::tuple("carbon1", "carbon2", 10.0, 1.0, 1, false),
    std::tuple("carbon1", "carbon1", 10.0, 1.0, 1, true),

@@ -162,7 +162,7 @@ auto init_bc(auto& bc, const auto& dims) {
    for (auto& x: alpha) { x = PMLAlphaMax * std::pow(1.0 - x, m); }
 
    constexpr auto coef1 = -dt / constants::eps0<double>;
-   for (auto i = 0lu; i < PMLDepth; i++) {
+   for (auto i = 0zu; i < PMLDepth; i++) {
       bc.b[i] = std::exp(coef1 * ((sigma[i] / kappa_bc) + alpha[i]));
       bc.c[i] = (sigma[i] * (bc.b[i] - 1.0)) / (kappa_bc * (sigma[i] + (kappa_bc * alpha[i])));
    }
