@@ -183,7 +183,7 @@ def plot_single_field(n, step, name, file_dir):
     # fig.supylabel(r'x ($\mu$m)')
     # fig.suptitle(f'{name} @ {time * s_to_ns:.4e} ns')
 
-    im = ax.pcolormesh(field[:, :, nnz // 2])
+    im = ax.pcolormesh(field[:, 0, :])
     fig.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=0.8)
     ax.set_aspect('equal')
 
@@ -197,17 +197,15 @@ def plot_fields(n, step, file_dir):
     def plot(name, ax, figure):
         field = load_field(n, name, file_dir)
         nnx, nny, nnz = field.shape
-        # field = field[:, :, nnz // 2]
-        field = field[:, 0, :]
+        field = field[:, :, nnz // 2]
+        # field = field[:, 0, :]
 
-        if name[0] == 'H':
-            field *= H_to_B
+        # if name[0] == 'H':
+        #     field *= H_to_B
 
-
-        im = ax.pcolormesh(field)
-        # im = ax.contourf(field, levels=200)
+        # im = ax.pcolormesh(field)
+        im = ax.contourf(field, levels=100)
         figure.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=0.5)
-
         ax.set_aspect('equal')
         ax.set_title(f'{name}')
 
@@ -379,9 +377,9 @@ def plot_Temp(groups, start, stop, step, file_dir):
 
 
 def main():
-    step = 75
+    step = 4
     start = 0
-    stop = 7500
+    stop = 400
 
     file_dir = '/em_test'
 
@@ -390,17 +388,17 @@ def main():
     # plot_distributions(start, stop, step, 'carbon1', file_dir)
     # plot_distributions(start, stop, step, 'carbon2', file_dir)
 
-    targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop + step, step)]
-    with mp.Pool(16) as p:
-       p.starmap(plot_metric, targs)
+    # targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop + step, step)]
+    # with mp.Pool(16) as p:
+    #    p.starmap(plot_metric, targs)
 
     # targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
     #    p.starmap(plot_metric, targs)
 
-    # targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
-    # with mp.Pool(8) as p:
-    #    p.starmap(plot_fields, targs)
+    targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
+    with mp.Pool(8) as p:
+       p.starmap(plot_fields, targs)
 
     # targs = [(n, step, 'Ez', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
@@ -411,8 +409,8 @@ def main():
     # plot_Temp(['electrons', 'ions'], start, stop, step, file_dir)
     # plot_KE(['electrons', 'ions'], start, stop, step, file_dir)
     # plot_field_energy(start, stop, step, file_dir)
-
-    # plot_single_field(0, 1, 'Ex', file_dir)
+    # for i in range(start, stop + step, step):
+    #     plot_single_field(i, step, 'Hx', file_dir)
     # plot_single_field(0, 1, 'Ez', file_dir)
 
 

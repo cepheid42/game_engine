@@ -22,16 +22,16 @@ inline constexpr auto hx_size = Nx * (Ny - 1) * (Nz - 1);
 inline constexpr auto hy_size = (Nx - 1) * Ny * (Nz - 1);
 inline constexpr auto hz_size = (Nx - 1) * (Ny - 1) * Nz;
 
-inline constexpr auto ex_ext = std::extents{Nx - 1, Ny, Nz};
-inline constexpr auto ey_ext = std::extents{Nx, Ny - 1, Nz};
-inline constexpr auto ez_ext = std::extents{Nx, Ny, Nz - 1};
-inline constexpr auto hx_ext = std::extents{Nx, Ny - 1, Nz - 1};
-inline constexpr auto hy_ext = std::extents{Nx - 1, Ny, Nz - 1};
-inline constexpr auto hz_ext = std::extents{Nx - 1, Ny - 1, Nz};
+inline constexpr auto ex_ext = std::extents{Nx - 1, Ny    , Nz    };
+inline constexpr auto ey_ext = std::extents{Nx    , Ny - 1, Nz    };
+inline constexpr auto ez_ext = std::extents{Nx    , Ny    , Nz - 1};
+inline constexpr auto hx_ext = std::extents{Nx    , Ny - 1, Nz - 1};
+inline constexpr auto hy_ext = std::extents{Nx - 1, Ny    , Nz - 1};
+inline constexpr auto hz_ext = std::extents{Nx - 1, Ny - 1, Nz    };
 
-inline constexpr auto ex_update_ext = std::extents{Nx - 1, Ny - 2, Nz - 2};
-inline constexpr auto ey_update_ext = std::extents{Nx - 2, Ny - 1, Nz - 2};
-inline constexpr auto ez_update_ext = std::extents{Nx - 2, Ny - 2, Nz - 1};
+inline constexpr auto ex_update_ext = std::extents{Nx - 1, Ny - 1, Nz - 1};
+inline constexpr auto ey_update_ext = std::extents{Nx - 1, Ny - 1, Nz - 1};
+inline constexpr auto ez_update_ext = std::extents{Nx - 1, Ny - 1, Nz - 1};
 
 inline constexpr auto ex_stride = std::array{Ny * Nz, Nz, 1zu};
 inline constexpr auto ey_stride = std::array{(Ny - 1) * Nz, Nz, 1zu};

@@ -8,31 +8,31 @@
 inline constexpr auto nThreads = 24;
 
 inline constexpr auto x_collapsed = false;
-inline constexpr auto y_collapsed = true;
+inline constexpr auto y_collapsed = false;
 inline constexpr auto z_collapsed = false;
 
-inline constexpr auto Nx = 1501lu;
-inline constexpr auto Ny = 2lu;
-inline constexpr auto Nz = 1501lu;
+inline constexpr auto Nx = 101zu;
+inline constexpr auto Ny = 101zu;
+inline constexpr auto Nz = 101zu;
 
-inline constexpr std::array x_range = {-15.0e-6, 15.0e-6};
-inline constexpr std::array y_range = {0.0, 2.0e-8};
-inline constexpr std::array z_range = {-15.0e-6, 15.0e-6};
+inline constexpr std::array x_range = {0.0, 0.01};
+inline constexpr std::array y_range = {0.0, 0.01};
+inline constexpr std::array z_range = {0.0, 0.01};
 
-inline constexpr auto dx = 2.0e-8;
-inline constexpr auto dy = 2.0e-8;
-inline constexpr auto dz = 2.0e-8;
+inline constexpr auto dx = 0.0001;
+inline constexpr auto dy = 0.0001;
+inline constexpr auto dz = 0.0001;
 
-inline constexpr auto cfl   = 1.0385115379639174;
-inline constexpr auto dt    = 4e-17;
-inline constexpr auto t_end = 3e-13;
-inline constexpr auto Nt    = 7501zu;
+inline constexpr auto cfl   = 0.95;
+inline constexpr auto dt    = 1.829541541469147e-13;
+inline constexpr auto t_end = 7.318166165876587e-11;
+inline constexpr auto Nt    = 401zu;
 
 inline constexpr auto sim_name = "em_test";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
 
 inline constexpr auto   em_enabled = true;
-inline constexpr auto push_enabled = true;
+inline constexpr auto push_enabled = false;
 inline constexpr auto jdep_enabled = false;
 inline constexpr auto coll_enabled = false;
 
@@ -43,9 +43,9 @@ enum class EMFace { X, Y, Z };
 enum class EMSide { Lo, Hi };
 enum class Derivative { Dx, Dy, Dz };
 
-inline constexpr auto em_save_interval = 75zu;
+inline constexpr auto em_save_interval = 4zu;
 
-inline constexpr auto PMLDepth    = 15lu;
+inline constexpr auto PMLDepth    = 10zu;
 inline constexpr auto PMLGrade    = 3.5;
 inline constexpr auto PMLAlphaMax = 0.2;
 //inline constexpr auto PMLKappaMax = 1.0;
@@ -55,7 +55,7 @@ inline constexpr auto nHalo = 0zu;
 inline constexpr auto BCDepth = PMLDepth; // or nHalo
 
 // Periodic = 0, PML = 1, Reflecting = 2
-inline constexpr std::array BCSelect = {2zu, 2zu, 2zu, 2zu, 2zu, 2zu};
+inline constexpr std::array BCSelect = {1zu, 1zu, 2zu, 2zu, 1zu, 1zu};
 
 /*---------------------------------------------------------------/
 /-                     Particle Parameters                      -/

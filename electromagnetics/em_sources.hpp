@@ -177,8 +177,8 @@ void add_gaussianbeam(auto& emdata) {
 
    emdata.beams.push_back(
       GaussianBeam{
-      // mdspan_t{&emdata.Eyf[25, 0, 25], {std::extents{1, 1, Nz - 50}, ey_stride}},
-      mdspan_t{&emdata.Eyf[BCDepth + 10, 0, BCDepth + 10], {std::extents{1, Ny - 1, Nz - 2 * (BCDepth + 10)}, ey_stride}},
+      mdspan_t{&emdata.Eyf[750, 0, 25], {std::extents{1, 1, Nz - 50}, ey_stride}},
+      // mdspan_t{&emdata.Eyf[BCDepth + 10, 0, BCDepth + 10], {std::extents{1, Ny - 1, Nz - 2 * (BCDepth + 10)}, ey_stride}},
       make_srcvec(),
       amp,
       omega,

@@ -9,19 +9,28 @@ from matplotlib.ticker import LogLocator
 
 
 def update_Ex(Ex, Hz, Hy, cexe, cexh):
-    Ex[:, 1:-1, 1:-1] = (cexe[:, 1:-1, 1:-1] *   Ex[:, 1:-1, 1:-1]
-                      +  cexh[:, 1:-1, 1:-1] * ((Hz[:, 1:, 1:-1] - Hz[:, :-1, 1:-1])
-                                             -  (Hy[:, 1:-1, 1:] - Hy[:, 1:-1, :-1])))
+    print(f'Ex[:, 1:-1, 1:-1] = {Ex[:, 1:-1, 1:-1].strides}')
+    print(f'Hz[:, 1:, 1:-1] = {Hz[:, 1:, 1:-1].strides}')
+    print(f'Hy[:, 1:-1, 1:] = {Hy[:, 1:-1, 1:].strides}')
+    # Ex[:, 1:-1, 1:-1] = (cexe[:, 1:-1, 1:-1] *   Ex[:, 1:-1, 1:-1]
+    #                   +  cexh[:, 1:-1, 1:-1] * ((Hz[:, 1:, 1:-1] - Hz[:, :-1, 1:-1])
+    #                                          -  (Hy[:, 1:-1, 1:] - Hy[:, 1:-1, :-1])))
 
 def update_Ey(Ey, Hx, Hz, ceye, ceyh):
-    Ey[1:-1, :, 1:-1] = (ceye[1:-1, :, 1:-1] *   Ey[1:-1, :, 1:-1]
-                      +  ceyh[1:-1, :, 1:-1] * ((Hx[1:-1, :, 1:] - Hx[1:-1, :, :-1])
-                                             -  (Hz[1:, :, 1:-1] - Hz[:-1, :, 1:-1])))
+    print(f'Ey[1:-1, :, 1:-1] = {Ey[1:-1, :, 1:-1].strides}')
+    print(f'Hx[1:-1, :, 1:] = {Hx[1:-1, :, 1:].strides}')
+    print(f'Hz[1:, :, 1:-1] = {Hz[1:, :, 1:-1].strides}')
+    # Ey[1:-1, :, 1:-1] = (ceye[1:-1, :, 1:-1] *   Ey[1:-1, :, 1:-1]
+    #                   +  ceyh[1:-1, :, 1:-1] * ((Hx[1:-1, :, 1:] - Hx[1:-1, :, :-1])
+    #                                          -  (Hz[1:, :, 1:-1] - Hz[:-1, :, 1:-1])))
 
 def update_Ez(Ez, Hy, Hx, ceze, cezh):
-    Ez[1:-1, 1:-1, :] = (ceze[1:-1, 1:-1, :] *   Ez[1:-1, 1:-1, :]
-                      +  cezh[1:-1, 1:-1, :] * ((Hy[1:, 1:-1, :] - Hy[:-1, 1:-1, :])
-                                             -  (Hx[1:-1, 1:, :] - Hx[1:-1, :-1, :])))
+    print(f'Ez[1:-1, 1:-1, :] = {Ez[1:-1, 1:-1, :].strides}')
+    print(f'Hy[1:, 1:-1, :] = {Hy[1:, 1:-1, :].strides}')
+    print(f'Hx[1:-1, 1:, :] = {Hx[1:-1, 1:, :].strides}')
+    # Ez[1:-1, 1:-1, :] = (ceze[1:-1, 1:-1, :] *   Ez[1:-1, 1:-1, :]
+    #                   +  cezh[1:-1, 1:-1, :] * ((Hy[1:, 1:-1, :] - Hy[:-1, 1:-1, :])
+    #                                          -  (Hx[1:-1, 1:, :] - Hx[1:-1, :-1, :])))
 
 def update_Hx(Hx, Ey, Ez, chxh, chxe):
     Hx[:, :, :] = (chxh[:, :, :] * Hx[:, :, :]
@@ -46,12 +55,19 @@ def ricker(n, cfl):
     return (1 - 2 * alpha) * np.exp(-alpha)
 
 
+def plot(name, field, ax, fig):
+    ax.clear()
+    im = ax.contourf(field, levels=100)
+    # fig.colorbar(im, ax=ax, format='{x:3.1e}', pad=0.01, shrink=0.5)
+    # ax.set_aspect('equal')
+    ax.set_title(f'{name}')
+
 def main():
-    nx = 50
-    ny = 55
-    nz = 60
+    nx = 101
+    ny = 101
+    nz = 101
     nt = 1
-    cfl = 0.9 / np.sqrt(3)
+    cfl = 0.95 / np.sqrt(3)
     imp0 = 377.0
 
     Ex = np.zeros((nx - 1, ny, nz))
@@ -75,14 +91,14 @@ def main():
     chye = np.full_like(Hy, cfl / imp0)
     chze = np.full_like(Hz, cfl / imp0)
 
-    save_step = 1
+    save_step = 4
     count = 0
-    fig, ax = plt.subplots()
-    ax.set_aspect('equal')
 
-    cax = make_axes_locatable(axes=ax).append_axes('right', '5%', '5%')
-    # vmin, vmax = 0, 3
-    # norm = Normalize(vmin=vmin, vmax=vmax)
+    fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(12, 8), layout='constrained', sharex=True, sharey=False)
+
+    # fig, ax = plt.subplots()
+    # ax.set_aspect('equal')
+    # cax = make_axes_locatable(axes=ax).append_axes('right', '5%', '5%')
 
     for n in range(nt):
         print(f'Step {n}')
@@ -94,14 +110,16 @@ def main():
         update_Ey(Ey, Hx, Hz, ceye, ceyh)
         update_Ez(Ez, Hy, Hx, ceze, cezh)
 
-
-        Ex[nx // 2, ny // 2, nz // 2] += ricker(n, cfl)
+        Ez[nx // 2, ny // 2, nz // 2] += 10.0 * ricker(n, cfl)
 
         if n % save_step == 0:
-            cax.clear()
-            im = ax.contourf(Ex[:, 25, :], levels=100)
-            fig.colorbar(im, cax=cax)
-            fig.savefig(f'/home/cepheid/TriForce/game_engine/data/pngs/Ez_{count:04d}.png')
+            plot('Ex', Ex[:, :, nz // 2], axes[0, 0], fig)
+            plot('Ey', Ey[:, :, nz // 2], axes[0, 1], fig)
+            plot('Ez', Ez[:, :, nz // 2], axes[0, 2], fig)
+            plot('Hx', Hx[:, :, nz // 2], axes[1, 0], fig)
+            plot('Hy', Hy[:, :, nz // 2], axes[1, 1], fig)
+            plot('Hz', Hz[:, :, nz // 2], axes[1, 2], fig)
+            fig.savefig(f'/home/cepheid/TriForce/game_engine/data/pngs/fields_{count:010d}.png')
             count += 1
 
 

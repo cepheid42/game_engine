@@ -10,24 +10,32 @@ import math
 project_path = '/home/cepheid/TriForce/game_engine'
 particle_data = project_path + '/data'
 
-shape = (1501, 2, 1501)
+shape = (101, 101, 101)
 
-xmin, xmax = -15.0e-6, 15.0e-6
-zmin, zmax = -15.0e-6, 15.0e-6
+xmin, xmax = 0.0, 0.01
+zmin, zmax = 0.0, 0.01
+ymin, ymax = 0.0, 0.01
 
 dx = (xmax - xmin) / (shape[0] - 1)
+dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
-ymin, ymax = 0.0, 0.01
-dy = 0.01
 
-dt = 4.0e-17
-t_end = 3.0e-13
+cfl = 0.95
+dt = cfl / (constants.c * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2))
+t_end = 400 * dt
 nt = int(t_end / dt) + 1
-cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
-print(dx, dy, dz)
-print(cfl, dt, t_end, nt)
 
+print(f'inline constexpr std::array x_range = {{{xmin}, {xmax}}};')
+print(f'inline constexpr std::array y_range = {{{ymin}, {ymax}}};')
+print(f'inline constexpr std::array z_range = {{{zmin}, {zmax}}};')
+print(f'inline constexpr auto dx = {dx};')
+print(f'inline constexpr auto dy = {dy};')
+print(f'inline constexpr auto dz = {dz};')
+print(f'inline constexpr auto cfl   = {cfl};')
+print(f'inline constexpr auto dt    = {dt};')
+print(f'inline constexpr auto t_end = {t_end};')
+print(f'inline constexpr auto Nt    = {nt}zu;')
 
 # shape = (45, 2, 101)
 #
