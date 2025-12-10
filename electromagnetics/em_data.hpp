@@ -38,9 +38,9 @@ struct emdata_t {
    vector_t Hx;
    vector_t Hy;
    vector_t Hz;
-   vector_t Bx;
-   vector_t By;
-   vector_t Bz;
+   // vector_t Bx;
+   // vector_t By;
+   // vector_t Bz;
    
    // vector_t Cj;
    // vector_t Cexy;
@@ -57,7 +57,7 @@ struct emdata_t {
    x0bc_t Ezx0;
    x0bc_t Hyx0;
    x0bc_t Hzx0;
-   
+
    x1bc_t Eyx1;
    x1bc_t Ezx1;
    x1bc_t Hyx1;
@@ -95,20 +95,20 @@ struct emdata_t {
    mdspan_t Hyf;
    mdspan_t Hzf;
 
-   mdspan_t Bxf;
-   mdspan_t Byf;
-   mdspan_t Bzf;
+   // mdspan_t Bxf;
+   // mdspan_t Byf;
+   // mdspan_t Bzf;
 
    mdspan_t eyx0_psi;
    mdspan_t eyx1_psi;
    mdspan_t ezx0_psi;
    mdspan_t ezx1_psi;
-   
+
    mdspan_t exy0_psi;
    mdspan_t exy1_psi;
    mdspan_t ezy0_psi;
    mdspan_t ezy1_psi;
-   
+
    mdspan_t exz0_psi;
    mdspan_t exz1_psi;
    mdspan_t eyz0_psi;
@@ -129,7 +129,7 @@ struct emdata_t {
    mdspan_t hyz0_psi;
    mdspan_t hyz1_psi;
 
-   std::vector<GaussianBeam> beams;
+   // std::vector<GaussianBeam> beams;
 }; // end struct emdata_t
 
 
@@ -207,9 +207,9 @@ inline auto make_emdata() -> emdata_t {
    emdata.Hx = vector_t(hx_size);
    emdata.Hy = vector_t(hy_size);
    emdata.Hz = vector_t(hz_size);
-   emdata.Bx = vector_t(hx_size);
-   emdata.By = vector_t(hy_size);
-   emdata.Bz = vector_t(hz_size);
+   // emdata.Bx = vector_t(hx_size);
+   // emdata.By = vector_t(hy_size);
+   // emdata.Bz = vector_t(hz_size);
 
    emdata.Exf = mdspan_t{emdata.Ex.data(), {ex_ext, ex_stride}};
    emdata.Eyf = mdspan_t{emdata.Ey.data(), {ey_ext, ey_stride}};
@@ -220,9 +220,9 @@ inline auto make_emdata() -> emdata_t {
    emdata.Hxf = mdspan_t{emdata.Hx.data(), {hx_ext, hx_stride}};
    emdata.Hyf = mdspan_t{emdata.Hy.data(), {hy_ext, hy_stride}};
    emdata.Hzf = mdspan_t{emdata.Hz.data(), {hz_ext, hz_stride}};
-   emdata.Bxf = mdspan_t{emdata.Bx.data(), {hx_ext, hx_stride}};
-   emdata.Byf = mdspan_t{emdata.By.data(), {hy_ext, hy_stride}};
-   emdata.Bzf = mdspan_t{emdata.Bz.data(), {hz_ext, hz_stride}};
+   // emdata.Bxf = mdspan_t{emdata.Bx.data(), {hx_ext, hx_stride}};
+   // emdata.Byf = mdspan_t{emdata.By.data(), {hy_ext, hy_stride}};
+   // emdata.Bzf = mdspan_t{emdata.Bz.data(), {hz_ext, hz_stride}};
 
    init_bc<x0bc_t, X, Lo,  true>(emdata.Eyx0, std::extents{BCDepth, Ny - 1, Nz});
    init_bc<x1bc_t, X, Hi,  true>(emdata.Eyx1, std::extents{BCDepth, Ny - 1, Nz});
@@ -265,13 +265,13 @@ inline auto make_emdata() -> emdata_t {
 
    emdata.ezx0_psi = mdspan_t{emdata.Ezx0.psi.data(), {hyez_x_full_ext, hyez_x_stride}};
    emdata.ezx1_psi = mdspan_t{emdata.Ezx1.psi.data(), {hyez_x_full_ext, hyez_x_stride}};
-   
+
    emdata.exy0_psi = mdspan_t{emdata.Exy0.psi.data(), {exhz_y_full_ext, exhz_y_stride}};
    emdata.exy1_psi = mdspan_t{emdata.Exy1.psi.data(), {exhz_y_full_ext, exhz_y_stride}};
 
    emdata.ezy0_psi = mdspan_t{emdata.Ezy0.psi.data(), {hxez_y_full_ext, hxez_y_stride}};
    emdata.ezy1_psi = mdspan_t{emdata.Ezy1.psi.data(), {hxez_y_full_ext, hxez_y_stride}};
-   
+
    emdata.exz0_psi = mdspan_t{emdata.Exz0.psi.data(), {exhy_z_full_ext, exhy_z_stride}};
    emdata.exz1_psi = mdspan_t{emdata.Exz1.psi.data(), {exhy_z_full_ext, exhy_z_stride}};
 
@@ -283,13 +283,13 @@ inline auto make_emdata() -> emdata_t {
 
    emdata.hzx0_psi = mdspan_t{emdata.Hzx0.psi.data(), {eyhz_x_full_ext, eyhz_x_stride}};
    emdata.hzx1_psi = mdspan_t{emdata.Hzx1.psi.data(), {eyhz_x_full_ext, eyhz_x_stride}};
-   
+
    emdata.hxy0_psi = mdspan_t{emdata.Hxy0.psi.data(), {hxez_y_full_ext, hxez_y_stride}};
    emdata.hxy1_psi = mdspan_t{emdata.Hxy1.psi.data(), {hxez_y_full_ext, hxez_y_stride}};
 
    emdata.hzy0_psi = mdspan_t{emdata.Hzy0.psi.data(), {exhz_y_full_ext, exhz_y_stride}};
    emdata.hzy1_psi = mdspan_t{emdata.Hzy1.psi.data(), {exhz_y_full_ext, exhz_y_stride}};
-   
+
    emdata.hxz0_psi = mdspan_t{emdata.Hxz0.psi.data(), {hxey_z_full_ext, hxey_z_stride}};
    emdata.hxz1_psi = mdspan_t{emdata.Hxz1.psi.data(), {hxey_z_full_ext, hxey_z_stride}};
 

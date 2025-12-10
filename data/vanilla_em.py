@@ -9,28 +9,19 @@ from matplotlib.ticker import LogLocator
 
 
 def update_Ex(Ex, Hz, Hy, cexe, cexh):
-    print(f'Ex[:, 1:-1, 1:-1] = {Ex[:, 1:-1, 1:-1].strides}')
-    print(f'Hz[:, 1:, 1:-1] = {Hz[:, 1:, 1:-1].strides}')
-    print(f'Hy[:, 1:-1, 1:] = {Hy[:, 1:-1, 1:].strides}')
-    # Ex[:, 1:-1, 1:-1] = (cexe[:, 1:-1, 1:-1] *   Ex[:, 1:-1, 1:-1]
-    #                   +  cexh[:, 1:-1, 1:-1] * ((Hz[:, 1:, 1:-1] - Hz[:, :-1, 1:-1])
-    #                                          -  (Hy[:, 1:-1, 1:] - Hy[:, 1:-1, :-1])))
+    Ex[:, 1:-1, 1:-1] = (cexe[:, 1:-1, 1:-1] *   Ex[:, 1:-1, 1:-1]
+                      +  cexh[:, 1:-1, 1:-1] * ((Hz[:, 1:, 1:-1] - Hz[:, :-1, 1:-1])
+                                             -  (Hy[:, 1:-1, 1:] - Hy[:, 1:-1, :-1])))
 
 def update_Ey(Ey, Hx, Hz, ceye, ceyh):
-    print(f'Ey[1:-1, :, 1:-1] = {Ey[1:-1, :, 1:-1].strides}')
-    print(f'Hx[1:-1, :, 1:] = {Hx[1:-1, :, 1:].strides}')
-    print(f'Hz[1:, :, 1:-1] = {Hz[1:, :, 1:-1].strides}')
-    # Ey[1:-1, :, 1:-1] = (ceye[1:-1, :, 1:-1] *   Ey[1:-1, :, 1:-1]
-    #                   +  ceyh[1:-1, :, 1:-1] * ((Hx[1:-1, :, 1:] - Hx[1:-1, :, :-1])
-    #                                          -  (Hz[1:, :, 1:-1] - Hz[:-1, :, 1:-1])))
+    Ey[1:-1, :, 1:-1] = (ceye[1:-1, :, 1:-1] *   Ey[1:-1, :, 1:-1]
+                      +  ceyh[1:-1, :, 1:-1] * ((Hx[1:-1, :, 1:] - Hx[1:-1, :, :-1])
+                                             -  (Hz[1:, :, 1:-1] - Hz[:-1, :, 1:-1])))
 
 def update_Ez(Ez, Hy, Hx, ceze, cezh):
-    print(f'Ez[1:-1, 1:-1, :] = {Ez[1:-1, 1:-1, :].strides}')
-    print(f'Hy[1:, 1:-1, :] = {Hy[1:, 1:-1, :].strides}')
-    print(f'Hx[1:-1, 1:, :] = {Hx[1:-1, 1:, :].strides}')
-    # Ez[1:-1, 1:-1, :] = (ceze[1:-1, 1:-1, :] *   Ez[1:-1, 1:-1, :]
-    #                   +  cezh[1:-1, 1:-1, :] * ((Hy[1:, 1:-1, :] - Hy[:-1, 1:-1, :])
-    #                                          -  (Hx[1:-1, 1:, :] - Hx[1:-1, :-1, :])))
+    Ez[1:-1, 1:-1, :] = (ceze[1:-1, 1:-1, :] *   Ez[1:-1, 1:-1, :]
+                      +  cezh[1:-1, 1:-1, :] * ((Hy[1:, 1:-1, :] - Hy[:-1, 1:-1, :])
+                                             -  (Hx[1:-1, 1:, :] - Hx[1:-1, :-1, :])))
 
 def update_Hx(Hx, Ey, Ez, chxh, chxe):
     Hx[:, :, :] = (chxh[:, :, :] * Hx[:, :, :]
@@ -66,7 +57,7 @@ def main():
     nx = 101
     ny = 101
     nz = 101
-    nt = 1
+    nt = 400
     cfl = 0.95 / np.sqrt(3)
     imp0 = 377.0
 
@@ -106,11 +97,12 @@ def main():
         update_Hy(Hy, Ez, Ex, chyh, chye)
         update_Hz(Hz, Ex, Ey, chzh, chze)
 
+        Ez[nx // 2, ny // 2, nz // 2] += 10.0 * ricker(n, cfl)
+
         update_Ex(Ex, Hz, Hy, cexe, cexh)
         update_Ey(Ey, Hx, Hz, ceye, ceyh)
         update_Ez(Ez, Hy, Hx, ceze, cezh)
 
-        Ez[nx // 2, ny // 2, nz // 2] += 10.0 * ricker(n, cfl)
 
         if n % save_step == 0:
             plot('Ex', Ex[:, :, nz // 2], axes[0, 0], fig)

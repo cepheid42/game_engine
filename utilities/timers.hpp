@@ -42,9 +42,9 @@ struct Timer
       elapsed = duration_t::zero();
    }
 
-   [[nodiscard]] auto to_seconds() const {
-      return std::chrono::duration<double>(elapsed);
-   }
+   // [[nodiscard]] auto to_seconds() const {
+   //    return std::chrono::duration(elapsed);
+   // }
 }; // end struct Timer
 
 inline auto create_timers() {
@@ -59,7 +59,7 @@ inline auto create_timers() {
    return timers;
 } // end create_timers()
 
-void print_final_timers(auto& timers) {
+auto print_final_timers(auto& timers) {
    std::println("        EM: {}", std::chrono::hh_mm_ss(timers["EM"].elapsed));
    std::println("      Push: {}", std::chrono::hh_mm_ss(timers["Push"].elapsed));
    // std::println("      Sort: {}", std::chrono::hh_mm_ss(timers["Sort"].elapsed));

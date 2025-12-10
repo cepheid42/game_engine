@@ -197,8 +197,9 @@ def plot_fields(n, step, file_dir):
     def plot(name, ax, figure):
         field = load_field(n, name, file_dir)
         nnx, nny, nnz = field.shape
+        # field = field[nnx // 2, :, :]
+        # field = field[:, nny // 2, :]
         field = field[:, :, nnz // 2]
-        # field = field[:, 0, :]
 
         # if name[0] == 'H':
         #     field *= H_to_B
@@ -377,9 +378,9 @@ def plot_Temp(groups, start, stop, step, file_dir):
 
 
 def main():
-    step = 4
+    step = 10
     start = 0
-    stop = 400
+    stop = 1000
 
     file_dir = '/em_test'
 

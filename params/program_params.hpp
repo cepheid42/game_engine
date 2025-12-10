@@ -26,7 +26,7 @@ inline constexpr auto dz = 0.0001;
 inline constexpr auto cfl   = 0.95;
 inline constexpr auto dt    = 1.829541541469147e-13;
 inline constexpr auto t_end = 7.318166165876587e-11;
-inline constexpr auto Nt    = 401zu;
+inline constexpr auto Nt    = 1001zu;
 
 inline constexpr auto sim_name = "em_test";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
@@ -43,7 +43,7 @@ enum class EMFace { X, Y, Z };
 enum class EMSide { Lo, Hi };
 enum class Derivative { Dx, Dy, Dz };
 
-inline constexpr auto em_save_interval = 4zu;
+inline constexpr auto em_save_interval = 10zu;
 
 inline constexpr auto PMLDepth    = 10zu;
 inline constexpr auto PMLGrade    = 3.5;

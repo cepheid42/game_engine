@@ -1,3 +1,94 @@
+//
+// #include "mdspan.hpp"
+//
+// #include <vector>
+// #include <print>
+// #include <cassert>
+//
+//
+// // Full 3d span over data
+// using mdspan_t = std::mdspan<
+//    std::size_t,
+//    std::dextents<std::size_t, 3>
+// >;
+//
+// // 3d span
+// using subspan3d_t = std::mdspan<
+//    std::size_t,
+//    std::dextents<std::size_t, 3>,
+//    std::layout_stride
+// >;
+//
+// // 2D span
+// using subspan2d_t = std::mdspan<
+//    std::size_t,
+//    std::dextents<std::size_t, 2>,
+//    std::layout_stride
+// >;
+//
+// // 1D span
+// using subspan_t = std::mdspan<
+//    std::size_t,
+//    std::dextents<std::size_t, 1>,
+//    std::layout_stride
+// >;
+//
+// void fill(auto& md) {
+//    for (std::size_t i = 0; i < md.extent(0); i++) {
+//       for (std::size_t j = 0; j < md.extent(1); j++) {
+//          for (std::size_t k = 0; k < md.extent(2); k++) {
+//             md[i, j, k] = k  + (md.extent(2) * j) + (md.extent(1) * md.extent(2) * i);
+//          }
+//       }
+//    }
+// }
+//
+// void difference(auto& src, auto& dest) {
+//    for (std::size_t i = 0; i < dest.extent(0); i++) {
+//       for (std::size_t j = 0; j < dest.extent(1); j++) {
+//          for (std::size_t k = 0; k < dest.extent(2); k++) {
+//             dest[i, j, k] = src[i, j, k + 1] - src[i, j, k];
+//          }
+//       }
+//    }
+// }
+//
+// void print(auto& md) {
+//    for (std::size_t i = 0; i < md.extent(0); i++) {
+//       for (std::size_t j = 0; j < md.extent(1); j++) {
+//          for (std::size_t k = 0; k < md.extent(2); k++) {
+//             std::print("{:>3}, ", md[i, j, k]);
+//          }
+//          std::println();
+//       }
+//       std::println();
+//    }
+//    std::println();
+// }
+// constexpr auto nx = 10zu;
+// constexpr auto ny = 10zu;
+// constexpr auto nz = 10zu;
+// constexpr auto size = nx * ny * nz;
+// int main() {
+//    // Data
+//    std::vector<std::size_t> test(size);
+//    std::vector<std::size_t> result_data(size);
+//    // Using mdspan make indexing subspans easier
+//    mdspan_t og{test.data(), std::extents{nx, ny, nz}};
+//    // mdspan_t result{result_data.data(), std::extents{nx, ny, nz}};
+//
+//    // fill(og);
+//    // print(og);
+//
+//    subspan3d_t slice{&og[0, 1, 1], {std::extents{nx, ny - 2, nz - 2}, std::array{ny * nz, nz, 1zu}}};
+//
+//    fill(slice);
+//    print(og);
+//
+//    return 0;
+// }
+
+
 #include "program_params.hpp"
 #include "em_solver.hpp"
 #include "em_data.hpp"
@@ -41,7 +132,7 @@ int main() {
 
    const auto data_path = std::string{sim_path} + "/data/" + std::string{sim_name};
    auto emdata = make_emdata();
-   add_gaussianbeam(emdata);
+   // add_gaussianbeam(emdata);
 
    // EMSolver::particle_correction(emdata);
    // for (auto& g : particle_groups) {

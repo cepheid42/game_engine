@@ -81,7 +81,7 @@ int test() {
    mdspan_t result{result_data.data(), std::extents{nx, ny, nz}};
 
    fill(og);
-   // print(og);
+   print(og);
 
    // /* ---------------------- Backward DX ---------------------- */
    // const subspan3d_t back_dx0{
@@ -261,112 +261,112 @@ int test() {
    return 0;
 }
 
-void test_periodic() {
-      constexpr auto nx = 10zu;
-   constexpr auto ny = 10zu;
-   constexpr auto nz = 10zu;
-   constexpr auto nhalo = 2zu;
-
-   using mdspan_t = std::mdspan<
-      std::size_t,
-      std::dextents<std::size_t, 3>
-   >;
-
-   using strided_slice_t = std::mdspan<std::size_t, std::dextents<std::size_t, 3>, std::layout_stride>;
-
-   std::vector<std::size_t> data(nx * ny * nz);
-   mdspan_t test{data.data(), std::extents{nx, ny, nz}};
-
-   // for (auto i = 0zu; i < nhalo; i++) {
-   //    for (auto j = 0zu; j < test.extent(1); j++) {
-   //       for (auto k = 0zu; k < test.extent(2); k++) {
-   //          test[i, j, k] = i + 1;
-   //       }
-   //    }
-   // }
-   //
-   // for (auto i = nx - nhalo; i < test.extent(0); i++) {
-   //    for (auto j = 0zu; j < test.extent(1); j++) {
-   //       for (auto k = 0zu; k < test.extent(2); k++) {
-   //          test[i, j, k] = i + 1;
-   //       }
-   //    }
-   // }
-
-   // for (auto i = 0zu; i < test.extent(0); i++) {
-   //    for (auto j = 0zu; j < nhalo; j++) {
-   //       for (auto k = 0zu; k < test.extent(2); k++) {
-   //          test[i, j, k] = j + 1;
-   //       }
-   //    }
-   // }
-   //
-   // for (auto i = 0zu; i < test.extent(0); i++) {
-   //    for (auto j = ny - nhalo; j < test.extent(1); j++) {
-   //       for (auto k = 0zu; k < test.extent(2); k++) {
-   //          test[i, j, k] = j + 1;
-   //       }
-   //    }
-   // }
-
-   for (auto i = 0zu; i < test.extent(0); i++) {
-      for (auto j = 0zu; j < test.extent(1); j++) {
-         for (auto k = 0zu; k < nhalo; k++) {
-            test[i, j, k] = k + 1;
-         }
-      }
-   }
-
-   for (auto i = 0zu; i < test.extent(0); i++) {
-      for (auto j = 0zu; j < test.extent(1); j++) {
-         for (auto k = nz - nhalo; k < test.extent(2); k++) {
-            test[i, j, k] = k + 1;
-         }
-      }
-   }
-
-   // stepfill_mdarray(test, 0);
-   // print_mdarray(test);
-
-   // // X dir
-   // strided_slice_t  first{&test[0, 0, 0], {std::extents{1, ny, nz}, std::array{(nx - 2 * nhalo) * ny * nz, nz, 1zu}}}; // first plane
-   // strided_slice_t second{&test[1, 0, 0], {std::extents{1, ny, nz}, std::array{(nx - 2 * nhalo) * ny * nz, nz, 1zu}}}; // second plane
-   // strided_slice_t  third{&test[2, 0, 0], {std::extents{1, ny, nz}, std::array{(nx - 2 * nhalo) * ny * nz, nz, 1zu}}}; // second last plane
-   // strided_slice_t fourth{&test[3, 0, 0], {std::extents{1, ny, nz}, std::array{(nx - 2 * nhalo) * ny * nz, nz, 1zu}}}; // last plane
-
-   // // Y dir
-   // strided_slice_t  first{&test[0, 0, 0], {std::extents{nx, 1, nz}, std::array{ny * nz, (ny - 2 * nhalo) * nz, 1zu}}};
-   // strided_slice_t second{&test[0, 1, 0], {std::extents{nx, 2, nz}, std::array{ny * nz, (ny - 2 * nhalo) * nz, 1zu}}};
-   // strided_slice_t  third{&test[0, 2, 0], {std::extents{nx, 2, nz}, std::array{ny * nz, (ny - 2 * nhalo) * nz, 1zu}}};
-   // strided_slice_t fourth{&test[0, 3, 0], {std::extents{nx, 2, nz}, std::array{ny * nz, (ny - 2 * nhalo) * nz, 1zu}}};
-
-   // Z dir
-   strided_slice_t  first{&test[0, 0, 0], {std::extents{nx, ny, 1}, std::array{ny * nz, nz, nz - 2 * nhalo}}};
-   strided_slice_t second{&test[0, 0, 1], {std::extents{nx, ny, 1}, std::array{ny * nz, nz, nz - 2 * nhalo}}};
-   strided_slice_t  third{&test[0, 0, 2], {std::extents{nx, ny, 1}, std::array{ny * nz, nz, nz - 2 * nhalo}}};
-   strided_slice_t fourth{&test[0, 0, 3], {std::extents{nx, ny, 1}, std::array{ny * nz, nz, nz - 2 * nhalo}}};
-
-   for (auto i = 0u; i < first.extent(0); i++) {
-      for (auto j = 0u; j < first.extent(1); j++) {
-         for (auto k = 0u; k < first.extent(2); k++) {
-            // first[i + 1, j, k] = first[i, j, k];
-            // second[i + 1, j, k] = second[i, j, k];
-            // third[i, j, k] = third[i + 1, j, k];
-            // fourth[i, j, k] = fourth[i + 1, j, k];
-
-            // first[i, j + 1, k] = first[i, j, k];
-            // second[i, j + 1, k] = second[i, j, k];
-            // third[i, j, k] = third[i, j + 1, k];
-            // fourth[i, j, k] = fourth[i, j + 1, k];
-
-            first[i, j, k + 1] = first[i, j, k];
-            second[i, j, k + 1] = second[i, j, k];
-            third[i, j, k] = third[i, j, k + 1];
-            fourth[i, j, k] = fourth[i, j, k + 1];
-         }
-      }
-   }
-
-   print_mdarray(test);
-}
+// void test_periodic() {
+//       constexpr auto nx = 10zu;
+//    constexpr auto ny = 10zu;
+//    constexpr auto nz = 10zu;
+//    constexpr auto nhalo = 2zu;
+//
+//    using mdspan_t = std::mdspan<
+//       std::size_t,
+//       std::dextents<std::size_t, 3>
+//    >;
+//
+//    using strided_slice_t = std::mdspan<std::size_t, std::dextents<std::size_t, 3>, std::layout_stride>;
+//
+//    std::vector<std::size_t> data(nx * ny * nz);
+//    mdspan_t test{data.data(), std::extents{nx, ny, nz}};
+//
+//    // for (auto i = 0zu; i < nhalo; i++) {
+//    //    for (auto j = 0zu; j < test.extent(1); j++) {
+//    //       for (auto k = 0zu; k < test.extent(2); k++) {
+//    //          test[i, j, k] = i + 1;
+//    //       }
+//    //    }
+//    // }
+//    //
+//    // for (auto i = nx - nhalo; i < test.extent(0); i++) {
+//    //    for (auto j = 0zu; j < test.extent(1); j++) {
+//    //       for (auto k = 0zu; k < test.extent(2); k++) {
+//    //          test[i, j, k] = i + 1;
+//    //       }
+//    //    }
+//    // }
+//
+//    // for (auto i = 0zu; i < test.extent(0); i++) {
+//    //    for (auto j = 0zu; j < nhalo; j++) {
+//    //       for (auto k = 0zu; k < test.extent(2); k++) {
+//    //          test[i, j, k] = j + 1;
+//    //       }
+//    //    }
+//    // }
+//    //
+//    // for (auto i = 0zu; i < test.extent(0); i++) {
+//    //    for (auto j = ny - nhalo; j < test.extent(1); j++) {
+//    //       for (auto k = 0zu; k < test.extent(2); k++) {
+//    //          test[i, j, k] = j + 1;
+//    //       }
+//    //    }
+//    // }
+//
+//    for (auto i = 0zu; i < test.extent(0); i++) {
+//       for (auto j = 0zu; j < test.extent(1); j++) {
+//          for (auto k = 0zu; k < nhalo; k++) {
+//             test[i, j, k] = k + 1;
+//          }
+//       }
+//    }
+//
+//    for (auto i = 0zu; i < test.extent(0); i++) {
+//       for (auto j = 0zu; j < test.extent(1); j++) {
+//          for (auto k = nz - nhalo; k < test.extent(2); k++) {
+//             test[i, j, k] = k + 1;
+//          }
+//       }
+//    }
+//
+//    // stepfill_mdarray(test, 0);
+//    // print_mdarray(test);
+//
+//    // // X dir
+//    // strided_slice_t  first{&test[0, 0, 0], {std::extents{1, ny, nz}, std::array{(nx - 2 * nhalo) * ny * nz, nz, 1zu}}}; // first plane
+//    // strided_slice_t second{&test[1, 0, 0], {std::extents{1, ny, nz}, std::array{(nx - 2 * nhalo) * ny * nz, nz, 1zu}}}; // second plane
+//    // strided_slice_t  third{&test[2, 0, 0], {std::extents{1, ny, nz}, std::array{(nx - 2 * nhalo) * ny * nz, nz, 1zu}}}; // second last plane
+//    // strided_slice_t fourth{&test[3, 0, 0], {std::extents{1, ny, nz}, std::array{(nx - 2 * nhalo) * ny * nz, nz, 1zu}}}; // last plane
+//
+//    // // Y dir
+//    // strided_slice_t  first{&test[0, 0, 0], {std::extents{nx, 1, nz}, std::array{ny * nz, (ny - 2 * nhalo) * nz, 1zu}}};
+//    // strided_slice_t second{&test[0, 1, 0], {std::extents{nx, 2, nz}, std::array{ny * nz, (ny - 2 * nhalo) * nz, 1zu}}};
+//    // strided_slice_t  third{&test[0, 2, 0], {std::extents{nx, 2, nz}, std::array{ny * nz, (ny - 2 * nhalo) * nz, 1zu}}};
+//    // strided_slice_t fourth{&test[0, 3, 0], {std::extents{nx, 2, nz}, std::array{ny * nz, (ny - 2 * nhalo) * nz, 1zu}}};
+//
+//    // Z dir
+//    strided_slice_t  first{&test[0, 0, 0], {std::extents{nx, ny, 1}, std::array{ny * nz, nz, nz - 2 * nhalo}}};
+//    strided_slice_t second{&test[0, 0, 1], {std::extents{nx, ny, 1}, std::array{ny * nz, nz, nz - 2 * nhalo}}};
+//    strided_slice_t  third{&test[0, 0, 2], {std::extents{nx, ny, 1}, std::array{ny * nz, nz, nz - 2 * nhalo}}};
+//    strided_slice_t fourth{&test[0, 0, 3], {std::extents{nx, ny, 1}, std::array{ny * nz, nz, nz - 2 * nhalo}}};
+//
+//    for (auto i = 0u; i < first.extent(0); i++) {
+//       for (auto j = 0u; j < first.extent(1); j++) {
+//          for (auto k = 0u; k < first.extent(2); k++) {
+//             // first[i + 1, j, k] = first[i, j, k];
+//             // second[i + 1, j, k] = second[i, j, k];
+//             // third[i, j, k] = third[i + 1, j, k];
+//             // fourth[i, j, k] = fourth[i + 1, j, k];
+//
+//             // first[i, j + 1, k] = first[i, j, k];
+//             // second[i, j + 1, k] = second[i, j, k];
+//             // third[i, j, k] = third[i, j + 1, k];
+//             // fourth[i, j, k] = fourth[i, j + 1, k];
+//
+//             first[i, j, k + 1] = first[i, j, k];
+//             second[i, j, k + 1] = second[i, j, k];
+//             third[i, j, k] = third[i, j, k + 1];
+//             fourth[i, j, k] = fourth[i, j, k + 1];
+//          }
+//       }
+//    }
+//
+//    print_mdarray(test);
+// }
 #endif //MDSPAN_TESTS_HPP
