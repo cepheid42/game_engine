@@ -96,16 +96,23 @@ struct EMSolver {
          const auto alpha = math::SQR(constants::pi<double> * ((cfl * static_cast<double>(n) - 0.0) / ppw - 1.0));
          return (1.0 - 2.0 * alpha) * std::exp(-alpha);
       };
+// (91, 100), (0, 100), (0, 101)
+// (91, 100), (0, 101), (0, 100)
 
-      updateH(emdata);
-      updateHBCs(emdata);
+      std::println("({}, {}), ({}, {}), ({}, {})", Nx - BCDepth, Nx - 1, 0, Ny - 1, 0, Nz);
+      std::println("({}, {}), ({}, {}), ({}, {})", Nx - BCDepth, Nx - 1, 0, Ny, 0, Nz - 1);
 
-      emdata.Ezf[Nx / 2, Ny / 2, Nz / 2] = 10.0 * ricker();
-      // updateJBCs();
-      // apply_srcs(emdata, static_cast<double>(n) * dt);
+      exit(0);
 
-      updateE(emdata);
-      updateEBCs(emdata);
+      // updateH(emdata);
+      // updateHBCs(emdata);
+      //
+      // emdata.Ezf[Nx / 2, Ny / 2, Nz / 2] = 10.0 * ricker();
+      // // updateJBCs();
+      // // apply_srcs(emdata, static_cast<double>(n) * dt);
+      //
+      // updateE(emdata);
+      // updateEBCs(emdata);
 
       // particle_correction(emdata); // for the particles and shit
       // zero_currents(emdata);       // also for the particles, don't need last week's currents
