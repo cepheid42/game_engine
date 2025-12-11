@@ -96,23 +96,16 @@ struct EMSolver {
          const auto alpha = math::SQR(constants::pi<double> * ((cfl * static_cast<double>(n) - 0.0) / ppw - 1.0));
          return (1.0 - 2.0 * alpha) * std::exp(-alpha);
       };
-// (91, 100), (0, 100), (0, 101)
-// (91, 100), (0, 101), (0, 100)
 
-      std::println("({}, {}), ({}, {}), ({}, {})", Nx - BCDepth, Nx - 1, 0, Ny - 1, 0, Nz);
-      std::println("({}, {}), ({}, {}), ({}, {})", Nx - BCDepth, Nx - 1, 0, Ny, 0, Nz - 1);
+      updateH(emdata);
+      updateHBCs(emdata);
 
-      exit(0);
+      emdata.Ezf[Nx / 2, Ny / 2, Nz / 2] += 10.0 * ricker();
+      // updateJBCs();
+      // apply_srcs(emdata, static_cast<double>(n) * dt);
 
-      // updateH(emdata);
-      // updateHBCs(emdata);
-      //
-      // emdata.Ezf[Nx / 2, Ny / 2, Nz / 2] = 10.0 * ricker();
-      // // updateJBCs();
-      // // apply_srcs(emdata, static_cast<double>(n) * dt);
-      //
-      // updateE(emdata);
-      // updateEBCs(emdata);
+      updateE(emdata);
+      updateEBCs(emdata);
 
       // particle_correction(emdata); // for the particles and shit
       // zero_currents(emdata);       // also for the particles, don't need last week's currents
@@ -203,7 +196,7 @@ struct EMSolver {
       // Eyx1
       BoundaryUpdate<Dx, true>::apply(
          mdspan_t{&emdata.Eyf[Nx - BCDepth, 0, 0], {eyhz_x_ext, ey_stride}},
-         mdspan_t{&emdata.Hzf[Nx - BCDepth - 1, 0, 0], {eyhz_x_ext, hz_stride}},
+         mdspan_t{&emdata.Hzf[Nx - BCDepth, 0, 0], {eyhz_x_ext, hz_stride}},
          mdspan_t{&emdata.eyx1_psi[0, 0, 0], {eyhz_x_ext, eyhz_x_stride}},
          std::span{emdata.Eyx1.b.begin(), BCDepth - 1},
          std::span{emdata.Eyx1.c.begin(), BCDepth - 1},
@@ -213,7 +206,7 @@ struct EMSolver {
       // Ezx1
       BoundaryUpdate<Dx, true>::apply(
          mdspan_t{&emdata.Ezf[Nx - BCDepth, 0, 0], {hyez_x_ext, ez_stride}},
-         mdspan_t{&emdata.Hyf[Nx - BCDepth - 1, 0, 0], {hyez_x_ext, hy_stride}},
+         mdspan_t{&emdata.Hyf[Nx - BCDepth, 0, 0], {hyez_x_ext, hy_stride}},
          mdspan_t{&emdata.ezx1_psi[0, 0, 0], {hyez_x_ext, hyez_x_stride}},
          std::span{emdata.Ezx1.b.begin(), BCDepth - 1},
          std::span{emdata.Ezx1.c.begin(), BCDepth - 1},
@@ -240,25 +233,25 @@ struct EMSolver {
          -dtdy_eps
       );
 
-      // // Exy1
-      // BoundaryUpdate<Dy, true>::apply(
-      //    mdspan_t{&emdata.Exf[0, Ny - BCDepth, 0], {exhz_y_ext, ex_stride}},
-      //    mdspan_t{&emdata.Hzf[0, Ny - BCDepth, 0], {exhz_y_ext, hz_stride}},
-      //    mdspan_t{&emdata.exy1_psi[0, 0, 0], {exhz_y_ext, exhz_y_stride}},
-      //    std::span{emdata.Exy1.b.begin(), BCDepth - 1},
-      //    std::span{emdata.Exy1.c.begin(), BCDepth - 1},
-      //    dtdy_eps
-      // );
+      // Exy1
+      BoundaryUpdate<Dy, true>::apply(
+         mdspan_t{&emdata.Exf[0, Ny - BCDepth, 0], {exhz_y_ext, ex_stride}},
+         mdspan_t{&emdata.Hzf[0, Ny - BCDepth, 0], {exhz_y_ext, hz_stride}},
+         mdspan_t{&emdata.exy1_psi[0, 0, 0], {exhz_y_ext, exhz_y_stride}},
+         std::span{emdata.Exy1.b.begin(), BCDepth - 1},
+         std::span{emdata.Exy1.c.begin(), BCDepth - 1},
+         dtdy_eps
+      );
 
-      // // Ezy1
-      // BoundaryUpdate<Dy, true>::apply(
-      //    mdspan_t{&emdata.Ezf[0, Ny - BCDepth, 0], {hxez_y_ext, ez_stride}},
-      //    mdspan_t{&emdata.Hxf[0, Ny - BCDepth, 0], {hxez_y_ext, hx_stride}},
-      //    mdspan_t{&emdata.ezy1_psi[0, 0, 0], {hxez_y_ext, hxez_y_stride}},
-      //    std::span{emdata.Ezy1.b.begin(), BCDepth - 1},
-      //    std::span{emdata.Ezy1.c.begin(), BCDepth - 1},
-      //    -dtdy_eps
-      // );
+      // Ezy1
+      BoundaryUpdate<Dy, true>::apply(
+         mdspan_t{&emdata.Ezf[0, Ny - BCDepth, 0], {hxez_y_ext, ez_stride}},
+         mdspan_t{&emdata.Hxf[0, Ny - BCDepth, 0], {hxez_y_ext, hx_stride}},
+         mdspan_t{&emdata.ezy1_psi[0, 0, 0], {hxez_y_ext, hxez_y_stride}},
+         std::span{emdata.Ezy1.b.begin(), BCDepth - 1},
+         std::span{emdata.Ezy1.c.begin(), BCDepth - 1},
+         -dtdy_eps
+      );
 
       // Exz0
       BoundaryUpdate<Dz, true>::apply(
@@ -280,25 +273,25 @@ struct EMSolver {
          dtdz_eps
       );
 
-      // // Exz1
-      // BoundaryUpdate<Dz, true>::apply(
-      //    mdspan_t{&emdata.Exf[0, 0, Nz - BCDepth], {exhy_z_ext, ex_stride}},
-      //    mdspan_t{&emdata.Hyf[0, 0, Nz - BCDepth], {exhy_z_ext, hy_stride}},
-      //    mdspan_t{&emdata.exz1_psi[0, 0, 0], {exhy_z_ext, exhy_z_stride}},
-      //    std::span{emdata.Exz1.b.begin(), BCDepth - 1},
-      //    std::span{emdata.Exz1.c.begin(), BCDepth - 1},
-      //    -dtdz_eps
-      // );
+      // Exz1
+      BoundaryUpdate<Dz, true>::apply(
+         mdspan_t{&emdata.Exf[0, 0, Nz - BCDepth], {exhy_z_ext, ex_stride}},
+         mdspan_t{&emdata.Hyf[0, 0, Nz - BCDepth], {exhy_z_ext, hy_stride}},
+         mdspan_t{&emdata.exz1_psi[0, 0, 0], {exhy_z_ext, exhy_z_stride}},
+         std::span{emdata.Exz1.b.begin(), BCDepth - 1},
+         std::span{emdata.Exz1.c.begin(), BCDepth - 1},
+         -dtdz_eps
+      );
 
-      // // Eyz1
-      // BoundaryUpdate<Dz, true>::apply(
-      //    mdspan_t{&emdata.Eyf[0, 0, Nz - BCDepth], {hxey_z_ext, ey_stride}},
-      //    mdspan_t{&emdata.Hxf[0, 0, Nz - BCDepth], {hxey_z_ext, hx_stride}},
-      //    mdspan_t{&emdata.eyz1_psi[0, 0, 0], {hxey_z_ext, hxey_z_stride}},
-      //    std::span{emdata.Eyz1.b.begin(), BCDepth - 1},
-      //    std::span{emdata.Eyz1.c.begin(), BCDepth - 1},
-      //    dtdz_eps
-      // );
+      // Eyz1
+      BoundaryUpdate<Dz, true>::apply(
+         mdspan_t{&emdata.Eyf[0, 0, Nz - BCDepth], {hxey_z_ext, ey_stride}},
+         mdspan_t{&emdata.Hxf[0, 0, Nz - BCDepth], {hxey_z_ext, hx_stride}},
+         mdspan_t{&emdata.eyz1_psi[0, 0, 0], {hxey_z_ext, hxey_z_stride}},
+         std::span{emdata.Eyz1.b.begin(), BCDepth - 1},
+         std::span{emdata.Eyz1.c.begin(), BCDepth - 1},
+         dtdz_eps
+      );
    } // end updateEBCs()
 
    static void updateHBCs(auto& emdata) {
@@ -361,25 +354,25 @@ struct EMSolver {
          dtdy_mu
       );
 
-      // // Hxy1
-      // BoundaryUpdate<Dy, false>::apply(
-      //    mdspan_t{&emdata.Hxf[0, Ny - BCDepth, 0], {hxez_y_ext, hx_stride}},
-      //    mdspan_t{&emdata.Ezf[0, Ny - BCDepth, 0], {hxez_y_ext, ez_stride}},
-      //    mdspan_t{&emdata.hxy1_psi[0, 0, 0], {hxez_y_ext, hxez_y_stride}},
-      //    std::span{emdata.Hxy1.b.begin() + 1, BCDepth - 1},
-      //    std::span{emdata.Hxy1.c.begin() + 1, BCDepth - 1},
-      //    -dtdy_mu
-      // );
+      // Hxy1
+      BoundaryUpdate<Dy, false>::apply(
+         mdspan_t{&emdata.Hxf[0, Ny - BCDepth, 0], {hxez_y_ext, hx_stride}},
+         mdspan_t{&emdata.Ezf[0, Ny - BCDepth, 0], {hxez_y_ext, ez_stride}},
+         mdspan_t{&emdata.hxy1_psi[0, 0, 0], {hxez_y_ext, hxez_y_stride}},
+         std::span{emdata.Hxy1.b.begin() + 1, BCDepth - 1},
+         std::span{emdata.Hxy1.c.begin() + 1, BCDepth - 1},
+         -dtdy_mu
+      );
 
-      // // Hzy1
-      // BoundaryUpdate<Dy, false>::apply(
-      //    mdspan_t{&emdata.Hzf[0, Ny - BCDepth, 0], {exhz_y_ext, hz_stride}},
-      //    mdspan_t{&emdata.Exf[0, Ny - BCDepth, 0], {exhz_y_ext, ex_stride}},
-      //    mdspan_t{&emdata.hzy1_psi[0, 0, 0], {exhz_y_ext, exhz_y_stride}},
-      //    std::span{emdata.Hzy1.b.begin() + 1, BCDepth - 1},
-      //    std::span{emdata.Hzy1.c.begin() + 1, BCDepth - 1},
-      //    dtdy_mu
-      // );
+      // Hzy1
+      BoundaryUpdate<Dy, false>::apply(
+         mdspan_t{&emdata.Hzf[0, Ny - BCDepth, 0], {exhz_y_ext, hz_stride}},
+         mdspan_t{&emdata.Exf[0, Ny - BCDepth, 0], {exhz_y_ext, ex_stride}},
+         mdspan_t{&emdata.hzy1_psi[0, 0, 0], {exhz_y_ext, exhz_y_stride}},
+         std::span{emdata.Hzy1.b.begin() + 1, BCDepth - 1},
+         std::span{emdata.Hzy1.c.begin() + 1, BCDepth - 1},
+         dtdy_mu
+      );
 
       // Hxz0
       BoundaryUpdate<Dz, false>::apply(
@@ -401,25 +394,25 @@ struct EMSolver {
          -dtdz_mu
       );
 
-      // // Hxz1
-      // BoundaryUpdate<Dz, false>::apply(
-      //    mdspan_t{&emdata.Hxf[0, 0, Nz - BCDepth], {hxey_z_ext, hx_stride}},
-      //    mdspan_t{&emdata.Eyf[0, 0, Nz - BCDepth], {hxey_z_ext, ey_stride}},
-      //    mdspan_t{&emdata.hxz1_psi[0, 0, 0], {hxey_z_ext, hxey_z_stride}},
-      //    std::span{emdata.Hxz1.b.begin() + 1, BCDepth - 1},
-      //    std::span{emdata.Hxz1.c.begin() + 1, BCDepth - 1},
-      //    dtdz_mu
-      // );
+      // Hxz1
+      BoundaryUpdate<Dz, false>::apply(
+         mdspan_t{&emdata.Hxf[0, 0, Nz - BCDepth], {hxey_z_ext, hx_stride}},
+         mdspan_t{&emdata.Eyf[0, 0, Nz - BCDepth], {hxey_z_ext, ey_stride}},
+         mdspan_t{&emdata.hxz1_psi[0, 0, 0], {hxey_z_ext, hxey_z_stride}},
+         std::span{emdata.Hxz1.b.begin() + 1, BCDepth - 1},
+         std::span{emdata.Hxz1.c.begin() + 1, BCDepth - 1},
+         dtdz_mu
+      );
 
-      // // Hyz1
-      // BoundaryUpdate<Dz, false>::apply(
-      //    mdspan_t{&emdata.Hyf[0, 0, Nz - BCDepth], {exhy_z_ext, hy_stride}},
-      //    mdspan_t{&emdata.Exf[0, 0, Nz - BCDepth], {exhy_z_ext, ex_stride}},
-      //    mdspan_t{&emdata.hyz1_psi[0, 0, 0], {exhy_z_ext, exhy_z_stride}},
-      //    std::span{emdata.Hyz1.b.begin() + 1, BCDepth - 1},
-      //    std::span{emdata.Hyz1.c.begin() + 1, BCDepth - 1},
-      //    -dtdz_mu
-      // );
+      // Hyz1
+      BoundaryUpdate<Dz, false>::apply(
+         mdspan_t{&emdata.Hyf[0, 0, Nz - BCDepth], {exhy_z_ext, hy_stride}},
+         mdspan_t{&emdata.Exf[0, 0, Nz - BCDepth], {exhy_z_ext, ex_stride}},
+         mdspan_t{&emdata.hyz1_psi[0, 0, 0], {exhy_z_ext, exhy_z_stride}},
+         std::span{emdata.Hyz1.b.begin() + 1, BCDepth - 1},
+         std::span{emdata.Hyz1.c.begin() + 1, BCDepth - 1},
+         -dtdz_mu
+      );
    } // end updateHBCs()
 
    // static void particle_correction(auto& emdata) {
