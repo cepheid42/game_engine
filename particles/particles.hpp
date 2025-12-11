@@ -248,11 +248,41 @@ struct ParticleInitializer {
       group_vec.push_back(g);
    }
 
+   static void null_init(const std::string& filename, auto& group_vec) {
+      std::ifstream file(filename);
+
+      if (!file.is_open()) {
+         throw std::runtime_error("Particle initialization from file failed: " + filename);
+      }
+
+      std::string name{};
+      double mass{};
+      double charge{};
+      std::size_t atomic_number{};
+
+      std::string line;
+      std::getline(file, line);
+      std::istringstream buff(line);
+
+      buff >> name >> mass >> charge >> atomic_number;
+
+      ParticleGroup g(name, mass, charge, atomic_number);
+
+      file.close();
+      g.initial_position = vec3<float>{};
+      g.particles = {};
+      group_vec.push_back(g);
+   }
+
    static void initializeFromFile(const std::string& filename, auto& group_vec) {
       std::print("Loading particle file: {}... ", filename);
       if (filename.ends_with(".bp")) {
          read_adios(filename, group_vec);
-      } else {
+      }
+      else if (filename.ends_with(".empty")) {
+         null_init(filename, group_vec);
+      }
+      else {
          read_dat(filename, group_vec);
       }
       std::println("Done.");

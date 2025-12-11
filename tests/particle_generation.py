@@ -36,55 +36,22 @@ def generate_density_mapping(density : float | Callable | Iterable, xcenter, yce
         return np.full(xmesh.shape, density)
 
 
+def constant_distribution(mass, temp, num_particles):
+    temp = np.asarray(temp)
+    vx, vy, vz = constants.c * np.sqrt(1 - (1 + constants.eV * temp / (mass * constants.c**2))**-2)
+    velocities = np.zeros((num_particles, 3))
+    velocities[:, 0] = vx
+    velocities[:, 1] = vy
+    velocities[:, 2] = vz
+    return velocities
+
+
 def thermal_distribution(mass, T_M, num_particles, velocity=0.0):
     rng = np.random.default_rng()
     v_thermal = np.sqrt(constants.elementary_charge * T_M / mass)
     velocities = rng.normal(velocity, v_thermal, (num_particles, 3))
     return velocities
 
-
-def maxwell_juttner_distribution_alt(mass, t_M, num_particles):
-    rng = np.random.default_rng()
-    t_norm = constants.elementary_charge * t_M / (mass * constants.c**2)
-    a, b, r0 = 0.56, 0.35, 0.95
-    root2 = np.sqrt(2)
-    w3 = np.sqrt(np.pi)
-    w4 = a * np.sqrt(2 * t_norm)
-    w5 = 1.5 * np.sqrt(np.pi) * b * t_norm
-    w6 = (2 * t_norm)**1.5
-    s_sum = w3 + w4 + w5 + w6
-    pi3 = w3 / s_sum
-    pi4 = w4 / s_sum
-    pi5 = w5 / s_sum
-    def sample():
-        def R(xx):
-            return (1 + xx) * np.sqrt(xx + 2) / (root2 + (a * np.sqrt(xx)) + (b * root2 * xx) + xx ** (3 / 2))
-        while True:
-            X1 = rng.uniform()
-            X2 = rng.uniform()
-            i = 6
-            if X1 < pi3:
-                i = 3
-            elif X1 < pi3 + pi4:
-                i = 4
-            elif X1 < pi3 + pi4 + pi5:
-                i = 5
-            x = rng.gamma(i / 2, t_norm)
-            if X2 < r0 or X2 < R(x):
-                break
-
-        x3 = rng.uniform()
-        x4 = rng.uniform()
-        u_mag = constants.c * np.sqrt(x * (x + 2))
-        u = u_mag * np.asarray([(2 * x3 - 1),
-                                2.0 * np.sqrt(x3 * (1.0 - x3)) * np.cos(2.0 * np.pi * x4),
-                                2.0 * np.sqrt(x3 * (1.0 - x3)) * np.sin(2.0 * np.pi * x4)])
-        return u / np.sqrt(1 + (u @ u) / constants.c**2)
-
-    velocities = np.zeros((num_particles, 3))
-    for p in range(num_particles):
-        velocities[p, :] = sample()
-    return velocities
 
 def maxwell_juttner_distribution(mass, temperature, count):
     rng = np.random.default_rng()
@@ -145,9 +112,9 @@ def write_particle_file(name, file_dir, mass, charge, positions, velocities, wei
         f.write_attribute("Atomic Number", np.array([atomic_number],np.uint64)[0])
         # f.write_attribute('Tracer', np.array([tracer],np.uint64)[0])
         # f.write_attribute('Sourcer', np.array([sourcer],np.uint64)[0])
-        f.write("Position", positions.copy(), positions.shape, [0,0], positions.shape)
+        f.write("Position", positions.copy(), positions.shape, [0, 0], positions.shape)
         f.write_attribute("Unit", "m", "Position")
-        f.write("Velocity", velocities.copy(), velocities.shape, [0,0], velocities.shape)
+        f.write("Velocity", velocities.copy(), velocities.shape, [0, 0], velocities.shape)
         f.write_attribute("Unit", "m/s", "Velocity")
         f.write("Weight", weights, weights.shape, [0], weights.shape)
         f.write("Gamma", gammas, gammas.shape, [0], gammas.shape)
@@ -184,6 +151,11 @@ def create_particles(domain, particles, file_dir):
     px_min, px_max = particles.px_range
     py_min, py_max = particles.py_range
     pz_min, pz_max = particles.pz_range
+
+    if particles.init == 'none':
+        with open(file_dir + f'/{name.lower().replace(" ","_")}.empty', 'w') as f:
+            f.write(f'{name} {mass} {charge} {atomic_number}')
+        return
 
     # ----- Generate particle positions -----
     # "Fake" geometry generation (will be replaced when full geometry support is added)
@@ -233,9 +205,12 @@ def create_particles(domain, particles, file_dir):
 
     # Sample particle velocities
     if distribution == 'thermal':
-        velocities = thermal_distribution(mass, temp, num_particles)
+        velocities = thermal_distribution(mass, temp[0], num_particles)
+    elif distribution == 'constant':
+        velocities = constant_distribution(mass, temp, num_particles)
+        weights = density * dy * dz * velocities[0, 0] * domain.dt / ppc_total
     else:
-        velocities = maxwell_juttner_distribution(mass, temp, num_particles)
+        velocities = maxwell_juttner_distribution(mass, temp[0], num_particles)
 
     gammas = 1.0 / np.sqrt(1 - ((velocities/constants.c)**2).sum(axis=1))
     write_particle_file(name, file_dir, mass, charge, positions, velocities, weights, gammas, atomic_number, False, False)

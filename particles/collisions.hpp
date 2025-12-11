@@ -9,10 +9,11 @@
 #include <omp.h>
 
 #include <algorithm>
+#include <cmath>
 #include <map>
-#include <numeric>
 #include <ranges>
 #include <span>
+#include <vector>
 // #include <print>
 
 namespace tf::collisions
@@ -23,6 +24,9 @@ struct Collisions {
    using particle_vec = std::vector<particles::Particle>;
    group_t& g1; // electrons
    group_t& g2; // ions
+
+   group_t& product1;
+   group_t& product2;
 
    double coulombLog;
    double rate_mult;
@@ -39,12 +43,12 @@ struct Collisions {
    double P_search_area{};
    double M_prod{};
    double M_rejection{};
-   double cross_section{};
+   std::string cross_sections{};
 
    std::array<std::mt19937_64, nThreads> generator;
 
-   Collisions(group_t& g1_, group_t& g2_, const auto clog_, const auto mult_, const auto step_, const auto self_scatter_)
-   : g1(g1_), g2(g2_), coulombLog(clog_), rate_mult(mult_), step_interval(step_), self_scatter(self_scatter_)
+   Collisions(group_t& g1_, group_t& g2_, group_t& prod1_, group_t& prod2_, const auto clog_, const auto mult_, const auto step_, const auto self_scatter_, const auto ion_energy, const auto& cs_file)
+   : g1(g1_), g2(g2_), product1(prod1_), product2(prod2_), coulombLog(clog_), rate_mult(mult_), step_interval(step_), self_scatter(self_scatter_), E_ionization(ion_energy), cross_sections(cs_file)
    {
       // generator[0] = init_mt_64();
       for (std::size_t i = 0; i < nThreads; i++) {
@@ -337,7 +341,7 @@ struct Collisions {
       static constexpr auto q_eps = constants::q_e<double> * constants::eps0<double>;
       static constexpr auto pi43 = 4.0 * constants::pi<double> / 3.0;
 
-      constexpr auto pi34_cuberoot = std::pow(pi43, 1.0 / 3.0);
+      const auto pi34_cuberoot = std::pow(pi43, 1.0 / 3.0);
       constexpr auto four_pi_eps_c2_inv = 1.0 / (4.0 * constants::pi<double> * constants::eps0<double> * constants::c_sqr<double>);
 
       if (step % step_interval != 0) { return; }
@@ -417,7 +421,7 @@ struct Collisions {
 
          #pragma omp parallel for num_threads(nThreads)
          for (std::size_t i = 0; i < n_partners; ++i) {
-            const auto tid = omp_get_thread_num();
+            const auto tid = static_cast<std::size_t>(omp_get_thread_num());
             auto& particle1 = cell1[pids1[i]];
             auto& particle2 = cell2[pids2[i]];
 
@@ -446,14 +450,19 @@ struct Collisions {
       } // end for(z_code, cell1)
 
       if (!g1_products.empty()) {
-         for (auto& [key, span] : g1.cell_map | std::views::reverse) {
-
-         }
+         // G1 should always be electrons
+         product1.particles.insert(product1.particles.end(), g1_products.begin(), g1_products.end());
+         g1.cell_map_updated = false;
+         g1.is_sorted = false;
+         g1.sort_particles();
       }
 
-
-
-      if (added_particles_to_group2) { g2.cell_map_updated = false; g2.is_sorted = false; }
+      if (!g2_products.empty()) {
+         product2.particles.insert(product2.particles.end(), g2_products.begin(), g2_products.end());
+         g2.cell_map_updated = false;
+         g2.is_sorted = false;
+         g2.sort_particles();
+      }
    } // end update()
 
    static void advance(const auto) requires (!coll_enabled) {}

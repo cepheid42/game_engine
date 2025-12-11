@@ -119,22 +119,23 @@ void apply_particle_bcs(auto& p, const auto& new_loc, const auto& old_loc) {
 template<ParticleBCType BC>
 requires (BC == ParticleBCType::Periodic)
 void apply_particle_bcs(auto& p, auto& new_loc, auto& old_loc) {
-   constexpr auto fnx = static_cast<double>(Nx - 1);
-   constexpr auto fny = static_cast<double>(Ny - 1);
-   constexpr auto fnz = static_cast<double>(Nz - 1);
+   constexpr auto fnx = static_cast<float>(Nx - 1);
+   constexpr auto fny = static_cast<float>(Ny - 1);
+   constexpr auto fnz = static_cast<float>(Nz - 1);
 
    if (new_loc[0] <= nHalo or new_loc[0] >= fnx - nHalo) {
-      new_loc[0] = fnx + new_loc[0] - 2.0 * std::floor(new_loc[0] + 0.5);
-      old_loc[0] = fnx + old_loc[0] - 2.0 * std::floor(old_loc[0] + 0.5);
+      new_loc[0] = fnx + new_loc[0] - 2.0f * std::floor(new_loc[0] + 0.5f);
+      old_loc[0] = fnx + old_loc[0] - 2.0f * std::floor(old_loc[0] + 0.5f);
    }
    if (new_loc[1] <= nHalo or new_loc[1] >= fny - nHalo) {
-      new_loc[1] = fny + new_loc[1] - 2.0 * std::floor(new_loc[1] + 0.5);
-      old_loc[1] = fny + old_loc[1] - 2.0 * std::floor(old_loc[1] + 0.5);
+      new_loc[1] = fny + new_loc[1] - 2.0f * std::floor(new_loc[1] + 0.5f);
+      old_loc[1] = fny + old_loc[1] - 2.0f * std::floor(old_loc[1] + 0.5f);
    }
    if (new_loc[2] <= nHalo or new_loc[2] >= fnz - nHalo) {
-      new_loc[2] = fnz + new_loc[2] - 2.0 * std::floor(new_loc[2] + 0.5);
-      old_loc[2] = fnz + old_loc[2] - 2.0 * std::floor(old_loc[2] + 0.5);
+      new_loc[2] = fnz + new_loc[2] - 2.0f * std::floor(new_loc[2] + 0.5f);
+      old_loc[2] = fnz + old_loc[2] - 2.0f * std::floor(old_loc[2] + 0.5f);
    }
+
    p.old_location = old_loc;
    p.location = new_loc;
 }
