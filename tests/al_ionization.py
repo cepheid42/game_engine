@@ -116,9 +116,13 @@ ionized_aluminum = Particles(
     init='none'
 )
 
+print(electrons.mass, electrons.charge)
+print(neutral_aluminum.mass, neutral_aluminum.charge)
+print(ionized_aluminum.mass, ionized_aluminum.charge)
+
 # create_particles(sim_params, electrons, particle_data)
 # create_particles(sim_params, neutral_aluminum, particle_data)
 
 # create_particles(sim_params, ionized_aluminum, particle_data)
 
-update_header(sim_params, project_path=project_path)
+# update_header(sim_params, project_path=project_path)

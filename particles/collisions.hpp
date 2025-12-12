@@ -36,7 +36,6 @@ struct Collisions {
    particle_vec g1_products; // electrons
    particle_vec g2_products; // ions
 
-   // Array3D<double> E_ionization_metric;
    double E_ionization{};
    double P_mult{};
    double P_scatter{};
