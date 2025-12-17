@@ -8,9 +8,9 @@
 
 #include <adios2.h>
 
+#include <algorithm>
 #include <unordered_map>
 #include <memory>
-#include <ctime>
 
 namespace tf::metrics {
 // =======================================
@@ -85,7 +85,7 @@ struct EMFieldsMetric final : detail::MetricBase {
 
       for (auto& [field, var] : fields) {
          if (var.Name()[0] == 'B') {
-            std::ranges::transform(field->begin(), field->end(), BFields[var.Name()].begin(), [](const double el){ return constants::mu0<double> * el; });
+            std::ranges::transform(field->begin(), field->end(), BFields[var.Name()].begin(), [](const double el){ return constants::mu0 * el; });
             field = &BFields[var.Name()];
          }
 
@@ -178,12 +178,12 @@ struct EMTotalEnergyMetric final : detail::MetricBase {
       // append after step 0
       adios2::Engine writer = io.Open(file, (step == 0) ? adios2::Mode::Write : adios2::Mode::Append);
       writer.BeginStep();
-      writer.Put(var_ex_energy, Ex_energy * 0.5 * tf::constants::eps0<double>);
-      writer.Put(var_ey_energy, Ey_energy * 0.5 * tf::constants::eps0<double>);
-      writer.Put(var_ez_energy, Ez_energy * 0.5 * tf::constants::eps0<double>);
-      writer.Put(var_bx_energy, Bx_energy * 0.5 * tf::constants::mu0<double>);
-      writer.Put(var_by_energy, By_energy * 0.5 * tf::constants::mu0<double>);
-      writer.Put(var_bz_energy, Bz_energy * 0.5 * tf::constants::mu0<double>);
+      writer.Put(var_ex_energy, Ex_energy * 0.5 * constants::eps0);
+      writer.Put(var_ey_energy, Ey_energy * 0.5 * constants::eps0);
+      writer.Put(var_ez_energy, Ez_energy * 0.5 * constants::eps0);
+      writer.Put(var_bx_energy, Bx_energy * 0.5 * constants::mu0);
+      writer.Put(var_by_energy, By_energy * 0.5 * constants::mu0);
+      writer.Put(var_bz_energy, Bz_energy * 0.5 * constants::mu0);
       writer.Put(var_step, step);
       writer.Put(var_dt, dt);
       writer.Put(var_time, time);
@@ -251,7 +251,7 @@ struct ParticleTotalEnergyMetric final : detail::MetricBase {
                result += (g.particles[i].gamma - 1.0) * g.particles[i].weight;
             }
          }
-         result *= g.mass * constants::c_sqr<double>;
+         result *= g.mass * constants::c_sqr;
          writer.Put(var, result);
       }
 

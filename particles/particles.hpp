@@ -9,13 +9,13 @@
 #include <boost/sort/sort.hpp>
 #include <adios2.h>
 
+#include <algorithm>
+#include <fstream>
+#include <print>
 #include <span>
 #include <utility>
 #include <vector>
-#include <algorithm>
-#include <fstream>
-#include <sstream>
-#include <print>
+
 
 namespace tf::particles
 {
@@ -47,12 +47,12 @@ constexpr std::size_t getCellIndex(const auto& loc) {
 
 constexpr auto calculateGammaV(const auto& v) {
    // Calculates gamma using regular velocity
-   return 1.0 / std::sqrt(1.0 - v.length_squared() * constants::over_c_sqr<double>);
+   return 1.0 / std::sqrt(1.0 - v.length_squared() * constants::over_c_sqr);
 }
 
 constexpr auto calculateGammaP(const auto& p, const auto m) {
    // Calculates gamma using gamma*v (e.g. relativistic momentum but with mass terms canceled)
-   return std::sqrt(1.0 + p.length_squared() / math::SQR(m) * constants::over_c_sqr<double>);
+   return std::sqrt(1.0 + p.length_squared() / math::SQR(m) * constants::over_c_sqr);
 }
 
 static void initializeFromFile(const std::string& filename, auto& group) {
@@ -121,7 +121,7 @@ struct ParticleGroup {
    : name(std::move(name_)),
      atomic_number(atomic_number_),
      mass(mass_),
-     charge(charge_)
+     charge(charge_ * constants::q_e)
    {
       if (not file_.empty()) {
          initializeFromFile(file_, *this);

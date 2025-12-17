@@ -131,18 +131,18 @@ static void deposit(auto& J,
       const auto z_coeff = p.weight * charge * dtAxy * z_vel;
       // Offsets for Even/Odd order interpolation
       static constexpr vec3 offsets{
-         XShape::Order % 2 == 0 ? 0.5f : 1.0f,
-         YShape::Order % 2 == 0 ? 0.5f : 1.0f,
-         ZShape::Order % 2 == 0 ? 0.5f : 1.0f,
+         XShape::Order % 2 == 0 ? 0.5 : 1.0,
+         YShape::Order % 2 == 0 ? 0.5 : 1.0,
+         ZShape::Order % 2 == 0 ? 0.5 : 1.0,
       };
       // Find cell indices and determine first relay point
-      const vec3<float> i0 = getCellIndices<float>(p.old_location + offsets);
-      const vec3<float> i1 = getCellIndices<float>(p.location + offsets);
+      const vec3<double> i0 = getCellIndices<double>(p.old_location + offsets);
+      const vec3<double> i1 = getCellIndices<double>(p.location + offsets);
       const auto same_idx = is_equal(i0, i1);
-      const vec3<float> relay{
-         same_idx[0] ? p.location[0] : std::fmax(i1[0], i0[0]) - offsets[0],
-         same_idx[1] ? p.location[1] : std::fmax(i1[1], i0[1]) - offsets[1],
-         same_idx[2] ? p.location[2] : std::fmax(i1[2], i0[2]) - offsets[2],
+      const vec3<double> relay{
+         same_idx[0] ? p.location[0] : std::max(i1[0], i0[0]) - offsets[0],
+         same_idx[1] ? p.location[1] : std::max(i1[1], i0[1]) - offsets[1],
+         same_idx[2] ? p.location[2] : std::max(i1[2], i0[2]) - offsets[2],
       };
       // Calculate normalized locations for first segment
       auto p0 = p.old_location - i0;

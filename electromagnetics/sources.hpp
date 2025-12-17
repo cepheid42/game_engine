@@ -21,7 +21,7 @@ struct RickerSource final : TemporalSource {
 
    [[nodiscard]] double eval(const double t) const override {
       constexpr auto Md = 2.0;
-      const auto alpha = math::SQR(static_cast<double>(constants::pi<double>) * freq * (t - Md / freq));
+      const auto alpha = math::SQR(static_cast<double>(constants::pi) * freq * (t - Md / freq));
       const auto temp = (1.0 - 2.0 * alpha) * std::exp(-alpha);
       return temp;
    }
@@ -41,7 +41,7 @@ struct BlackmanHarris final : TemporalSource {
     *
     */
    explicit BlackmanHarris(const double dx_)
-   : omega((constants::pi2<double> * constants::c<double>) / (Nl * dx_)),
+   : omega((constants::pi2 * constants::c) / (Nl * dx_)),
      duration{cutoff_factor / omega}
    {}
 
@@ -169,7 +169,7 @@ struct GaussianBeam : CurrentSource {
       const auto xpos = x_range[0] + (static_cast<double>(x0) * dx);
       const auto z    = waist_pos[0] - xpos; // +x? direction
       assert(z != 0.0);
-      const auto k  = omega_ / constants::c<double>;
+      const auto k  = omega_ / constants::c;
       const auto zR = 0.5 * k * math::SQR(waist_size);
       const auto wz = waist_size * std::sqrt(1.0 + math::SQR(z / zR));
       const auto RC   = z * (1.0 + math::SQR(zR / z));
@@ -248,7 +248,7 @@ void add_linesource(auto& emsolver, const std::string component, const double am
 void add_rmf_antennas(auto& emsolver, const auto rmf_params) {
    const auto [amp, freq, antenna_lz, antenna_lxy, antenna_r] = rmf_params;
    const auto period = 1.0 / freq;
-   const auto omega = 2 * constants::pi<double> * freq;
+   const auto omega = 2 * constants::pi * freq;
    const auto delay_lr = period / 4.0;
 
    const auto amp_m = -amp;
@@ -268,7 +268,7 @@ void add_rmf_antennas(auto& emsolver, const auto rmf_params) {
    const std::array origin_l = {-antenna_r, 0.0, 0.0};
    const std::array origin_r = {antenna_r, 0.0, 0.0};
 
-   const auto phase_tb = -constants::pi<double> / 2;
+   const auto phase_tb = -constants::pi / 2;
    const auto start_tb = 0.0;
    const auto phase_lr = 0.0;
    const auto start_lr = delay_lr;
@@ -325,8 +325,8 @@ void add_rmf_antennas(auto& emsolver, const auto rmf_params) {
 void add_gaussianbeam(auto& em) {
    using temporal_vec = std::vector<std::unique_ptr<TemporalSource>>;
 
-   constexpr auto freq = constants::c<double> / 8.0e-7; // Hz -> c / 800 nm
-   constexpr auto omega = 2.0 * constants::pi<double> * freq;
+   constexpr auto freq = constants::c / 8.0e-7; // Hz -> c / 800 nm
+   constexpr auto omega = 2.0 * constants::pi * freq;
 
    constexpr auto amp = 1.583 * 2.75e13; // V/m
    constexpr auto w0 = 2.5479e-6; // meters, waste size

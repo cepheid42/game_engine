@@ -1,9 +1,9 @@
 #ifndef PROGRAM_PARAM_HPP
 #define PROGRAM_PARAM_HPP
 
+#include "particle_spec.hpp"
+
 #include <array>
-#include <string>
-#include <tuple>
 
 inline constexpr auto nThreads = 8;
 
@@ -64,57 +64,38 @@ inline constexpr auto interpolation_order = 1zu;
 
 inline constexpr auto PBCSelect = ParticleBCType::Periodic;
 
-struct ParticleGroupSpec {
-   std::string_view name;
-   std::string_view filepath;
-   double mass;
-   double charge;
-   std::size_t atomic_number;
-};
-
 inline constexpr std::array particle_spec = {
-   ParticleGroupSpec{"electrons", "/data/electrons.bp", 9.1093837015e-31, -1.602176634e-19, 0},
-   ParticleGroupSpec{"Al", "/data/Al.bp", 4.481567702427985e-26, 0.0, 13},
-   ParticleGroupSpec{"Al+", "", 4.4814766085909697e-26, 1.602176634e-19, 13}
-};
-
-struct IonizationSpec {
-   std::string product1{};
-   std::string product2{}; // no product 3 for now
-   double ionization_energy{1.0};
-   double rate_multiplier{1.0};
-   double production_multiplier{1.0};
-   double rejection_multiplier{1.0};
-   double constant_cross_section{0.0};
-   std::string cross_section_file{};
-};
-
-struct CoulombSpec {
-   double coulomb_log{10.0};
-   double rate_multiplier{1.0};
-};
-
-struct CollisionSpec {
-   std::string_view group1;
-   std::string_view group2;
-   std::array<std::string_view, 2> channels;
-   std::size_t step_interval;
-   double probability_search_area;
-   bool self_scatter;
-
-   CoulombSpec coulomb{};
-   IonizationSpec ionization{};
+   ParticleGroupSpec{
+      .name = "electrons",
+      .filepath = "/data/electrons.bp",
+      .mass = 9.1093837015e-31,
+      .charge = -1.0,
+      .atomic_number = 0
+   },
+   ParticleGroupSpec{
+      .name = "Al",
+      .filepath = "/data/Al.bp",
+      .mass = 4.481567702427985e-26,
+      .charge = 0.0,
+      .atomic_number = 13
+   },
+   ParticleGroupSpec{
+      .name = "Al+",
+      .filepath = "",
+      .mass = 4.4814766085909697e-26,
+      .charge = 1.0,
+      .atomic_number = 13
+   }
 };
 
 inline constexpr std::array collision_spec = {
    CollisionSpec{
       .group1 = "electrons",
       .group2 = "Al",
-      .channels = {"ionization"}, // no coulombs in this example
-      .step_interval = 1zu,
+      .channels = {"ionization"},
+      .step_interval = 1,
       .probability_search_area = 1.0,
       .self_scatter = false,
-      // .coulomb = {.coulomb_log = 10.0, .rate_multiplier = 1.0},
       .ionization = {
          .product1 = "electrons",
          .product2 = "Al+",
@@ -123,8 +104,8 @@ inline constexpr std::array collision_spec = {
          .production_multiplier = 1.0,
          .rejection_multiplier = 1.0,
          .constant_cross_section = 0.0,
-         .cross_section_file = "",
-      }
+         .cross_section_file = "/data/al0cs.txt",
+      },
    }
 };
 

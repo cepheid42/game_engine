@@ -4,8 +4,7 @@
 from scipy import constants
 import math
 
-from particle_generation import create_particles
-from domain_params import *
+from scripts.domain_params import *
 
 project_path = '/home/cepheid/TriForce/game_engine'
 particle_data = project_path + '/data'
@@ -25,50 +24,6 @@ t_end = 3.18e-15
 nt = int(t_end / dt) + 1
 cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
-em_params = EMParams(
-    pml_depth=0,
-    em_bcs=(2, 2, 2, 2, 2, 2),
-)
-
-particle_params = ParticleParams(
-    particle_bcs='periodic',
-    interp_order=1,
-    particle_data=(
-        ('electrons', 'file'),
-        ('Al', 'file'),
-        ('Al+', 'none')
-    ),
-    collisions=(
-        Collision(
-            groups=('electrons', 'Al'),
-            products=('electrons', 'Al+'),
-            types=('ionization',),
-            coulomb_log=10,
-            self_scatter=False,
-            ionization_energy=5.9858,
-            cross_section_file='/data/al0cs.txt'
-        ),
-    )
-)
-
-sim_params = Simulation(
-    name='ionization',
-    shape=shape,
-    nthreads=8,
-    dt=dt,
-    t_end=t_end,
-    nt=nt,
-    cfl=cfl,
-    x_range=(xmin, xmax),
-    y_range=(ymin, ymax),
-    z_range=(zmin, zmax),
-    deltas=(dx, dy, dz),
-    em_params=em_params,
-    particle_params=particle_params,
-    em_enabled=False,
-    jdep_enabled=False
-)
-
 # ===== Particles =====
 px_range=(xmin, xmax)
 py_range=(ymin, ymax)
@@ -77,8 +32,8 @@ pz_range=(zmin, zmax)
 electrons = Particles(
     name='electrons',
     mass=constants.m_e,
-    charge=-constants.e,
-    atomic_number=-1,
+    charge=-1,
+    atomic_number=0,
     temp=(500, 0, 0), # eV
     density=1.1e27, # m^-3,
     ppc=(100, 10, 10),
@@ -105,24 +60,58 @@ neutral_aluminum = Particles(
 ionized_aluminum = Particles(
     name='Al+',
     mass=26.9815 * constants.atomic_mass + 12.0 * constants.m_e,
-    charge=+constants.e,
+    charge=1,
     atomic_number=13,
     temp=(0, 0, 0), # eV
     density=0, # m^-3,
     ppc=(0, 0, 0),
+    distribution='none',
     px_range=px_range,
     py_range=py_range,
     pz_range=pz_range,
-    init='none'
 )
 
-print(electrons.mass, electrons.charge)
-print(neutral_aluminum.mass, neutral_aluminum.charge)
-print(ionized_aluminum.mass, ionized_aluminum.charge)
+em_params = EMParams(
+    pml_depth=0,
+    em_bcs=(2, 2, 2, 2, 2, 2),
+)
+
+particle_params = ParticleParams(
+    particle_bcs='periodic',
+    interp_order=1,
+    particle_data=(electrons, neutral_aluminum, ionized_aluminum),
+    collisions=(
+        Collision(
+            groups=('electrons', 'Al'),
+            products=('electrons', 'Al+'),
+            channels=('ionization',),
+            coulomb_log=10,
+            self_scatter=False,
+            ionization_energy=5.9858,
+            cross_section_file='/data/al0cs.txt'
+        ),
+    )
+)
+
+sim_params = Simulation(
+    name='ionization',
+    shape=shape,
+    nthreads=8,
+    dt=dt,
+    t_end=t_end,
+    nt=nt,
+    cfl=cfl,
+    x_range=(xmin, xmax),
+    y_range=(ymin, ymax),
+    z_range=(zmin, zmax),
+    deltas=(dx, dy, dz),
+    em_params=em_params,
+    particle_params=particle_params,
+    em_enabled=False,
+    jdep_enabled=False
+)
 
 # create_particles(sim_params, electrons, particle_data)
 # create_particles(sim_params, neutral_aluminum, particle_data)
 
-# create_particles(sim_params, ionized_aluminum, particle_data)
-
-# update_header(sim_params, project_path=project_path)
+update_header(sim_params, project_path=project_path)

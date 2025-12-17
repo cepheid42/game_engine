@@ -4,9 +4,6 @@
 from scipy import constants
 import math
 
-from particle_generation import create_particles
-from domain_params import *
-
 project_path = '/home/cepheid/TriForce/game_engine'
 particle_data = project_path + '/data'
 

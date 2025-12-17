@@ -167,7 +167,7 @@ struct BorisPush {
 
       // u = gamma * v
       const auto um = p.gamma * p.velocity + eps;
-      const auto t = bet / std::sqrt(1.0 + um.length_squared() * constants::over_c_sqr<double>);
+      const auto t = bet / std::sqrt(1.0 + um.length_squared() * constants::over_c_sqr);
       const auto s = 2.0 * t / (1.0 + t.length_squared());
       const auto u_prime = um + cross(um, t);
       const auto u_plus = um + cross(u_prime, s);

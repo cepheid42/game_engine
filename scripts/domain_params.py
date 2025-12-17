@@ -15,7 +15,6 @@ class ParticleParams:
     save_interval: int = 1
     particle_bcs: str = 'outflow'
     interp_order: int = 2
-    beam_source: str = ''
     particle_data: tuple = ()
     collisions: tuple = ()
 
@@ -23,13 +22,53 @@ class ParticleParams:
 class Collision:
     groups: tuple = ()
     products: tuple = ()
-    types: tuple = ()
+    channels: tuple = ()
     coulomb_log: float = -1.0
     rate_mult: float = 1.0
     self_scatter: bool = False
     step_interval: int = 1
     ionization_energy: float = 0.0
     cross_section_file: str = ''
+
+    def __repr__(self):
+        channels = ', '.join([t for t in self.channels])
+        coulomb = ''
+        ionization = ''
+        if 'coulomb' in self.channels:
+            coulomb = f'.coulomb = {{.coulomb_log = {float(self.coulomb_log)}, .rate_multiplier = {self.rate_mult}}},'
+
+        if 'ionization' in self.channels:
+            ionization = (
+                '.ionization = {\n'
+                f'         .product1 = "{self.products[0]}",\n'
+                f'         .product2 = "{self.products[1]}",\n'
+                f'         .ionization_energy = {self.ionization_energy},\n'
+                f'         .rate_multiplier = {self.rate_mult},\n'   # todo: this rate mult is shared with coulomb currently
+                f'         .production_multiplier = {1.0},\n'
+                f'         .rejection_multiplier = {1.0},\n'
+                f'         .constant_cross_section = {0.0},\n'
+                f'         .cross_section_file = "{self.cross_section_file}",\n'
+                '      },'
+            )
+
+        # channel_spec = '\n'.join([s for s in [coulomb, ionization]])
+        channel_spec = ''
+        if coulomb:
+            channel_spec += coulomb + '\n      '
+        if ionization:
+            channel_spec += ionization
+
+        return (
+            '   CollisionSpec{\n'
+            f'      .group1 = "{self.groups[0]}",\n'
+            f'      .group2 = "{self.groups[1]}",\n'
+            f'      .channels = {{"{channels}"}},\n'
+            f'      .step_interval = {self.step_interval},\n'
+            f'      .probability_search_area = {1.0},\n'
+            f'      .self_scatter = {str(self.self_scatter).lower()},\n'
+            f'      {channel_spec}\n'
+            '   }'
+        )
 
 @dataclass
 class Particles:
@@ -44,7 +83,18 @@ class Particles:
     px_range: tuple = ()
     py_range: tuple = ()
     pz_range: tuple = ()
-    init: str = 'file'
+
+    def __repr__(self):
+        filestr = f'/data/{self.name}.bp'if self.distribution != 'none' else ''
+        return (
+            '   ParticleGroupSpec{\n'
+            f'      .name = "{self.name}",\n'
+            f'      .filepath = "{filestr}",\n'
+            f'      .mass = {self.mass},\n'
+            f'      .charge = {float(self.charge)},\n'
+            f'      .atomic_number = {self.atomic_number}\n'
+            '   }'
+        )
 
 @dataclass
 class Simulation:
@@ -93,25 +143,17 @@ def update_header(params: Simulation, project_path: str):
     }
 
     bc_str = f'{em_bcs[0]}zu, {em_bcs[1]}zu, {em_bcs[2]}zu, {em_bcs[3]}zu, {em_bcs[4]}zu, {em_bcs[5]}zu'
-    particle_data = ', '.join(['"/data/' + p + ('.bp"' if i == 'file' else '.empty"') for p, i in particles.particle_data])
 
-    collision_params = params.particle_params.collisions
-    collision_str = []
-    for c in collision_params:
-        result = f'   std::tuple("{c.groups[0]}", "{c.groups[1]}", "{c.products[0]}", "{c.products[1]}", {c.coulomb_log}, {c.rate_mult}, {c.step_interval}, {str(c.self_scatter).lower()}, {c.ionization_energy}, "{c.cross_section_file}"),'
-        collision_str.append(result)
-
-    collisions = ''
-    if collision_str:
-        collisions = '\n' + '\n'.join(c for c in collision_str) + '\n'
+    particle_types = ',\n'.join([str(p) for p in particles.particle_data])
+    collision_types = ',\n'.join([str(c) for c in particles.collisions])
 
     program_params = (
         '#ifndef PROGRAM_PARAM_HPP\n'
         '#define PROGRAM_PARAM_HPP\n'
         '\n'
+        '#include "particle_spec.hpp"\n'
+        '\n'
         '#include <array>\n'
-        '#include <string>\n'
-        '#include <tuple>\n'
         '\n'
         f'inline constexpr auto nThreads = {params.nthreads};\n'
         '\n'
@@ -165,19 +207,19 @@ def update_header(params: Simulation, project_path: str):
         '/*---------------------------------------------------------------/\n'
         '/-                     Particle Parameters                      -/\n'
         '/---------------------------------------------------------------*/\n'
-        'using collision_spec = std::tuple<std::string, std::string, std::string, std::string, double, double, int, bool, double, std::string>;\n'
-        'enum class ParticleBCType { Static, Reflecting, Periodic, Outflow };\n'
+        'enum class ParticleBCType { Reflecting, Periodic, Outflow };\n'
         '\n'
         f'inline constexpr auto particle_save_interval = {particles.save_interval}zu;\n'
         f'inline constexpr auto interpolation_order = {particles.interp_order}zu;\n'
         '\n'
         f'inline constexpr auto PBCSelect = {particle_bcs[particles.particle_bcs]};\n'
         '\n'
-        f'inline constexpr std::array particle_data = {{{particle_data}}};\n'
-        f'inline constexpr auto particle_beam_file = "{particles.beam_source}";'
+        'inline constexpr std::array particle_spec = {\n'
+        f'{particle_types}\n'
+        '};\n'
         '\n'
-        f'inline constexpr std::array<collision_spec, {len(collision_str)}> collision_params = {{'
-        f'{collisions}'
+        'inline constexpr std::array collision_spec = {\n'
+        f'{collision_types}\n'
         '};\n'
         '\n'
         '#endif //PROGRAM_PARAM_HPP\n'

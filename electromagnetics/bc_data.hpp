@@ -99,7 +99,7 @@ struct PMLData {
          for (auto& x: d) { x -= hstep; }
       }
 
-      constexpr auto eta0      = constants::eta0<double>;
+      constexpr auto eta0      = constants::eta0;
       constexpr auto pml_grade = static_cast<double>(PMLGrade);
       const auto sigma_max = 0.8 * (pml_grade + 1.0) / (delta * eta0);
 
@@ -128,7 +128,7 @@ struct PMLData {
 
     void calculate_coeffs(const std::vector<double>& sigma, const std::vector<double>& alpha) {
        static constexpr auto kappa_bc = 1.0;
-       constexpr auto coef1 = -dt / constants::eps0<double>;
+       constexpr auto coef1 = -dt / constants::eps0;
        for (auto i = 0lu; i < PMLDepth; i++) {
         b[i] = std::exp(coef1 * ((sigma[i] / kappa_bc) + alpha[i]));
         c[i] = (sigma[i] * (b[i] - 1.0)) / (kappa_bc * (sigma[i] + (kappa_bc * alpha[i])));
