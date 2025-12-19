@@ -15,6 +15,7 @@
 #include <span>
 #include <utility>
 #include <vector>
+#include <print>
 
 
 namespace tf::particles
@@ -22,11 +23,11 @@ namespace tf::particles
 struct Particle {
    vec3<double> velocity; // change to beta and make it a float
    double gamma;
-   vec3<float> location;
-   vec3<float> old_location;
-   float weight;
+   vec3<double> location;
+   vec3<double> old_location;
+   double weight;
 
-   [[nodiscard]] bool is_disabled() const { return weight < 0.0f; }
+   [[nodiscard]] bool is_disabled() const { return weight <= 0.0; }
 }; // end struct Particle
 
 template <typename T = std::size_t>
@@ -43,6 +44,11 @@ constexpr std::size_t getCellIndex(const auto& loc) {
    const auto y = static_cast<std::size_t>(std::floor(loc.y));
    const auto z = static_cast<std::size_t>(std::floor(loc.z));
    return z + ((Nz - 1) * y) + ((Ny - 1) * (Nz - 1) * x);
+}
+
+constexpr auto calculateGamma(const auto& v) {
+   // Calculates gamma using regular velocity
+   return 1.0 / std::sqrt(1.0 - v * constants::over_c_sqr);
 }
 
 constexpr auto calculateGammaV(const auto& v) {
@@ -63,7 +69,7 @@ static void initializeFromFile(const std::string& filename, auto& group) {
 
    adios2::ADIOS adios;
    adios2::IO io = adios.DeclareIO("BPReader");
-   adios2::Engine reader = io.Open(filename, adios2::Mode::Read);
+   adios2::Engine reader = io.Open(std::string{sim_path} + filename, adios2::Mode::Read);
 
    reader.BeginStep();
 
@@ -87,9 +93,9 @@ static void initializeFromFile(const std::string& filename, auto& group) {
    for (auto i = 0lu; i < num_particles; i++) {
       const vec3 pos{p_vec[3 * i], p_vec[3 * i + 1], p_vec[3 * i + 2]};
       const vec3 vel{v_vec[3 * i], v_vec[3 * i + 1], v_vec[3 * i + 2]};
-      const auto weight = static_cast<float>(w_vec[i]);
+      const auto weight = w_vec[i];
 
-      const auto loc = ((pos - mins) / deltas).as_type<float>();
+      const auto loc = ((pos - mins) / deltas);
       const auto gamma = g_vec[i];
 
       group.particles.emplace_back(
@@ -112,8 +118,9 @@ struct ParticleGroup {
    std::size_t atomic_number;
    double mass;
    double charge;
+   double qdt_over_2m;
    bool cell_map_updated{false};
-   bool is_sorted{true};
+   bool is_sorted{false};
    std::vector<Particle> particles{};
    std::map<std::size_t, std::span<Particle>> cell_map{};
 
@@ -121,7 +128,8 @@ struct ParticleGroup {
    : name(std::move(name_)),
      atomic_number(atomic_number_),
      mass(mass_),
-     charge(charge_ * constants::q_e)
+     charge(charge_ * constants::q_e),
+     qdt_over_2m(charge * dt / (2.0 * mass))
    {
       if (not file_.empty()) {
          initializeFromFile(file_, *this);

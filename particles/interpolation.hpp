@@ -1,27 +1,27 @@
 #ifndef INTERPOLATION_HPP
 #define INTERPOLATION_HPP
 
-#include "program_params.hpp"
 #include "math_utils.hpp"
 
-#include <cmath>
+#include <algorithm>
 #include <array>
+#include <cmath>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
 
 namespace tf::interp
 {
+/*---------------------------------------------------------------/
+/-                     Interpolation Classes                    -/
+/---------------------------------------------------------------*/
 template<int D>
 constexpr auto rotateOrigin(const auto x, const auto y, const auto z) {
    if      constexpr (D == 0) { return std::array{y, z, x}; } // 1, 2, 0
    else if constexpr (D == 1) { return std::array{z, x, y}; } // 2, 0, 1
    else                       { return std::array{x, y, z}; } // 0, 1, 2
 }
-
-// template<int D>
-// constexpr auto rotateOrigin(const auto& p) {
-//    if      constexpr (D == 0) { return vec3{p[1], p[2], p[0]}; } // y, z, x
-//    else if constexpr (D == 1) { return vec3{p[2], p[0], p[1]}; } // z, x, y
-//    else                       { return p; }                      // x, y, z
-// }
 
 struct NGP {
    static constexpr int         Begin   = -1;
@@ -135,5 +135,49 @@ struct InterpolationStrategy {
    using MiddleShape = Middle;
    using InnerShape = Inner;
 };
+
+
+/*---------------------------------------------------------------/
+/-                     Table Interpolation                      -/
+/---------------------------------------------------------------*/
+struct Table {
+   std::vector<double> xs{};
+   std::vector<double> ys{};
+
+   explicit Table() = default;
+
+   explicit Table(const std::string& filepath, const auto xscale=1.0, const auto yscale=1.0) {
+      std::ifstream file(std::string{sim_path} + filepath);
+
+      if (!file.is_open()) {
+         throw std::runtime_error("Unable to open cross section table: " + filepath);
+      }
+
+      double x{};
+      double y{};
+
+      std::string line;
+      std::getline(file, line);
+      std::istringstream buff(line);
+      while (std::getline(file, line)) {
+         std::istringstream buffer(line);
+         buffer >> x >> y;
+         xs.push_back(x * xscale);
+         ys.push_back(y * yscale);
+      }
+      file.close();
+   }
+
+   auto lerp(const auto e) const {
+      if (e < xs[0]) { return ys[0]; }
+      if (e >= xs.back()) { return ys.back(); }
+      const auto upper = std::ranges::upper_bound(xs, e);
+      const auto idx = std::ranges::distance(xs.cbegin(), upper) - 1;
+      const auto slope = (e - xs[idx]) / (xs[idx + 1] - xs[idx]);
+      return std::lerp(ys[idx], ys[idx + 1], slope);
+   }
+};
+
+
 } // end namespace tf::interp
 #endif //INTERPOLATION_HPP

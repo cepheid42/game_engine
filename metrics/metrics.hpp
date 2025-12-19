@@ -204,70 +204,70 @@ struct EMTotalEnergyMetric final : detail::MetricBase {
    adios2::Variable<double>      var_time;
 }; // end struct EMTotalEnergyMetric
 
-// =========================================
-// ======== Particle Energy Metric =========
-struct ParticleTotalEnergyMetric final : detail::MetricBase {
-   using group_t = particles::ParticleGroup;
-   using group_map = std::unordered_map<std::string, group_t&>;
-
-   struct GroupVariable {
-      const group_t& group;
-      adios2::Variable<double> variable;
-   };
-
-   ParticleTotalEnergyMetric(const std::vector<group_t>& groups_, adios2::IO&& io_)
-   : io(io_),
-     var_step(io.DefineVariable<std::size_t>("Step")),
-     var_dt(io.DefineVariable<double>("dt")),
-     var_time(io.DefineVariable<double>("Time"))
-   {
-      for (auto& g : groups_) {
-         groups.push_back(GroupVariable{
-            .group = g,
-            .variable = io.DefineVariable<double>(g.name, {1}, {0}, {1}, adios2::ConstantDims)
-         });
-      }
-
-      io.DefineAttribute<std::string>("Unit", "s", "Time");
-      io.DefineAttribute<std::string>("Unit", "s", "dt");
-   }
-
-   static void write(const auto&, const auto&, const auto, const auto) requires(!(push_enabled and coll_enabled)) {}
-
-   void write(const std::string& dir, const std::string&, const std::size_t step, const double time) override {
-      const std::string file{dir + "/particles_energy.bp"};
-
-      if (step % particle_save_interval != 0) { return; }
-
-      adios2::Engine writer = io.Open(file, (step == 0) ? adios2::Mode::Write : adios2::Mode::Append);
-      writer.BeginStep();
-
-      for (const auto& [g, var]: groups) {
-         auto result = 0.0;
-         #pragma omp parallel num_threads(nThreads) default(shared)
-         {
-            #pragma omp for reduction(+:result)
-            for (std::size_t i = 0; i < g.num_particles(); i++) {
-               result += (g.particles[i].gamma - 1.0) * g.particles[i].weight;
-            }
-         }
-         result *= g.mass * constants::c_sqr;
-         writer.Put(var, result);
-      }
-
-      writer.Put(var_step, step);
-      writer.Put(var_dt, dt);
-      writer.Put(var_time, time);
-      writer.EndStep();
-      writer.Close();
-   }
-
-   adios2::IO                    io;
-   std::vector<GroupVariable>    groups;
-   adios2::Variable<std::size_t> var_step;
-   adios2::Variable<double>      var_dt;
-   adios2::Variable<double>      var_time;
-}; // end struct ParticleTotalEnergyMetric
+// // =========================================
+// // ======== Particle Energy Metric =========
+// struct ParticleTotalEnergyMetric final : detail::MetricBase {
+//    using group_t = particles::ParticleGroup;
+//    using group_map = std::unordered_map<std::string, group_t&>;
+//
+//    struct GroupVariable {
+//       const group_t& group;
+//       adios2::Variable<double> variable;
+//    };
+//
+//    ParticleTotalEnergyMetric(const auto& group_map, adios2::IO&& io_)
+//    : io(io_),
+//      var_step(io.DefineVariable<std::size_t>("Step")),
+//      var_dt(io.DefineVariable<double>("dt")),
+//      var_time(io.DefineVariable<double>("Time"))
+//    {
+//       for (auto& [name, g] : group_map) {
+//          groups.push_back(GroupVariable{
+//             .group = g,
+//             .variable = io.DefineVariable<double>(name, {1}, {0}, {1}, adios2::ConstantDims)
+//          });
+//       }
+//
+//       io.DefineAttribute<std::string>("Unit", "s", "Time");
+//       io.DefineAttribute<std::string>("Unit", "s", "dt");
+//    }
+//
+//    static void write(const auto&, const auto&, const auto, const auto) requires(!(push_enabled and coll_enabled)) {}
+//
+//    void write(const std::string& dir, const std::string&, const std::size_t step, const double time) override {
+//       const std::string file{dir + "/particles_energy.bp"};
+//
+//       if (step % particle_save_interval != 0) { return; }
+//
+//       adios2::Engine writer = io.Open(file, (step == 0) ? adios2::Mode::Write : adios2::Mode::Append);
+//       writer.BeginStep();
+//
+//       for (const auto& [g, var]: groups) {
+//          auto result = 0.0;
+//          #pragma omp parallel num_threads(nThreads) default(shared)
+//          {
+//             #pragma omp for reduction(+:result)
+//             for (std::size_t i = 0; i < g.num_particles(); i++) {
+//                result += (g.particles[i].gamma - 1.0) * g.particles[i].weight;
+//             }
+//          }
+//          result *= g.mass * constants::c_sqr;
+//          writer.Put(var, result);
+//       }
+//
+//       writer.Put(var_step, step);
+//       writer.Put(var_dt, dt);
+//       writer.Put(var_time, time);
+//       writer.EndStep();
+//       writer.Close();
+//    }
+//
+//    adios2::IO                    io;
+//    std::vector<GroupVariable>    groups;
+//    adios2::Variable<std::size_t> var_step;
+//    adios2::Variable<double>      var_dt;
+//    adios2::Variable<double>      var_time;
+// }; // end struct ParticleTotalEnergyMetric
 
 // =========================================
 // ========= Particle Dump Metric ==========
@@ -534,7 +534,7 @@ public:
 
    void add_particle_metric(const auto& pg) {
       addMetric(
-         std::make_unique<ParticleDumpMetric>(pg, adios.DeclareIO("Particles_" + pg.name + (pg.tracer ? "_tracers" : "")))
+         std::make_unique<ParticleDumpMetric>(pg, adios.DeclareIO("Particles_" + pg.name))
       );
    }
 

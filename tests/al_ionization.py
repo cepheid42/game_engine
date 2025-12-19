@@ -5,6 +5,7 @@ from scipy import constants
 import math
 
 from scripts.domain_params import *
+from scripts.particle_generation import create_particles
 
 project_path = '/home/cepheid/TriForce/game_engine'
 particle_data = project_path + '/data'
@@ -36,7 +37,7 @@ electrons = Particles(
     atomic_number=0,
     temp=(500, 0, 0), # eV
     density=1.1e27, # m^-3,
-    ppc=(100, 10, 10),
+    ppc=(20, 20, 20),
     distribution='constant',
     px_range=px_range,
     py_range=py_range,
@@ -77,6 +78,7 @@ em_params = EMParams(
 )
 
 particle_params = ParticleParams(
+    save_interval=10,
     particle_bcs='periodic',
     interp_order=1,
     particle_data=(electrons, neutral_aluminum, ionized_aluminum),
@@ -111,7 +113,7 @@ sim_params = Simulation(
     jdep_enabled=False
 )
 
-# create_particles(sim_params, electrons, particle_data)
-# create_particles(sim_params, neutral_aluminum, particle_data)
+create_particles(sim_params, electrons, particle_data)
+create_particles(sim_params, neutral_aluminum, particle_data)
 
 update_header(sim_params, project_path=project_path)

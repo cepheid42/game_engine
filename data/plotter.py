@@ -380,12 +380,68 @@ def plot_Temp(groups, start, stop, step, file_dir):
     print('Done.')
 
 
-def main():
-    step = 75
-    start = 0
-    stop = 7500
+def ionization(start, stop, step, file_dir):
+    # e_weight = []
+    neutral = []
+    ionized = []
+    # e_num = []
+    neu_num = []
+    ion_num = []
+    for n in range(start, stop + step, step):
+        # electrons = f'/electrons_dump_{n:010d}.bp'
+        neutral_al = f'/Al_dump_{n:010d}.bp'
+        ionized_al = f'/Al+_dump_{n:010d}.bp'
 
-    file_dir = '/lsi'
+        # with FileReader(data_dir + file_dir + electrons) as f:
+        #     data = f.read('Weight')
+        #     e_weight.append(data.sum())
+        #     e_num.append(data.shape[0])
+
+        with FileReader(data_dir + file_dir + neutral_al) as f:
+            data = f.read('Weight')
+            neutral.append(data.sum())
+            neu_num.append(data.shape[0])
+
+        with FileReader(data_dir + file_dir + ionized_al) as f:
+            data = f.read('Weight')
+            ionized.append(data.sum())
+            ion_num.append(data.shape[0])
+
+    ionized = np.asarray(ionized)
+    neutral = np.asarray(neutral)
+    # e_weight = np.asarray(e_weight)
+
+    v_beam = 1.32523e7
+    sigma = 1.428e-20
+    e_den = 1.1e27
+    time_thry = np.linspace(0, 6, 100) * 0.53e-15
+    charge_thry = 1.0 - np.exp(-v_beam * e_den * sigma * time_thry)
+
+    dt = 5e-18
+    time = np.arange(start, stop + step, step) * dt
+
+    mean_ion_charge = ionized / 6.6e10
+
+    # N_ttl = e_num + neu_num + ion_num
+
+    fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
+
+    ax.plot(time_thry, charge_thry)
+    ax.plot(time, mean_ion_charge)
+    # ax.plot(N_ttl)
+
+    plt.show()
+    # plt.savefig(data_dir + f'/total_particle_temp.png')
+    # plt.close(fig)
+
+def main():
+    step = 2
+    start = 0
+    stop = 600
+
+    file_dir = '/ionization'
+
+    ionization(10, stop, step, file_dir)
 
     # plot_Temp(['carbon1', 'carbon2'], start, stop, step, file_dir)
 
@@ -400,9 +456,9 @@ def main():
     # with mp.Pool(16) as p:
     #    p.starmap(plot_metric, targs)
 
-    targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
-    with mp.Pool(8) as p:
-       p.starmap(plot_fields, targs)
+    # targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
+    # with mp.Pool(8) as p:
+    #    p.starmap(plot_fields, targs)
 
     # targs = [(n, step, 'Jz', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:

@@ -85,7 +85,7 @@ class Particles:
     pz_range: tuple = ()
 
     def __repr__(self):
-        filestr = f'/data/{self.name}.bp'if self.distribution != 'none' else ''
+        filestr = f'/data/{self.name.lower()}.bp' if self.distribution != 'none' else ''
         return (
             '   ParticleGroupSpec{\n'
             f'      .name = "{self.name}",\n'

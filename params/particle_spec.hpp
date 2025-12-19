@@ -13,14 +13,14 @@ struct ParticleGroupSpec {
 };
 
 struct IonizationSpec {
-   std::string product1{};
-   std::string product2{}; // no product 3 for now
+   std::string_view product1{};
+   std::string_view product2{}; // no product 3 for now
    double ionization_energy{1.0};
    double rate_multiplier{1.0};
    double production_multiplier{1.0};
    double rejection_multiplier{1.0};
    double constant_cross_section{0.0};
-   std::string cross_section_file{};
+   std::string_view cross_section_file{};
 };
 
 struct CoulombSpec {

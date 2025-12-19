@@ -77,12 +77,12 @@ static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qd
    using BzStrategy = interp::InterpolationStrategy<XRedShape,  YRedShape,  ZFullShape>;
 
    static constexpr vec3 offset{
-      XFullShape::Order % 2 == 0 ? 0.5f : 1.0f,
-      YFullShape::Order % 2 == 0 ? 0.5f : 1.0f,
-      ZFullShape::Order % 2 == 0 ? 0.5f : 1.0f
+      XFullShape::Order % 2 == 0 ? 0.5 : 1.0,
+      YFullShape::Order % 2 == 0 ? 0.5 : 1.0,
+      ZFullShape::Order % 2 == 0 ? 0.5 : 1.0
    };
-   const vec3 loc_full = getCellIndices<float>(p.location + offset);
-   const vec3 loc_half = loc_full + 0.5f;
+   const vec3 loc_full = getCellIndices<double>(p.location + offset);
+   const vec3 loc_half = loc_full + 0.5;
 
    const vec3 fid = loc_full.as_type<std::size_t>();
    const vec3 hid = loc_half.as_type<std::size_t>();
@@ -182,7 +182,7 @@ struct BorisPush {
 
       if (p.is_disabled()) { return; }
 
-      auto new_loc = p.location + (delta_inv * p.velocity).as_type<float>();
+      auto new_loc = p.location + (delta_inv * p.velocity);
       auto old_loc = p.location;
 
       apply_particle_bcs<PBCSelect>(p, new_loc, old_loc);

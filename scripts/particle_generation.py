@@ -152,9 +152,7 @@ def create_particles(domain, particles, file_dir):
     py_min, py_max = particles.py_range
     pz_min, pz_max = particles.pz_range
 
-    if particles.init == 'none':
-        with open(file_dir + f'/{name.lower().replace(" ","_")}.empty', 'w') as f:
-            f.write(f'{name} {mass} {charge} {atomic_number}')
+    if particles.distribution == 'none':
         return
 
     # ----- Generate particle positions -----
@@ -208,7 +206,6 @@ def create_particles(domain, particles, file_dir):
         velocities = thermal_distribution(mass, temp[0], num_particles)
     elif distribution == 'constant':
         velocities = constant_distribution(mass, temp, num_particles)
-        weights = density * dy * dz * velocities[0, 0] * domain.dt / ppc_total
     else:
         velocities = maxwell_juttner_distribution(mass, temp[0], num_particles)
 
