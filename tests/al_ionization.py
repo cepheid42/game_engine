@@ -37,8 +37,22 @@ electrons = Particles(
     atomic_number=0,
     temp=(500, 0, 0), # eV
     density=1.1e27, # m^-3,
-    ppc=(20, 20, 20),
+    ppc=(100, 10, 10),
     distribution='constant',
+    px_range=px_range,
+    py_range=py_range,
+    pz_range=pz_range
+)
+
+electron_products = Particles(
+    name='electron_products',
+    mass=constants.m_e,
+    charge=-1,
+    atomic_number=0,
+    temp=(0, 0, 0), # eV
+    density=0.0, # m^-3,
+    ppc=(0, 0, 0),
+    distribution='none',
     px_range=px_range,
     py_range=py_range,
     pz_range=pz_range
@@ -81,15 +95,16 @@ particle_params = ParticleParams(
     save_interval=10,
     particle_bcs='periodic',
     interp_order=1,
-    particle_data=(electrons, neutral_aluminum, ionized_aluminum),
+    particle_data=(electrons, electron_products, neutral_aluminum, ionized_aluminum),
     collisions=(
         Collision(
             groups=('electrons', 'Al'),
-            products=('electrons', 'Al+'),
+            products=('electron_products', 'Al+'),
             channels=('ionization',),
             coulomb_log=10,
             self_scatter=False,
             ionization_energy=5.9858,
+            constant_cross_section=0.0,
             cross_section_file='/data/al0cs.txt'
         ),
     )

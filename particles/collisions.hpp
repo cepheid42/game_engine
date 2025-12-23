@@ -163,8 +163,8 @@ struct Collisions {
             const auto pid1 = pids1[i];
             const auto pid2 = pids2[i];
 
-            const auto dup1 = 1.0; // np1_lt_np2 ? nDups[pid1] : 1.0;
-            const auto dup2 = 1.0; //!np1_lt_np2 ? nDups[pid2] : 1.0;
+            const auto dup1 =  np1_lt_np2 ? nDups[pid1] : 1.0;
+            const auto dup2 = !np1_lt_np2 ? nDups[pid2] : 1.0;
             const auto weight1 = cell1[pid1].weight / dup1;
             const auto weight2 = cell2[pid2].weight / dup2;
 
@@ -179,7 +179,7 @@ struct Collisions {
                weight2,
                std::max(weight1, weight2),
                scatter_coef,
-               {rng(generator[tid]), rng(generator[tid]), rng(generator[tid]), rng(generator[tid])}
+               {rng(generator[tid]), rng(generator[tid]), rng(generator[tid]), rng(generator[tid]), rng(generator[tid])}
             };
 
             // coulombCollision(has_coulomb, pair_data, specs, cell_data);

@@ -26,7 +26,7 @@ inline constexpr auto dz = 1e-06;
 inline constexpr auto cfl   = 0.0025962788449097936;
 inline constexpr auto dt    = 5e-18;
 inline constexpr auto t_end = 3.18e-15;
-inline constexpr auto Nt    = 600zu;
+inline constexpr auto Nt    = 637zu;
 
 inline constexpr auto sim_name = "ionization";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
@@ -59,7 +59,7 @@ inline constexpr std::array BCSelect = {2zu, 2zu, 2zu, 2zu, 2zu, 2zu};
 /---------------------------------------------------------------*/
 enum class ParticleBCType { Reflecting, Periodic, Outflow };
 
-inline constexpr auto particle_save_interval = 2zu;
+inline constexpr auto particle_save_interval = 10zu;
 inline constexpr auto interpolation_order = 1zu;
 
 inline constexpr auto PBCSelect = ParticleBCType::Periodic;
@@ -73,7 +73,7 @@ inline constexpr std::array particle_spec = {
       .atomic_number = 0
    },
    ParticleGroupSpec{
-      .name = "electrons_prod",
+      .name = "electron_products",
       .filepath = "",
       .mass = 9.1093837015e-31,
       .charge = -1.0,
@@ -104,13 +104,13 @@ inline constexpr std::array collision_spec = {
       .probability_search_area = 1.0,
       .self_scatter = false,
       .ionization = {
-         .product1 = "electrons_prod",
+         .product1 = "electron_products",
          .product2 = "Al+",
          .ionization_energy = 5.9858,
          .rate_multiplier = 1.0,
          .production_multiplier = 1.0,
          .rejection_multiplier = 1.0,
-         .constant_cross_section = 2.3443999999999997e-20,
+         .constant_cross_section = 0.0,
          .cross_section_file = "/data/al0cs.txt",
       },
    }

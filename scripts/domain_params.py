@@ -28,6 +28,7 @@ class Collision:
     self_scatter: bool = False
     step_interval: int = 1
     ionization_energy: float = 0.0
+    constant_cross_section: float = 0.0
     cross_section_file: str = ''
 
     def __repr__(self):
@@ -46,7 +47,7 @@ class Collision:
                 f'         .rate_multiplier = {self.rate_mult},\n'   # todo: this rate mult is shared with coulomb currently
                 f'         .production_multiplier = {1.0},\n'
                 f'         .rejection_multiplier = {1.0},\n'
-                f'         .constant_cross_section = {0.0},\n'
+                f'         .constant_cross_section = {self.constant_cross_section},\n'
                 f'         .cross_section_file = "{self.cross_section_file}",\n'
                 '      },'
             )

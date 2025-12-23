@@ -435,7 +435,7 @@ def ionization(start, stop, step, file_dir):
     # plt.close(fig)
 
 def main():
-    step = 2
+    step = 10
     start = 0
     stop = 600
 
