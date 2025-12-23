@@ -38,7 +38,7 @@ def generate_density_mapping(density : float | Callable | Iterable, xcenter, yce
 
 def constant_distribution(mass, temp, num_particles):
     temp = np.asarray(temp)
-    vx, vy, vz = constants.c * np.sqrt(1 - (1 + constants.eV * temp / (mass * constants.c**2))**-2)
+    vx, vy, vz = np.sign(temp) * constants.c * np.sqrt(1 - (1 + constants.eV * np.abs(temp) / (mass * constants.c**2))**-2)
     velocities = np.zeros((num_particles, 3))
     velocities[:, 0] = vx
     velocities[:, 1] = vy

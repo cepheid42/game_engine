@@ -60,7 +60,7 @@ electron_products = Particles(
 
 neutral_aluminum = Particles(
     name='Al',
-    mass=26.9815 * constants.atomic_mass + 13.0 * constants.m_e,
+    mass=26.9815384 * constants.atomic_mass + 13.0 * constants.m_e,
     charge=0,
     atomic_number=13,
     temp=(0, 0, 0), # eV
@@ -74,7 +74,7 @@ neutral_aluminum = Particles(
 
 ionized_aluminum = Particles(
     name='Al+',
-    mass=26.9815 * constants.atomic_mass + 12.0 * constants.m_e,
+    mass=26.9815384 * constants.atomic_mass + 12.0 * constants.m_e,
     charge=1,
     atomic_number=13,
     temp=(0, 0, 0), # eV
