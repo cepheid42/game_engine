@@ -35,28 +35,6 @@ auto FieldToParticleInterp(const auto& F,
    return result;
 } // end FieldToParticle()
 
-// template <int D, typename Strategy>
-// requires(is_2D_XZ and D == 1)
-// auto FieldToParticleInterp(const auto& F,
-//                            const auto& shapeI, const auto& shapeJ, const auto& shapeK,
-//                            const auto ci, const auto cj, const auto ck)
-// -> double
-// {
-//    using IShape = typename Strategy::OuterShape;
-//    using JShape = typename Strategy::MiddleShape;
-//
-//    auto result = 0.0;
-//    for (int i = IShape::Begin; i <= IShape::End; ++i) {
-//       const auto& s0i = shapeI[i - IShape::Begin];
-//       for (int j = JShape::Begin; j <= JShape::End; ++j) {
-//          const auto& s0j = shapeJ[j - JShape::Begin];
-//          const auto [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, 0lu);
-//          result += s0i * s0j * F(x, y, z);
-//       } // end for(j)
-//    } // end for(i)
-//    return result;
-// } // end FieldToParticle()
-
 static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qdt)
 -> std::array<vec3<double>, 2>
 {
@@ -173,7 +151,7 @@ struct BorisPush {
       const auto u_plus = um + cross(u_prime, s);
       const auto u = u_plus + eps;
 
-      p.gamma = calculateGammaV(u); // is this right?
+      p.gamma = std::sqrt(1.0 + u.length_squared() * constants::over_c_sqr);
       p.velocity = u / p.gamma;
    } // end update_velocity()
 

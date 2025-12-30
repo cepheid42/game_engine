@@ -22,7 +22,7 @@ dz = (zmax - zmin) / (shape[2] - 1)
 
 dt = 5.0e-18
 t_end = 3.18e-15
-nt = int(t_end / dt) + 1
+nt = 1 #int(t_end / dt) + 1
 cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
 # ===== Particles =====
@@ -125,10 +125,11 @@ sim_params = Simulation(
     em_params=em_params,
     particle_params=particle_params,
     em_enabled=False,
+    push_enabled=False,
     jdep_enabled=False
 )
 
 create_particles(sim_params, electrons, particle_data)
 create_particles(sim_params, neutral_aluminum, particle_data)
 
-# update_header(sim_params, project_path=project_path)
+update_header(sim_params, project_path=project_path)

@@ -46,19 +46,14 @@ constexpr std::size_t getCellIndex(const auto& loc) {
    return z + ((Nz - 1) * y) + ((Ny - 1) * (Nz - 1) * x);
 }
 
-constexpr auto calculateGamma(const auto& v) {
-   // Calculates gamma using regular velocity
-   return 1.0 / std::sqrt(1.0 - v * constants::over_c_sqr);
-}
-
 constexpr auto calculateGammaV(const auto& v) {
    // Calculates gamma using regular velocity
    return 1.0 / std::sqrt(1.0 - v.length_squared() * constants::over_c_sqr);
 }
 
 constexpr auto calculateGammaP(const auto& p, const auto m) {
-   // Calculates gamma using gamma*v (e.g. relativistic momentum but with mass terms canceled)
-   return std::sqrt(1.0 + p.length_squared() / math::SQR(m) * constants::over_c_sqr);
+   // Calculates gamma using momentum
+   return std::sqrt(1.0 + p.length_squared() * constants::over_c_sqr / math::SQR(m));
 }
 
 static void initializeFromFile(const std::string& filename, auto& group) {
@@ -109,6 +104,8 @@ static void initializeFromFile(const std::string& filename, auto& group) {
    reader.EndStep();
    reader.Close();
 
+   // std::println("v: {}, g: {}", group.particles[0].velocity, group.particles[0].gamma);
+   // exit(0);
    group.sort_particles();
    std::println("Done.");
 }

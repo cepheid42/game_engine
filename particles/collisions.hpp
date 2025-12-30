@@ -70,15 +70,16 @@ struct Collisions {
       static constexpr auto pi43 = 4.0 * constants::pi / 3.0;
       static constexpr auto twothirds = 2.0 / 3.0;
 
-      const auto pi34_cuberoot = std::pow(pi43, 1.0 / 3.0);
-      constexpr auto four_pi_eps_c2_inv = 1.0 / (4.0 * constants::pi * constants::eps0 * constants::c_sqr);
+      static const auto pi34_cuberoot = std::pow(pi43, 1.0 / 3.0);
+
+      static constexpr auto four_pi_eps_c2_inv = 1.0 / (4.0 * constants::pi * constants::eps0 * constants::c_sqr);
 
       // todo: these can probably be moved out of this function
       const auto q1q2 = g1.charge * g2.charge;
       const auto m1m2 = g1.mass * g2.mass;
       const auto m1_over_m2 = g1.mass / g2.mass;
-      const auto m1c2 = g1.charge * constants::c_sqr;
-      const auto m2c2 = g2.charge * constants::c_sqr;
+      const auto m1c2 = g1.mass * constants::c_sqr;
+      const auto m2c2 = g2.mass * constants::c_sqr;
 
       const auto coef1 = four_pi_eps_c2_inv * math::SQR(q1q2) / (m1m2 * constants::eps0);
       const auto coef2 = four_pi_eps_c2_inv * std::abs(q1q2);

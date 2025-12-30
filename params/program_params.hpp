@@ -26,13 +26,13 @@ inline constexpr auto dz = 1e-06;
 inline constexpr auto cfl   = 0.0025962788449097936;
 inline constexpr auto dt    = 5e-18;
 inline constexpr auto t_end = 3.18e-15;
-inline constexpr auto Nt    = 1zu; //637zu;
+inline constexpr auto Nt    = 637zu;
 
 inline constexpr auto sim_name = "ionization";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
 
 inline constexpr auto   em_enabled = false;
-inline constexpr auto push_enabled = true;
+inline constexpr auto push_enabled = false;
 inline constexpr auto jdep_enabled = false;
 inline constexpr auto coll_enabled = true;
 
@@ -82,14 +82,14 @@ inline constexpr std::array particle_spec = {
    ParticleGroupSpec{
       .name = "Al",
       .filepath = "/data/al.bp",
-      .mass = 9.1093837015e-31, //4.4815740788980014e-26,
+      .mass = 4.4815740788980014e-26,
       .charge = 0.0,
       .atomic_number = 13
    },
    ParticleGroupSpec{
       .name = "Al+",
       .filepath = "",
-      .mass = 9.1093837015e-31, //4.481482985060986e-26,
+      .mass = 4.481482985060986e-26,
       .charge = 1.0,
       .atomic_number = 13
    }
