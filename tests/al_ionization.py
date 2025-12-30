@@ -131,4 +131,4 @@ sim_params = Simulation(
 create_particles(sim_params, electrons, particle_data)
 create_particles(sim_params, neutral_aluminum, particle_data)
 
-update_header(sim_params, project_path=project_path)
+# update_header(sim_params, project_path=project_path)

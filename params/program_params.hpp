@@ -82,14 +82,14 @@ inline constexpr std::array particle_spec = {
    ParticleGroupSpec{
       .name = "Al",
       .filepath = "/data/al.bp",
-      .mass = 4.4815740788980014e-26,
+      .mass = 9.1093837015e-31, //4.4815740788980014e-26,
       .charge = 0.0,
       .atomic_number = 13
    },
    ParticleGroupSpec{
       .name = "Al+",
       .filepath = "",
-      .mass = 4.481482985060986e-26,
+      .mass = 9.1093837015e-31, //4.481482985060986e-26,
       .charge = 1.0,
       .atomic_number = 13
    }
