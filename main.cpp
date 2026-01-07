@@ -9,6 +9,7 @@
 
 #include "barkeep.h"
 
+#include <ranges>
 #include <unordered_map>
 
 using namespace tf;

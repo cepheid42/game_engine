@@ -55,7 +55,7 @@ class Collision:
         # channel_spec = '\n'.join([s for s in [coulomb, ionization]])
         channel_spec = ''
         if coulomb:
-            channel_spec += coulomb + '\n      '
+            channel_spec += coulomb + '      '
         if ionization:
             channel_spec += ionization
 

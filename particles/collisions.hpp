@@ -2,16 +2,17 @@
 #define COLLISIONS_HPP
 
 #include "binary_channels.hpp"
-#include "particles.hpp"
 #include "constants.hpp"
 #include "interpolation.hpp"
 #include "math_utils.hpp"
-#include "rng_utils.h"
-
-#include <omp.h>
+#include "particles.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <omp.h>
+#include <random>
+#include <tuple>
 #include <vector>
 
 namespace tf::collisions
@@ -22,8 +23,8 @@ struct Collisions {
    using particle_vec = std::vector<particles::Particle>;
    group_t& g1;
    group_t& g2;
-   group_t& product1;
-   group_t& product2;
+   // group_t& product1;
+   // group_t& product2;
 
    CollisionSpec specs;
 
@@ -40,8 +41,8 @@ struct Collisions {
    Collisions(const auto& params_, auto& group_map)
    : g1(group_map.at(std::string{params_.group1})),
      g2(group_map.at(std::string{params_.group2})),
-     product1(group_map.at(std::string{params_.ionization.product1})), // todo: these are hard coded for ionization
-     product2(group_map.at(std::string{params_.ionization.product2})),
+     // product1(group_map.at(std::string{params_.ionization.product1})), // todo: these are hard coded for ionization
+     // product2(group_map.at(std::string{params_.ionization.product2})),
      specs(params_),
      has_coulomb(std::ranges::contains(params_.channels, "coulomb")),
      has_ionization(std::ranges::contains(params_.channels, "ionization"))
@@ -183,35 +184,35 @@ struct Collisions {
                {rng(generator[tid]), rng(generator[tid]), rng(generator[tid]), rng(generator[tid]), rng(generator[tid])}
             };
 
-            // coulombCollision(has_coulomb, pair_data, specs, cell_data);
+            coulombCollision(has_coulomb, pair_data, specs, cell_data);
 
-            // todo: add randomly selecting channel when more channels are added.
-            ionizationCollision(
-               has_ionization,
-               pair_data,
-               specs,
-               g1_products,
-               g2_products,
-               std::max(dup1, dup2),
-               ionization_cs
-            );
+            // // todo: add randomly selecting channel when more channels are added.
+            // ionizationCollision(
+            //    has_ionization,
+            //    pair_data,
+            //    specs,
+            //    g1_products,
+            //    g2_products,
+            //    std::max(dup1, dup2),
+            //    ionization_cs
+            // );
          } // end for(npairs)
       } // end for(z_code, cell1)
 
-      if (!g1_products.empty()) {
-         // G1 should always be electrons
-         product1.particles.insert(product1.particles.end(), g1_products.begin(), g1_products.end());
-         g1.cell_map_updated = false;
-         g1.is_sorted = false;
-         g1.sort_particles();
-      }
-
-      if (!g2_products.empty()) {
-         product2.particles.insert(product2.particles.end(), g2_products.begin(), g2_products.end());
-         g2.cell_map_updated = false;
-         g2.is_sorted = false;
-         g2.sort_particles();
-      }
+      // if (!g1_products.empty()) {
+      //    // G1 should always be electrons
+      //    product1.particles.insert(product1.particles.end(), g1_products.begin(), g1_products.end());
+      //    g1.cell_map_updated = false;
+      //    g1.is_sorted = false;
+      //    g1.sort_particles();
+      // }
+      //
+      // if (!g2_products.empty()) {
+      //    product2.particles.insert(product2.particles.end(), g2_products.begin(), g2_products.end());
+      //    g2.cell_map_updated = false;
+      //    g2.is_sorted = false;
+      //    g2.sort_particles();
+      // }
    } // end update()
 
    static void advance(const auto) requires (!coll_enabled) {}
