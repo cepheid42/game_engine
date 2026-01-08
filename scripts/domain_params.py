@@ -23,7 +23,7 @@ class Collision:
     groups: tuple = ()
     products: tuple = ()
     channels: tuple = ()
-    coulomb_log: float = -1.0
+    coulomb_log: float = 10.0
     rate_mult: float = 1.0
     self_scatter: bool = False
     step_interval: int = 1

@@ -10,9 +10,9 @@ from scripts.particle_generation import create_particles
 project_path = '/home/cepheid/TriForce/game_engine'
 particle_data = project_path + '/data'
 
-shape = (129, 2, 2)
+shape = (2, 2, 2)
 
-xmin, xmax = 0.0, 1.28e-4
+xmin, xmax = 0.0, 1.0e-6
 ymin, ymax = 0.0, 1.0e-6
 zmin, zmax = 0.0, 1.0e-6
 
@@ -20,7 +20,7 @@ dx = (xmax - xmin) / (shape[0] - 1)
 dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
 
-dt = 5.6e-18
+dt = 5.0e-18
 t_end = 3.18e-15
 nt = int(t_end / dt) + 1
 cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
@@ -39,9 +39,9 @@ electrons = Particles(
     density=1.1e27, # m^-3,
     ppc=(100, 10, 10),
     distribution='constant',
-    px_range=(xmin, dx), # one cell
-    py_range=(ymin, ymax),
-    pz_range=(zmin, zmax)
+    px_range=px_range,
+    py_range=py_range,
+    pz_range=pz_range
 )
 
 electron_products = Particles(
@@ -65,7 +65,7 @@ neutral_aluminum = Particles(
     atomic_number=13,
     temp=(0, 0, 0), # eV
     density=6.6e28, # m^-3,
-    ppc=(25, 4, 4),
+    ppc=(20, 20, 20),
     distribution='thermal',
     px_range=px_range,
     py_range=py_range,
@@ -100,8 +100,8 @@ particle_params = ParticleParams(
         Collision(
             groups=('electrons', 'Al'),
             products=('electron_products', 'Al+'),
-            channels=('coulomb', 'ionization'),
-            coulomb_log=10.0,
+            channels=('ionization',),
+            coulomb_log=10,
             self_scatter=False,
             ionization_energy=5.9858,
             constant_cross_section=0.0,

@@ -122,12 +122,10 @@ void coulombCollision(const bool has_coulomb, const auto& params, const auto& sp
    const auto com = getCOMData(particle1, particle2, m1, m2);
 
    const auto p1_star_len = com.p1.length();
-   const auto mg1 = m1 * gamma1;
-   const auto mg2 = m2 * gamma2;
-   const auto gamma_coef1 = com.gamma / (mg1 + mg2);
+   const auto gamma_coef1 = com.gamma / (m1 * gamma1 + m2 * gamma2);
    const auto gamma_coef2 = 1.0 + constants::c_sqr * (com.gamma1 * m1) * (com.gamma2 * m2) / math::SQR(p1_star_len);
 
-   double coulomb_log_pairwise = cspec.coulomb_log;
+   double coulomb_log_pairwise{cspec.coulomb_log};
    if (coulomb_log_pairwise <= 0.0) {
       const auto l_deBroglie = 0.5 * constants::h / p1_star_len;
       const auto b0 = gamma_coef1 * gamma_coef2 * coulomb.coef2;
@@ -226,9 +224,9 @@ void ionizationCollision(
       const auto gamma_ejected = particles::calculateGammaP(p_ejected, m1);
       const auto v_ejected = p_ejected / (gamma_ejected * m1);
 
-      // // todo: is this enough to keep OpenMP threads from stepping on each other?
-      // #pragma omp critical
-      // {
+      // todo: is this enough to keep OpenMP threads from stepping on each other?
+      #pragma omp critical
+      {
          product1.emplace_back(
             v_ejected,
             gamma_ejected,
@@ -244,7 +242,7 @@ void ionizationCollision(
             particle2.location,
             product_weight
          );
-      // }
+      }
 
       if (product_weight == particle2.weight) {
          particle2.weight = -1.0;

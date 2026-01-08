@@ -15,8 +15,6 @@
 #include <span>
 #include <utility>
 #include <vector>
-#include <print>
-
 
 namespace tf::particles
 {
@@ -104,9 +102,6 @@ static void initializeFromFile(const std::string& filename, auto& group) {
    }
    reader.EndStep();
    reader.Close();
-
-   // std::println("v: {}, g: {}", group.particles[0].velocity, group.particles[0].gamma);
-   // exit(0);
    group.sort_particles();
    std::println("Done.");
 }

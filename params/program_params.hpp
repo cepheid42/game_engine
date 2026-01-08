@@ -99,11 +99,11 @@ inline constexpr std::array collision_spec = {
    CollisionSpec{
       .group1 = "electrons",
       .group2 = "Al",
-      .channels = {"ionization"},
+      .channels = {"ionization, coulomb"},
       .step_interval = 1,
       .probability_search_area = 1.0,
       .self_scatter = false,
-      .ionization = {
+      .coulomb = {.coulomb_log = 10.0, .rate_multiplier = 1.0},      .ionization = {
          .product1 = "electron_products",
          .product2 = "Al+",
          .ionization_energy = 5.9858,

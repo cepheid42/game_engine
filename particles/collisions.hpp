@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cmath>
 #include <omp.h>
 #include <random>
@@ -93,27 +94,33 @@ struct Collisions {
       g1_products.clear();
       g2_products.clear();
 
-      for (auto& [z_code, cell1] : g1.cell_map) {
-         if (!g2.cell_map.contains(z_code)) {
+      std::uniform_real_distribution rng(0.0, 1.0);
+      std::vector<std::size_t> pids1{};
+      std::vector<std::size_t> pids2{};
+      std::vector<double> nDups{};
+
+      #pragma omp parallel for num_threads(nThreads) default(shared)
+      for (auto cid = 0zu; cid < (Nx - 1) * (Ny - 1) * (Nz - 1); cid++) {
+      // for (auto& [z_code, cell1] : g1.cell_map) {
+         if (!g1.cell_map.contains(cid) or !g2.cell_map.contains(cid)) {
             continue;
          }
-         const auto& cell2 = g2.cell_map.at(z_code);
+
+         const auto& cell1 = g1.cell_map.at(cid);
+         const auto& cell2 = g2.cell_map.at(cid);
 
          const auto np1 = cell1.size();
          const auto np2 = cell2.size();
-         if (np1 == 0 or np2 == 0) { continue; }
+         assert(np1 != 0 and np2 != 0);
 
          const auto np1_lt_np2 = np1 < np2;
 
-         // todo: changed max to min here
          const auto n_partners = specs.self_scatter ? np1 - 1 + np1 % 2 : std::max(np1, np2);
          const auto scatter_coef = dt_vol * static_cast<double>(n_partners);
 
-         // todo: move vector init outside of loop
-         std::uniform_real_distribution rng(0.0, 1.0);
-         std::vector<std::size_t> pids1(n_partners);
-         std::vector<std::size_t> pids2(n_partners);
-         std::vector<double> nDups(std::min(np1, np2));
+         pids1.resize(n_partners);
+         pids2.resize(n_partners);
+         nDups.resize(std::min(np1, np2));
 
          CoulombData cell_data{};
          if (has_coulomb) {
@@ -168,14 +175,16 @@ struct Collisions {
             const auto pid1 = pids1[i];
             const auto pid2 = pids2[i];
 
-            const auto dup1 =  np1_lt_np2 ? nDups[pid1] : 1.0;
-            const auto dup2 = !np1_lt_np2 ? nDups[pid2] : 1.0;
-            const auto dups = std::max(dup1, dup2);
+            const auto dups = std::max(
+                np1_lt_np2 ? nDups[pid1] : 1.0,
+               !np1_lt_np2 ? nDups[pid2] : 1.0
+            );
             const auto weight1 = cell1[pid1].weight / dups;
             const auto weight2 = cell2[pid2].weight / dups;
 
-            // todo: is this check absolutely necessary?
-            if (weight1 <= 0.0 or weight2 <= 0.0) { continue; }
+            // // todo: is this check absolutely necessary?
+            // if (weight1 <= 0.0 or weight2 <= 0.0) { continue; }
+            assert(weight1 > 0.0 and weight2 > 0.0);
 
             ParticlePairData pair_data {
                cell1[pid1],
@@ -189,7 +198,7 @@ struct Collisions {
                {rng(generator[tid]), rng(generator[tid]), rng(generator[tid]), rng(generator[tid]), rng(generator[tid])}
             };
 
-            // coulombCollision(has_coulomb, pair_data, specs, cell_data);
+            coulombCollision(has_coulomb, pair_data, specs, cell_data);
 
             // todo: add randomly selecting channel when more channels are added.
             ionizationCollision(
