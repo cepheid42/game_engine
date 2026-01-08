@@ -40,6 +40,7 @@ constexpr vec3<T> getCellIndices(const auto& loc) {
 }
 
 constexpr std::size_t getCellIndex(const auto& loc) {
+   // todo: can probably replace x,y,z with the getCellIndices function above
    const auto x = static_cast<std::size_t>(std::floor(loc.x));
    const auto y = static_cast<std::size_t>(std::floor(loc.y));
    const auto z = static_cast<std::size_t>(std::floor(loc.z));

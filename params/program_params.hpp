@@ -5,7 +5,7 @@
 
 #include <array>
 
-inline constexpr auto nThreads = 8;
+inline constexpr auto nThreads = 1;
 
 inline constexpr auto x_collapsed = true;
 inline constexpr auto y_collapsed = true;
@@ -23,12 +23,12 @@ inline constexpr auto dx = 1e-06;
 inline constexpr auto dy = 1e-06;
 inline constexpr auto dz = 1e-06;
 
-inline constexpr auto cfl   = 0.2596278844909794;
-inline constexpr auto dt    = 5e-16;
-inline constexpr auto t_end = 5e-12;
-inline constexpr auto Nt    = 10000zu;
+inline constexpr auto cfl   = 0.0025962788449097936;
+inline constexpr auto dt    = 5e-18;
+inline constexpr auto t_end = 3.18e-15;
+inline constexpr auto Nt    = 637zu;
 
-inline constexpr auto sim_name = "carbon_thermal_eq";
+inline constexpr auto sim_name = "ionization";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
 
 inline constexpr auto   em_enabled = false;
@@ -44,7 +44,7 @@ enum class EMSide { Lo, Hi };
 
 inline constexpr auto em_save_interval = 1zu;
 
-inline constexpr auto PMLDepth    = 10zu;
+inline constexpr auto PMLDepth    = 0zu;
 inline constexpr auto PMLGrade    = 3.5;
 inline constexpr auto PMLAlphaMax = 0.2;
 //inline constexpr auto PMLKappaMax = 1.0;
@@ -59,55 +59,60 @@ inline constexpr std::array BCSelect = {2zu, 2zu, 2zu, 2zu, 2zu, 2zu};
 /---------------------------------------------------------------*/
 enum class ParticleBCType { Reflecting, Periodic, Outflow };
 
-inline constexpr auto particle_save_interval = 100zu;
+inline constexpr auto particle_save_interval = 10zu;
 inline constexpr auto interpolation_order = 1zu;
 
 inline constexpr auto PBCSelect = ParticleBCType::Periodic;
 
 inline constexpr std::array particle_spec = {
    ParticleGroupSpec{
-      .name = "carbon1",
-      .filepath = "/data/carbon1.bp",
-      .mass = 1.9945e-26,
-      .charge = 9.613059803999999e-19,
-      .atomic_number = 6
+      .name = "electrons",
+      .filepath = "/data/electrons.bp",
+      .mass = 9.1093837015e-31,
+      .charge = -1.0,
+      .atomic_number = 0
    },
    ParticleGroupSpec{
-      .name = "carbon2",
-      .filepath = "/data/carbon2.bp",
-      .mass = 1.9945e-26,
-      .charge = 9.613059803999999e-19,
-      .atomic_number = 6
+      .name = "electron_products",
+      .filepath = "",
+      .mass = 9.1093837015e-31,
+      .charge = -1.0,
+      .atomic_number = 0
+   },
+   ParticleGroupSpec{
+      .name = "Al",
+      .filepath = "/data/al.bp",
+      .mass = 4.4815740788980014e-26,
+      .charge = 0.0,
+      .atomic_number = 13
+   },
+   ParticleGroupSpec{
+      .name = "Al+",
+      .filepath = "",
+      .mass = 4.481482985060986e-26,
+      .charge = 1.0,
+      .atomic_number = 13
    }
 };
 
 inline constexpr std::array collision_spec = {
    CollisionSpec{
-      .group1 = "carbon1",
-      .group2 = "carbon2",
-      .channels = {"coulomb"},
+      .group1 = "electrons",
+      .group2 = "Al",
+      .channels = {"ionization"},
       .step_interval = 1,
       .probability_search_area = 1.0,
       .self_scatter = false,
-      .coulomb = {.coulomb_log = 10.0, .rate_multiplier = 1.0},      
-   },
-   CollisionSpec{
-      .group1 = "carbon1",
-      .group2 = "carbon1",
-      .channels = {"coulomb"},
-      .step_interval = 1,
-      .probability_search_area = 1.0,
-      .self_scatter = true,
-      .coulomb = {.coulomb_log = 10.0, .rate_multiplier = 1.0},      
-   },
-   CollisionSpec{
-      .group1 = "carbon2",
-      .group2 = "carbon2",
-      .channels = {"coulomb"},
-      .step_interval = 1,
-      .probability_search_area = 1.0,
-      .self_scatter = true,
-      .coulomb = {.coulomb_log = 10.0, .rate_multiplier = 1.0},      
+      .ionization = {
+         .product1 = "electron_products",
+         .product2 = "Al+",
+         .ionization_energy = 5.9858,
+         .rate_multiplier = 1.0,
+         .production_multiplier = 1.0,
+         .rejection_multiplier = 1.0,
+         .constant_cross_section = 0.0,
+         .cross_section_file = "/data/al0cs.txt",
+      },
    }
 };
 

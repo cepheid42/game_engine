@@ -169,8 +169,8 @@ struct Table {
    }
 
    auto lerp(const auto e) const {
-      if (e < xs[0]) { return ys[0]; }
-      if (e >= xs.back()) { return ys.back(); }
+      if (e == xs[0]) { return ys[0]; }
+      if (e == xs.back()) { return ys.back(); }
       const auto upper = std::ranges::upper_bound(xs, e);
       const auto idx = std::ranges::distance(xs.cbegin(), upper) - 1;
       const auto slope = (e - xs[idx]) / (xs[idx + 1] - xs[idx]);

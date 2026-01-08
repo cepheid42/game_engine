@@ -74,10 +74,8 @@ int main() {
    metrics.write(step, time);
    timers["IO"].stop_timer();
 
-   // progress_bar->show();
+   progress_bar->show();
    for (step = 1; step <= Nt; step++, time += dt) {
-      std::println("Step {}", step);
-
       // // Electromagnetics
       // timers["EM"].start_timer();
       // emsolver.advance(time);
@@ -110,7 +108,7 @@ int main() {
       metrics.write(step, time);
       timers["IO"].stop_timer();
    }
-   // progress_bar->done();
+   progress_bar->done();
    timers["Main"].stop_timer();
 
    print_final_timers(timers);

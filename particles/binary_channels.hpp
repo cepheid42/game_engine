@@ -82,9 +82,9 @@ auto getCOMData(const auto& particle1, const auto& particle2, const auto m1, con
    const auto p2 = gamma2 * m2 * v2;
 
    const auto vcm = (p1 + p2) / (m1 * gamma1 + m2 * gamma2);
-   const auto gamma_cm = particles::calculateGammaV(vcm);
-
    const auto vcm2 = vcm.length_squared();
+   const auto gamma_cm = 1.0 / std::sqrt(1.0 - vcm2 * constants::over_c_sqr);
+
    const auto vcm_dot_v1 = dot(vcm, v1);
    const auto vcm_dot_v2 = dot(vcm, v2);
 
@@ -135,7 +135,7 @@ void coulombCollision(const bool has_coulomb, const auto& params, const auto& sp
       coulomb_log_pairwise = std::max(2.0, 0.5 * std::log(1.0 + coulomb.bmax2 / bmin2));
    }
 
-   const auto s12_calc = cspec.rate_multiplier * params.max_weight * coulomb.coef1 * params.scatter_coef * gamma_coef1 * math::SQR(gamma_coef2) * coulomb_log_pairwise * p1_star_len * constants::over_c_sqr/ (gamma1 * gamma2);
+   const auto s12_calc = cspec.rate_multiplier * params.max_weight * coulomb.coef1 * params.scatter_coef * gamma_coef1 * math::SQR(gamma_coef2) * coulomb_log_pairwise * p1_star_len * constants::over_c_sqr / (gamma1 * gamma2);
    const auto s12_max = coulomb.scatter_lowt * cspec.rate_multiplier * params.max_weight * dv_length;
    const auto s12 = std::min(s12_max, s12_calc);
 
@@ -189,7 +189,7 @@ void ionizationCollision(
    const auto dv_len = (v1 - v2).length();
 
    auto target_ionizes = w1 >= wi_eff or (w1 / wi_eff >= params.rand[2]);
-   auto electron_scatters = w1 < wi_eff or (wi_eff / w1 >= params.rand[2]);
+   auto electron_scatters = false; //w1 < wi_eff or (wi_eff / w1 >= params.rand[2]);
 
    // parallel particles or self particles can cause divide by zero errors
    if (!(target_ionizes or electron_scatters) or dv_len == 0.0) { return; }
@@ -215,20 +215,20 @@ void ionizationCollision(
    if (energy_com_eV <= ionization.ionization_energy or params.rand[0] > scatter_probability) { return; }
 
    const auto E_scatter = params.rand[1] * (energy_com_eV - ionization.ionization_energy);
-   const auto p_scatter = v1 * gamma1 * m1 * std::sqrt(E_scatter / energy_com_eV);
+   const auto p_scatter = v1 * gamma1 * m1 * std::sqrt(E_scatter / energy_com_eV); // todo: this can be simplified a bit, dont need p for anything but getting v
    const auto gamma_scatter = particles::calculateGammaP(p_scatter, m1);
    const auto v_scatter = p_scatter / (gamma_scatter * m1);
 
    if (target_ionizes) {
       const auto product_weight = std::min(w2, wi_eff * ndups / ionization.production_multiplier);
       const auto E_ejected = energy_com_eV - ionization.ionization_energy - E_scatter;
-      const auto p_ejected = v1 * gamma1 * m1 * std::sqrt(E_ejected / energy_com_eV);
+      const auto p_ejected = v1 * gamma1 * m1 * std::sqrt(E_ejected / energy_com_eV); // todo: this can be simplified a bit, dont need p for anything but getting v
       const auto gamma_ejected = particles::calculateGammaP(p_ejected, m1);
       const auto v_ejected = p_ejected / (gamma_ejected * m1);
 
-      // todo: is this enough to keep OpenMP threads from stepping on each other?
-      #pragma omp critical
-      {
+      // // todo: is this enough to keep OpenMP threads from stepping on each other?
+      // #pragma omp critical
+      // {
          product1.emplace_back(
             v_ejected,
             gamma_ejected,
@@ -244,7 +244,7 @@ void ionizationCollision(
             particle2.location,
             product_weight
          );
-      }
+      // }
 
       if (product_weight == particle2.weight) {
          particle2.weight = -1.0;
@@ -261,18 +261,18 @@ void ionizationCollision(
    };
 
    auto getScatteringAngle = [&]() -> std::array<double, 2> {
-      const auto cos_theta = 2.0 * params.rand[3] - 1.0;
+      const auto cos_theta = 2.0 * params.rand[4] - 1.0;
       return {cos_theta, std::sqrt(1.0 - math::SQR(cos_theta))};
    };
 
    const auto com_scatter = getCOMData(e_scattered, particle2, m1, m2);
-   const auto& [p1f, pcoef] = calculate_P1f_cm(com_scatter, params.rand[2], getScatteringAngle());
+   const auto& [p1f, pcoef] = calculate_P1f_cm(com_scatter, params.rand[3], getScatteringAngle());
 
    if (electron_scatters) {
       updateParticle(particle1, m1, p1f, pcoef, com_scatter.vcm, com_scatter.gamma1, com_scatter.gamma);
    }
 
-   if (electron_scatters) {
+   if (target_ionizes) {
       updateParticle(particle2, m2, -p1f, -pcoef, com_scatter.vcm, com_scatter.gamma2, com_scatter.gamma);
    }
 } // end ionizationCollision()

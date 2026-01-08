@@ -23,8 +23,8 @@ struct Collisions {
    using particle_vec = std::vector<particles::Particle>;
    group_t& g1;
    group_t& g2;
-   // group_t& product1;
-   // group_t& product2;
+   group_t& product1;
+   group_t& product2;
 
    CollisionSpec specs;
 
@@ -41,8 +41,8 @@ struct Collisions {
    Collisions(const auto& params_, auto& group_map)
    : g1(group_map.at(std::string{params_.group1})),
      g2(group_map.at(std::string{params_.group2})),
-     // product1(group_map.at(std::string{params_.ionization.product1})), // todo: these are hard coded for ionization
-     // product2(group_map.at(std::string{params_.ionization.product2})),
+     product1(group_map.at(std::string{params_.ionization.product1})), // todo: these are hard coded for ionization
+     product2(group_map.at(std::string{params_.ionization.product2})),
      specs(params_),
      has_coulomb(std::ranges::contains(params_.channels, "coulomb")),
      has_ionization(std::ranges::contains(params_.channels, "ionization"))
@@ -101,18 +101,19 @@ struct Collisions {
 
          const auto np1 = cell1.size();
          const auto np2 = cell2.size();
-         const auto np1_lt_np2 = np1 < np2;
          if (np1 == 0 or np2 == 0) { continue; }
 
+         const auto np1_lt_np2 = np1 < np2;
+
          // todo: changed max to min here
-         const auto n_partners = specs.self_scatter ? np1 - 1 + np1 % 2 : std::min(np1, np2);
+         const auto n_partners = specs.self_scatter ? np1 - 1 + np1 % 2 : std::max(np1, np2);
          const auto scatter_coef = dt_vol * static_cast<double>(n_partners);
 
          // todo: move vector init outside of loop
          std::uniform_real_distribution rng(0.0, 1.0);
          std::vector<std::size_t> pids1(n_partners);
          std::vector<std::size_t> pids2(n_partners);
-         std::vector<double> nDups(n_partners);
+         std::vector<double> nDups(std::min(np1, np2));
 
          CoulombData cell_data{};
          if (has_coulomb) {
@@ -153,13 +154,15 @@ struct Collisions {
          const auto      rem =    static_cast<int>(np1_lt_np2 ? np2 % np1 : np1 % np2);
          std::ranges::fill(nDups, grp_dups);
          if (rem != 0) {
-            std::ranges::fill(nDups.end() - rem, nDups.end(), grp_dups + 1);
+            std::ranges::fill(nDups.begin(), nDups.begin() + rem, grp_dups + 1);
          }
 
          std::ranges::shuffle(pids1, generator[0]);
          std::ranges::shuffle(pids2, generator[0]);
 
-         #pragma omp parallel for num_threads(nThreads) default(shared)
+         // todo: successive collisions of duplicates should be done with updated particle velocities
+         //       meaning doing them all in parallel won't work correctly...
+         // #pragma omp parallel for num_threads(nThreads) default(shared)
          for (std::size_t i = 0; i < n_partners; ++i) {
             const auto tid = static_cast<std::size_t>(omp_get_thread_num());
             const auto pid1 = pids1[i];
@@ -167,9 +170,11 @@ struct Collisions {
 
             const auto dup1 =  np1_lt_np2 ? nDups[pid1] : 1.0;
             const auto dup2 = !np1_lt_np2 ? nDups[pid2] : 1.0;
-            const auto weight1 = cell1[pid1].weight / dup1;
-            const auto weight2 = cell2[pid2].weight / dup2;
+            const auto dups = std::max(dup1, dup2);
+            const auto weight1 = cell1[pid1].weight / dups;
+            const auto weight2 = cell2[pid2].weight / dups;
 
+            // todo: is this check absolutely necessary?
             if (weight1 <= 0.0 or weight2 <= 0.0) { continue; }
 
             ParticlePairData pair_data {
@@ -184,35 +189,35 @@ struct Collisions {
                {rng(generator[tid]), rng(generator[tid]), rng(generator[tid]), rng(generator[tid]), rng(generator[tid])}
             };
 
-            coulombCollision(has_coulomb, pair_data, specs, cell_data);
+            // coulombCollision(has_coulomb, pair_data, specs, cell_data);
 
-            // // todo: add randomly selecting channel when more channels are added.
-            // ionizationCollision(
-            //    has_ionization,
-            //    pair_data,
-            //    specs,
-            //    g1_products,
-            //    g2_products,
-            //    std::max(dup1, dup2),
-            //    ionization_cs
-            // );
+            // todo: add randomly selecting channel when more channels are added.
+            ionizationCollision(
+               has_ionization,
+               pair_data,
+               specs,
+               g1_products,
+               g2_products,
+               dups,
+               ionization_cs
+            );
          } // end for(npairs)
       } // end for(z_code, cell1)
 
-      // if (!g1_products.empty()) {
-      //    // G1 should always be electrons
-      //    product1.particles.insert(product1.particles.end(), g1_products.begin(), g1_products.end());
-      //    g1.cell_map_updated = false;
-      //    g1.is_sorted = false;
-      //    g1.sort_particles();
-      // }
-      //
-      // if (!g2_products.empty()) {
-      //    product2.particles.insert(product2.particles.end(), g2_products.begin(), g2_products.end());
-      //    g2.cell_map_updated = false;
-      //    g2.is_sorted = false;
-      //    g2.sort_particles();
-      // }
+      if (!g1_products.empty()) {
+         // G1 should always be electrons
+         product1.particles.insert(product1.particles.end(), g1_products.begin(), g1_products.end());
+         g1.cell_map_updated = false;
+         g1.is_sorted = false;
+         g1.sort_particles();
+      }
+
+      if (!g2_products.empty()) {
+         product2.particles.insert(product2.particles.end(), g2_products.begin(), g2_products.end());
+         g2.cell_map_updated = false;
+         g2.is_sorted = false;
+         g2.sort_particles();
+      }
    } // end update()
 
    static void advance(const auto) requires (!coll_enabled) {}

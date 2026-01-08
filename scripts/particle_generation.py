@@ -47,16 +47,18 @@ def constant_distribution(mass, temp, num_particles):
 
 
 def thermal_distribution(mass, T_M, num_particles, velocity=0.0):
+    T_M = np.asarray(T_M)
     rng = np.random.default_rng()
-    v_thermal = np.sqrt(constants.elementary_charge * T_M / mass)
+    v_thermal = np.sqrt(constants.e * np.sqrt((T_M**2).sum()) / mass)
     velocities = rng.normal(velocity, v_thermal, (num_particles, 3))
     return velocities
 
 
-def maxwell_juttner_distribution(mass, temperature, count):
+def maxwell_juttner_distribution(mass, T_M, count):
+    T_M = np.asarray(T_M)
     rng = np.random.default_rng()
     a_MJ, b_MJ, R0_MJ = 0.56, 0.35, 0.95
-    T_norm = constants.elementary_charge * temperature / (mass * constants.c**2)
+    T_norm = constants.e * np.sqrt((T_M**2).sum()) / (mass * constants.c**2)
     root2 = np.sqrt(2)
 
     w = np.array([np.sqrt(constants.pi),
@@ -203,11 +205,11 @@ def create_particles(domain, particles, file_dir):
 
     # Sample particle velocities
     if distribution == 'thermal':
-        velocities = thermal_distribution(mass, temp[0], num_particles)
+        velocities = thermal_distribution(mass, temp, num_particles)
     elif distribution == 'constant':
         velocities = constant_distribution(mass, temp, num_particles)
     else:
-        velocities = maxwell_juttner_distribution(mass, temp[0], num_particles)
+        velocities = maxwell_juttner_distribution(mass, temp, num_particles)
 
     gammas = 1.0 / np.sqrt(1 - ((velocities/constants.c)**2).sum(axis=1))
     write_particle_file(name, file_dir, mass, charge, positions, velocities, weights, gammas, atomic_number, False, False)

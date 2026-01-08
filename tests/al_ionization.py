@@ -22,7 +22,7 @@ dz = (zmax - zmin) / (shape[2] - 1)
 
 dt = 5.0e-18
 t_end = 3.18e-15
-nt = 1 #int(t_end / dt) + 1
+nt = int(t_end / dt) + 1
 cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
 # ===== Particles =====
@@ -113,7 +113,7 @@ particle_params = ParticleParams(
 sim_params = Simulation(
     name='ionization',
     shape=shape,
-    nthreads=8,
+    nthreads=1,
     dt=dt,
     t_end=t_end,
     nt=nt,
