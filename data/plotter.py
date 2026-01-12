@@ -397,10 +397,10 @@ def ionization(start, stop, step, file_dir):
         #     e_weight.append(data.sum())
         #     e_num.append(data.shape[0])
 
-        with FileReader(data_dir + file_dir + neutral_al) as f:
-            data = f.read('Weight')
-            neutral.append(data.sum())
-            neu_num.append(data.shape[0])
+        # with FileReader(data_dir + file_dir + neutral_al) as f:
+        #     data = f.read('Weight')
+        #     neutral.append(data.sum())
+        #     neu_num.append(data.shape[0])
 
         with FileReader(data_dir + file_dir + ionized_al) as f:
             data = f.read('Weight')
@@ -408,7 +408,7 @@ def ionization(start, stop, step, file_dir):
             ion_num.append(data.shape[0])
 
     ionized = np.asarray(ionized)
-    neutral = np.asarray(neutral)
+    # neutral = np.asarray(neutral)
     # e_weight = np.asarray(e_weight)
 
     v_beam = 1.32523e7
@@ -426,7 +426,7 @@ def ionization(start, stop, step, file_dir):
 
     fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
 
-    ax.plot(time_thry, charge_thry)
+    ax.plot(time_thry, charge_thry * 10**3)
     ax.plot(time, mean_ion_charge)
     # ax.plot(N_ttl)
 
@@ -438,10 +438,12 @@ def main():
     step = 10
     start = 0
     stop = 600
-
     file_dir = '/ionization'
     ionization(10, stop, step, file_dir)
 
+    # step = 100
+    # start = 0
+    # stop = 10000
     # file_dir = '/carbon_thermal_eq'
     # plot_Temp(['carbon1', 'carbon2'], start, stop, step, file_dir)
 

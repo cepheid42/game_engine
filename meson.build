@@ -3,13 +3,13 @@ project(
     'cpp',
     version : '0.0.1',
     default_options : [
-        'optimization=0',
+        'optimization=2',
         'debug=true',
         'warning_level=3',
 #        'werror=true',
         'cpp_std=c++23',
 #        'b_sanitize=address',
-        'b_lto=true',
+#        'b_lto=true',
 #        'b_pgo=generate',
 #        'b_pgo=use'
     ]
@@ -25,8 +25,9 @@ project(
 #endif
 
 debug_opts = [
-    '-Wconversion',
 #    '-Wnrvo',
+    '-Wconversion',
+#    '-Wsign-conversion'
 #    '-fopt-info-note-vec-missed=missed.txt',
 #    '-DNDEBUG',
 #    '-fno-omit-frame-pointer',

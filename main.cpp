@@ -76,6 +76,8 @@ int main() {
 
    progress_bar->show();
    for (step = 1; step <= Nt; step++, time += dt) {
+      // std::println("Step {}", step);
+
       // // Electromagnetics
       // timers["EM"].start_timer();
       // emsolver.advance(time);

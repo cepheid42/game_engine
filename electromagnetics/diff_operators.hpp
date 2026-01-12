@@ -15,7 +15,7 @@ template<>
 struct Diff<Derivative::NoOp, true> {
    static constexpr auto type    = Derivative::NoOp;
    static constexpr std::size_t Forward = 0;
-   static auto apply(const auto&, const std::size_t, const std::size_t, const std::size_t) { return 0.0f; }
+   static auto apply(const auto&, const std::size_t, const std::size_t, const std::size_t) { return 0.0; }
 };
 
 // ================= Forward Differences =================

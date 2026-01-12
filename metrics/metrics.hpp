@@ -361,10 +361,10 @@ struct ParticleDumpMetric final : detail::MetricBase {
    adios2::Variable<std::size_t> var_step;
    adios2::Variable<double>      var_dt;
    adios2::Variable<double>      var_time;
-   std::vector<double>           position;
-   std::vector<double>           velocity;
-   std::vector<double>           weight;
-   std::vector<double>           gamma;
+   std::vector<double>           position{};
+   std::vector<double>           velocity{};
+   std::vector<double>           weight{};
+   std::vector<double>           gamma{};
 }; // end struct ParticleDumpMetric
 
 // // ========================================================

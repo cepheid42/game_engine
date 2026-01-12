@@ -32,7 +32,10 @@ struct Collisions {
    particle_vec g1_products{};
    particle_vec g2_products{};
 
-   std::array<std::mt19937_64, nThreads> generator;
+   static constexpr auto NRNG = 2000zu;
+   std::mt19937_64 generator;
+   std::uniform_real_distribution<> rng;
+   std::vector<double> rngs;
 
    bool has_coulomb;
    bool has_ionization;
@@ -42,18 +45,20 @@ struct Collisions {
    Collisions(const auto& params_, auto& group_map)
    : g1(group_map.at(std::string{params_.group1})),
      g2(group_map.at(std::string{params_.group2})),
-     product1(group_map.at(std::string{params_.ionization.product1})), // todo: these are hard coded for ionization
+     product1(group_map.at(std::string{params_.ionization.product1})),
      product2(group_map.at(std::string{params_.ionization.product2})),
      specs(params_),
+     generator(init_mt_64()),
+     rng(0.0, 1.0),
+     rngs(NRNG),
      has_coulomb(std::ranges::contains(params_.channels, "coulomb")),
      has_ionization(std::ranges::contains(params_.channels, "ionization"))
    {
-      for (std::size_t i = 0; i < nThreads; i++) {
-         generator[i] = init_mt_64();
-      }
 
-      if (has_ionization and !specs.ionization.cross_section_file.empty() and specs.ionization.constant_cross_section == 0.0) {
-         ionization_cs = interp::Table(std::string{specs.ionization.cross_section_file}, 1.0, 1.0); // eV and m^2
+      if (has_ionization) {
+         if (!specs.ionization.cross_section_file.empty() and specs.ionization.constant_cross_section == 0.0) {
+            ionization_cs = interp::Table(std::string{specs.ionization.cross_section_file}, 1.0, 1.0); // eV and m^2
+         }
       }
    }
 
@@ -94,20 +99,22 @@ struct Collisions {
       g1_products.clear();
       g2_products.clear();
 
-      std::uniform_real_distribution rng(0.0, 1.0);
-      std::vector<std::size_t> pids1{};
-      std::vector<std::size_t> pids2{};
-      std::vector<double> nDups{};
+      std::ranges::generate(rngs, [&]{ return rng(generator); });
 
-      #pragma omp parallel for num_threads(nThreads) default(shared)
-      for (auto cid = 0zu; cid < (Nx - 1) * (Ny - 1) * (Nz - 1); cid++) {
-      // for (auto& [z_code, cell1] : g1.cell_map) {
-         if (!g1.cell_map.contains(cid) or !g2.cell_map.contains(cid)) {
+      // #pragma omp parallel for num_threads(nThreads)
+      // for (auto cid = 0zu; cid < (Nx - 1) * (Ny - 1) * (Nz - 1); cid++) {
+      //    if (!g1.cell_map.contains(cid) or !g2.cell_map.contains(cid)) {
+      //       continue;
+      //    }
+      //
+      //    const auto& cell1 = g1.cell_map.at(cid);
+      //    const auto& cell2 = g2.cell_map.at(cid);
+
+      for (auto& [z_code, cell1] : g1.cell_map) {
+         if (!g2.cell_map.contains(z_code)) {
             continue;
          }
-
-         const auto& cell1 = g1.cell_map.at(cid);
-         const auto& cell2 = g2.cell_map.at(cid);
+         const auto& cell2 = g2.cell_map.at(z_code);
 
          const auto np1 = cell1.size();
          const auto np2 = cell2.size();
@@ -118,9 +125,9 @@ struct Collisions {
          const auto n_partners = specs.self_scatter ? np1 - 1 + np1 % 2 : std::max(np1, np2);
          const auto scatter_coef = dt_vol * static_cast<double>(n_partners);
 
-         pids1.resize(n_partners);
-         pids2.resize(n_partners);
-         nDups.resize(std::min(np1, np2));
+         std::vector<std::size_t> pids1(n_partners);
+         std::vector<std::size_t> pids2(n_partners);
+         std::vector<double> nDups(std::min(np1, np2));
 
          CoulombData cell_data{};
          if (has_coulomb) {
@@ -152,7 +159,7 @@ struct Collisions {
          }
 
          // Create vector of random integers in range [0, Np1) and [0, Np2)
-         for (std::size_t i = 0; i < n_partners; ++i) {
+         for (auto i = 0zu; i < n_partners; ++i) {
             pids1[i] = i % np1;
             pids2[i] = i % np2;
          }
@@ -164,38 +171,40 @@ struct Collisions {
             std::ranges::fill(nDups.begin(), nDups.begin() + rem, grp_dups + 1);
          }
 
-         std::ranges::shuffle(pids1, generator[0]);
-         std::ranges::shuffle(pids2, generator[0]);
+         std::ranges::shuffle(pids1, generator);
+         // std::ranges::shuffle(pids2, generator);
 
          // todo: successive collisions of duplicates should be done with updated particle velocities
          //       meaning doing them all in parallel won't work correctly...
-         // #pragma omp parallel for num_threads(nThreads) default(shared)
-         for (std::size_t i = 0; i < n_partners; ++i) {
+         #pragma omp parallel for num_threads(nThreads)
+         for (auto i = 0zu; i < n_partners; ++i) {
             const auto tid = static_cast<std::size_t>(omp_get_thread_num());
             const auto pid1 = pids1[i];
             const auto pid2 = pids2[i];
+
+            auto& p1 = cell1[pid1];
+            auto& p2 = cell2[pid2];
+            if (p1.is_disabled() or p2.is_disabled()) { continue; }
 
             const auto dups = std::max(
                 np1_lt_np2 ? nDups[pid1] : 1.0,
                !np1_lt_np2 ? nDups[pid2] : 1.0
             );
-            const auto weight1 = cell1[pid1].weight / dups;
-            const auto weight2 = cell2[pid2].weight / dups;
+            const auto weight1 = p1.weight / dups;
+            const auto weight2 = p2.weight / dups;
 
-            // // todo: is this check absolutely necessary?
-            // if (weight1 <= 0.0 or weight2 <= 0.0) { continue; }
-            assert(weight1 > 0.0 and weight2 > 0.0);
+            const auto idx = (i + tid) % (NRNG - 5zu);
 
             ParticlePairData pair_data {
-               cell1[pid1],
-               cell2[pid2],
+               p1,
+               p2,
                g1.mass,
                g2.mass,
                weight1,
                weight2,
                std::max(weight1, weight2),
                scatter_coef,
-               {rng(generator[tid]), rng(generator[tid]), rng(generator[tid]), rng(generator[tid]), rng(generator[tid])}
+               {rngs[idx], rngs[idx + 1], rngs[idx + 2], rngs[idx + 3], rngs[idx + 4]}
             };
 
             coulombCollision(has_coulomb, pair_data, specs, cell_data);
@@ -213,19 +222,25 @@ struct Collisions {
          } // end for(npairs)
       } // end for(z_code, cell1)
 
+      // todo: check this logic to make sure its valid for all collision types (not just ionization)
       if (!g1_products.empty()) {
          // G1 should always be electrons
          product1.particles.insert(product1.particles.end(), g1_products.begin(), g1_products.end());
-         g1.cell_map_updated = false;
-         g1.is_sorted = false;
-         g1.sort_particles();
+         product1.cell_map_updated = false;
+         product1.is_sorted = false;
+         // product1.sort_particles();
+
+         // // For ionization, if there are product electrons, that means particle2 had its weight modified and
+         // // may be disabled, so should be removed.
+         // g2.is_sorted = false;
+         // g2.sort_particles();
       }
 
       if (!g2_products.empty()) {
          product2.particles.insert(product2.particles.end(), g2_products.begin(), g2_products.end());
-         g2.cell_map_updated = false;
-         g2.is_sorted = false;
-         g2.sort_particles();
+         product2.cell_map_updated = false;
+         product2.is_sorted = false;
+         // product2.sort_particles();
       }
    } // end update()
 

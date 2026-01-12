@@ -5,19 +5,19 @@
 
 #include <array>
 
-inline constexpr auto nThreads = 1;
+inline constexpr auto nThreads = 4;
 
-inline constexpr auto x_collapsed = true;
-inline constexpr auto y_collapsed = true;
-inline constexpr auto z_collapsed = true;
+inline constexpr auto x_collapsed = false;
+inline constexpr auto y_collapsed = false;
+inline constexpr auto z_collapsed = false;
 
-inline constexpr auto Nx = 2zu;
-inline constexpr auto Ny = 2zu;
-inline constexpr auto Nz = 2zu;
+inline constexpr auto Nx = 11zu;
+inline constexpr auto Ny = 11zu;
+inline constexpr auto Nz = 11zu;
 
-inline constexpr std::array x_range = {0.0, 1e-06};
-inline constexpr std::array y_range = {0.0, 1e-06};
-inline constexpr std::array z_range = {0.0, 1e-06};
+inline constexpr std::array x_range = {0.0, 9.999999999999999e-06};
+inline constexpr std::array y_range = {0.0, 9.999999999999999e-06};
+inline constexpr std::array z_range = {0.0, 9.999999999999999e-06};
 
 inline constexpr auto dx = 1e-06;
 inline constexpr auto dy = 1e-06;
@@ -99,11 +99,11 @@ inline constexpr std::array collision_spec = {
    CollisionSpec{
       .group1 = "electrons",
       .group2 = "Al",
-      .channels = {"ionization, coulomb"},
+      .channels = {"ionization"},
       .step_interval = 1,
       .probability_search_area = 1.0,
       .self_scatter = false,
-      .coulomb = {.coulomb_log = 10.0, .rate_multiplier = 1.0},      .ionization = {
+      .ionization = {
          .product1 = "electron_products",
          .product2 = "Al+",
          .ionization_energy = 5.9858,

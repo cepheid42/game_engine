@@ -1,11 +1,11 @@
 #ifndef EM_DATA_HPP
 #define EM_DATA_HPP
 
-#include <unordered_map>
-
+#include "array.hpp"
 #include "program_params.hpp"
 #include "sources.hpp"
-#include "array.hpp"
+
+#include <unordered_map>
 
 namespace tf::electromagnetics {
 struct EMData {
