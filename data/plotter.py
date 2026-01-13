@@ -435,17 +435,17 @@ def ionization(start, stop, step, file_dir):
     # plt.close(fig)
 
 def main():
-    step = 10
-    start = 0
-    stop = 600
-    file_dir = '/ionization'
-    ionization(10, stop, step, file_dir)
-
-    # step = 100
+    # step = 10
     # start = 0
-    # stop = 10000
-    # file_dir = '/carbon_thermal_eq'
-    # plot_Temp(['carbon1', 'carbon2'], start, stop, step, file_dir)
+    # stop = 600
+    # file_dir = '/ionization'
+    # ionization(10, stop, step, file_dir)
+
+    step = 100
+    start = 0
+    stop = 10000
+    file_dir = '/carbon_thermal_eq'
+    plot_Temp(['carbon1', 'carbon2'], start, stop, step, file_dir)
 
     # plot_distributions(start, stop, step, 'carbon1', file_dir)
     # plot_distributions(start, stop, step, 'carbon2', file_dir)

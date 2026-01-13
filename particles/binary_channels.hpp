@@ -21,7 +21,8 @@ struct ParticlePairData {
    double weight2;
    double max_weight;
    double scatter_coef;
-   std::array<double, 5> rand;
+   std::span<double> rand;
+   // std::array<double, 5> rand;
 };
             
 struct CoulombData {
@@ -165,8 +166,7 @@ void ionizationCollision(
    const bool has_ionization,
    const auto& params,
    const auto& spec,
-   auto& product1,
-   auto& product2,
+   auto& buffers,
    const auto ndups,
    const auto& cs_table
 ) {
@@ -227,7 +227,7 @@ void ionizationCollision(
       // todo: is this enough to keep OpenMP threads from stepping on each other?
       #pragma omp critical
       {
-         product1.emplace_back(
+         buffers.g1_products.emplace_back(
             v_ejected,
             gamma_ejected,
             particle2.location,
@@ -235,7 +235,7 @@ void ionizationCollision(
             product_weight
          );
 
-         product2.emplace_back(
+         buffers.g2_products.emplace_back(
             particle2.velocity,
             particle2.gamma,
             particle2.location,
@@ -244,12 +244,7 @@ void ionizationCollision(
          );
       }
 
-      if (product_weight == particle2.weight) {
-         particle2.weight = -1.0;
-      }
-      else {
-         particle2.weight -= product_weight;
-      }
+      particle2.weight -= product_weight;
    } // end target_ionizes
 
    particles::Particle e_scattered{

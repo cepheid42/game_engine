@@ -12,9 +12,9 @@ particle_data = project_path + '/data'
 
 shape = (11, 11, 11)
 
-xmin, xmax = 0.0, 1.0e-6 * 10
-ymin, ymax = 0.0, 1.0e-6 * 10
-zmin, zmax = 0.0, 1.0e-6 * 10
+xmin, xmax = 0.0, 1.0e-5
+ymin, ymax = 0.0, 1.0e-5
+zmin, zmax = 0.0, 1.0e-5
 
 dx = (xmax - xmin) / (shape[0] - 1)
 dy = (ymax - ymin) / (shape[1] - 1)

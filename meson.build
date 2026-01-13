@@ -9,7 +9,7 @@ project(
 #        'werror=true',
         'cpp_std=c++23',
 #        'b_sanitize=address',
-#        'b_lto=true',
+        'b_lto=true',
 #        'b_pgo=generate',
 #        'b_pgo=use'
     ]
