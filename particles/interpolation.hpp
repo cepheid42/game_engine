@@ -2,6 +2,7 @@
 #define INTERPOLATION_HPP
 
 #include "math_utils.hpp"
+#include "program_params.hpp"
 
 #include <algorithm>
 #include <array>
@@ -169,8 +170,9 @@ struct Table {
    }
 
    auto lerp(const auto e) const {
+      const auto len = xs.size() - 1;
       if (e == xs[0]) { return ys[0]; }
-      if (e == xs.back()) { return ys.back(); }
+      if (e == xs[len]) { return ys[len]; }
       const auto upper = std::ranges::upper_bound(xs, e);
       const auto idx = std::ranges::distance(xs.cbegin(), upper) - 1;
       const auto slope = (e - xs[idx]) / (xs[idx + 1] - xs[idx]);

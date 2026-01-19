@@ -12,10 +12,20 @@ struct ParticleGroupSpec {
    std::size_t atomic_number;
 };
 
+struct FusionSpec {
+   std::string_view product1{};
+   std::string_view product2{};
+   double energy_gain{0.0};
+   double rate_multiplier{1.0};
+   double production_multiplier{1.0};
+   double constant_cross_section{0.0};
+   std::string_view cross_section_file{};
+};
+
 struct IonizationSpec {
    std::string_view product1{};
    std::string_view product2{}; // no product 3 for now
-   double ionization_energy{1.0};
+   double ionization_energy{0.0};
    double rate_multiplier{1.0};
    double production_multiplier{1.0};
    double rejection_multiplier{1.0};
@@ -37,6 +47,7 @@ struct CollisionSpec {
    bool self_scatter;
    CoulombSpec coulomb{};
    IonizationSpec ionization{};
+   FusionSpec fusion{};
 };
 
 #endif //GAME_ENGINE_PARTICLE_SPEC_HPP

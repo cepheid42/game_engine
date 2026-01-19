@@ -19,36 +19,71 @@ class ParticleParams:
     collisions: tuple = ()
 
 @dataclass
-class Collision:
-    groups: tuple = ()
-    products: tuple = ()
-    channels: tuple = ()
+class CoulombParams:
     coulomb_log: float = 10.0
     rate_mult: float = 1.0
-    self_scatter: bool = False
-    step_interval: int = 1
+
+@dataclass
+class IonizationParams:
+    products: tuple = ()
     ionization_energy: float = 0.0
+    rate_multiplier: float = 1.0
+    production_multiplier: float = 1.0
+    rejection_multiplier: float = 1.0
     constant_cross_section: float = 0.0
     cross_section_file: str = ''
+
+@dataclass
+class FusionParams:
+    products: tuple = ()
+    energy_gain: float = 0.0
+    rate_multiplier: float = 1.0
+    production_multiplier: float = 1.0
+    constant_cross_section: float = 0.0
+    cross_section_file: str = ''
+
+@dataclass
+class Collision:
+    groups: tuple = ()
+    channels: tuple = ()
+    self_scatter: bool = False
+    step_interval: int = 1
+    coulomb: CoulombParams = field(default_factory=CoulombParams)
+    ionization: IonizationParams = field(default_factory=IonizationParams)
+    fusion: FusionParams = field(default_factory=FusionParams)
 
     def __repr__(self):
         channels = ', '.join([t for t in self.channels])
         coulomb = ''
         ionization = ''
+        fusion = ''
         if 'coulomb' in self.channels:
-            coulomb = f'.coulomb = {{.coulomb_log = {float(self.coulomb_log)}, .rate_multiplier = {self.rate_mult}}},'
+            coulomb = f'.coulomb = {{.coulomb_log = {float(self.coulomb.coulomb_log)}, .rate_multiplier = {self.coulomb.rate_mult}}},'
 
         if 'ionization' in self.channels:
             ionization = (
                 '.ionization = {\n'
-                f'         .product1 = "{self.products[0]}",\n'
-                f'         .product2 = "{self.products[1]}",\n'
-                f'         .ionization_energy = {self.ionization_energy},\n'
-                f'         .rate_multiplier = {self.rate_mult},\n'   # todo: this rate mult is shared with coulomb currently
-                f'         .production_multiplier = {1.0},\n'
-                f'         .rejection_multiplier = {1.0},\n'
-                f'         .constant_cross_section = {self.constant_cross_section},\n'
-                f'         .cross_section_file = "{self.cross_section_file}",\n'
+                f'         .product1 = "{self.ionization.products[0]}",\n'
+                f'         .product2 = "{self.ionization.products[1]}",\n'
+                f'         .ionization_energy = {self.ionization.ionization_energy},\n'
+                f'         .rate_multiplier = {self.ionization.rate_multiplier},\n'
+                f'         .production_multiplier = {self.ionization.production_multiplier},\n'
+                f'         .rejection_multiplier = {self.ionization.rejection_multiplier},\n'
+                f'         .constant_cross_section = {self.ionization.constant_cross_section},\n'
+                f'         .cross_section_file = "{self.ionization.cross_section_file}",\n'
+                '      },'
+            )
+
+        if 'fusion' in self.channels:
+            fusion = (
+                '.fusion = {\n'
+                f'         .product1 = "{self.fusion.products[0]}",\n'
+                f'         .product2 = "{self.fusion.products[1]}",\n'
+                f'         .energy_gain = {self.fusion.energy_gain},\n'
+                f'         .rate_multiplier = {self.fusion.rate_multiplier},\n'
+                f'         .production_multiplier = {self.fusion.production_multiplier},\n'
+                f'         .constant_cross_section = {self.fusion.constant_cross_section},\n'
+                f'         .cross_section_file = "{self.fusion.cross_section_file}",\n'
                 '      },'
             )
 
@@ -58,6 +93,8 @@ class Collision:
             channel_spec += coulomb + '      '
         if ionization:
             channel_spec += ionization
+        if fusion:
+            channel_spec += fusion
 
         return (
             '   CollisionSpec{\n'

@@ -26,21 +26,57 @@ t_end = 4000 * dt
 nt = int(t_end / dt) + 1
 cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
-em_params = EMParams(
-    pml_depth=8,
-    em_bcs=(1, 1, 2, 2, 1, 1),
+# ===== Particles =====
+px_range = (-0.04, 0.04)
+py_range = (ymin, ymax)
+pz_range = (-0.15, 0.15)
+
+electrons = Particles(
+    name='electrons',
+    mass=constants.m_e,
+    charge=-1,
+    atomic_number=0,
+    temp=(4, 4, 4), # eV
+    density=1.0e17, # m^-3,
+    ppc=(3, 1, 3),
+    distribution='relativistic',
+    px_range=px_range,
+    py_range=py_range,
+    pz_range=pz_range
 )
 
+ions = Particles(
+    name='ions',
+    mass=constants.m_p,
+    charge=1,
+    atomic_number=1,
+    temp=(1, 1, 1), # eV
+    density=1.0e17, # m^-3,
+    ppc=(2, 1, 2),
+    distribution='relativistic',
+    px_range=px_range,
+    py_range=py_range,
+    pz_range=pz_range
+)
+
+# ===== Collisions and Particle Params =====
 particle_params = ParticleParams(
-    particle_bcs=1,
+    save_interval=10,
+    particle_bcs='periodic',
     interp_order=2,
-    particle_data=('electrons', 'ions')
+    particle_data=(electrons, ions)
+)
+
+# ===== Electromagnetic Params =====
+em_params = EMParams(
+    save_interval=10,
+    pml_depth=8,
+    em_bcs=(1, 1, 2, 2, 1, 1),
 )
 
 sim_params = Simulation(
     name='seinfeld3D',
     shape=shape,
-    save_interval=10,
     nthreads=24,
     dt=dt,
     t_end=t_end,
@@ -52,37 +88,6 @@ sim_params = Simulation(
     deltas=(dx, dy, dz),
     em_params=em_params,
     particle_params=particle_params
-)
-
-# ===== Particles =====
-px_range = (-0.04, 0.04)
-pz_range = (-0.15, 0.15)
-
-
-electrons = Particles(
-    name='electrons',
-    mass=constants.m_e,
-    charge=-constants.e,
-    temp=4, # eV
-    density=1.0e17, # m^-3,
-    ppc=(3, 1, 3),
-    distribution='relativistic',
-    px_range=px_range,
-    py_range=sim_params.y_range,
-    pz_range=pz_range
-)
-
-ions = Particles(
-    name='ions',
-    mass=constants.m_p,
-    charge=+constants.e,
-    temp=1, # eV
-    density=1.0e17, # m^-3,
-    ppc=(2, 1, 2),
-    distribution='relativistic',
-    px_range=px_range,
-    py_range=sim_params.y_range,
-    pz_range=pz_range
 )
 
 create_particles(sim_params, electrons, particle_data)

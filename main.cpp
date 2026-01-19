@@ -35,13 +35,7 @@ int main() {
    }
 
    emsolver_t emsolver(Nx, Ny, Nz);
-   // if constexpr (laser_enabled) {
    // add_gaussianbeam(emsolver);
-   // }
-   //
-   // if constexpr (rmf_enabled) {
-   //    add_rmf_antennas(emsolver, rmf_params);
-   // }
 
 
    Metrics metrics(std::string{sim_path} + "/data/" + std::string{sim_name});
@@ -78,25 +72,25 @@ int main() {
    for (step = 1; step <= Nt; step++, time += dt) {
       // std::println("Step {}", step);
 
-      // // Electromagnetics
-      // timers["EM"].start_timer();
-      // emsolver.advance(time);
-      // timers["EM"].stop_timer();
+      // Electromagnetics
+      timers["EM"].start_timer();
+      emsolver.advance(time);
+      timers["EM"].stop_timer();
 
-      // // Particle Push
-      // timers["Push"].start_timer();
-      // for (auto& g : particle_groups | std::views::values) {
-      //    g.reset_positions();
-      //    BorisPush::advance(g, emsolver.emdata, step);
-      // }
-      // timers["Push"].stop_timer();
-      //
-      // // Current Deposition
-      // timers["Jdep"].start_timer();
-      // for (auto& g : particle_groups) {
-      //    CurrentDeposition::advance(g, emsolver.emdata);
-      // }
-      // timers["Jdep"].stop_timer();
+      // Particle Push
+      timers["Push"].start_timer();
+      for (auto& g : particle_groups | std::views::values) {
+         g.reset_positions();
+         BorisPush::advance(g, emsolver.emdata, step);
+      }
+      timers["Push"].stop_timer();
+
+      // Current Deposition
+      timers["Jdep"].start_timer();
+      for (auto& g : particle_groups) {
+         CurrentDeposition::advance(g, emsolver.emdata);
+      }
+      timers["Jdep"].stop_timer();
 
       // Collisions
       timers["Collisions"].start_timer();

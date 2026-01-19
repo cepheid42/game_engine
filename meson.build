@@ -3,7 +3,7 @@ project(
     'cpp',
     version : '0.0.1',
     default_options : [
-        'optimization=2',
+        'optimization=0',
         'debug=true',
         'warning_level=3',
 #        'werror=true',

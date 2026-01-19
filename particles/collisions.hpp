@@ -43,15 +43,17 @@ struct Collisions {
 
    CollisionSpec specs;
 
-   static constexpr auto NRNG = 1000zu;
+   static constexpr auto NRNG = 2000;
    std::mt19937_64 generator;
    std::uniform_real_distribution<> rng;
    std::vector<double> rngs;
 
    bool has_coulomb;
    bool has_ionization;
+   bool has_fusion;
 
    interp::Table ionization_cs{};
+   interp::Table fusion_cs{};
 
    Collisions(const auto& params_, auto& group_map)
    : g1(group_map.at(std::string{params_.group1})),
@@ -61,7 +63,8 @@ struct Collisions {
      rng(0.0, 1.0),
      rngs(NRNG),
      has_coulomb(std::ranges::contains(params_.channels, "coulomb")),
-     has_ionization(std::ranges::contains(params_.channels, "ionization"))
+     has_ionization(std::ranges::contains(params_.channels, "ionization")),
+     has_fusion(std::ranges::contains(params_.channels, "fusion"))
    {
       if (has_ionization) {
          products.emplace(
@@ -73,6 +76,19 @@ struct Collisions {
 
          if (!specs.ionization.cross_section_file.empty() and specs.ionization.constant_cross_section == 0.0) {
             ionization_cs = interp::Table(std::string{specs.ionization.cross_section_file}, 1.0, 1.0); // eV and m^2
+         }
+      }
+
+      if (has_fusion) {
+         products.emplace(
+            "fusion",
+            Products{&group_map.at(std::string(params_.fusion.product1)),
+                     &group_map.at(std::string(params_.fusion.product2))}
+         );
+         buffers.emplace("fusion", Buffers{});
+
+         if (!specs.fusion.cross_section_file.empty() and specs.fusion.constant_cross_section == 0.0) {
+            fusion_cs = interp::Table(std::string{specs.fusion.cross_section_file}, 1.0, 1.0);
          }
       }
    }
@@ -108,7 +124,11 @@ struct Collisions {
 
       if (step % specs.step_interval != 0) { return; }
 
+      g1.cell_map_updated = false;
+      g1.is_sorted = false;
       g1.update_cell_map();
+      g2.cell_map_updated = false;
+      g2.is_sorted = false;
       g2.update_cell_map();
 
       for (auto& [g1_products, g2_products] : buffers | std::views::values) {
@@ -191,10 +211,10 @@ struct Collisions {
          // std::ranges::shuffle(pids2, generator);
 
          for (auto i = 0zu; i < n_partners; ++i) {
-            const auto tid = static_cast<std::size_t>(omp_get_thread_num());
+            const auto tid = omp_get_thread_num();
             const auto pid1 = pids1[i];
             const auto pid2 = pids2[i];
-      
+
             auto& p1 = cell1[pid1];
             auto& p2 = cell2[pid2];
             if (p1.is_disabled() or p2.is_disabled()) { continue; }
@@ -206,7 +226,7 @@ struct Collisions {
             const auto weight1 = p1.weight / dups;
             const auto weight2 = p2.weight / dups;
       
-            const auto idx = (i + tid) % (NRNG - 5zu);
+            const auto idx = (static_cast<int>(i) + tid) % (NRNG - 6);
       
             ParticlePairData pair_data {
                p1,
@@ -218,19 +238,28 @@ struct Collisions {
                std::max(weight1, weight2),
                scatter_coef,
                std::span{rngs.begin() + idx, rngs.begin() + idx + 5}
-               // {rngs[idx], rngs[idx + 1], rngs[idx + 2], rngs[idx + 3], rngs[idx + 4]}
             };
       
-            coulombCollision(has_coulomb, pair_data, specs, cell_data);
+            // coulombCollision(has_coulomb, pair_data, specs, cell_data);
       
-            // todo: add randomly selecting channel when more channels are added.
-            ionizationCollision(
-               has_ionization,
+            // // todo: add randomly selecting channel when more channels are added.
+            // ionizationCollision(
+            //    has_ionization,
+            //    pair_data,
+            //    specs,
+            //    buffers["ionization"],
+            //    dups,
+            //    ionization_cs
+            // );
+
+            fusionCollision(
+               has_fusion,
                pair_data,
                specs,
-               buffers["ionization"],
-               dups,
-               ionization_cs
+               buffers["fusion"],
+               fusion_cs,
+               products["fusion"].product1->mass,
+               products["fusion"].product2->mass
             );
          } // end for(npairs)
       } // end for(z_code, cell1)

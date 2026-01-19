@@ -49,8 +49,12 @@ def constant_distribution(mass, temp, num_particles):
 def thermal_distribution(mass, T_M, num_particles, velocity=0.0):
     T_M = np.asarray(T_M)
     rng = np.random.default_rng()
-    v_thermal = np.sqrt(constants.e * np.sqrt((T_M**2).sum()) / mass)
+    v_thermal = np.sqrt(constants.e * T_M / mass)
     velocities = rng.normal(velocity, v_thermal, (num_particles, 3))
+    v_avg = np.asarray(np.mean(velocities, axis=0), dtype=np.float64)
+    v2_avg = np.mean(velocities**2, axis=0)
+    denom = np.sqrt(np.abs(v2_avg - v_avg**2))
+    velocities = (v_thermal / denom) * (velocities - v_avg)
     return velocities
 
 

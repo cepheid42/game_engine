@@ -20,29 +20,79 @@ dz = (zmax - zmin) / (shape[2] - 1)
 
 ymin, ymax = 0.0, 0.01
 dy = 0.01
-# dy = dx
-# ymin, ymax = 0.0, dx
 
 dt = 8.0e-17
 t_end = 4000 * dt #3.0e-13
 nt = int(t_end / dt) + 1
 cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
+# ===== Particles =====
+ppc = (5, 1, 5)
+px_range = (-5e-7, 5e-7)
+py_range = (ymin, ymax)
+pz_range = (-1e-5, 1e-5)
+temp = 10000 / math.sqrt(3)
+
+electrons = Particles(
+    name='electrons',
+    mass=constants.m_e,
+    charge=-1,
+    atomic_number=0,
+    temp=(temp, temp, temp), # eV
+    density=8.5e27, # m^-3,
+    ppc=ppc,
+    distribution='relativistic',
+    px_range=px_range,
+    py_range=py_range,
+    pz_range=pz_range
+)
+
+ions = Particles(
+    name='ions',
+    mass=constants.m_p,
+    charge=1,
+    atomic_number=1,
+    temp=(temp, temp, temp), # eV
+    density=8.5e27, # m^-3,
+    ppc=ppc,
+    distribution='relativistic',
+    px_range=px_range,
+    py_range=py_range,
+    pz_range=pz_range
+)
+
 em_params = EMParams(
+    save_interval=20,
     pml_depth=15,
     em_bcs=(1, 1, 2, 2, 1, 1),
 )
 
+coulomb_params = CoulombParams(coulomb_log=0.0)
+
+ionization_params = IonizationParams(
+    products=('electron', 'ions'),
+    ionization_energy=13.6, # eV
+    constant_cross_section=0.0
+)
+
 particle_params = ParticleParams(
-    particle_bcs=1,
+    save_interval=20,
+    particle_bcs='outflow',
     interp_order=2,
-    particle_data=('electrons', 'ions')
+    particle_data=(electrons, ions),
+    collisions=(
+        Collision(
+            groups=('electrons', 'ions'),
+            channels=('coulomb', 'ionization'),
+            coulomb=coulomb_params,
+            ionization=ionization_params
+        ),
+    )
 )
 
 sim_params = Simulation(
     name='lsi_test',
     shape=shape,
-    save_interval=20,
     nthreads=32,
     dt=dt,
     t_end=t_end,
@@ -54,37 +104,6 @@ sim_params = Simulation(
     deltas=(dx, dy, dz),
     em_params=em_params,
     particle_params=particle_params
-)
-
-# ===== Particles =====
-ppc = (4, 1, 4)
-px_range = (-5e-7, 5e-7)
-pz_range = (-1e-5, 1e-5)
-
-electrons = Particles(
-    name='electrons',
-    mass=constants.m_e,
-    charge=-constants.e,
-    temp=10000, # eV
-    density=8.5e27, # m^-3,
-    ppc=ppc,
-    distribution='relativistic',
-    px_range=px_range,
-    py_range=sim_params.y_range,
-    pz_range=pz_range
-)
-
-ions = Particles(
-    name='ions',
-    mass=constants.m_p,
-    charge=+constants.e,
-    temp=10000, # eV
-    density=8.5e27, # m^-3,
-    ppc=ppc,
-    distribution='relativistic',
-    px_range=px_range,
-    py_range=sim_params.y_range,
-    pz_range=pz_range
 )
 
 create_particles(sim_params, electrons, particle_data)

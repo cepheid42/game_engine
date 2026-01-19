@@ -37,6 +37,7 @@ n_carbon = 1e26 # m^3
 T_hot = 1250 / math.sqrt(3)
 T_cold = 250 / math.sqrt(3)
 lnL = 10
+
 carbon1 = Particles(
     name='carbon1',
     mass=m_carbon,
@@ -71,9 +72,9 @@ particle_params = ParticleParams(
     interp_order=1,
     particle_data=(carbon1, carbon2),
     collisions=(
-        Collision(groups=('carbon1', 'carbon2'), products=('carbon1', 'carbon2'), channels=('coulomb',), coulomb_log=lnL, self_scatter=False),
-        Collision(groups=('carbon1', 'carbon1'), products=('carbon1', 'carbon1'), channels=('coulomb',), coulomb_log=lnL, self_scatter=True),
-        Collision(groups=('carbon2', 'carbon2'), products=('carbon2', 'carbon2'), channels=('coulomb',), coulomb_log=lnL, self_scatter=True),
+        Collision(groups=('carbon1', 'carbon2'), channels=('coulomb',), self_scatter=False), # using default coulomb_log values
+        Collision(groups=('carbon1', 'carbon1'), channels=('coulomb',), self_scatter=True),
+        Collision(groups=('carbon2', 'carbon2'), channels=('coulomb',), self_scatter=True),
     )
 )
 

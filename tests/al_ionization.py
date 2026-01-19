@@ -86,9 +86,11 @@ ionized_aluminum = Particles(
     pz_range=pz_range,
 )
 
-em_params = EMParams(
-    pml_depth=0,
-    em_bcs=(2, 2, 2, 2, 2, 2),
+# ===== Collisions and Particle Params =====
+ionization_params = IonizationParams(
+    products=('electron_products', 'Al+'),
+    ionization_energy=5.9858,
+    cross_section_file='/data/eAl0_ionization_cs.txt'
 )
 
 particle_params = ParticleParams(
@@ -99,13 +101,9 @@ particle_params = ParticleParams(
     collisions=(
         Collision(
             groups=('electrons', 'Al'),
-            products=('electron_products', 'Al+'),
             channels=('ionization',),
-            coulomb_log=10,
             self_scatter=False,
-            ionization_energy=5.9858,
-            constant_cross_section=0.0,
-            cross_section_file='/data/al0cs.txt'
+            ionization=ionization_params
         ),
     )
 )
@@ -122,7 +120,6 @@ sim_params = Simulation(
     y_range=(ymin, ymax),
     z_range=(zmin, zmax),
     deltas=(dx, dy, dz),
-    em_params=em_params,
     particle_params=particle_params,
     em_enabled=False,
     push_enabled=False,
