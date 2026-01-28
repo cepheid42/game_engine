@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 
-from adios2 import FileReader
+import subprocess
 import numpy as np
-from scipy import constants
 import matplotlib.pyplot as plt
+from adios2 import FileReader
+from scipy import constants
 
 from scripts.particle_generation import create_particles
 from scripts.domain_params import *
 
 sim_name = 'carbon_thermal_eq'
 project_path = '/home/cepheid/TriForce/game_engine'
+build_path = project_path + '/buildDir'
 particle_data = project_path + '/data/'
 
 shape = (2, 2, 2)
@@ -38,7 +40,6 @@ m_carbon = 1.9945e-26 # kg
 n_carbon = 1e26 # m^3
 T_hot = 1250 / np.sqrt(3)
 T_cold = 250 / np.sqrt(3)
-lnL = 10.0
 
 carbon1 = Particles(
     name='carbon1',
@@ -68,7 +69,7 @@ carbon2 = Particles(
     pz_range=pz_range
 )
 
-coulombParams = CoulombParams(coulomb_log=lnL, rate_mult=1.0)
+coulombParams = CoulombParams()
 
 particle_params = ParticleParams(
     save_interval=save_interval,
@@ -76,9 +77,9 @@ particle_params = ParticleParams(
     interp_order=1,
     particle_data=(carbon1, carbon2),
     collisions=(
-        Collision(groups=('carbon1', 'carbon2'), channels=('coulomb',), self_scatter=False, coulomb=coulombParams),
-        Collision(groups=('carbon1', 'carbon1'), channels=('coulomb',), self_scatter=True, coulomb=coulombParams),
-        Collision(groups=('carbon2', 'carbon2'), channels=('coulomb',), self_scatter=True, coulomb=coulombParams),
+        Collision(groups=('carbon1', 'carbon2'), channels=('coulomb',)),
+        Collision(groups=('carbon1', 'carbon1'), channels=('coulomb',), self_scatter=True),
+        Collision(groups=('carbon2', 'carbon2'), channels=('coulomb',), self_scatter=True),
     )
 )
 
@@ -100,58 +101,70 @@ sim_params = Simulation(
     em_enabled=False
 )
 
+print(f'Setting up "{sim_name}"')
 create_particles(sim_params, carbon1, particle_data)
 create_particles(sim_params, carbon2, particle_data)
 update_header(sim_params, project_path=project_path)
 
-# def calculate_Temp(n, group_name):
-#     filename = f'/{group_name}_dump_{n:010d}.bp'
-#     with FileReader(particle_data + filename) as f:
-#         mass = f.read_attribute('Mass')
-#         weight = f.read('Weight')
-#         velocity = f.read('Velocity')
-#
-#     ttl_weight = weight.sum()[0]
-#     avg_velocity = (weight * velocity).sum() / ttl_weight # is multiply by weight, summing, and then dividing doing anything?
-#     dv = velocity - avg_velocity[None, :]
-#     ttl_sum_dv2 = (weight * (dv**2).sum(axis=1)[:, None]).sum(axis=0)[0]
-#     avg_temp = ttl_sum_dv2 * mass / (3.0 * constants.e * ttl_weight)
-#     return avg_temp
-#
-# def plot_Temp():
-#     step = save_interval
-#     stop = nt + step
-#     group_data = {}
-#     for g in ['carbon1', 'carbon2']:
-#         temps = []
-#         for n in range(0, stop, step):
-#             temps.append(calculate_Temp(n, g))
-#         group_data[g] = np.asarray(temps)
-#
-#
-#     time = 1.0e12 * np.linspace(0, t_end, stop // step) # picoseconds
-#     fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
-#
-#     for name, data in group_data.items():
-#         ax.plot(time, data, label=name)
-#
-#     eV_to_erg = 1.60218e-12
-#     m = 1.9945e-23 # g
-#     n = 1e20 # cm^-3
-#     Z = 6
-#
-#     coef = (8 / 3) * np.sqrt(np.pi)
-#     Ts = 0.5 * (T_hot + T_cold) * eV_to_erg
-#     mu = coef * (Z * 4.8e-10)**4 * lnL * n / (m**0.5 * Ts**1.5)
-#
-#     Tc1 = 0.5 * (T_hot + T_cold) + 0.5 * (T_hot - T_cold) * np.exp(-mu * time)
-#     Tc2 = 0.5 * (T_hot + T_cold) + 0.5 * (T_cold - T_hot) * np.exp(-mu * time)
-#
-#     ax.plot(time, Tc1, label='Carbon1 Theory')
-#     ax.plot(time, Tc2, label='Carbon2 Theory')
-#
-#     ax.set_xlabel('Time (ps)')
-#     ax.set_ylabel('T (eV)')
-#     ax.set_title(f'Total Particle Temperature')
-#     ax.legend()
-#     plt.show()
+subprocess.run(
+    ['meson', 'compile', '-C', build_path, '-j4'],
+    stdout=subprocess.DEVNULL,
+    stderr=subprocess.DEVNULL
+).check_returncode()
+
+subprocess.run(build_path + '/game_engine').check_returncode()
+
+
+def calculate_Temp(t, group_name):
+    filename = f'{sim_name}/{group_name}_dump_{t:010d}.bp'
+    with FileReader(particle_data + filename) as f:
+        weight = f.read('Weight')
+        velocity = f.read('Velocity')
+
+    ttl_weight = weight.sum()
+    avg_velocity = (weight * velocity).sum() / ttl_weight # is multiply by weight, summing, and then dividing doing anything?
+    dv = velocity - avg_velocity
+    ttl_sum_dv2 = (weight * (dv**2).sum(axis=1)[:, None]).sum(axis=0)[0]
+    avg_temp = ttl_sum_dv2 * m_carbon / (3.0 * constants.e * ttl_weight)
+    return avg_temp
+
+step = save_interval
+stop = nt + step
+
+carbon1_data = []
+for n in range(0, stop, step):
+    carbon1_data.append(calculate_Temp(n, 'carbon1'))
+carbon1_data = np.asarray(carbon1_data)
+
+carbon2_data = []
+for n in range(0, stop, step):
+    carbon2_data.append(calculate_Temp(n, 'carbon2'))
+carbon2_data = np.asarray(carbon2_data)
+
+time = np.linspace(0, t_end, stop // step) # picoseconds
+fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
+
+eV_to_erg = 1.60218e-12
+s_to_ps = 1.0e12
+m_carbon_g = 1.9945e-23 # g
+n_carbon_cm = 1e20 # cm^-3
+coulomb_log = 10.0
+
+coef = (8 / 3) * np.sqrt(np.pi)
+Ts = 0.5 * (T_hot + T_cold) * eV_to_erg
+mu = coef * (Z_carbon * 4.8e-10)**4 * coulomb_log * n_carbon_cm / (m_carbon_g**0.5 * Ts**1.5)
+
+Tc1 = 0.5 * (T_hot + T_cold) + 0.5 * (T_hot - T_cold) * np.exp(-mu * time)
+Tc2 = 0.5 * (T_hot + T_cold) + 0.5 * (T_cold - T_hot) * np.exp(-mu * time)
+
+ax.plot(time * s_to_ps, Tc1, label='Carbon1 Theory')
+ax.plot(time * s_to_ps, Tc2, label='Carbon2 Theory')
+
+ax.plot(time * s_to_ps, carbon1_data, label='Carbon1')
+ax.plot(time * s_to_ps, carbon2_data, label='Carbon2')
+
+ax.set_xlabel('Time (ps)')
+ax.set_ylabel('T (eV)')
+ax.set_title(f'Total Particle Temperature')
+ax.legend()
+plt.show()

@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 
-# import numpy as np
+import numpy as np
+import subprocess
+import matplotlib.pyplot as plt
 from scipy import constants
-import math
+from adios2 import FileReader
 
 from scripts.domain_params import *
 from scripts.particle_generation import create_particles
 
+sim_name = 'ionization'
 project_path = '/home/cepheid/TriForce/game_engine'
-particle_data = project_path + '/data'
-
-print('============================== Warning =============================')
-print('Make sure that the "electron_scatters" boolean (binary_channels.hpp:207)')
-print('is hard coded to FALSE or else the results will be incorrect.')
-print('====================================================================')
+build_path = project_path + '/buildDir'
+particle_data = project_path + '/data/'
 
 shape = (2, 2, 2)
 
@@ -28,12 +27,13 @@ dz = (zmax - zmin) / (shape[2] - 1)
 dt = 5.0e-18
 t_end = 3.18e-15
 nt = int(t_end / dt) + 1
-cfl = constants.c * dt * math.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
+cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
 # ===== Particles =====
 px_range=(xmin, xmax)
 py_range=(ymin, ymax)
 pz_range=(zmin, zmax)
+save_interval = 10
 
 electrons = Particles(
     name='electrons',
@@ -78,7 +78,7 @@ neutral_aluminum = Particles(
 )
 
 ionized_aluminum = Particles(
-    name='Al+',
+    name='Al_products',
     mass=26.9815384 * constants.atomic_mass + 12.0 * constants.m_e,
     charge=1,
     atomic_number=13,
@@ -93,28 +93,26 @@ ionized_aluminum = Particles(
 
 # ===== Collisions and Particle Params =====
 ionization_params = IonizationParams(
-    products=('electron_products', 'Al+'),
+    products=('electron_products', 'Al_products'),
     ionization_energy=5.9858,
-    cross_section_file='/tests/cross_section_data/eAl0_ionization_cs.txt'
+    cross_section_file='/tests/cross_section_data/eAl0_ionization_eV_m2.txt'
 )
 
 particle_params = ParticleParams(
-    save_interval=10,
+    save_interval=save_interval,
     particle_bcs='periodic',
-    interp_order=1,
     particle_data=(electrons, electron_products, neutral_aluminum, ionized_aluminum),
     collisions=(
         Collision(
             groups=('electrons', 'Al'),
             channels=('ionization',),
-            self_scatter=False,
             ionization=ionization_params
         ),
     )
 )
 
 sim_params = Simulation(
-    name='ionization',
+    name=sim_name,
     shape=shape,
     nthreads=4,
     dt=dt,
@@ -131,7 +129,41 @@ sim_params = Simulation(
     jdep_enabled=False
 )
 
+print(f'Setting up "{sim_name}"')
 create_particles(sim_params, electrons, particle_data)
 create_particles(sim_params, neutral_aluminum, particle_data)
+update_header(sim_params, project_path=project_path, ionization_test_override=True)
 
-update_header(sim_params, project_path=project_path)
+subprocess.run(
+    ['meson', 'compile', '-C', build_path, '-j4'],
+    stdout=subprocess.DEVNULL,
+    stderr=subprocess.DEVNULL
+).check_returncode()
+
+subprocess.run(build_path + '/game_engine').check_returncode()
+
+step = save_interval
+start = step
+stop = nt
+
+ionized = []
+for n in range(start, stop, step):
+    file_name = f'{sim_name}/Al_products_dump_{n:010d}.bp'
+    with FileReader(particle_data + file_name) as f:
+        ionized.append(f.read('Weight').sum())
+ionized = np.asarray(ionized)
+
+v_beam = 1.32523e7
+sigma = 1.428e-20
+e_den = 1.1e27
+time_thry = np.linspace(0, 6, 100) * 0.53e-15
+charge_thry = 1.0 - np.exp(-v_beam * e_den * sigma * time_thry)
+
+time = dt * np.arange(start, stop, step)
+mean_ion_charge = ionized / 6.6e10
+
+fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
+ax.plot(time_thry, charge_thry)
+ax.plot(time, mean_ion_charge)
+
+plt.show()

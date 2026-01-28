@@ -116,6 +116,7 @@ struct ParticleGroup {
    double qdt_over_2m;
    bool cell_map_updated{false};
    bool is_sorted{false};
+   bool is_photons{false};
    std::vector<Particle> particles{};
    std::map<std::size_t, std::span<Particle>> cell_map{};
 
@@ -124,7 +125,8 @@ struct ParticleGroup {
      atomic_number(atomic_number_),
      mass(mass_),
      charge(charge_ * constants::q_e),
-     qdt_over_2m((mass != 0.0) ? charge * dt / (2.0 * mass) : 0.0) // for photon groups
+     qdt_over_2m((mass != 0.0) ? charge * dt / (2.0 * mass) : 0.0), // for photon groups
+     is_photons(mass == 0.0)
    {
       if (not file_.empty()) {
          initializeFromFile(file_, *this);

@@ -169,7 +169,7 @@ class Simulation:
     coll_enabled: bool = True
 
 
-def update_header(params: Simulation, project_path: str):
+def update_header(params: Simulation, project_path: str, ionization_test_override: bool=False):
     print('Updating header...', end=' ')
     nx, ny, nz = params.shape
     xmin, xmax = params.x_range
@@ -198,6 +198,7 @@ def update_header(params: Simulation, project_path: str):
 
     particle_types = ',\n'.join([str(p) for p in particles.particle_data])
     collision_types = ',\n'.join([str(c) for c in particles.collisions])
+    ionization_test = "#define IONIZATION_TEST_OVERRIDE\n\n" if ionization_test_override else ""
 
     program_params = (
         '#ifndef PROGRAM_PARAM_HPP\n'
@@ -207,6 +208,7 @@ def update_header(params: Simulation, project_path: str):
         '\n'
         '#include <array>\n'
         '\n'
+        f'{ionization_test}'
         f'inline constexpr auto nThreads = {params.nthreads};\n'
         '\n'
         f'inline constexpr auto x_collapsed = {str(x_collapsed).lower()};\n'

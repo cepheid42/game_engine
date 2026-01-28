@@ -17,9 +17,9 @@ auto FieldToParticleInterp(const auto& F,
                            const auto ci, const auto cj, const auto ck)
 -> double
 {
-   using IShape = typename Strategy::OuterShape;
-   using JShape = typename Strategy::MiddleShape;
-   using KShape = typename Strategy::InnerShape;
+   using IShape = Strategy::OuterShape;
+   using JShape = Strategy::MiddleShape;
+   using KShape = Strategy::InnerShape;
    auto result = 0.0;
    for (int i = IShape::Begin; i <= IShape::End; ++i) {
       const auto& s0i = shapeI[i - IShape::Begin];
@@ -38,8 +38,6 @@ auto FieldToParticleInterp(const auto& F,
 static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qdt)
 -> std::array<vec3<double>, 2>
 {
-   // using FullShape  = interp::InterpolationShape<interpolation_order>::Type;
-   // using RedShape   = interp::InterpolationShape<interpolation_order - 1>::Type;
    using XFullShape = interp::InterpolationShape<x_collapsed ? 1 : interpolation_order>::Type;
    using XRedShape  = interp::InterpolationShape<x_collapsed ? 0 : interpolation_order - 1>::Type;
    using YFullShape = interp::InterpolationShape<y_collapsed ? 1 : interpolation_order>::Type;
@@ -121,7 +119,7 @@ void apply_particle_bcs(auto& p, auto& new_loc, auto& old_loc) {
 template<ParticleBCType BC>
 requires (BC == ParticleBCType::Outflow)
 void apply_particle_bcs(auto& p, const auto& new_loc, const auto& old_loc) {
-   constexpr std::size_t BC_DEPTH = 3lu;
+   constexpr std::size_t BC_DEPTH = 3zu;
 
    const auto& [inew, jnew, knew] = getCellIndices(new_loc);
    const auto disabled = ((inew < BC_DEPTH or inew > Nx - 1 - BC_DEPTH) and !x_collapsed) or
@@ -189,6 +187,7 @@ struct BorisPush {
    }
 
    static void advance(auto& g, const auto& emdata, const auto) requires(push_enabled) {
+      if (g.is_photons) { return; }
       advance_velocity(g, emdata);
       advance_position(g);
       g.cell_map_updated = false;

@@ -175,6 +175,7 @@ struct Table {
 
    auto lerp(const auto e) const {
       const auto len = xs.size() - 1;
+      // todo: not convinced these checks do anything useful
       if (e < xs[1]) { return ys[0]; }
       if (e > xs[len - 1]) { return ys[len]; }
       const auto upper = std::ranges::upper_bound(xs, e);
@@ -182,6 +183,14 @@ struct Table {
       const auto slope = (e - xs[idx]) / (xs[idx + 1] - xs[idx]);
       return std::lerp(ys[idx], ys[idx + 1], slope);
    }
+};
+
+struct MultiTable {
+   std::vector<double> xs{};
+   std::vector<std::vector<double>> ys{};
+
+   explicit MultiTable() = default;
+   // explicit MultiTable(const std::string& filepath) {}
 };
 
 

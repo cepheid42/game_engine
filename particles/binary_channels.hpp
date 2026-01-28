@@ -16,12 +16,12 @@ namespace tf::collisions
 struct ParticlePairData {
    particles::Particle& particle1;
    particles::Particle& particle2;
+   double reduced_mass;
    double mass1;
    double mass2;
-   double weight1;
-   double weight2;
-   double max_weight;
+   double nDups;
    double scatter_coef;
+   double max_weight;
    std::span<double> rand;
 };
             
@@ -111,20 +111,18 @@ auto getCOMData(const auto& particle1, const auto& particle2, const auto m1, con
 
 // =====================================================================================================
 // =============== Coulomb Collisions ==================================================================
-void coulombCollision(const bool has_coulomb, const auto& params, const auto& spec, const auto& cell_data)
+void coulombCollision(const auto& params, const auto& spec, const auto& cell_data)
 {
-   if (!has_coulomb) { return; } // no cell_data collisions
-
    auto& particle1 = params.particle1;
    auto& particle2 = params.particle2;
-   const auto& v1 = particle1.velocity;
-   const auto& v2 = particle2.velocity;
-   const auto& gamma1 = particle1.gamma;
-   const auto& gamma2 = particle2.gamma;
-   const auto& w1 = particle1.weight;
-   const auto& w2 = particle2.weight;
    const auto& m1 = params.mass1;
    const auto& m2 = params.mass2;
+   const auto& v1 = particle1.velocity;
+   const auto& v2 = particle2.velocity;
+   const auto& w1 = particle1.weight;
+   const auto& w2 = particle2.weight;
+   const auto& gamma1 = particle1.gamma;
+   const auto& gamma2 = particle2.gamma;
    const auto& cspec = spec.coulomb;
 
    const auto scatter_p1 = params.rand[0] * w1 < w2;
@@ -179,40 +177,38 @@ void coulombCollision(const bool has_coulomb, const auto& params, const auto& sp
 // =====================================================================================================
 // =============== Ionization Reactions ================================================================
 void ionizationCollision(
-   const bool has_ionization,
    const auto& params,
    const auto& spec,
    auto& buffers,
-   const auto ndups,
    const auto& cs_table
 ) {
-   if (!has_ionization) { return; } // no ionization collisions
-
    auto& particle1 = params.particle1;
    auto& particle2 = params.particle2;
-   const auto& v1 = particle1.velocity;
-   const auto& v2 = particle2.velocity;
-   const auto& gamma1 = particle1.gamma;
-   const auto& gamma2 = particle2.gamma;
-   const auto& w1 = particle1.weight; // Do not use weight / dup here;
-   const auto& w2 = particle2.weight;
    const auto& m1 = params.mass1;
    const auto& m2 = params.mass2;
+   const auto& v1 = particle1.velocity;
+   const auto& v2 = particle2.velocity;
+   const auto& w1 = particle1.weight; // Do not use weight/dup here;
+   const auto& w2 = particle2.weight;
+   const auto& gamma1 = particle1.gamma;
    const auto& ionization = spec.ionization;
 
    const auto wi_eff = w2 / ionization.rejection_multiplier;
    const auto dv_len = (v1 - v2).length();
 
    auto target_ionizes = w1 >= wi_eff or (w1 / wi_eff >= params.rand[2]);
-   auto electron_scatters = false; //w1 < wi_eff or (wi_eff / w1 >= params.rand[2]); // todo: this is hard coded to false for ionization test
+
+   #ifdef IONIZATION_TEST_OVERRIDE
+   auto electron_scatters = false;
+   #else
+   auto electron_scatters =  w1 < wi_eff or (wi_eff / w1 >= params.rand[2]);
+   #endif
 
    // parallel particles can cause divide by zero errors
    if (!(target_ionizes or electron_scatters) or dv_len == 0.0) { return; }
 
-   const auto mu = m1 * m2 / (m1 + m2); // todo: move out of here
-
    const auto com = getCOMData(particle1, particle2, m1, m2);
-   const auto energy_com_eV = (com.gamma_rel - 1.0) * mu * constants::c_sqr / constants::q_e;
+   const auto energy_com_eV = (com.gamma_rel - 1.0) * params.reduced_mass * constants::c_sqr / constants::q_e;
 
    // Skip if COM energy is below ionization energy threshold
    if (energy_com_eV <= ionization.ionization_energy) { return; }
@@ -241,7 +237,7 @@ void ionizationCollision(
    const auto v_scatter = p_scatter / (gamma_scatter * m1);
 
    if (target_ionizes) {
-      const auto product_weight = std::min(w2, wi_eff * ndups / ionization.production_multiplier);
+      const auto product_weight = std::min(w2, wi_eff * params.nDups / ionization.production_multiplier);
       const auto E_ejected = energy_com_eV - ionization.ionization_energy - E_scatter;
       const auto p_ejected = v1 * gamma1 * m1 * std::sqrt(E_ejected / energy_com_eV); // todo: this can be simplified a bit, dont need p for anything but getting v
       const auto gamma_ejected = particles::calculateGammaP(p_ejected, m1);
@@ -296,33 +292,27 @@ void ionizationCollision(
 // =====================================================================================================
 // =============== Fusion Reactions ====================================================================
 void fusionCollision(
-   const bool has_fusion,
    const auto& params,
    const auto& spec,
    auto& buffers,
    const auto& cs_table,
-   const auto prod_m1, const auto prod_m2
+   const auto prod_m1,
+   const auto prod_m2
 ) {
-   if (!has_fusion) { return; } // no fusion collisions
-
    auto& particle1 = params.particle1;
    auto& particle2 = params.particle2;
+   const auto& m1 = params.mass1;
+   const auto& m2 = params.mass2;
    const auto& v1 = particle1.velocity;
    const auto& v2 = particle2.velocity;
    const auto& w1 = particle1.weight;
    const auto& w2 = particle2.weight;
-   // const auto& w1 = params.weight1;
-   // const auto& w2 = params.weight2; // todo: does this affect DT fusion? It doesn't affect DD.
-   const auto& m1 = params.mass1;
-   const auto& m2 = params.mass2;
    const auto& gamma1 = particle1.gamma;
    const auto& gamma2 = particle2.gamma;
    const auto& fusion = spec.fusion;
 
    const auto dv = v1 - v2;
    const auto dv_len = dv.length();
-
-   const auto mu = m1 * m2 / (m1 + m2); // todo: move out of here
 
    const auto p1 = gamma1 * m1 * v1;
    const auto p2 = gamma2 * m2 * v2;
@@ -347,7 +337,7 @@ void fusionCollision(
    const auto vrel2_cm = dv2_cm / math::SQR(1.0 - dv2_cm * constants::over_c_sqr);
 
    const auto gamma_rel = 1.0 / std::sqrt(1.0 - vrel2_cm * constants::over_c_sqr);
-   const auto energy_com_eV = (gamma_rel - 1.0) * mu * constants::c_sqr / constants::q_e;
+   const auto energy_com_eV = (gamma_rel - 1.0) * params.reduced_mass * constants::c_sqr / constants::q_e;
 
    if (cs_table.is_outofbounds(energy_com_eV) or dv_len == 0.0) { return; } // Skip if energy is below minimum of table
 
@@ -380,7 +370,7 @@ void fusionCollision(
       cos_phi * sin_theta * dv[0] + sin_phi * sin_theta * dv[1] + cos_theta * dv[2]
    };
 
-   const auto v_cm = vp * mu / m2;
+   const auto v_cm = vp * params.reduced_mass / m2;
 
    const auto phi_scatter = 2.0 * constants::pi * params.rand[1];
    const auto sin_phi_scatter = std::sin(phi_scatter);
@@ -469,16 +459,12 @@ void fusionCollision(
 
 
 // void bremsstrahlungCollision(
-//    bool has_brem,
 //    const auto& params,
 //    const auto& spec,
 //    auto& buffers,
-//    const auto& cs_table,
-//    const auto prod_m1, const auto prod_m2
+//    const auto& cs_table
 // )
 // {
-//    if (!has_brem) { return; }
-//
 //    auto& particle1 = params.particle1;
 //    auto& particle2 = params.particle2;
 //    const auto& v1 = particle1.velocity;
@@ -528,7 +514,7 @@ void fusionCollision(
 //    // and reduces weight accordingly. Use the probability computed without
 //    // the multiplier to determine if the electron loses energy
 //    auto make_photon = params.rand[0] < scatter_probability;
-//    auto remove_electron_energy = params.rand[0] < probability_coef and params.rand[0] <= w2 / params.max_weight and reduce_electron_energy;
+//    auto remove_electron_energy = params.rand[0] < probability_coef and params.rand[0] <= w2 / params.max_weight and brem.reduce_electron_energy;
 //
 //    if (!(make_photon or remove_electron_energy)) { return; }
 //

@@ -330,7 +330,6 @@ def plot_KE(groups, start, stop, step, file_dir):
 
 
 def plot_Temp(groups, start, stop, step, file_dir):
-    print('Calculating total particle temperatures...', end=' ')
     filename = f'/{groups[0]}_dump_{stop:010d}.bp'
     with FileReader(data_dir + file_dir + filename) as f:
         dt = f.read('dt')
@@ -552,20 +551,20 @@ def fusion(stop, groups):
 
 
 def main():
-    # step = 10
-    # start = 10
-    # stop = 600
-    # file_dir = '/ionization'
-    # ionization(start, stop, step, file_dir)
-
     # step = 100
     # start = 0
     # stop = 10000
     # file_dir = '/carbon_thermal_eq'
     # plot_Temp(['carbon1', 'carbon2'], start, stop, step, file_dir)
 
-    stop = 20
-    fusion(stop, ['DD', 'DT'])
+    step = 10
+    start = 10
+    stop = 600
+    file_dir = '/ionization'
+    ionization(start, stop, step, file_dir)
+
+    # stop = 20
+    # fusion(stop, ['DD', 'DT'])
 
     # plot_distributions(start, stop, step, 'carbon1', file_dir)
     # plot_distributions(start, stop, step, 'carbon2', file_dir)
