@@ -106,43 +106,42 @@ DD_params = FusionParams(
     products=('neutrons', 'helium3'),
     energy_gain=3.269e6,
     production_multiplier=1.0e10,
-    cross_section_file='/data/DD_nHe3_BH_eV_m2.txt'
+    cross_section_file='/tests/cross_section_data/DD_nHe3_BH_eV_m2.txt'
 )
 
 DT_params = FusionParams(
     products=('neutrons', 'helium4'),
     energy_gain=17.589e6,
     production_multiplier=1.0e10,
-    cross_section_file='/data/DT_nHe4_BH_eV_m2.txt'
+    cross_section_file='/tests/cross_section_data/DT_nHe4_BH_eV_m2.txt'
 )
 
 particle_params = ParticleParams(
     save_interval=1,
     particle_bcs='periodic',
     interp_order=1,
-    # particle_data=(deuterium, tritium, neutrons, helium3, helium4),
-    # particle_data=(deuterium, neutrons, helium3),
-    particle_data=(tritium, deuterium, neutrons, helium4),
+    particle_data=(deuterium, neutrons, helium3),
+    # particle_data=(tritium, deuterium, neutrons, helium4),
     collisions=(
-        # Collision(
-        #     groups=('deuterium', 'deuterium'),
-        #     channels=('fusion',),
-        #     step_interval=1,
-        #     self_scatter=True,
-        #     fusion=DD_params
-        # ),
         Collision(
-            groups=('deuterium', 'tritium'),
+            groups=('deuterium', 'deuterium'),
             channels=('fusion',),
             step_interval=1,
-            fusion=DT_params
+            self_scatter=True,
+            fusion=DD_params
         ),
+        # Collision(
+        #     groups=('deuterium', 'tritium'),
+        #     channels=('fusion',),
+        #     step_interval=1,
+        #     fusion=DT_params
+        # ),
     )
 )
 
 sim_params = Simulation(
-    # name=f'DD_fusion_{int(T_eV * 1e-3)}keV',
-    name=f'DT_fusion_{int(T_eV * 1e-3)}keV',
+    name=f'DD_fusion_{int(T_eV * 1e-3)}keV',
+    # name=f'DT_fusion_{int(T_eV * 1e-3)}keV',
     shape=shape,
     nthreads=1,
     dt=dt,
@@ -161,5 +160,4 @@ sim_params = Simulation(
 
 create_particles(sim_params, deuterium, particle_data)
 create_particles(sim_params, tritium, particle_data)
-
 update_header(sim_params, project_path=project_path)

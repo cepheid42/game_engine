@@ -10,11 +10,16 @@ from scripts.particle_generation import create_particles
 project_path = '/home/cepheid/TriForce/game_engine'
 particle_data = project_path + '/data'
 
-shape = (11, 11, 11)
+print('============================== Warning =============================')
+print('Make sure that the "electron_scatters" boolean (binary_channels.hpp:207)')
+print('is hard coded to FALSE or else the results will be incorrect.')
+print('====================================================================')
 
-xmin, xmax = 0.0, 1.0e-5
-ymin, ymax = 0.0, 1.0e-5
-zmin, zmax = 0.0, 1.0e-5
+shape = (2, 2, 2)
+
+xmin, xmax = 0.0, 1.0e-6
+ymin, ymax = 0.0, 1.0e-6
+zmin, zmax = 0.0, 1.0e-6
 
 dx = (xmax - xmin) / (shape[0] - 1)
 dy = (ymax - ymin) / (shape[1] - 1)
@@ -37,7 +42,7 @@ electrons = Particles(
     atomic_number=0,
     temp=(500, 0, 0), # eV
     density=1.1e27, # m^-3,
-    ppc=(10, 10, 10),
+    ppc=(100, 10, 10),
     distribution='constant',
     px_range=px_range,
     py_range=py_range,
@@ -65,8 +70,8 @@ neutral_aluminum = Particles(
     atomic_number=13,
     temp=(0, 0, 0), # eV
     density=6.6e28, # m^-3,
-    ppc=(10, 10, 10),
-    distribution='thermal',
+    ppc=(20, 20, 20),
+    distribution='constant',
     px_range=px_range,
     py_range=py_range,
     pz_range=pz_range
@@ -90,7 +95,7 @@ ionized_aluminum = Particles(
 ionization_params = IonizationParams(
     products=('electron_products', 'Al+'),
     ionization_energy=5.9858,
-    cross_section_file='/data/eAl0_ionization_cs.txt'
+    cross_section_file='/tests/cross_section_data/eAl0_ionization_cs.txt'
 )
 
 particle_params = ParticleParams(

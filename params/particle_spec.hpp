@@ -11,31 +11,37 @@ struct ParticleGroupSpec {
    double charge;
    std::size_t atomic_number;
 };
-
-struct FusionSpec {
-   std::string_view product1{};
-   std::string_view product2{};
-   double energy_gain{0.0};
+struct CoulombSpec {
+   double coulomb_log{10.0};
    double rate_multiplier{1.0};
-   double production_multiplier{1.0};
-   double constant_cross_section{0.0};
-   std::string_view cross_section_file{};
 };
 
 struct IonizationSpec {
    std::string_view product1{};
    std::string_view product2{}; // no product 3 for now
+   std::string_view cross_section_file{};
    double ionization_energy{0.0};
    double rate_multiplier{1.0};
    double production_multiplier{1.0};
    double rejection_multiplier{1.0};
    double constant_cross_section{0.0};
-   std::string_view cross_section_file{};
 };
 
-struct CoulombSpec {
-   double coulomb_log{10.0};
+struct FusionSpec {
+   std::string_view product1{};
+   std::string_view product2{};
+   std::string_view cross_section_file{};
+   double energy_gain{0.0};
    double rate_multiplier{1.0};
+   double production_multiplier{1.0};
+   double constant_cross_section{0.0};
+};
+
+struct RadiationSpec {
+   std::string_view product1{};
+   std::string_view cross_section_file{};
+   double production_multiplier{1.0};
+   bool reduce_electron_energy{false};
 };
 
 struct CollisionSpec {
@@ -48,6 +54,7 @@ struct CollisionSpec {
    CoulombSpec coulomb{};
    IonizationSpec ionization{};
    FusionSpec fusion{};
+   RadiationSpec radiation{};
 };
 
 #endif //GAME_ENGINE_PARTICLE_SPEC_HPP

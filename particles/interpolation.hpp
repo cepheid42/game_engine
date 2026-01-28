@@ -158,7 +158,7 @@ struct Table {
       double y{};
 
       std::string line;
-      std::getline(file, line);
+      // std::getline(file, line);
       std::istringstream buff(line);
       while (std::getline(file, line)) {
          std::istringstream buffer(line);
@@ -169,10 +169,14 @@ struct Table {
       file.close();
    }
 
+   bool is_outofbounds(const auto e) const {
+      return e <= xs[0] or e > xs[xs.size() - 1];
+   }
+
    auto lerp(const auto e) const {
       const auto len = xs.size() - 1;
-      if (e == xs[0]) { return ys[0]; }
-      if (e == xs[len]) { return ys[len]; }
+      if (e < xs[1]) { return ys[0]; }
+      if (e > xs[len - 1]) { return ys[len]; }
       const auto upper = std::ranges::upper_bound(xs, e);
       const auto idx = std::ranges::distance(xs.cbegin(), upper) - 1;
       const auto slope = (e - xs[idx]) / (xs[idx + 1] - xs[idx]);

@@ -2,6 +2,7 @@
 #define PARTICLE_HPP
 
 #include "constants.hpp"
+#include "math_utils.hpp"
 #include "morton.hpp"
 #include "program_params.hpp"
 #include "vec3.hpp"
@@ -123,7 +124,7 @@ struct ParticleGroup {
      atomic_number(atomic_number_),
      mass(mass_),
      charge(charge_ * constants::q_e),
-     qdt_over_2m(charge * dt / (2.0 * mass))
+     qdt_over_2m((mass != 0.0) ? charge * dt / (2.0 * mass) : 0.0) // for photon groups
    {
       if (not file_.empty()) {
          initializeFromFile(file_, *this);

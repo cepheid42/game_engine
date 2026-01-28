@@ -3,6 +3,7 @@
 
 #include "program_params.hpp"
 #include "array.hpp"
+#include "em_data.hpp"
 #include "particles.hpp"
 #include "interpolation.hpp"
 

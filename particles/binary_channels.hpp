@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <span>
 #include <tuple>
 
 namespace tf::collisions
@@ -22,7 +23,6 @@ struct ParticlePairData {
    double max_weight;
    double scatter_coef;
    std::span<double> rand;
-   // std::array<double, 5> rand;
 };
             
 struct CoulombData {
@@ -38,6 +38,7 @@ struct COMData {
    double gamma;
    double gamma1;
    double gamma2;
+   double gamma_rel;
 };
 
 auto calculate_P1f_cm(const auto& com, const auto U, const auto scatteringAngles)
@@ -86,33 +87,33 @@ auto getCOMData(const auto& particle1, const auto& particle2, const auto m1, con
    const auto vcm2 = vcm.length_squared();
    const auto gamma_cm = 1.0 / std::sqrt(1.0 - vcm2 * constants::over_c_sqr);
 
-   const auto vcm_dot_v1 = dot(vcm, v1);
-   const auto vcm_dot_v2 = dot(vcm, v2);
+   const auto u1 = p1 / m1;
+   const auto u2 = p2 / m2;
 
-   // const auto gamma1_cm = (1.0 - vcm_dot_v1 * constants::over_c_sqr) * gamma1 * gamma_cm;
-   // const auto gamma2_cm = (1.0 - vcm_dot_v2 * constants::over_c_sqr) * gamma2 * gamma_cm;
-   //
-   // const auto u1_cm = v1 + ((gamma_cm - 1.0) / vcm2 * vcm_dot_v1 - gamma_cm * gamma1) * vcm;
-   // const auto u2_cm = v2 + ((gamma_cm - 1.0) / vcm2 * vcm_dot_v2 - gamma_cm * gamma2) * vcm;
-   //
-   // const auto dv2_cm = (u1_cm / gamma1_cm - u2_cm / gamma2_cm).length_squared();
-   // const auto vrel2_cm = dv2_cm / math::SQR(1.0 - dv2_cm * constants::over_c_sqr);
-   //
-   // const auto gamma_rel = 1.0 / std::sqrt(1.0 - vrel2_cm * constants::over_c_sqr);
+   const auto vcm_dot_u1 = dot(vcm, u1);
+   const auto vcm_dot_u2 = dot(vcm, u2);
 
-   const auto p1_star = p1 + m1 * gamma1 * vcm * ((gamma_cm - 1.0) * vcm_dot_v1 / vcm2 - gamma_cm);
+   const auto gamma1_cm = (gamma1 - vcm_dot_u1 * constants::over_c_sqr) * gamma_cm;
+   const auto gamma2_cm = (gamma2 - vcm_dot_u2 * constants::over_c_sqr) * gamma_cm;
 
-   const auto gamma1_cm = (1.0 - vcm_dot_v1 * constants::over_c_sqr) * gamma1 * gamma_cm;
-   const auto gamma2_cm = (1.0 - vcm_dot_v2 * constants::over_c_sqr) * gamma2 * gamma_cm;
+   const auto u1_cm = u1 + ((gamma_cm - 1.0) / vcm2 * vcm_dot_u1 - gamma_cm * gamma1) * vcm;
+   const auto u2_cm = u2 + ((gamma_cm - 1.0) / vcm2 * vcm_dot_u2 - gamma_cm * gamma2) * vcm;
 
-   return {p1_star, vcm, gamma_cm, gamma1_cm, gamma2_cm};
+   const auto dv2_cm = (u1_cm / gamma1_cm - u2_cm / gamma2_cm).length_squared();
+   const auto vrel2_cm = dv2_cm / math::SQR(1.0 - dv2_cm * constants::over_c_sqr);
+
+   const auto gamma_rel = 1.0 / std::sqrt(1.0 - vrel2_cm * constants::over_c_sqr);
+
+   const auto p1_star = p1 + m1 * gamma1 * vcm * ((gamma_cm - 1.0) * vcm_dot_u1 / vcm2 - gamma_cm);
+
+   return {p1_star, vcm, gamma_cm, gamma1_cm, gamma2_cm, gamma_rel};
 } // end getCOMData()
 
 // =====================================================================================================
 // =============== Coulomb Collisions ==================================================================
-void coulombCollision(const bool has_coulomb, const auto& params, const auto& spec, const auto& coulomb)
+void coulombCollision(const bool has_coulomb, const auto& params, const auto& spec, const auto& cell_data)
 {
-   if (!has_coulomb) { return; } // no coulomb collisions
+   if (!has_coulomb) { return; } // no cell_data collisions
 
    auto& particle1 = params.particle1;
    auto& particle2 = params.particle2;
@@ -142,13 +143,13 @@ void coulombCollision(const bool has_coulomb, const auto& params, const auto& sp
    double coulomb_log_pairwise{cspec.coulomb_log};
    if (coulomb_log_pairwise <= 0.0) {
       const auto l_deBroglie = 0.5 * constants::h / p1_star_len;
-      const auto b0 = gamma_coef1 * gamma_coef2 * coulomb.coef2;
+      const auto b0 = gamma_coef1 * gamma_coef2 * cell_data.coef2;
       const auto bmin2 = std::max(math::SQR(b0), math::SQR(l_deBroglie));
-      coulomb_log_pairwise = std::max(2.0, 0.5 * std::log(1.0 + coulomb.bmax2 / bmin2));
+      coulomb_log_pairwise = std::max(2.0, 0.5 * std::log(1.0 + cell_data.bmax2 / bmin2));
    }
 
-   const auto s12_calc = cspec.rate_multiplier * params.max_weight * coulomb.coef1 * params.scatter_coef * gamma_coef1 * math::SQR(gamma_coef2) * coulomb_log_pairwise * p1_star_len * constants::over_c_sqr / (gamma1 * gamma2);
-   const auto s12_max = coulomb.scatter_lowt * cspec.rate_multiplier * params.max_weight * dv_length;
+   const auto s12_calc = cspec.rate_multiplier * params.max_weight * cell_data.coef1 * params.scatter_coef * gamma_coef1 * math::SQR(gamma_coef2) * coulomb_log_pairwise * p1_star_len * constants::over_c_sqr / (gamma1 * gamma2);
+   const auto s12_max = cell_data.scatter_lowt * cspec.rate_multiplier * params.max_weight * dv_length;
    const auto s12 = std::min(s12_max, s12_calc);
 
    auto getScatteringAngles = [&]() -> std::array<double, 2> {
@@ -192,7 +193,8 @@ void ionizationCollision(
    const auto& v1 = particle1.velocity;
    const auto& v2 = particle2.velocity;
    const auto& gamma1 = particle1.gamma;
-   const auto& w1 = particle1.weight; // todo: should these be the ones divided by dup?
+   const auto& gamma2 = particle2.gamma;
+   const auto& w1 = particle1.weight; // Do not use weight / dup here;
    const auto& w2 = particle2.weight;
    const auto& m1 = params.mass1;
    const auto& m2 = params.mass2;
@@ -202,16 +204,22 @@ void ionizationCollision(
    const auto dv_len = (v1 - v2).length();
 
    auto target_ionizes = w1 >= wi_eff or (w1 / wi_eff >= params.rand[2]);
-   auto electron_scatters = false; //w1 < wi_eff or (wi_eff / w1 >= params.rand[2]);
+   auto electron_scatters = false; //w1 < wi_eff or (wi_eff / w1 >= params.rand[2]); // todo: this is hard coded to false for ionization test
 
-   // parallel particles or self particles can cause divide by zero errors
+   // parallel particles can cause divide by zero errors
    if (!(target_ionizes or electron_scatters) or dv_len == 0.0) { return; }
 
+   const auto mu = m1 * m2 / (m1 + m2); // todo: move out of here
+
    const auto com = getCOMData(particle1, particle2, m1, m2);
-   const auto energy_com_eV = ((com.gamma1 - 1.0) * m1 + (com.gamma2 - 1.0) * m2) * constants::c_sqr / constants::q_e;
+   const auto energy_com_eV = (com.gamma_rel - 1.0) * mu * constants::c_sqr / constants::q_e;
+
+   // Skip if COM energy is below ionization energy threshold
+   if (energy_com_eV <= ionization.ionization_energy) { return; }
 
    auto cross_section{ionization.constant_cross_section};
    if (cross_section == 0.0) {
+      if (cs_table.is_outofbounds(energy_com_eV)) { return; }
       cross_section = cs_table.lerp(energy_com_eV);
    }
 
@@ -224,8 +232,8 @@ void ionizationCollision(
       scatter_probability = probability_coef * prod_mult;
    }
 
-   // Skip if COM energy is below threshold or scatter probability is below random number
-   if (energy_com_eV <= ionization.ionization_energy or params.rand[0] > scatter_probability) { return; }
+   // Skip if scatter probability is below random number
+   if (params.rand[0] > scatter_probability) { return; }
 
    const auto E_scatter = params.rand[1] * (energy_com_eV - ionization.ionization_energy);
    const auto p_scatter = v1 * gamma1 * m1 * std::sqrt(E_scatter / energy_com_eV); // todo: this can be simplified a bit, dont need p for anything but getting v
@@ -304,7 +312,7 @@ void fusionCollision(
    const auto& w1 = particle1.weight;
    const auto& w2 = particle2.weight;
    // const auto& w1 = params.weight1;
-   // const auto& w2 = params.weight2;
+   // const auto& w2 = params.weight2; // todo: does this affect DT fusion? It doesn't affect DD.
    const auto& m1 = params.mass1;
    const auto& m2 = params.mass2;
    const auto& gamma1 = particle1.gamma;
@@ -313,6 +321,8 @@ void fusionCollision(
 
    const auto dv = v1 - v2;
    const auto dv_len = dv.length();
+
+   const auto mu = m1 * m2 / (m1 + m2); // todo: move out of here
 
    const auto p1 = gamma1 * m1 * v1;
    const auto p2 = gamma2 * m2 * v2;
@@ -330,17 +340,16 @@ void fusionCollision(
    const auto gamma1_cm = (gamma1 - vcm_dot_u1 * constants::over_c_sqr) * gamma_cm;
    const auto gamma2_cm = (gamma2 - vcm_dot_u2 * constants::over_c_sqr) * gamma_cm;
 
-   const auto u1_cm = u1 + ((gamma_cm - 1.0) / vcm2 * vcm_dot_u1 - gamma_cm * gamma1) * vcm;
-   const auto u2_cm = u2 + ((gamma_cm - 1.0) / vcm2 * vcm_dot_u2 - gamma_cm * gamma2) * vcm;
+   const auto u1_cm = u1 + vcm * ((gamma_cm - 1.0) / vcm2 * vcm_dot_u1 - gamma_cm * gamma1);
+   const auto u2_cm = u2 + vcm * ((gamma_cm - 1.0) / vcm2 * vcm_dot_u2 - gamma_cm * gamma2);
 
    const auto dv2_cm = (u1_cm / gamma1_cm - u2_cm / gamma2_cm).length_squared();
    const auto vrel2_cm = dv2_cm / math::SQR(1.0 - dv2_cm * constants::over_c_sqr);
 
    const auto gamma_rel = 1.0 / std::sqrt(1.0 - vrel2_cm * constants::over_c_sqr);
-   const auto mu = m1 * m2 / (m1 + m2);
    const auto energy_com_eV = (gamma_rel - 1.0) * mu * constants::c_sqr / constants::q_e;
 
-   if (energy_com_eV <= cs_table.xs[0] or dv_len == 0.0) { return; } // Skip if energy is below minimum of table
+   if (cs_table.is_outofbounds(energy_com_eV) or dv_len == 0.0) { return; } // Skip if energy is below minimum of table
 
    auto cross_section{fusion.constant_cross_section};
    if (cross_section == 0.0) {
@@ -368,7 +377,7 @@ void fusionCollision(
    const vec3 vp{
       cos_phi * cos_theta * dv[0] + sin_phi * cos_theta * dv[1] - sin_theta * dv[2],
       -sin_phi * dv[0] + cos_phi * dv[1],
-      cos_phi * sin_theta * dv[0] + sin_phi * sin_theta * dv[1] + cos_theta * dv[2],
+      cos_phi * sin_theta * dv[0] + sin_phi * sin_theta * dv[1] + cos_theta * dv[2]
    };
 
    const auto v_cm = vp * mu / m2;
@@ -378,8 +387,7 @@ void fusionCollision(
    const auto cos_phi_scatter = std::cos(phi_scatter);
 
    auto getScatteringAngle = [&]() -> std::array<double, 2> {
-      // const auto ctheta = 2.0 * params.rand[4] - 1.0;
-      const auto ctheta = 1.0 - 2.0 * params.rand[4];
+      const auto ctheta = 2.0 * params.rand[4] - 1.0;
       return {ctheta, std::sqrt(1.0 - math::SQR(ctheta))};
    };
 
@@ -458,6 +466,79 @@ void fusionCollision(
    particle1.weight -= product_weight;
    particle2.weight -= product_weight;
 } // end fusionCollision()
+
+
+// void bremsstrahlungCollision(
+//    bool has_brem,
+//    const auto& params,
+//    const auto& spec,
+//    auto& buffers,
+//    const auto& cs_table,
+//    const auto prod_m1, const auto prod_m2
+// )
+// {
+//    if (!has_brem) { return; }
+//
+//    auto& particle1 = params.particle1;
+//    auto& particle2 = params.particle2;
+//    const auto& v1 = particle1.velocity;
+//    const auto& v2 = particle2.velocity;
+//    // const auto& w1 = particle1.weight;
+//    // const auto& w2 = particle2.weight;
+//    const auto& w1 = params.weight1;
+//    const auto& w2 = params.weight2; // todo: does this affect DT fusion? It doesn't affect DD.
+//    const auto& m1 = params.mass1;
+//    const auto& m2 = params.mass2;
+//    const auto& gamma1 = particle1.gamma;
+//    const auto& gamma2 = particle2.gamma;
+//    const auto& brem = spec.brem;
+//
+//    const auto beta_ve = v1 / constants::c;
+//    const auto beta_vi = v2 / constants::c;
+//    const auto beta_i2 = beta_vi.length_squared();
+//
+//    const auto beta_ei = dot(beta_ve, beta_vi);
+//    const auto gamma_ei = gamma1 * gamma2;
+//
+//    // Calculation is done in ion frame, so compute lorentz transform of electron velocity
+//    const auto coef = (gamma2 - 1.0) * beta_ei / beta_i2 - gamma2;
+//    const auto p_ep = gamma1 * m1 * v1 + coef * constants::m_e * constants::c_sqr * gamma1 * beta_ve;
+//    const auto gamma_ep = gamma_ei * (1.0 - beta_ei);
+//    const auto v_ep = p_ep.length() / (constants::m_e * gamma_ep);
+//
+//    // Electron energy in ion frame (eV)
+//    const auto electron_energy_eV = (gamma_ep - 1.0) * constants::m_e * constants::c_sqr / constants::q_e;
+//
+//    // todo: differential cross section
+//    // Total cross-section and photon energy from differential cross-section
+//    const auto cross_section_m2 = cs_table.lerp(electron_energy_eV);
+//
+//    const auto probability_coef = cross_section_m2 * params.max_weight * params.scatter_coef * brem.rate_multiplier * v_ep * gamma_ep / gamma_ei;
+//
+//    auto prod_mult = brem.production_multiplier;
+//    auto scatter_probability = probability_coef * prod_mult;
+//
+//    // Method requires P<1 so reduced the multiplier until that is satisfied
+//    while (scatter_probability > 1.0 and prod_mult > 1.0) {
+//       prod_mult /= 10.0;
+//       scatter_probability = probability_coef * prod_mult;
+//    }
+//
+//    // Production multiplier only applies to likelihood of photon production
+//    // and reduces weight accordingly. Use the probability computed without
+//    // the multiplier to determine if the electron loses energy
+//    auto make_photon = params.rand[0] < scatter_probability;
+//    auto remove_electron_energy = params.rand[0] < probability_coef and params.rand[0] <= w2 / params.max_weight and reduce_electron_energy;
+//
+//    if (!(make_photon or remove_electron_energy)) { return; }
+//
+//    // Sample photon energy from cumulative differential cross-section
+//    // start by finding the closest electron energy in table.
+//
+//    // todo: here be dragons
+//
+// } // end bremsstrahlungCollision()
+
 } // end namespace tf::collisions
 
 #endif //GAME_ENGINE_BINARY_CHANNELS_HPP

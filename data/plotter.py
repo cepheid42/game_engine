@@ -350,8 +350,8 @@ def plot_Temp(groups, start, stop, step, file_dir):
         ax.plot(time * s_to_ps, data, label=name)
 
     eV_to_erg = 1.60218e-12
-    T1 = 1250
-    T2 = 250
+    T1 = 1250 / np.sqrt(3)
+    T2 = 250 / np.sqrt(3)
     m = 1.9945e-23 # g
     n = 1e20 # cm^-3
     Z = 6
@@ -374,10 +374,8 @@ def plot_Temp(groups, start, stop, step, file_dir):
     ax.set_ylabel('T (eV)')
     ax.set_title(f'Total Particle Temperature')
     ax.legend()
-    plt.savefig(data_dir + f'/total_particle_temp.png')
-    plt.clf()
-    plt.close(fig)
-    print('Done.')
+    plt.show()
+
 
 
 def ionization(start, stop, step, file_dir):
@@ -403,7 +401,7 @@ def ionization(start, stop, step, file_dir):
     mean_ion_charge = ionized / 6.6e10
 
     fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
-    ax.plot(time_thry, charge_thry * 10**3)
+    ax.plot(time_thry, charge_thry)
     ax.plot(time, mean_ion_charge)
 
     plt.show()
@@ -420,8 +418,8 @@ def fusion(stop, groups):
 
     # theory solution for second moment of neutron spectrum (expressed as FWHM) is from
     # Ballabio, Kallne, Gorini 1998, Relativistic calculation of fusion product spectra for thermonuclear plasmas
-    def fwhm_Ballabio1998(T, alpha, w0):
-        delta_w = alpha[0] * T ** (2 / 3) / (1.0 + alpha[1] * T ** alpha[2]) + alpha[3] * T
+    def calc_FWHM_Ballabio1998(T, alpha, w0):
+        delta_w = alpha[0] * T ** (2 / 3) / (1.0 + alpha[1] * T ** alpha[2]) + (alpha[3] * T)
         whalf = w0 * (1.0 + delta_w) * np.sqrt(T)
 
         return whalf
@@ -458,7 +456,7 @@ def fusion(stop, groups):
             [5.43360e-12, 5.85778e-3, 7.68222e-3, 0.0, -2.96400e-6, 0.0, 0.0]
         )
 
-        dd_fwhm_theory = fwhm_Ballabio1998(
+        dd_fwhm_theory = calc_FWHM_Ballabio1998(
             T_keV_theory,
             [1.7013e-3, 0.16888, 0.49, 7.9460e-4],
             82.542 # omega0, sqrt(keV)
@@ -473,12 +471,15 @@ def fusion(stop, groups):
             [1.17302e-9, 1.51361e-2, 7.51886e-2, 4.60643e-3, 1.35000e-2, -1.06750e-4, 1.36600e-6]
         )
 
-        dt_fwhm_theory = fwhm_Ballabio1998(
+        dt_fwhm_theory = calc_FWHM_Ballabio1998(
             T_keV_theory,
             [5.1068e-4, 7.6223e-3, 1.78, 8.7691e-5],
             177.259 # omega0, sqrt(keV)
         )
 
+    # start plot
+    plt.style.use('triforce.mplstyle')
+    good_colors = ['#db6d00', '#006ddb', '#920000', '#52a736', '#9B30FF']
 
     fig, ax = plt.subplots(1, 2, figsize=(12, 4), layout='constrained')
 
@@ -537,22 +538,16 @@ def fusion(stop, groups):
             DT_fwhm[i] = fwhmDT
 
     if plot_DD:
-        ax[0].plot(temps, DD_reactivity_sim, marker='o', linestyle='none', ms=10, markeredgewidth=1, markeredgecolor='k', label='D-D')
-        ax[1].plot(temps, DD_fwhm, marker='o', linestyle='none', ms=10, markeredgewidth=1, markeredgecolor='k', label='D-D')
-
+        ax[0].plot(temps, DD_reactivity_sim, marker='o', c=good_colors[3], linestyle='none', ms=10, markeredgewidth=1, markeredgecolor='k', label='D-D')
+        ax[1].plot(temps, DD_fwhm, marker='o', c=good_colors[3], linestyle='none', ms=10, markeredgewidth=1, markeredgecolor='k', label='D-D')
 
     if plot_DT:
-        ax[0].plot(temps, DT_reactivity_sim, marker='o', linestyle='none', ms=10, markeredgewidth=1, markeredgecolor='k', label='D-T')
-        ax[1].plot(temps, DT_fwhm, marker='o', linestyle='none', ms=10, markeredgewidth=1, markeredgecolor='k', label='D-T')
+        ax[0].plot(temps, DT_reactivity_sim, marker='o', c=good_colors[2], linestyle='none', ms=10, markeredgewidth=1, markeredgecolor='k', label='D-T')
+        ax[1].plot(temps, DT_fwhm, marker='o', c=good_colors[2], linestyle='none', ms=10, markeredgewidth=1, markeredgecolor='k', label='D-T')
 
     ax[0].legend(loc=4)
     ax[0].text(0.04, 0.9, '(a)', fontsize=18, weight='bold', transform=ax[0].transAxes)
     ax[1].text(0.04, 0.9, '(b)', fontsize=18, weight='bold', transform=ax[1].transAxes)
-
-    # for i, t in enumerate(temps):
-    #     ax[2].plot(Ebin_centers, dyde_bins[:, i],  marker='o', fillstyle='none', label=f'{temps[i]} keV')
-    # ax[2].legend()
-
     plt.show()
 
 
@@ -599,6 +594,15 @@ def main():
 
     # plot_single_field(0, 1, 'Ex', file_dir)
     # plot_single_field(0, 1, 'Ez', file_dir)
+
+    # fname = 'Tentori_pB_keV_mbarn.csv'
+    # oname = 'Tentori_pB_eV_m2.txt'
+    # data = np.genfromtxt('/home/cepheid/TriForce/game_engine/tests/mikes_files/' + fname, dtype=np.float64)
+    # data[:, 0] *= 1e3
+    # data[:, 1:] *= 1e-31
+    # np.savetxt('/home/cepheid/TriForce/game_engine/tests/cross_section_data/' + oname, data)
+
+
 
 
 if __name__ == '__main__':

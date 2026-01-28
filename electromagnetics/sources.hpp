@@ -6,6 +6,7 @@
 #include "array.hpp"
 #include "math_utils.hpp"
 
+#include <cassert>
 #include <memory>
 
 namespace tf::electromagnetics {

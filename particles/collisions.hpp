@@ -48,6 +48,7 @@ struct Collisions {
    std::uniform_real_distribution<> rng;
    std::vector<double> rngs;
 
+   double n_channels;
    bool has_coulomb;
    bool has_ionization;
    bool has_fusion;
@@ -62,6 +63,7 @@ struct Collisions {
      generator(init_mt_64()),
      rng(0.0, 1.0),
      rngs(NRNG),
+     n_channels(static_cast<double>(specs.channels.size())),
      has_coulomb(std::ranges::contains(params_.channels, "coulomb")),
      has_ionization(std::ranges::contains(params_.channels, "ionization")),
      has_fusion(std::ranges::contains(params_.channels, "fusion"))
@@ -127,6 +129,7 @@ struct Collisions {
       g1.cell_map_updated = false;
       g1.is_sorted = false;
       g1.update_cell_map();
+
       g2.cell_map_updated = false;
       g2.is_sorted = false;
       g2.update_cell_map();
@@ -141,8 +144,9 @@ struct Collisions {
       std::vector<std::size_t> cell_ids(g1.cell_map.size());
       std::transform(g1.cell_map.begin(), g1.cell_map.end(), cell_ids.begin(), [](auto& kv) { return kv.first; });
 
-      #pragma omp parallel for num_threads(nThreads)
+      // #pragma omp parallel for num_threads(nThreads)
       for (auto j = 0zu; j < cell_ids.size(); j++) {
+         const auto tid = omp_get_thread_num();
          const auto& z_code = cell_ids[j];
 
          if (!g1.cell_map.contains(z_code) or !g2.cell_map.contains(z_code)) {
@@ -159,6 +163,8 @@ struct Collisions {
          const auto np1_lt_np2 = np1 < np2;
       
          const auto n_partners = specs.self_scatter ? np1 - 1 + np1 % 2 : std::max(np1, np2);
+         const auto n_pairs = specs.self_scatter ? n_partners / 2 : n_partners;
+         // const auto n_pairs = n_partners / 2;
          const auto scatter_coef = dt_vol * static_cast<double>(n_partners);
       
          std::vector<std::size_t> pids1(n_partners);
@@ -210,14 +216,13 @@ struct Collisions {
          std::ranges::shuffle(pids1, generator);
          // std::ranges::shuffle(pids2, generator);
 
-         for (auto i = 0zu; i < n_partners; ++i) {
-            const auto tid = omp_get_thread_num();
+         for (auto i = 0zu; i < n_pairs; ++i) {
             const auto pid1 = pids1[i];
             const auto pid2 = pids2[i];
 
             auto& p1 = cell1[pid1];
             auto& p2 = cell2[pid2];
-            if (p1.is_disabled() or p2.is_disabled()) { continue; }
+            if (p1.is_disabled() or p2.is_disabled() or (specs.self_scatter and pid1 == pid2)) { continue; }
       
             const auto dups = std::max(
                 np1_lt_np2 ? nDups[pid1] : 1.0,
@@ -241,8 +246,9 @@ struct Collisions {
             };
       
             // coulombCollision(has_coulomb, pair_data, specs, cell_data);
+
+            // const auto channel_idx = static_cast<std::size_t>(rngs[0] * n_channels);
       
-            // // todo: add randomly selecting channel when more channels are added.
             // ionizationCollision(
             //    has_ionization,
             //    pair_data,
@@ -263,7 +269,7 @@ struct Collisions {
             );
          } // end for(npairs)
       } // end for(z_code, cell1)
-      
+
       for (auto& [k, v] : buffers) {
          // todo: check this logic to make sure its valid for all collision types (not just ionization)
          if (!v.g1_products.empty()) {
