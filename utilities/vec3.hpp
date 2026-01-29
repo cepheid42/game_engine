@@ -2,9 +2,10 @@
 #define TRIFORCE_VECTOR_H
 
 #include <cmath>
-#include <utility>
-#include <string>
+#include <format>
 #include <iostream>
+#include <string>
+#include <type_traits>
 
 // ===== Vector Types =====
 // ========================
@@ -61,15 +62,20 @@ struct vec3 {
    //    return *this;
    // }
 
-   template <typename U>
-   constexpr auto as_type() const -> vec3<U> {
-      return vec3<U>{static_cast<U>(x),
-                     static_cast<U>(y),
-                     static_cast<U>(z)};
+   [[nodiscard]] constexpr auto to_float() const -> vec3<float> {
+      return vec3<float>{static_cast<float>(x),
+                  static_cast<float>(y),
+                  static_cast<float>(z)};
    }
 
-   friend constexpr bool operator==(const vec3& u, const vec3& v) { return u.x == v.x and u.y == v.y and u.z == v.z; }
-   friend constexpr bool operator!=(const vec3& u, const vec3& v) { return !(u == v); }
+   [[nodiscard]] constexpr auto to_double() const -> vec3<double> {
+      return vec3<double>{static_cast<double>(x),
+                  static_cast<double>(y),
+                  static_cast<double>(z)};
+   }
+
+   // friend constexpr bool operator==(const vec3& u, const vec3& v) { return u.x == v.x and u.y == v.y and u.z == v.z; }
+   // friend constexpr bool operator!=(const vec3& u, const vec3& v) { return !(u == v); }
 
    template <std::size_t I> constexpr auto& get() & { return this->operator[](I); }
    template <std::size_t I> constexpr const auto& get() const & { return this->operator[](I); }
@@ -134,7 +140,7 @@ constexpr auto operator-(const T s, const tf::vec3<T>& u) -> tf::vec3<T> {
 }
 
 // ===== vec3-vec3 Operators =====
-// =================================
+// ===============================
 template <typename T>
 constexpr auto operator+(const tf::vec3<T>& u, const tf::vec3<T>& v) -> tf::vec3<T> {
    return {u.x + v.x, u.y + v.y, u.z + v.z};

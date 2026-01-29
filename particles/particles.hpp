@@ -90,9 +90,9 @@ static void initializeFromFile(const std::string& filename, auto& group) {
 
       group.particles.emplace_back(
          gamma,
-         (vel / constants::c).as_type<float>(),
-         loc.as_type<float>(),
-         loc.as_type<float>(),
+         (vel / constants::c).to_float(),
+         loc.to_float(),
+         loc.to_float(),
          static_cast<float>(weight)
       );
    }

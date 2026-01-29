@@ -41,44 +41,28 @@ struct COMData {
    double gamma_rel;
 };
 
-auto calculate_P1f_cm(const auto& com, const auto U, const auto scatteringAngles)
--> std::tuple<vec3<double>, double>
+// =====================================================================================================
+// =============== Coulomb Collisions ==================================================================
+void coulombCollision(const auto& params, const auto& spec, const auto& cell_data)
 {
-   const auto& p1 = com.p1;
-   const auto p1_len = p1.length();
-
-   const auto [cos_theta, sin_theta] = scatteringAngles;
-   const auto phi = 2.0 * constants::pi * U;
-   const auto dv0 = sin_theta * std::cos(phi);
-   const auto dv1 = sin_theta * std::sin(phi);
-
-   // Perez (2012) eq 12
-   const auto p1_perp = std::sqrt(math::SQR(p1[0]) + math::SQR(p1[1]));
-   const vec3 p1f_cm {
-       dv0 * (p1[0] * p1[2] / p1_perp) - dv1 * (p1[1] * p1_len / p1_perp) + cos_theta * p1[0],
-       dv0 * (p1[1] * p1[2] / p1_perp) + dv1 * (p1[0] * p1_len / p1_perp) + cos_theta * p1[1],
-      -dv0 * p1_perp + cos_theta * p1[2]
-   };
-
-   const auto pcoef_lab = (com.gamma - 1.0) * dot(com.vcm, p1f_cm) / com.vcm.length_squared();
-   return {p1f_cm, pcoef_lab};
-}
-
-void updateParticle(auto& p, const auto m, const auto& pf, const auto pcoef, const auto& vcm, const auto gamma, const auto gamma_cm) {
-   // Perez (2012) eq 13
-   const auto p1f = pf + vcm * (pcoef + m * gamma * gamma_cm);
-   const auto gamma1f = particles::calculateGammaP(p1f, m);
-   p.beta = (p1f / (m * gamma1f * constants::c)).template as_type<float>();
-   p.gamma = gamma1f;
-}
-
-auto getCOMData(const auto& particle1, const auto& particle2, const auto m1, const auto m2)
--> COMData
-{
-   const auto& v1 = particle1.beta.template as_type<double>() * constants::c;
-   const auto& v2 = particle2.beta.template as_type<double>() * constants::c;
+   auto& particle1 = params.particle1;
+   auto& particle2 = params.particle2;
+   const auto& m1 = params.mass1;
+   const auto& m2 = params.mass2;
+   const auto v1 = particle1.beta.to_double() * constants::c;
+   const auto v2 = particle2.beta.to_double() * constants::c;
+   const auto& w1 = particle1.weight;
+   const auto& w2 = particle2.weight;
    const auto& gamma1 = particle1.gamma;
    const auto& gamma2 = particle2.gamma;
+   const auto& cspec = spec.coulomb;
+
+   const auto scatter_p1 = params.rand[0] * w1 < w2;
+   const auto scatter_p2 = params.rand[0] * w2 < w1;
+   const auto dv_length = (v1 - v2).length();
+
+   // parallel particles or self particles can cause divide by zero errors
+   if (!(scatter_p1 or scatter_p2) or dv_length == 0.0) { return; }
 
    const auto p1 = gamma1 * m1 * v1;
    const auto p2 = gamma2 * m2 * v2;
@@ -105,38 +89,10 @@ auto getCOMData(const auto& particle1, const auto& particle2, const auto m1, con
    const auto gamma_rel = 1.0 / std::sqrt(1.0 - vrel2_cm * constants::over_c_sqr);
 
    const auto p1_star = p1 + m1 * gamma1 * vcm * ((gamma_cm - 1.0) * vcm_dot_u1 / vcm2 - gamma_cm);
-
-   return {p1_star, vcm, gamma_cm, gamma1_cm, gamma2_cm, gamma_rel};
-} // end getCOMData()
-
-// =====================================================================================================
-// =============== Coulomb Collisions ==================================================================
-void coulombCollision(const auto& params, const auto& spec, const auto& cell_data)
-{
-   auto& particle1 = params.particle1;
-   auto& particle2 = params.particle2;
-   const auto& m1 = params.mass1;
-   const auto& m2 = params.mass2;
-   const auto& v1 = particle1.beta.template as_type<double>() * constants::c;
-   const auto& v2 = particle2.beta.template as_type<double>() * constants::c;
-   const auto& w1 = particle1.weight;
-   const auto& w2 = particle2.weight;
-   const auto& gamma1 = particle1.gamma;
-   const auto& gamma2 = particle2.gamma;
-   const auto& cspec = spec.coulomb;
-
-   const auto scatter_p1 = params.rand[0] * w1 < w2;
-   const auto scatter_p2 = params.rand[0] * w2 < w1;
-   const auto dv_length = (v1 - v2).length();
-
-   // parallel particles or self particles can cause divide by zero errors
-   if (!(scatter_p1 or scatter_p2) or dv_length == 0.0) { return; }
-
-   const auto com = getCOMData(particle1, particle2, m1, m2);
-
-   const auto p1_star_len = com.p1.length();
-   const auto gamma_coef1 = com.gamma / (m1 * gamma1 + m2 * gamma2);
-   const auto gamma_coef2 = 1.0 + constants::c_sqr * (com.gamma1 * m1) * (com.gamma2 * m2) / math::SQR(p1_star_len);
+   
+   const auto p1_star_len = p1_star.length();
+   const auto gamma_coef1 = gamma_cm / (m1 * gamma1 + m2 * gamma2);
+   const auto gamma_coef2 = 1.0 + constants::c_sqr * (gamma1_cm * m1) * (gamma2_cm * m2) / math::SQR(p1_star_len);
 
    double coulomb_log_pairwise{cspec.coulomb_log};
    if (coulomb_log_pairwise <= 0.0) {
@@ -163,14 +119,36 @@ void coulombCollision(const auto& params, const auto& spec, const auto& cell_dat
       return {cos_theta, std::sqrt(1.0 - math::SQR(cos_theta))};
    };
 
-   const auto& [p1f, pcoef] = calculate_P1f_cm(com, params.rand[2], getScatteringAngles());
+   // COMData com{p1_star, vcm, gamma_cm, gamma1_cm, gamma2_cm, gamma_rel};
+   // const auto& [p1f, pcoef] = calculate_P1f_cm(com, params.rand[2], getScatteringAngles());
+
+   const auto [cos_theta, sin_theta] = getScatteringAngles();
+   const auto phi = 2.0 * constants::pi * params.rand[2];
+   const auto dv0 = sin_theta * std::cos(phi);
+   const auto dv1 = sin_theta * std::sin(phi);
+
+   // Perez (2012) eq 12
+   const auto p1_perp = std::sqrt(math::SQR(p1[0]) + math::SQR(p1[1]));
+   const vec3 p1f_cm {
+      dv0 * (p1[0] * p1[2] / p1_perp) - dv1 * (p1[1] * p1_star_len / p1_perp) + cos_theta * p1[0],
+      dv0 * (p1[1] * p1[2] / p1_perp) + dv1 * (p1[0] * p1_star_len / p1_perp) + cos_theta * p1[1],
+     -dv0 * p1_perp + cos_theta * p1[2]
+   };
+
+   const auto pcoef = (gamma_cm - 1.0) * dot(vcm, p1f_cm) / vcm.length_squared();
 
    if (scatter_p1) {
-      updateParticle(particle1, m1, p1f, pcoef, com.vcm, com.gamma1, com.gamma);
+      const auto p1_final = p1f_cm + vcm * (pcoef + m1 * gamma1_cm * gamma_cm);
+      const auto gamma1f = particles::calculateGammaP(p1_final, m1);
+      particle1.beta = (p1_final / (m1 * gamma1f * constants::c)).to_float();
+      particle1.gamma = gamma1f;
    }
 
    if (scatter_p2) {
-      updateParticle(particle2, m2, -p1f, -pcoef, com.vcm, com.gamma2, com.gamma);
+      const auto p2_final = -p1f_cm + vcm * (-pcoef + m2 * gamma2_cm * gamma_cm);
+      const auto gamma2f = particles::calculateGammaP(p2_final, m2);
+      particle1.beta = (p2_final / (m2 * gamma2f * constants::c)).to_float();
+      particle1.gamma = gamma2f;
    }
 } // end coulombCollision()
 
@@ -186,11 +164,12 @@ void ionizationCollision(
    auto& particle2 = params.particle2;
    const auto& m1 = params.mass1;
    const auto& m2 = params.mass2;
-   const auto& v1 = particle1.beta.template as_type<double>() * constants::c;
-   const auto& v2 = particle2.beta.template as_type<double>() * constants::c;
+   const auto v1 = particle1.beta.to_double() * constants::c;
+   const auto v2 = particle2.beta.to_double() * constants::c;
    const auto& w1 = particle1.weight; // Do not use weight/dup here;
    const auto& w2 = particle2.weight;
    const auto& gamma1 = particle1.gamma;
+   const auto& gamma2 = particle2.gamma;
    const auto& ionization = spec.ionization;
 
    const auto wi_eff = w2 / ionization.rejection_multiplier;
@@ -207,8 +186,31 @@ void ionizationCollision(
    // parallel particles can cause divide by zero errors
    if (!(target_ionizes or electron_scatters) or dv_len == 0.0) { return; }
 
-   const auto com = getCOMData(particle1, particle2, m1, m2);
-   const auto energy_com_eV = (com.gamma_rel - 1.0) * params.reduced_mass * constants::c_sqr / constants::q_e;
+   const auto p1 = gamma1 * m1 * v1;
+   const auto p2 = gamma2 * m2 * v2;
+   
+   const auto vcm = (p1 + p2) / (m1 * gamma1 + m2 * gamma2);
+   const auto vcm2 = vcm.length_squared();
+   const auto gamma_cm = 1.0 / std::sqrt(1.0 - vcm2 * constants::over_c_sqr);
+   
+   const auto u1 = p1 / m1;
+   const auto u2 = p2 / m2;
+   
+   const auto vcm_dot_u1 = dot(vcm, u1);
+   const auto vcm_dot_u2 = dot(vcm, u2);
+   
+   const auto gamma1_cm = (gamma1 - vcm_dot_u1 * constants::over_c_sqr) * gamma_cm;
+   const auto gamma2_cm = (gamma2 - vcm_dot_u2 * constants::over_c_sqr) * gamma_cm;
+   
+   const auto u1_cm = u1 + ((gamma_cm - 1.0) / vcm2 * vcm_dot_u1 - gamma_cm * gamma1) * vcm;
+   const auto u2_cm = u2 + ((gamma_cm - 1.0) / vcm2 * vcm_dot_u2 - gamma_cm * gamma2) * vcm;
+   
+   const auto dv2_cm = (u1_cm / gamma1_cm - u2_cm / gamma2_cm).length_squared();
+   const auto vrel2_cm = dv2_cm / math::SQR(1.0 - dv2_cm * constants::over_c_sqr);
+   
+   const auto gamma_rel = 1.0 / std::sqrt(1.0 - vrel2_cm * constants::over_c_sqr);
+   
+   const auto energy_com_eV = (gamma_rel - 1.0) * params.reduced_mass * constants::c_sqr / constants::q_e;
 
    // Skip if COM energy is below ionization energy threshold
    if (energy_com_eV <= ionization.ionization_energy) { return; }
@@ -243,12 +245,11 @@ void ionizationCollision(
       const auto gamma_ejected = particles::calculateGammaP(p_ejected, m1);
       const auto v_ejected = p_ejected / (gamma_ejected * m1 * constants::c);
 
-      // todo: is this enough to keep OpenMP threads from stepping on each other?
       #pragma omp critical
       {
          buffers.g1_products.emplace_back(
             gamma_ejected,
-            v_ejected.template as_type<float>(),
+            v_ejected.to_float(),
             particle2.location,
             particle2.location,
             product_weight
@@ -263,29 +264,63 @@ void ionizationCollision(
          );
       }
 
-      particle2.weight -= product_weight;
+      particle2.weight -= static_cast<float>(product_weight);
    } // end target_ionizes
-
-   particles::Particle e_scattered{
-      gamma_scatter,
-      v_scatter.template as_type<float>(),
-      {}, {}, -1.0
-   };
-
+   
    auto getScatteringAngle = [&]() -> std::array<double, 2> {
       const auto cos_theta = 2.0 * params.rand[4] - 1.0;
       return {cos_theta, std::sqrt(1.0 - math::SQR(cos_theta))};
    };
 
-   const auto com_scatter = getCOMData(e_scattered, particle2, m1, m2);
-   const auto& [p1f, pcoef] = calculate_P1f_cm(com_scatter, params.rand[3], getScatteringAngle());
+   const auto p1s = gamma_scatter * m1 * v_scatter;
+   
+   const auto vcms = (p1s + p2) / (m1 * gamma1 + m2 * gamma2);
+   const auto vcm2s = vcms.length_squared();
+   const auto gamma_cms = 1.0 / std::sqrt(1.0 - vcm2s * constants::over_c_sqr);
+   
+   const auto u1s = p1s / m1;
+   const auto vcm_dot_u1s = dot(vcms, u1s);
+   const auto vcm_dot_u2s = dot(vcms, u2);
+   
+   const auto gamma1_cms = (gamma1 - vcm_dot_u1s * constants::over_c_sqr) * gamma_cms;
+   const auto gamma2_cms = (gamma2 - vcm_dot_u2s * constants::over_c_sqr) * gamma_cms;
+   
+   const auto u1_cms = u1s + vcms * ((gamma_cms - 1.0) / vcm2s * vcm_dot_u1s - gamma_cms * gamma1);
+   const auto u2_cms = u2 + vcms * ((gamma_cms - 1.0) / vcm2s * vcm_dot_u2s - gamma_cms * gamma2);
+   
+   const auto dv2_cms = (u1_cms / gamma1_cms - u2_cms / gamma2_cms).length_squared();
+   const auto vrel2_cms = dv2_cms / math::SQR(1.0 - dv2_cms * constants::over_c_sqr);
+
+   const auto p1s_star = p1s + m1 * gamma1 * vcms * ((gamma_cms - 1.0) * vcm_dot_u1s / vcm2s - gamma_cms);
+   const auto p1s_len = p1s_star.length();
+
+   const auto [cos_theta, sin_theta] = getScatteringAngle();
+   const auto phi = 2.0 * constants::pi * params.rand[3];
+   const auto dv0 = sin_theta * std::cos(phi);
+   const auto dv1 = sin_theta * std::sin(phi);
+   
+   // Perez (2012) eq 12
+   const auto p1_perp = std::sqrt(math::SQR(p1s[0]) + math::SQR(p1s[1]));
+   const vec3 p1f_cm {
+      dv0 * (p1s[0] * p1s[2] / p1_perp) - dv1 * (p1s[1] * p1s_len / p1_perp) + cos_theta * p1s[0],
+      dv0 * (p1s[1] * p1s[2] / p1_perp) + dv1 * (p1s[0] * p1s_len / p1_perp) + cos_theta * p1s[1],
+     -dv0 * p1_perp + cos_theta * p1s[2]
+  };
+
+   const auto pcoef = (gamma_cms - 1.0) * dot(vcms, p1f_cm) / vcm2s;
 
    if (electron_scatters) {
-      updateParticle(particle1, m1, p1f, pcoef, com_scatter.vcm, com_scatter.gamma1, com_scatter.gamma);
+      const auto p1s_final = p1f_cm + vcms * (pcoef + m1 * gamma1_cms * gamma_cms);
+      const auto gamma1f = particles::calculateGammaP(p1s_final, m1);
+      particle1.beta = (p1s_final / (m1 * gamma1f * constants::c)).to_float();
+      particle1.gamma = gamma1f;
    }
 
    if (target_ionizes) {
-      updateParticle(particle2, m2, -p1f, -pcoef, com_scatter.vcm, com_scatter.gamma2, com_scatter.gamma);
+      const auto p2s_final = -p1f_cm + vcms * (-pcoef + m2 * gamma2_cms * gamma_cms);
+      const auto gamma2f = particles::calculateGammaP(p2s_final, m2);
+      particle2.beta = (p2s_final / (m2 * gamma2f * constants::c)).to_float();
+      particle2.gamma = gamma2f;
    }
 } // end ionizationCollision()
 
@@ -303,8 +338,8 @@ void fusionCollision(
    auto& particle2 = params.particle2;
    const auto& m1 = params.mass1;
    const auto& m2 = params.mass2;
-   const auto& v1 = particle1.beta.template as_type<double>() * constants::c;
-   const auto& v2 = particle2.beta.template as_type<double>() * constants::c;
+   const auto v1 = particle1.beta.to_double() * constants::c;
+   const auto v2 = particle2.beta.to_double() * constants::c;
    const auto& w1 = particle1.weight;
    const auto& w2 = particle2.weight;
    const auto& gamma1 = particle1.gamma;
@@ -422,7 +457,7 @@ void fusionCollision(
       // Half of each product is placed at each input particle position, for 4 total particles
       buffers.g1_products.emplace_back(
          gamma_prod1,
-         (v_prod1 / constants::c).template as_type<float>(),
+         (v_prod1 / constants::c).to_float(),
          particle1.location,
          particle1.location,
          product_weight / 2.0
@@ -430,7 +465,7 @@ void fusionCollision(
 
       buffers.g1_products.emplace_back(
          gamma_prod1,
-         (v_prod1 / constants::c).template as_type<float>(),
+         (v_prod1 / constants::c).to_float(),
          particle2.location,
          particle2.location,
          product_weight / 2.0
@@ -438,7 +473,7 @@ void fusionCollision(
 
       buffers.g2_products.emplace_back(
          gamma_prod2,
-         (v_prod2 / constants::c).template as_type<float>(),
+         (v_prod2 / constants::c).to_float(),
          particle1.location,
          particle1.location,
          product_weight / 2.0
@@ -446,15 +481,15 @@ void fusionCollision(
 
       buffers.g2_products.emplace_back(
          gamma_prod2,
-         (v_prod2 / constants::c).template as_type<float>(),
+         (v_prod2 / constants::c).to_float(),
          particle2.location,
          particle2.location,
          product_weight / 2.0
       );
    }
 
-   particle1.weight -= product_weight;
-   particle2.weight -= product_weight;
+   particle1.weight -= static_cast<float>(product_weight);
+   particle2.weight -= static_cast<float>(product_weight);
 } // end fusionCollision()
 
 
