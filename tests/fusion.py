@@ -297,7 +297,6 @@ for i, t in enumerate(collision_temps):
         sigmaDD, fwhmDD = calc_sigma_fwhm_dyde(weights, gammas, final_time, 1.0)
         DD_reactivity_sim[i] = sigmaDD
         DD_fwhm[i] = fwhmDD
-        print(weights.shape, gammas.shape)
 
     if has_DT:
         # plot DT
@@ -323,4 +322,6 @@ if has_DT:
 ax[0].legend(loc=4)
 ax[0].text(0.04, 0.9, '(a)', fontsize=18, weight='bold', transform=ax[0].transAxes)
 ax[1].text(0.04, 0.9, '(b)', fontsize=18, weight='bold', transform=ax[1].transAxes)
-plt.show()
+plt.savefig(particle_data + f'/fusion_test_reactivity_fwhm.png')
+plt.close(fig)
+# plt.show()

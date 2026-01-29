@@ -101,18 +101,18 @@ sim_params = Simulation(
     em_enabled=False
 )
 
-print(f'Setting up "{sim_name}"')
-create_particles(sim_params, carbon1, particle_data)
-create_particles(sim_params, carbon2, particle_data)
-update_header(sim_params, project_path=project_path)
-
-subprocess.run(
-    ['meson', 'compile', '-C', build_path, '-j4'],
-    stdout=subprocess.DEVNULL,
-    stderr=subprocess.DEVNULL
-).check_returncode()
-
-subprocess.run(build_path + '/game_engine').check_returncode()
+# print(f'Setting up "{sim_name}"')
+# create_particles(sim_params, carbon1, particle_data)
+# create_particles(sim_params, carbon2, particle_data)
+# update_header(sim_params, project_path=project_path)
+#
+# subprocess.run(
+#     ['meson', 'compile', '-C', build_path, '-j4'],
+#     stdout=subprocess.DEVNULL,
+#     stderr=subprocess.DEVNULL
+# ).check_returncode()
+#
+# subprocess.run(build_path + '/game_engine').check_returncode()
 
 
 def calculate_Temp(t, group_name):
@@ -142,7 +142,12 @@ for n in range(0, stop, step):
 carbon2_data = np.asarray(carbon2_data)
 
 time = np.linspace(0, t_end, stop // step) # picoseconds
+
+plt.style.use('/home/cepheid/TriForce/game_engine/data/triforce.mplstyle')
+good_colors = ['#db6d00', '#006ddb', '#920000', '#52a736', '#9B30FF']
+
 fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
+
 
 eV_to_erg = 1.60218e-12
 s_to_ps = 1.0e12
@@ -157,14 +162,18 @@ mu = coef * (Z_carbon * 4.8e-10)**4 * coulomb_log * n_carbon_cm / (m_carbon_g**0
 Tc1 = 0.5 * (T_hot + T_cold) + 0.5 * (T_hot - T_cold) * np.exp(-mu * time)
 Tc2 = 0.5 * (T_hot + T_cold) + 0.5 * (T_cold - T_hot) * np.exp(-mu * time)
 
-ax.plot(time * s_to_ps, Tc1, label='Carbon1 Theory')
-ax.plot(time * s_to_ps, Tc2, label='Carbon2 Theory')
+ax.plot(time * s_to_ps, Tc1, '-k', label='Fluid Model')
+ax.plot(time * s_to_ps, Tc2, '-k', label='Fluid Model')
 
-ax.plot(time * s_to_ps, carbon1_data, label='Carbon1')
-ax.plot(time * s_to_ps, carbon2_data, label='Carbon2')
+ax.plot(time * s_to_ps, carbon1_data,  linestyle='-', c=good_colors[0], label='Carbon1')
+ax.plot(time * s_to_ps, carbon2_data,  linestyle='-', c=good_colors[1], label='Carbon2')
 
 ax.set_xlabel('Time (ps)')
-ax.set_ylabel('T (eV)')
-ax.set_title(f'Total Particle Temperature')
+ax.set_ylabel('Temperature (eV)')
+# ax.set_xlim([0, 5])
+# ax.set_ylim([200, 1300])
 ax.legend()
-plt.show()
+
+plt.savefig(particle_data + f'/carbon_eq_test_temperature.png')
+plt.close(fig)
+# plt.show()

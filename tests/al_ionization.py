@@ -129,18 +129,18 @@ sim_params = Simulation(
     jdep_enabled=False
 )
 
-print(f'Setting up "{sim_name}"')
-create_particles(sim_params, electrons, particle_data)
-create_particles(sim_params, neutral_aluminum, particle_data)
-update_header(sim_params, project_path=project_path, ionization_test_override=True)
-
-subprocess.run(
-    ['meson', 'compile', '-C', build_path, '-j4'],
-    stdout=subprocess.DEVNULL,
-    stderr=subprocess.DEVNULL
-).check_returncode()
-
-subprocess.run(build_path + '/game_engine').check_returncode()
+# print(f'Setting up "{sim_name}"')
+# create_particles(sim_params, electrons, particle_data)
+# create_particles(sim_params, neutral_aluminum, particle_data)
+# update_header(sim_params, project_path=project_path, ionization_test_override=True)
+#
+# subprocess.run(
+#     ['meson', 'compile', '-C', build_path, '-j4'],
+#     stdout=subprocess.DEVNULL,
+#     stderr=subprocess.DEVNULL
+# ).check_returncode()
+#
+# subprocess.run(build_path + '/game_engine').check_returncode()
 
 step = save_interval
 start = step
@@ -156,14 +156,30 @@ ionized = np.asarray(ionized)
 v_beam = 1.32523e7
 sigma = 1.428e-20
 e_den = 1.1e27
-time_thry = np.linspace(0, 6, 100) * 0.53e-15
+omega_p_inv = 0.53e-15
+
+time_thry = np.linspace(0, 6, 100) * omega_p_inv
 charge_thry = 1.0 - np.exp(-v_beam * e_den * sigma * time_thry)
 
 time = dt * np.arange(start, stop, step)
 mean_ion_charge = ionized / 6.6e10
 
-fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
-ax.plot(time_thry, charge_thry)
-ax.plot(time, mean_ion_charge)
+plt.style.use('/home/cepheid/TriForce/game_engine/data/triforce.mplstyle')
+good_colors = ['#db6d00', '#006ddb', '#920000', '#52a736', '#9B30FF']
 
-plt.show()
+fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
+ax.set_title('Mean ion charge', fontsize=16, loc='left')
+# ax[1].set_title('(b) Particle count', fontsize=16, loc='left')
+ax.set_ylim([0.0, 0.5])
+ax.set_xlabel('Time (s)')
+ax.tick_params(axis='x', pad=8)
+ax.grid()
+
+ax.plot(time_thry, charge_thry, '-k', label="Theory")
+ax.plot(time, mean_ion_charge, c=good_colors[0], label=r'$M_{\mathrm{p}}=10^0$',
+        linestyle='none', marker='o', mec=good_colors[0], mew=1.5, ms=5)
+
+ax.legend(loc=4)
+plt.savefig(particle_data + f'/ionization_test_mean_ion_charge.png')
+plt.close(fig)
+# plt.show()

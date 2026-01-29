@@ -551,28 +551,13 @@ def fusion(stop, groups):
 
 
 def main():
-    # step = 100
-    # start = 0
-    # stop = 10000
-    # file_dir = '/carbon_thermal_eq'
-    # plot_Temp(['carbon1', 'carbon2'], start, stop, step, file_dir)
-
-    step = 10
-    start = 10
-    stop = 600
-    file_dir = '/ionization'
-    ionization(start, stop, step, file_dir)
-
-    # stop = 20
-    # fusion(stop, ['DD', 'DT'])
-
     # plot_distributions(start, stop, step, 'carbon1', file_dir)
     # plot_distributions(start, stop, step, 'carbon2', file_dir)
 
-    # targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop + step, step)]
-    # with mp.Pool(16) as p:
-    #    p.starmap(plot_metric, targs)
-    #
+    targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop + step, step)]
+    with mp.Pool(16) as p:
+       p.starmap(plot_metric, targs)
+
     # targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
     #    p.starmap(plot_metric, targs)

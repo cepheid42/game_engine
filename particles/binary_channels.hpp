@@ -68,15 +68,15 @@ void updateParticle(auto& p, const auto m, const auto& pf, const auto pcoef, con
    // Perez (2012) eq 13
    const auto p1f = pf + vcm * (pcoef + m * gamma * gamma_cm);
    const auto gamma1f = particles::calculateGammaP(p1f, m);
-   p.velocity = p1f / (m * gamma1f);
+   p.beta = (p1f / (m * gamma1f * constants::c)).template as_type<float>();
    p.gamma = gamma1f;
 }
 
 auto getCOMData(const auto& particle1, const auto& particle2, const auto m1, const auto m2)
 -> COMData
 {
-   const auto& v1 = particle1.velocity;
-   const auto& v2 = particle2.velocity;
+   const auto& v1 = particle1.beta.template as_type<double>() * constants::c;
+   const auto& v2 = particle2.beta.template as_type<double>() * constants::c;
    const auto& gamma1 = particle1.gamma;
    const auto& gamma2 = particle2.gamma;
 
@@ -117,8 +117,8 @@ void coulombCollision(const auto& params, const auto& spec, const auto& cell_dat
    auto& particle2 = params.particle2;
    const auto& m1 = params.mass1;
    const auto& m2 = params.mass2;
-   const auto& v1 = particle1.velocity;
-   const auto& v2 = particle2.velocity;
+   const auto& v1 = particle1.beta.template as_type<double>() * constants::c;
+   const auto& v2 = particle2.beta.template as_type<double>() * constants::c;
    const auto& w1 = particle1.weight;
    const auto& w2 = particle2.weight;
    const auto& gamma1 = particle1.gamma;
@@ -186,8 +186,8 @@ void ionizationCollision(
    auto& particle2 = params.particle2;
    const auto& m1 = params.mass1;
    const auto& m2 = params.mass2;
-   const auto& v1 = particle1.velocity;
-   const auto& v2 = particle2.velocity;
+   const auto& v1 = particle1.beta.template as_type<double>() * constants::c;
+   const auto& v2 = particle2.beta.template as_type<double>() * constants::c;
    const auto& w1 = particle1.weight; // Do not use weight/dup here;
    const auto& w2 = particle2.weight;
    const auto& gamma1 = particle1.gamma;
@@ -224,7 +224,7 @@ void ionizationCollision(
    auto scatter_probability = probability_coef * prod_mult;
 
    while (scatter_probability > spec.probability_search_area and prod_mult > 1.0) {
-      prod_mult /= 2.0;
+      prod_mult /= 10.0;
       scatter_probability = probability_coef * prod_mult;
    }
 
@@ -234,29 +234,29 @@ void ionizationCollision(
    const auto E_scatter = params.rand[1] * (energy_com_eV - ionization.ionization_energy);
    const auto p_scatter = v1 * gamma1 * m1 * std::sqrt(E_scatter / energy_com_eV); // todo: this can be simplified a bit, dont need p for anything but getting v
    const auto gamma_scatter = particles::calculateGammaP(p_scatter, m1);
-   const auto v_scatter = p_scatter / (gamma_scatter * m1);
+   const auto v_scatter = p_scatter / (gamma_scatter * m1 * constants::c);
 
    if (target_ionizes) {
-      const auto product_weight = std::min(w2, wi_eff * params.nDups / ionization.production_multiplier);
+      const auto product_weight = std::min(static_cast<double>(w2), wi_eff * params.nDups / ionization.production_multiplier);
       const auto E_ejected = energy_com_eV - ionization.ionization_energy - E_scatter;
       const auto p_ejected = v1 * gamma1 * m1 * std::sqrt(E_ejected / energy_com_eV); // todo: this can be simplified a bit, dont need p for anything but getting v
       const auto gamma_ejected = particles::calculateGammaP(p_ejected, m1);
-      const auto v_ejected = p_ejected / (gamma_ejected * m1);
+      const auto v_ejected = p_ejected / (gamma_ejected * m1 * constants::c);
 
       // todo: is this enough to keep OpenMP threads from stepping on each other?
       #pragma omp critical
       {
          buffers.g1_products.emplace_back(
-            v_ejected,
             gamma_ejected,
+            v_ejected.template as_type<float>(),
             particle2.location,
             particle2.location,
             product_weight
          );
 
          buffers.g2_products.emplace_back(
-            particle2.velocity,
             particle2.gamma,
+            particle2.beta,
             particle2.location,
             particle2.location,
             product_weight
@@ -267,8 +267,8 @@ void ionizationCollision(
    } // end target_ionizes
 
    particles::Particle e_scattered{
-      v_scatter,
       gamma_scatter,
+      v_scatter.template as_type<float>(),
       {}, {}, -1.0
    };
 
@@ -303,8 +303,8 @@ void fusionCollision(
    auto& particle2 = params.particle2;
    const auto& m1 = params.mass1;
    const auto& m2 = params.mass2;
-   const auto& v1 = particle1.velocity;
-   const auto& v2 = particle2.velocity;
+   const auto& v1 = particle1.beta.template as_type<double>() * constants::c;
+   const auto& v2 = particle2.beta.template as_type<double>() * constants::c;
    const auto& w1 = particle1.weight;
    const auto& w2 = particle2.weight;
    const auto& gamma1 = particle1.gamma;
@@ -421,32 +421,32 @@ void fusionCollision(
    {
       // Half of each product is placed at each input particle position, for 4 total particles
       buffers.g1_products.emplace_back(
-         v_prod1,
          gamma_prod1,
+         (v_prod1 / constants::c).template as_type<float>(),
          particle1.location,
          particle1.location,
          product_weight / 2.0
       );
 
       buffers.g1_products.emplace_back(
-         v_prod1,
          gamma_prod1,
+         (v_prod1 / constants::c).template as_type<float>(),
          particle2.location,
          particle2.location,
          product_weight / 2.0
       );
 
       buffers.g2_products.emplace_back(
-         v_prod2,
          gamma_prod2,
+         (v_prod2 / constants::c).template as_type<float>(),
          particle1.location,
          particle1.location,
          product_weight / 2.0
       );
 
       buffers.g2_products.emplace_back(
-         v_prod2,
          gamma_prod2,
+         (v_prod2 / constants::c).template as_type<float>(),
          particle2.location,
          particle2.location,
          product_weight / 2.0

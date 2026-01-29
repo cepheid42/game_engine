@@ -20,30 +20,24 @@
 namespace tf::particles
 {
 struct Particle {
-   vec3<double> velocity; // change to beta and make it a float
    double gamma;
-   vec3<double> location;
-   vec3<double> old_location;
-   double weight;
+   vec3<float> beta; // change to beta and make it a float
+   vec3<float> location;
+   vec3<float> old_location;
+   float weight;
 
    [[nodiscard]] bool is_disabled() const { return weight <= 0.0; }
 }; // end struct Particle
 
 template <typename T = std::size_t>
 constexpr vec3<T> getCellIndices(const auto& loc) {
-   return {
-      static_cast<T>(std::floor(loc[0])),
-      static_cast<T>(std::floor(loc[1])),
-      static_cast<T>(std::floor(loc[2]))
-   };
+   return {static_cast<T>(std::floor(loc[0])),
+           static_cast<T>(std::floor(loc[1])),
+           static_cast<T>(std::floor(loc[2]))};
 }
 
 constexpr std::size_t getCellIndex(const auto& loc) {
-   // todo: can probably replace x,y,z with the getCellIndices function above
-   // const auto [x, y, z] = getCellIndices(loc);
-   const auto x = static_cast<std::size_t>(std::floor(loc.x));
-   const auto y = static_cast<std::size_t>(std::floor(loc.y));
-   const auto z = static_cast<std::size_t>(std::floor(loc.z));
+   const auto [x, y, z] = getCellIndices(loc);
    return z + ((Nz - 1) * y) + ((Ny - 1) * (Nz - 1) * x);
 }
 
@@ -95,11 +89,11 @@ static void initializeFromFile(const std::string& filename, auto& group) {
       const auto gamma = g_vec[i];
 
       group.particles.emplace_back(
-         vel,
          gamma,
-         loc,
-         loc,
-         weight
+         (vel / constants::c).as_type<float>(),
+         loc.as_type<float>(),
+         loc.as_type<float>(),
+         static_cast<float>(weight)
       );
    }
    reader.EndStep();
