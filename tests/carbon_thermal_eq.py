@@ -101,18 +101,18 @@ sim_params = Simulation(
     em_enabled=False
 )
 
-# print(f'Setting up "{sim_name}"')
-# create_particles(sim_params, carbon1, particle_data)
-# create_particles(sim_params, carbon2, particle_data)
-# update_header(sim_params, project_path=project_path)
-#
-# subprocess.run(
-#     ['meson', 'compile', '-C', build_path, '-j4'],
-#     stdout=subprocess.DEVNULL,
-#     stderr=subprocess.DEVNULL
-# ).check_returncode()
-#
-# subprocess.run(build_path + '/game_engine').check_returncode()
+print(f'Setting up "{sim_name}"')
+create_particles(sim_params, carbon1, particle_data)
+create_particles(sim_params, carbon2, particle_data)
+update_header(sim_params, project_path=project_path)
+
+subprocess.run(
+    ['meson', 'compile', '-C', build_path, '-j4'],
+    stdout=subprocess.DEVNULL,
+    stderr=subprocess.DEVNULL
+).check_returncode()
+
+subprocess.run(build_path + '/game_engine').check_returncode()
 
 
 def calculate_Temp(t, group_name):

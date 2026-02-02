@@ -20,11 +20,11 @@
 namespace tf::particles
 {
 struct Particle {
+   vec3<double> velocity; // change to beta and make it a float
    double gamma;
-   vec3<float> beta; // change to beta and make it a float
-   vec3<float> location;
-   vec3<float> old_location;
-   float weight;
+   vec3<double> location;
+   vec3<double> old_location;
+   double weight;
 
    [[nodiscard]] bool is_disabled() const { return weight <= 0.0; }
 }; // end struct Particle
@@ -89,11 +89,11 @@ static void initializeFromFile(const std::string& filename, auto& group) {
       const auto gamma = g_vec[i];
 
       group.particles.emplace_back(
+         vel,
          gamma,
-         (vel / constants::c).to_float(),
-         loc.to_float(),
-         loc.to_float(),
-         static_cast<float>(weight)
+         loc,
+         loc,
+         weight
       );
    }
    reader.EndStep();

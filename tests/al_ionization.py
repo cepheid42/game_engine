@@ -129,18 +129,18 @@ sim_params = Simulation(
     jdep_enabled=False
 )
 
-# print(f'Setting up "{sim_name}"')
-# create_particles(sim_params, electrons, particle_data)
-# create_particles(sim_params, neutral_aluminum, particle_data)
-# update_header(sim_params, project_path=project_path, ionization_test_override=True)
-#
-# subprocess.run(
-#     ['meson', 'compile', '-C', build_path, '-j4'],
-#     stdout=subprocess.DEVNULL,
-#     stderr=subprocess.DEVNULL
-# ).check_returncode()
-#
-# subprocess.run(build_path + '/game_engine').check_returncode()
+print(f'Setting up "{sim_name}"')
+create_particles(sim_params, electrons, particle_data)
+create_particles(sim_params, neutral_aluminum, particle_data)
+update_header(sim_params, project_path=project_path, ionization_test_override=True)
+
+subprocess.run(
+    ['meson', 'compile', '-C', build_path, '-j4'],
+    stdout=subprocess.DEVNULL,
+    stderr=subprocess.DEVNULL
+).check_returncode()
+
+subprocess.run(build_path + '/game_engine').check_returncode()
 
 step = save_interval
 start = step
