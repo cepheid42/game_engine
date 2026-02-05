@@ -481,73 +481,107 @@ void fusionCollision(
 } // end fusionCollision()
 
 
-// void bremsstrahlungCollision(
-//    const auto& params,
-//    const auto& spec,
-//    auto& buffers,
-//    const auto& cs_table
-// )
-// {
-//    auto& particle1 = params.particle1;
-//    auto& particle2 = params.particle2;
-//    const auto& v1 = particle1.velocity;
-//    const auto& v2 = particle2.velocity;
-//    // const auto& w1 = particle1.weight;
-//    // const auto& w2 = particle2.weight;
-//    const auto& w1 = params.weight1;
-//    const auto& w2 = params.weight2; // todo: does this affect DT fusion? It doesn't affect DD.
-//    const auto& m1 = params.mass1;
-//    const auto& m2 = params.mass2;
-//    const auto& gamma1 = particle1.gamma;
-//    const auto& gamma2 = particle2.gamma;
-//    const auto& brem = spec.brem;
-//
-//    const auto beta_ve = v1 / constants::c;
-//    const auto beta_vi = v2 / constants::c;
-//    const auto beta_i2 = beta_vi.length_squared();
-//
-//    const auto beta_ei = dot(beta_ve, beta_vi);
-//    const auto gamma_ei = gamma1 * gamma2;
-//
-//    // Calculation is done in ion frame, so compute lorentz transform of electron velocity
-//    const auto coef = (gamma2 - 1.0) * beta_ei / beta_i2 - gamma2;
-//    const auto p_ep = gamma1 * m1 * v1 + coef * constants::m_e * constants::c_sqr * gamma1 * beta_ve;
-//    const auto gamma_ep = gamma_ei * (1.0 - beta_ei);
-//    const auto v_ep = p_ep.length() / (constants::m_e * gamma_ep);
-//
-//    // Electron energy in ion frame (eV)
-//    const auto electron_energy_eV = (gamma_ep - 1.0) * constants::m_e * constants::c_sqr / constants::q_e;
-//
-//    // todo: differential cross section
-//    // Total cross-section and photon energy from differential cross-section
-//    const auto cross_section_m2 = cs_table.lerp(electron_energy_eV);
-//
-//    const auto probability_coef = cross_section_m2 * params.max_weight * params.scatter_coef * brem.rate_multiplier * v_ep * gamma_ep / gamma_ei;
-//
-//    auto prod_mult = brem.production_multiplier;
-//    auto scatter_probability = probability_coef * prod_mult;
-//
-//    // Method requires P<1 so reduced the multiplier until that is satisfied
-//    while (scatter_probability > 1.0 and prod_mult > 1.0) {
-//       prod_mult /= 10.0;
-//       scatter_probability = probability_coef * prod_mult;
-//    }
-//
-//    // Production multiplier only applies to likelihood of photon production
-//    // and reduces weight accordingly. Use the probability computed without
-//    // the multiplier to determine if the electron loses energy
-//    auto make_photon = params.rand[0] < scatter_probability;
-//    auto remove_electron_energy = params.rand[0] < probability_coef and params.rand[0] <= w2 / params.max_weight and brem.reduce_electron_energy;
-//
-//    if (!(make_photon or remove_electron_energy)) { return; }
-//
-//    // Sample photon energy from cumulative differential cross-section
-//    // start by finding the closest electron energy in table.
-//
-//    // todo: here be dragons
-//
-// } // end bremsstrahlungCollision()
+void bremsstrahlungCollision(
+   const auto& params,
+   const auto& spec,
+   auto& buffers,
+   const auto& cs_table
+)
+{
+   auto& electron = params.particle1;
+   auto& ion = params.particle2;
+   const auto& v1 = electron.velocity;
+   const auto& v2 = ion.velocity;
+   const auto& w1 = electron.weight;
+   const auto& w2 = ion.weight;
+   const auto& m1 = params.mass1;
+   const auto& m2 = params.mass2;
+   const auto& gamma_e = electron.gamma;
+   const auto& gamma_i = ion.gamma;
+   const auto& brem = spec.radiation;
 
+   const auto p_e = gamma_e * m1 * v1;
+   const auto p_i = gamma_i * m2 * v2;
+
+   const auto beta_ve = p_e / constants::m_e_c_sqr;
+   const auto beta_vi = p_i / (m2 * constants::c_sqr);
+
+   const auto beta_ei = dot(beta_ve, beta_vi);
+   const auto beta_i2 = beta_vi.length_squared();
+   const auto gamma_ei = gamma_e * gamma_i;
+
+   // Calculation is done in ion frame, so compute lorentz transform of electron velocity
+   const auto coef = (gamma_i - 1.0) * beta_ei / beta_i2 - gamma_i;
+   const auto p_ep = p_e + coef * constants::m_e_c * gamma_e * beta_ve;
+   const auto gamma_ep = gamma_ei * (1.0 - beta_ei);
+   const auto v_ep = p_ep.length() / (constants::m_e * gamma_ep);
+
+   // Electron energy in ion frame (eV)
+   const auto electron_energy_eV = (gamma_ep - 1.0) * constants::m_e_c_sqr / constants::q_e;
+
+   // Total cross-section and photon energy from differential cross-section
+   const auto cross_section_m2 = cs_table.lerp_cumulative(electron_energy_eV);
+
+   const auto probability_coef = cross_section_m2 * params.max_weight * params.scatter_coef * brem.rate_multiplier
+                                 * v_ep * gamma_ep / gamma_ei;
+
+   auto prod_mult = brem.production_multiplier;
+   auto scatter_probability = probability_coef * prod_mult;
+
+   // Method requires P<1 so reduced the multiplier until that is satisfied
+   while (scatter_probability > 1.0 and prod_mult > 1.0) {
+      prod_mult /= 10.0;
+      scatter_probability = probability_coef * prod_mult;
+   }
+
+   // Production multiplier only applies to likelihood of photon production
+   // and reduces weight accordingly. Use the probability computed without
+   // the multiplier to determine if the electron loses energy
+   auto make_photon = params.rand[0] < scatter_probability;
+   auto remove_electron_energy = params.rand[0] < probability_coef and params.rand[2] <= w2 / params.max_weight and brem.reduce_electron_energy;
+
+   if (!(make_photon or remove_electron_energy)) { return; }
+
+   // Sample photon energy from cumulative differential cross-section
+   // start by finding the closest electron energy in table.
+   auto k_over_gm1 = cs_table.lerp(electron_energy_eV, params.rand[1]);
+
+   // _p stands for prime in Martinez
+   // photon energy and momentum in ion frame
+   const auto k_photon_energy_p = k_over_gm1 * (gamma_ep - 1.0);
+   const auto photon_momentum_p = k_photon_energy_p * p_ep / p_ep.length(); // unit_vector?
+
+   // Inverse lorentz transform of photon energy and momentum
+   const auto beta_photon_p = photon_momentum_p * constants::c;
+   const auto dot_beta_photon_p_i = dot(beta_photon_p, -beta_vi); // minus for inverse
+   const auto k_photon_energy = k_photon_energy_p * gamma_i * (1.0 - dot_beta_photon_p_i);
+
+   if (make_photon) {
+      const auto photon_momentum = photon_momentum_p * constants::m_e_c_sqr
+                                   + ((gamma_i - 1.0) / beta_i2 * dot_beta_photon_p_i - gamma_i)
+                                   * constants::m_e_c * k_photon_energy_p * beta_photon_p;
+      const auto photon_weight = std::min(w1, w2) / prod_mult;
+
+      // add photon to product buffer
+      buffers.g1_products.emplace_back(
+         photon_momentum,
+         k_photon_energy,
+         electron.location,
+         electron.location,
+         photon_weight
+      );
+   } // end if(make_photon)
+
+   if (remove_electron_energy) {
+      auto gamma_e_new = gamma_e - k_photon_energy;
+      if (gamma_e_new <= 1.0) {
+         gamma_e_new = 1.0 + 1.0e-8;
+      }
+      electron.gamma = gamma_e_new;
+      const auto new_momentum = p_e * std::sqrt((gamma_e_new - 1.0) / (gamma_e - 1.0));
+      electron.velocity = new_momentum / (m1 * gamma_e_new);
+   }
+} // end bremsstrahlungCollision()
 } // end namespace tf::collisions
 
 #endif //GAME_ENGINE_BINARY_CHANNELS_HPP

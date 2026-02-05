@@ -186,12 +186,132 @@ struct Table {
 };
 
 struct MultiTable {
-   std::vector<double> xs{};
-   std::vector<std::vector<double>> ys{};
+   std::vector<std::vector<double>> data;
+   std::array<double, 14> SB_k_over_gm1 = {1.0e-7, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.97, 0.99, 1.0};
 
    explicit MultiTable() = default;
-   // explicit MultiTable(const std::string& filepath) {}
-};
+   explicit MultiTable(const std::string& filepath)
+   : data(16)
+   {
+      using namespace tf;
+      std::ifstream file(std::string{sim_path} + filepath);
+
+      if (!file.is_open()) {
+         throw std::runtime_error("Unable to open cross section table: " + filepath);
+      }
+
+      double val{};
+      std::string line;
+      while (std::getline(file, line)) {
+         std::istringstream buffer(line);
+         std::size_t col{0zu};
+         while (buffer >> val) {
+            data[col].push_back(val);
+            col++;
+         }
+      }
+      file.close();
+
+      const auto n_energies = data[0].size();
+      const auto n_columns = SB_k_over_gm1.size();
+
+      for (auto i = 0zu; i < n_energies; ++i) {
+         data[0][i] *= 1.0e6; // MeV -> eV
+
+         const auto energy_eV = data[0][i];
+         const auto v = constants::c * std::sqrt(1.0 - 1.0 / math::SQR(1.0 + constants::q_e * energy_eV / constants::m_e_c_sqr));
+         const auto gm1 = 1.0 / std::sqrt(1.0 - math::SQR(v / constants::c)) - 1.0;
+
+         const auto sigma_ttl = data[n_columns + 1][i];
+
+         for (auto j = 1zu; j < n_columns; ++j) {
+            const auto k = SB_k_over_gm1[j - 1] * gm1;
+            double dk;
+            if (j == 1) {
+               dk = k;
+            } else {
+               dk = SB_k_over_gm1[j] * gm1 - k;
+            }
+
+            auto sigma_norm = data[j][i] * dk / k / sigma_ttl;
+
+            if (j == 1) {
+               data[j][i] = sigma_norm;
+            } else {
+               data[j][i] = data[j - 1][i] + sigma_norm;
+            }
+         }
+         data[n_columns + 1][i] *= 1.0e-28; // barns -> m^2
+      }
+      // for (auto i = 0zu; i < n_energies; ++i) {
+      //    for (auto j = 0zu; j < n_columns + 2; ++j) {
+      //       std::print("{}, ", data[j][i]);
+      //    }
+      //    std::println();
+      // }
+   }
+
+   auto lerp(const auto energy, const auto U) const {
+      // Find nearest energy index
+      // const auto E_upper = std::ranges::upper_bound(data[0], x);
+      // const auto E_idx = static_cast<std::size_t>(std::ranges::distance(data[0].cbegin(), E_upper));
+      //
+      // std::size_t k{};
+      // double sigma_cdf{};
+      // for (auto j = 1zu; j < data.size() - 1; ++j) {
+      //    if (data[j][E_idx] >= U) {
+      //       // std::println("{}, {}: {}", j - 1, E_idx, data[j - 1][E_idx]);
+      //       sigma_cdf = data[j - 1][E_idx];
+      //       k = j;
+      //       break;
+      //    }
+      // }
+
+      const auto n_columns = SB_k_over_gm1.size();
+
+      auto e_begin = data[0].begin();
+      auto e_end = data[0].end();
+      auto e_lb_index = std::lower_bound(e_begin, e_end, energy) - e_begin;
+
+      auto de_lb = std::abs(data[0][static_cast<size_t>(e_lb_index)] - energy);
+      auto de_lbm1 = std::abs(data[0][static_cast<size_t>(e_lb_index - 1)] - energy);
+
+      auto e_nearest_index = (de_lb < de_lbm1) ? e_lb_index : e_lb_index - 1;
+
+      size_t k_column = 0; // Starts at one since energy is in first column of table
+      auto sigma_cdf = data[k_column + 1][static_cast<size_t>(e_nearest_index)];
+      while (sigma_cdf < U and k_column < n_columns - 1) {
+         ++k_column;
+         sigma_cdf = data[k_column + 1][static_cast<size_t>(e_nearest_index)];
+      } // endwhile()
+
+      const auto k_over_gm1_i = SB_k_over_gm1[k_column];
+
+      double k_over_gm1;
+      if (k_column == 0) {
+         k_over_gm1 = k_over_gm1_i * U / sigma_cdf;
+      } else {
+         const auto k_over_gm1_m1 = SB_k_over_gm1[k_column - 1];
+         const auto sigma_norm_m1 = data[k_column][static_cast<size_t>(e_nearest_index)];
+         const auto frac = (U - sigma_norm_m1) / (sigma_cdf - sigma_norm_m1);
+         k_over_gm1 = k_over_gm1_m1 + (k_over_gm1_i - k_over_gm1_m1) * frac;
+      }
+
+      return k_over_gm1;
+   }
+
+   auto lerp_cumulative(const auto e) const {
+      const auto n_col = data.size() - 1;
+      const auto n_row = data[0].size() - 1;
+      if (e < data[0][1]) { return data[n_col][0]; }
+      if (e > data[0][n_row]) { return data[n_col][n_row]; }
+      const auto upper = std::ranges::upper_bound(data[0], e);
+      const auto idx = std::ranges::distance(data[0].cbegin(), upper) - 1;
+      const auto slope = (e - data[0][idx]) / (data[0][idx + 1] - data[0][idx]);
+      return std::lerp(data[n_col][idx], data[n_col][idx + 1], slope);
+   }
+}; // end struct MultiTable
+
 
 
 } // end namespace tf::interp

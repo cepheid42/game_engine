@@ -41,6 +41,7 @@ struct RadiationSpec {
    std::string_view product1{};
    std::string_view cross_section_file{};
    double production_multiplier{1.0};
+   double rate_multiplier{1.0};
    bool reduce_electron_energy{false};
 };
 

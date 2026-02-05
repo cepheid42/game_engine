@@ -53,6 +53,7 @@ struct Collisions {
 
    interp::Table ionization_cs{};
    interp::Table fusion_cs{};
+   interp::MultiTable brem_cs{};
 
    Collisions(const auto& params_, auto& group_map)
    : g1(group_map.at(std::string{params_.group1})),
@@ -98,6 +99,10 @@ struct Collisions {
             Products{&group_map.at(std::string(params_.radiation.product1))}
          );
          buffers.emplace("radiation", Buffers{});
+
+         if (not specs.radiation.cross_section_file.empty()) {
+            brem_cs = interp::MultiTable(std::string{specs.radiation.cross_section_file});
+         }
       }
 
       if (channels.empty()) { channels.push_back(ChannelType::None); }
@@ -137,14 +142,14 @@ struct Collisions {
                break;
             }
          case ChannelType::Bremmstrahlung:
-            // {
-            //    bremsstrahlungCollision(
-            //       pair_data,
-            //       specs,
-            //       buffers["bremmstrahlung"],
-            //       bremmstrahlung_cs
-            //    );
-            // }
+            {
+               bremsstrahlungCollision(
+                  pair_data,
+                  specs,
+                  buffers["radiation"],
+                  brem_cs
+               );
+            }
          default:
             break;
       }
@@ -271,7 +276,7 @@ struct Collisions {
             );
             const auto weight1 = p1.weight / dups;
             const auto weight2 = p2.weight / dups;
-      
+
             const auto idx = (static_cast<int>(i) + tid) % (NRNG - 6);
 
             ParticlePairData pair_data {

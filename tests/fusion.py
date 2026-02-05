@@ -149,6 +149,7 @@ for c in collision_types:
     for t in collision_temps:
         sim_name = f'{c}_fusion_{t}keV'
         print(f'Setting up "{sim_name}"')
+
         TeV = float(t) * 1.0e3
         deuterium.temp = (TeV, TeV, TeV)
         tritium.temp = (TeV, TeV, TeV)

@@ -71,7 +71,7 @@ int main() {
    timers["IO"].stop_timer();
 
    progress_bar->show();
-   for (step = 1; step <= Nt; step++, time += dt) {
+   for (step = 1, time = dt; step <= Nt; step++, time += dt) {
       // std::println("--------------- Step {} ---------------", step);
 
       // // Electromagnetics
