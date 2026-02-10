@@ -272,7 +272,7 @@ def update_header(params: Simulation, project_path: str, ionization_test_overrid
         f'{particle_types}\n'
         '};\n'
         '\n'
-        'inline constexpr std::array collision_spec = {\n'
+        f'inline constexpr std::array<CollisionSpec, {len(particles.collisions)}> collision_spec = {{\n'
         f'{collision_types}\n'
         '};\n'
         '\n'

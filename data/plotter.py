@@ -554,9 +554,9 @@ def main():
     # plot_distributions(start, stop, step, 'carbon1', file_dir)
     # plot_distributions(start, stop, step, 'carbon2', file_dir)
 
-    targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop + step, step)]
-    with mp.Pool(16) as p:
-       p.starmap(plot_metric, targs)
+    # targs = [(n, step, 'Density', 'electrons', file_dir) for n in range(start, stop + step, step)]
+    # with mp.Pool(16) as p:
+    #    p.starmap(plot_metric, targs)
 
     # targs = [(n, step, 'Density', 'ions', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
@@ -579,14 +579,12 @@ def main():
     # plot_single_field(0, 1, 'Ex', file_dir)
     # plot_single_field(0, 1, 'Ez', file_dir)
 
-    # fname = 'Tentori_pB_keV_mbarn.csv'
-    # oname = 'Tentori_pB_eV_m2.txt'
-    # data = np.genfromtxt('/home/cepheid/TriForce/game_engine/tests/mikes_files/' + fname, dtype=np.float64)
-    # data[:, 0] *= 1e3
-    # data[:, 1:] *= 1e-31
-    # np.savetxt('/home/cepheid/TriForce/game_engine/tests/cross_section_data/' + oname, data)
-
-
+    fname = 'SB_G4_Z29_kdsdk_MeV_barns.csv'
+    oname = 'SB_G4_Z29_kdsdk_eV_m2.txt'
+    data = np.genfromtxt('/home/cepheid/TriForce/game_engine/tests/mikes_files/' + fname, dtype=np.float64)
+    data[:, 0] *= 1e6
+    data[:, 1:] *= 1e-28
+    np.savetxt('/home/cepheid/TriForce/game_engine/tests/cross_section_data/' + oname, data)
 
 
 if __name__ == '__main__':

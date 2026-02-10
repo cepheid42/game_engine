@@ -512,7 +512,9 @@ void bremsstrahlungCollision(
 
    // Calculation is done in ion frame, so compute lorentz transform of electron velocity
    const auto coef = (gamma_i - 1.0) * beta_ei / beta_i2 - gamma_i;
+
    const auto p_ep = p_e + coef * constants::m_e_c * gamma_e * beta_ve;
+
    const auto gamma_ep = gamma_ei * (1.0 - beta_ei);
    const auto v_ep = p_ep.length() / (constants::m_e * gamma_ep);
 
@@ -524,6 +526,8 @@ void bremsstrahlungCollision(
 
    const auto probability_coef = cross_section_m2 * params.max_weight * params.scatter_coef * brem.rate_multiplier
                                  * v_ep * gamma_ep / gamma_ei;
+
+   // std::println("{:18.15e}, {:16.10f}, {:18.15f}, {:18.15f}, {:18.15f}", cross_section_m2, params.scatter_coef, v_ep, gamma_ep, gamma_ei);
 
    auto prod_mult = brem.production_multiplier;
    auto scatter_probability = probability_coef * prod_mult;
@@ -542,6 +546,8 @@ void bremsstrahlungCollision(
 
    if (!(make_photon or remove_electron_energy)) { return; }
 
+   // std::println("Photon this, motherfucker!");
+
    // Sample photon energy from cumulative differential cross-section
    // start by finding the closest electron energy in table.
    auto k_over_gm1 = cs_table.lerp(electron_energy_eV, params.rand[1]);
@@ -554,7 +560,7 @@ void bremsstrahlungCollision(
    // Inverse lorentz transform of photon energy and momentum
    const auto beta_photon_p = photon_momentum_p * constants::c;
    const auto dot_beta_photon_p_i = dot(beta_photon_p, -beta_vi); // minus for inverse
-   const auto k_photon_energy = k_photon_energy_p * gamma_i * (1.0 - dot_beta_photon_p_i);
+   auto k_photon_energy = k_photon_energy_p * gamma_i * (1.0 - dot_beta_photon_p_i);
 
    if (make_photon) {
       const auto photon_momentum = photon_momentum_p * constants::m_e_c_sqr

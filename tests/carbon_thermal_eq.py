@@ -134,12 +134,12 @@ stop = nt + step
 carbon1_data = []
 for n in range(0, stop, step):
     carbon1_data.append(calculate_Temp(n, 'carbon1'))
-carbon1_data = np.asarray(carbon1_data)
+carbon1_data = np.array(carbon1_data)
 
 carbon2_data = []
 for n in range(0, stop, step):
     carbon2_data.append(calculate_Temp(n, 'carbon2'))
-carbon2_data = np.asarray(carbon2_data)
+carbon2_data = np.array(carbon2_data)
 
 time = np.linspace(0, t_end, stop // step) # picoseconds
 

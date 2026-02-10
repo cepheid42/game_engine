@@ -252,21 +252,6 @@ struct MultiTable {
    }
 
    auto lerp(const auto energy, const auto U) const {
-      // Find nearest energy index
-      // const auto E_upper = std::ranges::upper_bound(data[0], x);
-      // const auto E_idx = static_cast<std::size_t>(std::ranges::distance(data[0].cbegin(), E_upper));
-      //
-      // std::size_t k{};
-      // double sigma_cdf{};
-      // for (auto j = 1zu; j < data.size() - 1; ++j) {
-      //    if (data[j][E_idx] >= U) {
-      //       // std::println("{}, {}: {}", j - 1, E_idx, data[j - 1][E_idx]);
-      //       sigma_cdf = data[j - 1][E_idx];
-      //       k = j;
-      //       break;
-      //    }
-      // }
-
       const auto n_columns = SB_k_over_gm1.size();
 
       auto e_begin = data[0].begin();
@@ -276,7 +261,7 @@ struct MultiTable {
       auto de_lb = std::abs(data[0][static_cast<size_t>(e_lb_index)] - energy);
       auto de_lbm1 = std::abs(data[0][static_cast<size_t>(e_lb_index - 1)] - energy);
 
-      auto e_nearest_index = (de_lb < de_lbm1) ? e_lb_index : e_lb_index - 1;
+      auto e_nearest_index = (de_lb < de_lbm1) ? e_lb_index : (e_lb_index - 1);
 
       size_t k_column = 0; // Starts at one since energy is in first column of table
       auto sigma_cdf = data[k_column + 1][static_cast<size_t>(e_nearest_index)];
@@ -287,7 +272,7 @@ struct MultiTable {
 
       const auto k_over_gm1_i = SB_k_over_gm1[k_column];
 
-      double k_over_gm1;
+      double k_over_gm1{};
       if (k_column == 0) {
          k_over_gm1 = k_over_gm1_i * U / sigma_cdf;
       } else {

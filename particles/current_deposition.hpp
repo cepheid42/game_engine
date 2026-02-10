@@ -42,67 +42,6 @@ struct CurrentDeposition {
       } // end for(i)
    } // end deposit()
 
-   // todo: are these really needed?
-   // template<int D, typename Strategy>
-   // requires((x_collapsed and D == 0) or (y_collapsed and D == 1) or (z_collapsed and D == 2))
-   // static void deposit(auto& J,
-   //                     const auto p0, const auto p1,
-   //                     const auto& shapeI0, const auto& shapeJ0,
-   //                     const auto& shapeDI, const auto& shapeDJ, const auto&,
-   //                     const auto ci, const auto cj, const auto, const auto qA)
-   // {
-   //    // This is the 2D version of the deposition, intended mainly for the Y-direction currently
-   //    // It only interpolates to outer loops (x/z) and the charge density qA includes the velocity
-   //    // and is positive (not -qA like other version). See EZ-PIC or Esirkepov for more info.
-   //    using Outer = typename Strategy::OuterShape;
-   //    using Middle = typename Strategy::MiddleShape;
-   //    // Return if particle has not moved in this direction (therefore no current)
-   //    if (p0 == p1) { return; }
-   //    for (int i = Outer::Begin; i <= Outer::End; ++i) {
-   //       const auto idx = i - Outer::Begin;;
-   //       const auto& s0i = shapeI0[idx];
-   //       const auto& dsi = shapeDI[idx];
-   //       for (int j = Middle::Begin; j <= Middle::End; ++j) {
-   //          const auto jdx = j - Middle::Begin;
-   //          const auto& s0j = shapeJ0[jdx];
-   //          const auto& dsj = shapeDJ[jdx];
-   //          const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, 0lu);
-   //          #pragma omp atomic update
-   //          J(x, y, z) +=  qA * (s0i * s0j + 0.5 * (dsi * s0j + s0i * dsj) + (1.0 / 3.0) * dsj * dsi);
-   //       } // end for(j)
-   //    } // end for(i)
-   // } // end deposit()
-
-   // template<int D, typename Strategy>
-   // requires((!x_collapsed and D != 0) or (!y_collapsed and D != 1) or (!z_collapsed and D != 2))
-   // static void deposit(auto& J,
-   //                     const auto p0, const auto p1,
-   //                     const auto& shapeI0, const auto&,
-   //                     const auto& shapeDI, const auto&, const auto&,
-   //                     const auto ci, const auto, const auto, const auto qA)
-   // {
-   //    // This is the 1D version of the deposition
-   //    // It only interpolates to the outer loop (x) and the charge density qA includes the velocity
-   //    // and is positive (not -qA like other version). See EZ-PIC or Esirkepov for more info.
-   //    using Outer = typename Strategy::OuterShape;
-   //    //using Middle = typename Strategy::MiddleShape;
-   //    // Return if particle has not moved in this direction (therefore no current)
-   //    if (p0 == p1) { return; }
-   //    for (int i = Outer::Begin; i <= Outer::End; ++i) {
-   //       const auto idx = i - Outer::Begin;;
-   //       const auto& s0i = shapeI0[idx];
-   //       const auto& dsi = shapeDI[idx];
-   //       //for (int j = Middle::Begin; j <= Middle::End; ++j) {
-   //          // const auto jdx = j - Middle::Begin;
-   //          // const auto& s0j = shapeJ0[jdx];
-   //          // const auto& dsj = shapeDJ[jdx];
-   //          const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, 0lu, 0lu);
-   //          #pragma omp atomic update
-   //          J(x, y, z) +=  qA * (s0i + 0.5 * (dsi + s0i) + (1.0 / 3.0) * dsi);
-   //       //} // end for(j)
-   //    } // end for(i)
-   // } // end deposit()
-
    static void updateJ(const auto& p, auto& emdata, const auto charge) {
       // Aliases for X/Y/Z shape functions
       using XShape = interp::InterpolationShape<x_collapsed ? 1 : interpolation_order>::Type;
@@ -121,21 +60,21 @@ struct CurrentDeposition {
       const auto z_vel = z_collapsed ? p.velocity[2] : 1.0;
       // Offsets for Even/Odd order interpolation
       static constexpr vec3 offsets{
-         XShape::Order % 2 == 0 ? 0.5 : 1.0,
-         YShape::Order % 2 == 0 ? 0.5 : 1.0,
-         ZShape::Order % 2 == 0 ? 0.5 : 1.0,
+         XShape::Order % 2 == 0 ? 0.5f : 1.0f,
+         YShape::Order % 2 == 0 ? 0.5f : 1.0f,
+         ZShape::Order % 2 == 0 ? 0.5f : 1.0f,
       };
       // Early return if Jdep isn't needed
-      if (p.disabled) { return; }
+      if (p.is_disabled()) { return; }
       // Current Density coefficients
-      const auto x_coeff = p.weight * charge * dtAyz * x_vel;
-      const auto y_coeff = p.weight * charge * dtAxz * y_vel;
-      const auto z_coeff = p.weight * charge * dtAxy * z_vel;
+      const auto x_coeff = static_cast<double>(p.weight) * charge * dtAyz * x_vel;
+      const auto y_coeff = static_cast<double>(p.weight) * charge * dtAxz * y_vel;
+      const auto z_coeff = static_cast<double>(p.weight) * charge * dtAxy * z_vel;
       // Find cell indices and determine first relay point
-      const vec3<double> i0 = getCellIndices<double>(p.old_location + offsets);
-      const vec3<double> i1 = getCellIndices<double>(p.location + offsets);
+      const vec3<float> i0 = getCellIndices<float>(p.old_location + offsets);
+      const vec3<float> i1 = getCellIndices<float>(p.location + offsets);
       const auto same_idx = is_equal(i0, i1);
-      const vec3<double> relay{
+      const vec3<float> relay{
          same_idx[0] ? p.location[0] : std::max(i1[0], i0[0]) - offsets[0],
          same_idx[1] ? p.location[1] : std::max(i1[1], i0[1]) - offsets[1],
          same_idx[2] ? p.location[2] : std::max(i1[2], i0[2]) - offsets[2],
@@ -143,8 +82,8 @@ struct CurrentDeposition {
       // Calculate normalized locations for first segment
       auto p0 = p.old_location - i0;
       auto p1 = relay - i0;
-      const vec3 idx0 = i0.as_type<std::size_t>();
-      const vec3 idx1 = i1.as_type<std::size_t>();
+      const vec3 idx0 = i0.to_uint();
+      const vec3 idx1 = i1.to_uint();
       // Create shape arrays for first segment
       auto s0i = XShape::shape_array(p0[0]);
       auto s0j = YShape::shape_array(p0[1]);

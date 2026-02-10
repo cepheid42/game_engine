@@ -151,7 +151,7 @@ for n in range(start, stop, step):
     file_name = f'{sim_name}/Al_products_dump_{n:010d}.bp'
     with FileReader(particle_data + file_name) as f:
         ionized.append(f.read('Weight').sum())
-ionized = np.asarray(ionized)
+ionized = np.array(ionized)
 
 v_beam = 1.32523e7
 sigma = 1.428e-20

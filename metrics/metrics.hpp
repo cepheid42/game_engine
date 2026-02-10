@@ -40,11 +40,6 @@ struct EMFieldsMetric final : detail::MetricBase {
      var_step(io.DefineVariable<std::size_t>("Step")),
      var_dt(io.DefineVariable<double>("dt")),
      var_time(io.DefineVariable<double>("Time"))
-     // BFields({
-     //    {"Bx", Array3D<double>{em_map["Hx"].dims()}},
-     //    {"By", Array3D<double>{em_map["Hy"].dims()}},
-     //    {"Bz", Array3D<double>{em_map["Hz"].dims()}}
-     // })
    {
       BFields.insert({"Bx", Array3D<double>(Nx, Ny - 1, Nz - 1)});
       BFields.insert({"By", Array3D<double>(Nx - 1, Ny, Nz - 1)});
@@ -111,8 +106,7 @@ struct EMFieldsMetric final : detail::MetricBase {
 // =====================================
 // ======== EM Energy Metric ===========
 struct EMTotalEnergyMetric final : detail::MetricBase {
-   using data_t = Array3D<double>;
-   using field_map = std::unordered_map<std::string, data_t*>;
+   using field_map = std::unordered_map<std::string, Array3D<double>&>;
 
    EMTotalEnergyMetric(field_map& em_map_, adios2::IO&& io_)
    : io(io_),
@@ -147,44 +141,51 @@ struct EMTotalEnergyMetric final : detail::MetricBase {
       auto By_energy = 0.0;
       auto Bz_energy = 0.0;
 
+      const auto& Ex = em_map.at("Ex");
+      const auto& Ey = em_map.at("Ey");
+      const auto& Ez = em_map.at("Ez");
+      const auto& Hx = em_map.at("Hx");
+      const auto& Hy = em_map.at("Hy");
+      const auto& Hz = em_map.at("Hz");
+
       // todo: fix this to use the right volumes for non-uniform mesh!
       #pragma omp parallel num_threads(nThreads) default(shared)
       {
          #pragma omp for reduction(+:Ex_energy)
-         for (auto i = 0zu; i < em_map["Ex"]->size(); i++) {
-           Ex_energy += math::SQR(em_map["Ex"]->operator[](i)) * cell_volume;
-        }
+         for (auto i = 0zu; i < Ex.size(); i++) {
+            Ex_energy += math::SQR(Ex[i]);
+         }
          #pragma omp for reduction(+:Ey_energy)
-         for (auto i = 0zu; i < em_map["Ey"]->size(); i++) {
-            Ey_energy += math::SQR(em_map["Ey"]->operator[](i)) * cell_volume;
+         for (auto i = 0zu; i < Ey.size(); i++) {
+            Ey_energy += math::SQR(Ey[i]);
          }
          #pragma omp for reduction(+:Ez_energy)
-         for (auto i = 0zu; i < em_map["Ez"]->size(); i++) {
-            Ez_energy += math::SQR(em_map["Ez"]->operator[](i)) * cell_volume;
+         for (auto i = 0zu; i < Ez.size(); i++) {
+            Ez_energy += math::SQR(Ez[i]);
          }
          #pragma omp for reduction(+:Bx_energy)
-         for (auto i = 0zu; i < em_map["Hx"]->size(); i++) {
-            Bx_energy += math::SQR(em_map["Hx"]->operator[](i)) * cell_volume;
+         for (auto i = 0zu; i < Hx.size(); i++) {
+            Bx_energy += math::SQR(Hx[i]);
          }
          #pragma omp for reduction(+:By_energy)
-         for (auto i = 0zu; i < em_map["Hy"]->size(); i++) {
-            By_energy += math::SQR(em_map["Hy"]->operator[](i)) * cell_volume;
+         for (auto i = 0zu; i < Hy.size(); i++) {
+            By_energy += math::SQR(Hy[i]);
          }
          #pragma omp for reduction(+:Bz_energy)
-         for (auto i = 0zu; i < em_map["Hz"]->size(); i++) {
-            Bz_energy += math::SQR(em_map["Hz"]->operator[](i)) * cell_volume;
+         for (auto i = 0zu; i < Hz.size(); i++) {
+            Bz_energy += math::SQR(Hz[i]);
          }
       }
 
       // append after step 0
       adios2::Engine writer = io.Open(file, (step == 0) ? adios2::Mode::Write : adios2::Mode::Append);
       writer.BeginStep();
-      writer.Put(var_ex_energy, Ex_energy * 0.5 * constants::eps0);
-      writer.Put(var_ey_energy, Ey_energy * 0.5 * constants::eps0);
-      writer.Put(var_ez_energy, Ez_energy * 0.5 * constants::eps0);
-      writer.Put(var_bx_energy, Bx_energy * 0.5 * constants::mu0);
-      writer.Put(var_by_energy, By_energy * 0.5 * constants::mu0);
-      writer.Put(var_bz_energy, Bz_energy * 0.5 * constants::mu0);
+      writer.Put(var_ex_energy, Ex_energy * 0.5 * constants::eps0 * cell_volume);
+      writer.Put(var_ey_energy, Ey_energy * 0.5 * constants::eps0 * cell_volume);
+      writer.Put(var_ez_energy, Ez_energy * 0.5 * constants::eps0 * cell_volume);
+      writer.Put(var_bx_energy, Bx_energy * 0.5 * constants::mu0 * cell_volume);
+      writer.Put(var_by_energy, By_energy * 0.5 * constants::mu0 * cell_volume);
+      writer.Put(var_bz_energy, Bz_energy * 0.5 * constants::mu0 * cell_volume);
       writer.Put(var_step, step);
       writer.Put(var_dt, dt);
       writer.Put(var_time, time);
@@ -205,70 +206,70 @@ struct EMTotalEnergyMetric final : detail::MetricBase {
    adios2::Variable<double>      var_time;
 }; // end struct EMTotalEnergyMetric
 
-// // =========================================
-// // ======== Particle Energy Metric =========
-// struct ParticleTotalEnergyMetric final : detail::MetricBase {
-//    using group_t = particles::ParticleGroup;
-//    using group_map = std::unordered_map<std::string, group_t&>;
-//
-//    struct GroupVariable {
-//       const group_t& group;
-//       adios2::Variable<double> variable;
-//    };
-//
-//    ParticleTotalEnergyMetric(const auto& group_map, adios2::IO&& io_)
-//    : io(io_),
-//      var_step(io.DefineVariable<std::size_t>("Step")),
-//      var_dt(io.DefineVariable<double>("dt")),
-//      var_time(io.DefineVariable<double>("Time"))
-//    {
-//       for (auto& [name, g] : group_map) {
-//          groups.push_back(GroupVariable{
-//             .group = g,
-//             .variable = io.DefineVariable<double>(name, {1}, {0}, {1}, adios2::ConstantDims)
-//          });
-//       }
-//
-//       io.DefineAttribute<std::string>("Unit", "s", "Time");
-//       io.DefineAttribute<std::string>("Unit", "s", "dt");
-//    }
-//
-//    static void write(const auto&, const auto&, const auto, const auto) requires(!(push_enabled and coll_enabled)) {}
-//
-//    void write(const std::string& dir, const std::string&, const std::size_t step, const double time) override {
-//       const std::string file{dir + "/particles_energy.bp"};
-//
-//       if (step % particle_save_interval != 0) { return; }
-//
-//       adios2::Engine writer = io.Open(file, (step == 0) ? adios2::Mode::Write : adios2::Mode::Append);
-//       writer.BeginStep();
-//
-//       for (const auto& [g, var]: groups) {
-//          auto result = 0.0;
-//          #pragma omp parallel num_threads(nThreads) default(shared)
-//          {
-//             #pragma omp for reduction(+:result)
-//             for (std::size_t i = 0; i < g.num_particles(); i++) {
-//                result += (g.particles[i].gamma - 1.0) * g.particles[i].weight;
-//             }
-//          }
-//          result *= g.mass * constants::c_sqr;
-//          writer.Put(var, result);
-//       }
-//
-//       writer.Put(var_step, step);
-//       writer.Put(var_dt, dt);
-//       writer.Put(var_time, time);
-//       writer.EndStep();
-//       writer.Close();
-//    }
-//
-//    adios2::IO                    io;
-//    std::vector<GroupVariable>    groups;
-//    adios2::Variable<std::size_t> var_step;
-//    adios2::Variable<double>      var_dt;
-//    adios2::Variable<double>      var_time;
-// }; // end struct ParticleTotalEnergyMetric
+// =========================================
+// ======== Particle Energy Metric =========
+struct ParticleTotalEnergyMetric final : detail::MetricBase {
+   using group_t = particles::ParticleGroup;
+   using group_map = std::unordered_map<std::string, group_t>;
+
+   struct GroupVariable {
+      const group_t& group;
+      adios2::Variable<double> variable;
+   };
+
+   ParticleTotalEnergyMetric(const auto& group_map, adios2::IO&& io_)
+   : io(io_),
+     var_step(io.DefineVariable<std::size_t>("Step")),
+     var_dt(io.DefineVariable<double>("dt")),
+     var_time(io.DefineVariable<double>("Time"))
+   {
+      for (auto& [name, g] : group_map) {
+         groups.push_back(GroupVariable{
+            .group = g,
+            .variable = io.DefineVariable<double>(name, {1}, {0}, {1}, adios2::ConstantDims)
+         });
+      }
+
+      io.DefineAttribute<std::string>("Unit", "s", "Time");
+      io.DefineAttribute<std::string>("Unit", "s", "dt");
+   }
+
+   static void write(const auto&, const auto&, const auto, const auto) requires(!(push_enabled and coll_enabled)) {}
+
+   void write(const std::string& dir, const std::string&, const std::size_t step, const double time) override {
+      const std::string file{dir + "/particles_energy.bp"};
+
+      if (step % particle_save_interval != 0) { return; }
+
+      adios2::Engine writer = io.Open(file, (step == 0) ? adios2::Mode::Write : adios2::Mode::Append);
+      writer.BeginStep();
+
+      for (const auto& gv: groups) {
+         auto result = 0.0;
+         #pragma omp parallel num_threads(nThreads) default(shared)
+         {
+            #pragma omp for reduction(+:result)
+            for (std::size_t i = 0; i < gv.group.num_particles(); i++) {
+               result += (gv.group.particles[i].gamma - 1.0) * static_cast<double>(gv.group.particles[i].weight);
+            }
+         }
+         result *= gv.group.mass * constants::c_sqr;
+         writer.Put(gv.variable, result);
+      }
+
+      writer.Put(var_step, step);
+      writer.Put(var_dt, dt);
+      writer.Put(var_time, time);
+      writer.EndStep();
+      writer.Close();
+   }
+
+   adios2::IO                    io;
+   std::vector<GroupVariable>    groups;
+   adios2::Variable<std::size_t> var_step;
+   adios2::Variable<double>      var_dt;
+   adios2::Variable<double>      var_time;
+}; // end struct ParticleTotalEnergyMetric
 
 // =========================================
 // ========= Particle Dump Metric ==========
@@ -373,41 +374,37 @@ struct ParticleDumpMetric final : detail::MetricBase {
 // struct ParticleMetric final : detail::MetricBase {
 //    using group_t = particles::ParticleGroup;
 //
-//    ParticleMetric(const group_t&    g_,
-//                   adios2::IO&&      io_,
-//                   const std::size_t ncx,
-//                   const std::size_t ncy,
-//                   const std::size_t ncz)
+//    ParticleMetric(const group_t& g_, adios2::IO&& io_)
 //    : io(io_),
 //      group(g_),
-//      var_density(io.DefineVariable<double>("Density", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz}, adios2::ConstantDims)),
-//      var_temp(io.DefineVariable<double>("Temperature", {ncx, ncy, ncz}, {0, 0, 0}, {ncx, ncy, ncz}, adios2::ConstantDims)),
+//      var_density(io.DefineVariable<double>("Density", {Nx - 1, Ny - 1, Nz - 1}, {0, 0, 0},  {Nx - 1, Ny - 1, Nz - 1}, adios2::ConstantDims)),
+//      var_temp(io.DefineVariable<double>("Temperature",  {Nx - 1, Ny - 1, Nz - 1}, {0, 0, 0},  {Nx - 1, Ny - 1, Nz - 1}, adios2::ConstantDims)),
 //      var_step(io.DefineVariable<std::size_t>("Step")),
 //      var_dt(io.DefineVariable<double>("dt")),
 //      var_time(io.DefineVariable<double>("Time")),
-//      density(ncx, ncy, ncz),
-//      T_avg(ncx * ncy * ncz),
-//      KE_total(ncx * ncy * ncz) {
-//       io.DefineAttribute<std::string>("Name", group.name);
-//       io.DefineAttribute<double>("Mass", group.mass);
-//       io.DefineAttribute<std::string>("Mass/Unit", "kg");
-//       io.DefineAttribute<double>("Charge", group.charge);
-//       io.DefineAttribute<std::string>("Charge/Unit", "C");
-//       io.DefineAttribute<std::size_t>("Atomic Number", group.atomic_number);
-//       io.DefineAttribute<double>("Cell Volume", dx * dy * dz);
-//       io.DefineAttribute<std::size_t>("dims", dims.data(), 3);
-//       io.DefineAttribute<double>("x_range", x_range.data(), 2);
-//       io.DefineAttribute<double>("y_range", y_range.data(), 2);
-//       io.DefineAttribute<double>("z_range", z_range.data(), 2);
-//       io.DefineAttribute<std::string>("File Type", "Metric");
+//      density(Nx - 1, Ny - 1, Nz - 1),
+//      T_avg((Nx - 1) * (Ny - 1) * (Nz - 1)),
+//      KE_total((Nx - 1) * (Ny - 1) * (Nz - 1)) {
+//      io.DefineAttribute<std::string>("Name", group.name);
+//      io.DefineAttribute<double>("Mass", group.mass);
+//      io.DefineAttribute<std::string>("Mass/Unit", "kg");
+//      io.DefineAttribute<double>("Charge", group.charge);
+//      io.DefineAttribute<std::string>("Charge/Unit", "C");
+//      io.DefineAttribute<std::size_t>("Atomic Number", group.atomic_number);
+//      io.DefineAttribute<double>("Cell Volume", dx * dy * dz);
+//      io.DefineAttribute<std::size_t>("dims", dims.data(), 3);
+//      io.DefineAttribute<double>("x_range", x_range.data(), 2);
+//      io.DefineAttribute<double>("y_range", y_range.data(), 2);
+//      io.DefineAttribute<double>("z_range", z_range.data(), 2);
+//      io.DefineAttribute<std::string>("File Type", "Metric");
 //    }
 //
 //    void update_metrics() {
 //       //using Shape = interp::InterpolationShape<1>::Type;
 //       static constexpr auto V_cell_inv = 1.0 / (dx * dy * dz);
-//       static constexpr auto temp_coef  = 2.0 / (3.0 * constants::q_e<double>);
+//       static constexpr auto temp_coef  = 2.0 / (3.0 * constants::q_e);
 //
-//       const auto mc2 = group.mass * constants::c_sqr<double>;
+//       const auto mc2 = group.mass * constants::c_sqr;
 //
 //       std::ranges::fill(density, 0.0);
 //       std::ranges::fill(T_avg, 0.0);
@@ -456,7 +453,6 @@ struct ParticleDumpMetric final : detail::MetricBase {
 //          for (std::size_t i = 0; i < T_avg.size(); i++) {
 //             if (density[i] == 0.0) { continue; }
 //             T_avg[i] = temp_coef * KE_total[i] / density[i];
-//             //std::cout << KE_total[i] / density[i] << " " << T_avg[i] << std::endl;
 //          }
 //
 //          #pragma omp for simd
@@ -466,10 +462,10 @@ struct ParticleDumpMetric final : detail::MetricBase {
 //       } // end parallel
 //    }
 //
-//    static void write(const auto&, const auto&, const auto, const auto) requires(!particles_enabled) {}
-//
 //    void write(const std::string& dir, const std::string& step_ext, const std::size_t step, const double time) override {
 //       const std::string file{dir + "/" + group.name + "_" + step_ext};
+//
+//       if (step % particle_save_interval != 0) { return; }
 //
 //       update_metrics();
 //
@@ -521,23 +517,33 @@ public:
    }
 
    void add_em_metrics(auto& em) {
-      addMetric(
-         std::make_unique<EMFieldsMetric>(
-            em.emdata.em_map,
-            adios.DeclareIO("EMFields")
-         )
-      );
-
       // addMetric(
-      //    std::make_unique<EMTotalEnergyMetric>(em.emdata.em_map, adios.DeclareIO("EMFieldsTotalEnergy"))
+      //    std::make_unique<EMFieldsMetric>(
+      //       em.emdata.em_map,
+      //       adios.DeclareIO("EMFields")
+      //    )
       // );
+
+      addMetric(
+         std::make_unique<EMTotalEnergyMetric>(em.emdata.em_map, adios.DeclareIO("EMFieldsTotalEnergy"))
+      );
    }
 
    void add_particle_metric(const auto& pg) {
+      // addMetric(
+      //    std::make_unique<ParticleDumpMetric>(pg, adios.DeclareIO("Particles_" + pg.name + "_dump"))
+      // );
+
       addMetric(
-         std::make_unique<ParticleDumpMetric>(pg, adios.DeclareIO("Particles_" + pg.name))
+         std::make_unique<ParticleTotalEnergyMetric>(pg, adios.DeclareIO("ParticleTotalEnergy"))
       );
    }
+
+   // void add_particle_metric(const auto& pg) {
+   //    addMetric(
+   //       std::make_unique<ParticleMetric>(pg, adios.DeclareIO("Particles_" + pg.name))
+   //    );
+   // }
 
    void write(const std::size_t step, const double time) const {
       static constexpr size_t padding      = 10;

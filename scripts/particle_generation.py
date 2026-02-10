@@ -37,8 +37,8 @@ def generate_density_mapping(density : float | Callable | Iterable, xcenter, yce
 
 
 def constant_distribution(mass, temp, num_particles):
-    temp = np.asarray(temp)
-    vx, vy, vz = np.sign(temp) * constants.c * np.sqrt(1 - (1 + constants.eV * np.abs(temp) / (mass * constants.c**2))**-2)
+    temp = np.array(temp)
+    vx, vy, vz = np.sign(temp) * constants.c * np.sqrt(1.0 - (1.0 + constants.eV * np.abs(temp) / (mass * constants.c**2))**-2)
     velocities = np.zeros((num_particles, 3))
     velocities[:, 0] = vx
     velocities[:, 1] = vy
@@ -47,11 +47,11 @@ def constant_distribution(mass, temp, num_particles):
 
 
 def thermal_distribution(mass, T_M, num_particles, velocity=0.0):
-    T_M = np.asarray(T_M)
+    T_M = np.array(T_M)
     rng = np.random.default_rng()
     v_thermal = np.sqrt(constants.e * T_M / mass)
     velocities = rng.normal(velocity, v_thermal, (num_particles, 3))
-    v_avg = np.asarray(np.mean(velocities, axis=0), dtype=np.float64)
+    v_avg = np.array(np.mean(velocities, axis=0), dtype=np.float64)
     v2_avg = np.mean(velocities**2, axis=0)
     denom = np.sqrt(np.abs(v2_avg - v_avg**2))
     velocities = (v_thermal / denom) * (velocities - v_avg)
@@ -59,7 +59,7 @@ def thermal_distribution(mass, T_M, num_particles, velocity=0.0):
 
 
 def maxwell_juttner_distribution(mass, T_M, count):
-    T_M = np.asarray(T_M)
+    T_M = np.array(T_M)
     rng = np.random.default_rng()
     a_MJ, b_MJ, R0_MJ = 0.56, 0.35, 0.95
     T_norm = constants.e * np.sqrt((T_M**2).sum()) / (mass * constants.c**2)
@@ -99,7 +99,7 @@ def maxwell_juttner_distribution(mass, T_M, count):
     x3 = rng.uniform(size=count)
     x4 = rng.uniform(size=count)
     u_mag = constants.c * np.sqrt(x * (x + 2))
-    u = u_mag * np.asarray([(2.0 * x3 - 1.0),
+    u = u_mag * np.array([(2.0 * x3 - 1.0),
                             2.0 * np.sqrt(x3 * (1.0 - x3)) * np.cos(2.0 * constants.pi * x4),
                             2.0 * np.sqrt(x3 * (1.0 - x3)) * np.sin(2.0 * constants.pi * x4)])
 
@@ -130,6 +130,9 @@ def write_particle_file(name, file_dir, mass, charge, positions, velocities, wei
 def create_particles(domain, particles, file_dir):
     print(f'Creating {particles.name}...', end=' ', flush=True)
 
+    if particles.distribution == 'none':
+        return
+
     nx, ny, nz = domain.shape
     dx, dy, dz = domain.deltas
 
@@ -158,9 +161,6 @@ def create_particles(domain, particles, file_dir):
     py_min, py_max = particles.py_range
     pz_min, pz_max = particles.pz_range
 
-    if particles.distribution == 'none':
-        return
-
     # ----- Generate particle positions -----
     # "Fake" geometry generation (will be replaced when full geometry support is added)
     xx, yy, zz = np.meshgrid(x_center, y_center, z_center, indexing='ij')
@@ -174,9 +174,7 @@ def create_particles(domain, particles, file_dir):
     fake_geom = np.argwhere(fake_geom)
 
     if not fake_geom.shape[0]:
-        print(f'!!! Warning: Particle Geometry Empty !!!', end=' ', flush=True)
-        print(f'Done.', end='\n', flush=True)
-        return
+        raise ValueError(f'Warning: Particle geometry empty for {name} group.')
 
     # Get cell positions
     xc = x_coords[fake_geom[:, 0]]
@@ -212,8 +210,10 @@ def create_particles(domain, particles, file_dir):
         velocities = thermal_distribution(mass, temp, num_particles)
     elif distribution == 'constant':
         velocities = constant_distribution(mass, temp, num_particles)
-    else:
+    elif distribution == 'relativistic':
         velocities = maxwell_juttner_distribution(mass, temp, num_particles)
+    else:
+        raise ValueError(f'Invalid distribution "{distribution}" for {name} group.')
 
     gammas = 1.0 / np.sqrt(1 - ((velocities/constants.c)**2).sum(axis=1))
     write_particle_file(name, file_dir, mass, charge, positions, velocities, weights, gammas, atomic_number, False, False)

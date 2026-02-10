@@ -62,16 +62,22 @@ struct vec3 {
    //    return *this;
    // }
 
+   [[nodiscard]] constexpr auto to_uint() const -> vec3<std::size_t> {
+      return vec3<std::size_t>{static_cast<std::size_t>(x),
+                               static_cast<std::size_t>(y),
+                               static_cast<std::size_t>(z)};
+   }
+
    [[nodiscard]] constexpr auto to_float() const -> vec3<float> {
       return vec3<float>{static_cast<float>(x),
-                  static_cast<float>(y),
-                  static_cast<float>(z)};
+                         static_cast<float>(y),
+                         static_cast<float>(z)};
    }
 
    [[nodiscard]] constexpr auto to_double() const -> vec3<double> {
       return vec3<double>{static_cast<double>(x),
-                  static_cast<double>(y),
-                  static_cast<double>(z)};
+                          static_cast<double>(y),
+                          static_cast<double>(z)};
    }
 
    // friend constexpr bool operator==(const vec3& u, const vec3& v) { return u.x == v.x and u.y == v.y and u.z == v.z; }

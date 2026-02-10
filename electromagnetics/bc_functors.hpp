@@ -113,17 +113,17 @@ struct BCIntegrator {
    requires is_pml<U>
    {
       static constexpr Derivative CurlType = U::Curl::type;
-      const auto& [x0, x1, y0, y1, z0, z1] = bc.offsets;
+      // const auto& [x0, x1, y0, y1, z0, z1] = bc.offsets;
    
       std::size_t pml_offset;
-      if constexpr      (CurlType == Derivative::DX) { pml_offset = x0; }
-      else if constexpr (CurlType == Derivative::DY) { pml_offset = y0; }
-      else                                           { pml_offset = z0; }
+      if constexpr      (CurlType == Derivative::DX) { pml_offset = bc.offsets[0]; }
+      else if constexpr (CurlType == Derivative::DY) { pml_offset = bc.offsets[2]; }
+      else                                           { pml_offset = bc.offsets[4]; }
    
       #pragma omp parallel for simd collapse(3) num_threads(nThreads)
-      for (std::size_t i = x0; i < x1; ++i) {
-         for (std::size_t j = y0; j < y1; ++j) {
-            for (std::size_t k = z0; k < z1; ++k) {
+      for (std::size_t i = bc.offsets[0]; i < bc.offsets[1]; ++i) {
+         for (std::size_t j = bc.offsets[2]; j < bc.offsets[3]; ++j) {
+            for (std::size_t k = bc.offsets[4]; k < bc.offsets[5]; ++k) {
                U::apply(f1, f2, c1, bc, i, j, k, pml_offset);
             } // end for k
          } // end for j
@@ -133,11 +133,11 @@ struct BCIntegrator {
    static void apply(auto& f1, const auto&, const auto&, const auto& bc)
    requires is_periodic<U>
    {
-      const auto& [x0, x1, y0, y1, z0, z1] = bc.offsets;
+      // const auto& [x0, x1, y0, y1, z0, z1] = bc.offsets;
       #pragma omp parallel for simd collapse(3) num_threads(nThreads)
-      for (std::size_t i = x0; i < x1; ++i) {
-         for (std::size_t j = y0; j < y1; ++j) {
-            for (std::size_t k = z0; k < z1; ++k) {
+      for (std::size_t i = bc.offsets[0]; i < bc.offsets[1]; ++i) {
+         for (std::size_t j = bc.offsets[2]; j < bc.offsets[3]; ++j) {
+            for (std::size_t k = bc.offsets[4]; k < bc.offsets[5]; ++k) {
                U::apply(f1, bc, i, j, k);
             }
          }

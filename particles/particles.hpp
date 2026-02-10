@@ -22,21 +22,21 @@ namespace tf::particles
 struct Particle {
    vec3<double> velocity; // change to beta and make it a float
    double gamma;
-   vec3<double> location;
-   vec3<double> old_location;
-   double weight;
+   vec3<float> location;
+   vec3<float> old_location;
+   float weight;
 
-   [[nodiscard]] bool is_disabled() const { return weight <= 0.0; }
+   [[nodiscard]] bool is_disabled() const { return weight <= 0.0f; }
 }; // end struct Particle
 
 template <typename T = std::size_t>
-constexpr vec3<T> getCellIndices(const auto& loc) {
+constexpr auto getCellIndices(const auto& loc) -> vec3<T> {
    return {static_cast<T>(std::floor(loc[0])),
            static_cast<T>(std::floor(loc[1])),
            static_cast<T>(std::floor(loc[2]))};
 }
 
-constexpr std::size_t getCellIndex(const auto& loc) {
+constexpr auto getCellIndex(const auto& loc) -> std::size_t {
    const auto [x, y, z] = getCellIndices(loc);
    return z + ((Nz - 1) * y) + ((Ny - 1) * (Nz - 1) * x);
 }
@@ -85,7 +85,7 @@ static void initializeFromFile(const std::string& filename, auto& group) {
       const vec3 vel{v_vec[3 * i], v_vec[3 * i + 1], v_vec[3 * i + 2]};
       const auto weight = w_vec[i];
 
-      const auto loc = ((pos - mins) / deltas);
+      const auto loc = ((pos - mins) / deltas).to_float();
       const auto gamma = g_vec[i];
 
       group.particles.emplace_back(
@@ -156,9 +156,9 @@ struct ParticleGroup {
       if constexpr (x_collapsed or y_collapsed or z_collapsed) {
          #pragma omp parallel for simd num_threads(nThreads)
          for (std::size_t pid = 0; pid < particles.size(); pid++) {
-            if constexpr (x_collapsed) { particles[pid].location[0] = 0.5; }
-            if constexpr (y_collapsed) { particles[pid].location[1] = 0.5; }
-            if constexpr (z_collapsed) { particles[pid].location[2] = 0.5; }
+            if constexpr (x_collapsed) { particles[pid].location[0] = 0.5f; }
+            if constexpr (y_collapsed) { particles[pid].location[1] = 0.5f; }
+            if constexpr (z_collapsed) { particles[pid].location[2] = 0.5f; }
          }
       }
    }
