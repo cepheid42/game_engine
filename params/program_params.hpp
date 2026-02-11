@@ -54,6 +54,8 @@ inline constexpr auto nHalo = 0zu;
 // Periodic = 0, PML = 1, Reflecting = 2
 inline constexpr std::array BCSelect = {1zu, 1zu, 1zu, 1zu, 1zu, 1zu};
 
+inline constexpr auto applied_fields_path = "/home/cepheid/TriForce/game_engine/data/seinfeld3D_applied_fields.bp";
+
 /*---------------------------------------------------------------/
 /-                     Particle Parameters                      -/
 /---------------------------------------------------------------*/
@@ -83,6 +85,17 @@ inline constexpr std::array particle_spec = {
 
 inline constexpr std::array<CollisionSpec, 0> collision_spec = {
 
+};
+
+/*---------------------------------------------------------------/
+/-                      Metrics Parameters                      -/
+/---------------------------------------------------------------*/
+enum class MetricType { ParticleDump, ParticleDiag, ParticleEnergy, FieldDump, FieldEnergy };
+
+inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data";
+inline constexpr std::array<MetricType, 2> metric_spec = {
+	MetricType::ParticleEnergy,
+	MetricType::FieldEnergy
 };
 
 #endif //PROGRAM_PARAM_HPP

@@ -37,11 +37,10 @@ struct EMSolver {
    {}
 
    void advance(const auto t) requires(em_enabled) {
-      (void) t;
       updateH();
       updateHBCs();
       updateJBCs();
-      // apply_srcs(t);
+      apply_srcs(t);
       updateE();
       updateEBCs();
       particle_correction(); // for the particles and shit

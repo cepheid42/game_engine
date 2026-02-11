@@ -5,6 +5,7 @@
 #include "program_params.hpp"
 #include "sources.hpp"
 
+#include <adios2.h>
 #include <unordered_map>
 
 namespace tf::electromagnetics {
@@ -65,6 +66,7 @@ struct EMData {
      Bz_total(nx - 1, ny - 1, nz)
    {
       init_coefficients();
+      load_applied_fields();
    }
 
    void init_coefficients() {
@@ -103,6 +105,31 @@ struct EMData {
       Chyez2.fill(0.5 * h_coeff / dx);
       Chzex2.fill(0.5 * h_coeff / dy);
       Chzey2.fill(0.5 * h_coeff / dx);
+   }
+
+   void load_applied_fields() {
+      adios2::ADIOS adios{};
+      adios2::IO io = adios.DeclareIO("EMFieldsExternal");
+      adios2::Engine reader = io.Open(applied_fields_path, adios2::Mode::Read);
+
+      reader.BeginStep();
+
+      const auto bpEx = io.InquireVariable<double>("Ex");
+      const auto bpEy = io.InquireVariable<double>("Ey");
+      const auto bpEz = io.InquireVariable<double>("Ez");
+      const auto bpBx = io.InquireVariable<double>("Bx");
+      const auto bpBy = io.InquireVariable<double>("By");
+      const auto bpBz = io.InquireVariable<double>("Bz");
+
+      if (bpEx) { reader.Get(bpEx, Ex_app.data(), adios2::Mode::Sync); }
+      if (bpEy) { reader.Get(bpEy, Ey_app.data(), adios2::Mode::Sync); }
+      if (bpEy) { reader.Get(bpEz, Ez_app.data(), adios2::Mode::Sync); }
+      if (bpBx) { reader.Get(bpBx, Bx_app.data(), adios2::Mode::Sync); }
+      if (bpBy) { reader.Get(bpBy, By_app.data(), adios2::Mode::Sync); }
+      if (bpBz) { reader.Get(bpBz, Bz_app.data(), adios2::Mode::Sync); }
+
+      reader.EndStep();
+      reader.Close();
    }
 
    Array3D<double> Ex;

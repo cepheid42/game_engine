@@ -1,14 +1,13 @@
 #ifndef METRICS_HPP
 #define METRICS_HPP
 
-#include "program_params.hpp"
 #include "array.hpp"
 #include "em_data.hpp"
-#include "particles.hpp"
 #include "interpolation.hpp"
+#include "particles.hpp"
+#include "program_params.hpp"
 
 #include <adios2.h>
-
 #include <algorithm>
 #include <unordered_map>
 #include <memory>
@@ -369,131 +368,131 @@ struct ParticleDumpMetric final : detail::MetricBase {
    std::vector<double>           gamma{};
 }; // end struct ParticleDumpMetric
 
-// // ========================================================
-// // ======== Particle Density/Temperature Metric ===========
-// struct ParticleMetric final : detail::MetricBase {
-//    using group_t = particles::ParticleGroup;
-//
-//    ParticleMetric(const group_t& g_, adios2::IO&& io_)
-//    : io(io_),
-//      group(g_),
-//      var_density(io.DefineVariable<double>("Density", {Nx - 1, Ny - 1, Nz - 1}, {0, 0, 0},  {Nx - 1, Ny - 1, Nz - 1}, adios2::ConstantDims)),
-//      var_temp(io.DefineVariable<double>("Temperature",  {Nx - 1, Ny - 1, Nz - 1}, {0, 0, 0},  {Nx - 1, Ny - 1, Nz - 1}, adios2::ConstantDims)),
-//      var_step(io.DefineVariable<std::size_t>("Step")),
-//      var_dt(io.DefineVariable<double>("dt")),
-//      var_time(io.DefineVariable<double>("Time")),
-//      density(Nx - 1, Ny - 1, Nz - 1),
-//      T_avg((Nx - 1) * (Ny - 1) * (Nz - 1)),
-//      KE_total((Nx - 1) * (Ny - 1) * (Nz - 1)) {
-//      io.DefineAttribute<std::string>("Name", group.name);
-//      io.DefineAttribute<double>("Mass", group.mass);
-//      io.DefineAttribute<std::string>("Mass/Unit", "kg");
-//      io.DefineAttribute<double>("Charge", group.charge);
-//      io.DefineAttribute<std::string>("Charge/Unit", "C");
-//      io.DefineAttribute<std::size_t>("Atomic Number", group.atomic_number);
-//      io.DefineAttribute<double>("Cell Volume", dx * dy * dz);
-//      io.DefineAttribute<std::size_t>("dims", dims.data(), 3);
-//      io.DefineAttribute<double>("x_range", x_range.data(), 2);
-//      io.DefineAttribute<double>("y_range", y_range.data(), 2);
-//      io.DefineAttribute<double>("z_range", z_range.data(), 2);
-//      io.DefineAttribute<std::string>("File Type", "Metric");
-//    }
-//
-//    void update_metrics() {
-//       //using Shape = interp::InterpolationShape<1>::Type;
-//       static constexpr auto V_cell_inv = 1.0 / (dx * dy * dz);
-//       static constexpr auto temp_coef  = 2.0 / (3.0 * constants::q_e);
-//
-//       const auto mc2 = group.mass * constants::c_sqr;
-//
-//       std::ranges::fill(density, 0.0);
-//       std::ranges::fill(T_avg, 0.0);
-//       std::ranges::fill(KE_total, 0.0);
-//
-//       // first order density
-//       #pragma omp parallel num_threads(nThreads) default(none) shared(mc2)
-//       {
-//       //    #pragma omp for
-//       //    for (std::size_t pid = 0; pid < group->num_particles(); pid++) {
-//       //       const auto& p   = group->particles[pid];
-//       //       if (p.disabled) { continue; }
-//       //       const vec3 loc_half = particles::getCellIndices<float>(p.location + 1.0f) + 0.5f;
-//       //       const vec3 hid = loc_half.as_type<std::size_t>();
-//       //
-//       //       const vec3 p_half = p.location - loc_half;
-//       //       const auto shapeI0 = Shape::shape_array(p_half[0]);
-//       //       const auto shapeJ0 = Shape::shape_array(p_half[1]);
-//       //       const auto shapeK0 = Shape::shape_array(p_half[2]);
-//       //
-//       //       for (int i = Shape::Begin; i <= Shape::End; ++i) {
-//       //          const auto& s0i = shapeI0[i - Shape::Begin];
-//       //          for (int j = Shape::Begin; j <= Shape::End; ++j) {
-//       //             const auto& s0j = shapeJ0[j - Shape::Begin];
-//       //             for (int k = Shape::Begin; k <= Shape::End; ++k) {
-//       //                const auto& s0k = shapeK0[k - Shape::Begin];
-//       //                #pragma omp atomic update
-//       //                density(hid[0] + i, hid[1] + j, hid[2] + k) += s0i * s0j * s0k * p.weight;
-//       //             } // end for(k)
-//       //          } // end for(j)
-//       //       } // end for(i)
-//       //    }
-//
-//
-//          #pragma omp for simd
-//          for (std::size_t pid = 0; pid < group.num_particles(); pid++) {
-//             const auto& p   = group.particles[pid];
-//             const auto cid = particles::getCellIndex(p.location);
-//             #pragma omp atomic update
-//             density[cid] += p.weight;
-//             #pragma omp atomic update
-//             KE_total[cid] += p.weight * mc2 * (p.gamma - 1.0);
-//          }
-//
-//          #pragma omp for simd
-//          for (std::size_t i = 0; i < T_avg.size(); i++) {
-//             if (density[i] == 0.0) { continue; }
-//             T_avg[i] = temp_coef * KE_total[i] / density[i];
-//          }
-//
-//          #pragma omp for simd
-//          for (std::size_t i = 0; i < density.size(); i++) {
-//             density[i] *= V_cell_inv;
-//          }
-//       } // end parallel
-//    }
-//
-//    void write(const std::string& dir, const std::string& step_ext, const std::size_t step, const double time) override {
-//       const std::string file{dir + "/" + group.name + "_" + step_ext};
-//
-//       if (step % particle_save_interval != 0) { return; }
-//
-//       update_metrics();
-//
-//       adios2::Engine writer = io.Open(file, adios2::Mode::Write);
-//       writer.BeginStep();
-//
-//       writer.Put(var_density, density.data());
-//       writer.Put(var_temp, T_avg.data());
-//       writer.Put(var_step, step);
-//       writer.Put(var_dt, dt);
-//       writer.Put(var_time, time);
-//
-//       writer.EndStep();
-//       writer.Close();
-//    } // end write()
-//
-//    adios2::IO               io;
-//    const group_t&           group;
-//    adios2::Variable<double> var_density;
-//    adios2::Variable<double> var_temp;
-//    adios2::Variable<std::size_t> var_step;
-//    adios2::Variable<double> var_dt;
-//    adios2::Variable<double> var_time;
-//    Array3D<double>          density;
-//    std::vector<double>      T_avg;
-//    std::vector<double>      KE_total;
-//    std::array<std::size_t, 3> dims{Nx - 1, Ny - 1, Nz - 1};
-// }; // end struct ParticleMetric
+// ========================================================
+// ======== Particle Density/Temperature Metric ===========
+struct ParticleMetric final : detail::MetricBase {
+   using group_t = particles::ParticleGroup;
+
+   ParticleMetric(const group_t& g_, adios2::IO&& io_)
+   : io(io_),
+     group(g_),
+     var_density(io.DefineVariable<double>("Density", {Nx - 1, Ny - 1, Nz - 1}, {0, 0, 0},  {Nx - 1, Ny - 1, Nz - 1}, adios2::ConstantDims)),
+     var_temp(io.DefineVariable<double>("Temperature",  {Nx - 1, Ny - 1, Nz - 1}, {0, 0, 0},  {Nx - 1, Ny - 1, Nz - 1}, adios2::ConstantDims)),
+     var_step(io.DefineVariable<std::size_t>("Step")),
+     var_dt(io.DefineVariable<double>("dt")),
+     var_time(io.DefineVariable<double>("Time")),
+     density(Nx - 1, Ny - 1, Nz - 1),
+     T_avg((Nx - 1) * (Ny - 1) * (Nz - 1)),
+     KE_total((Nx - 1) * (Ny - 1) * (Nz - 1)) {
+     io.DefineAttribute<std::string>("Name", group.name);
+     io.DefineAttribute<double>("Mass", group.mass);
+     io.DefineAttribute<std::string>("Mass/Unit", "kg");
+     io.DefineAttribute<double>("Charge", group.charge);
+     io.DefineAttribute<std::string>("Charge/Unit", "C");
+     io.DefineAttribute<std::size_t>("Atomic Number", group.atomic_number);
+     io.DefineAttribute<double>("Cell Volume", dx * dy * dz);
+     io.DefineAttribute<std::size_t>("dims", dims.data(), 3);
+     io.DefineAttribute<double>("x_range", x_range.data(), 2);
+     io.DefineAttribute<double>("y_range", y_range.data(), 2);
+     io.DefineAttribute<double>("z_range", z_range.data(), 2);
+     io.DefineAttribute<std::string>("File Type", "Metric");
+   }
+
+   void update_metrics() {
+      //using Shape = interp::InterpolationShape<1>::Type;
+      static constexpr auto V_cell_inv = 1.0 / (dx * dy * dz);
+      static constexpr auto temp_coef  = 2.0 / (3.0 * constants::q_e);
+
+      const auto mc2 = group.mass * constants::c_sqr;
+
+      std::ranges::fill(density, 0.0);
+      std::ranges::fill(T_avg, 0.0);
+      std::ranges::fill(KE_total, 0.0);
+
+      // first order density
+      #pragma omp parallel num_threads(nThreads) default(none) shared(mc2)
+      {
+      //    #pragma omp for
+      //    for (std::size_t pid = 0; pid < group->num_particles(); pid++) {
+      //       const auto& p   = group->particles[pid];
+      //       if (p.disabled) { continue; }
+      //       const vec3 loc_half = particles::getCellIndices<float>(p.location + 1.0f) + 0.5f;
+      //       const vec3 hid = loc_half.as_type<std::size_t>();
+      //
+      //       const vec3 p_half = p.location - loc_half;
+      //       const auto shapeI0 = Shape::shape_array(p_half[0]);
+      //       const auto shapeJ0 = Shape::shape_array(p_half[1]);
+      //       const auto shapeK0 = Shape::shape_array(p_half[2]);
+      //
+      //       for (int i = Shape::Begin; i <= Shape::End; ++i) {
+      //          const auto& s0i = shapeI0[i - Shape::Begin];
+      //          for (int j = Shape::Begin; j <= Shape::End; ++j) {
+      //             const auto& s0j = shapeJ0[j - Shape::Begin];
+      //             for (int k = Shape::Begin; k <= Shape::End; ++k) {
+      //                const auto& s0k = shapeK0[k - Shape::Begin];
+      //                #pragma omp atomic update
+      //                density(hid[0] + i, hid[1] + j, hid[2] + k) += s0i * s0j * s0k * p.weight;
+      //             } // end for(k)
+      //          } // end for(j)
+      //       } // end for(i)
+      //    }
+
+
+         #pragma omp for simd
+         for (std::size_t pid = 0; pid < group.num_particles(); pid++) {
+            const auto& p   = group.particles[pid];
+            const auto cid = particles::getCellIndex(p.location);
+            #pragma omp atomic update
+            density[cid] += p.weight;
+            #pragma omp atomic update
+            KE_total[cid] += p.weight * mc2 * (p.gamma - 1.0);
+         }
+
+         #pragma omp for simd
+         for (std::size_t i = 0; i < T_avg.size(); i++) {
+            if (density[i] == 0.0) { continue; }
+            T_avg[i] = temp_coef * KE_total[i] / density[i];
+         }
+
+         #pragma omp for simd
+         for (std::size_t i = 0; i < density.size(); i++) {
+            density[i] *= V_cell_inv;
+         }
+      } // end parallel
+   }
+
+   void write(const std::string& dir, const std::string& step_ext, const std::size_t step, const double time) override {
+      const std::string file{dir + "/" + group.name + "_" + step_ext};
+
+      if (step % particle_save_interval != 0) { return; }
+
+      update_metrics();
+
+      adios2::Engine writer = io.Open(file, adios2::Mode::Write);
+      writer.BeginStep();
+
+      writer.Put(var_density, density.data());
+      writer.Put(var_temp, T_avg.data());
+      writer.Put(var_step, step);
+      writer.Put(var_dt, dt);
+      writer.Put(var_time, time);
+
+      writer.EndStep();
+      writer.Close();
+   } // end write()
+
+   adios2::IO               io;
+   const group_t&           group;
+   adios2::Variable<double> var_density;
+   adios2::Variable<double> var_temp;
+   adios2::Variable<std::size_t> var_step;
+   adios2::Variable<double> var_dt;
+   adios2::Variable<double> var_time;
+   Array3D<double>          density;
+   std::vector<double>      T_avg;
+   std::vector<double>      KE_total;
+   std::array<std::size_t, 3> dims{Nx - 1, Ny - 1, Nz - 1};
+}; // end struct ParticleMetric
 
 
 // =======================================
@@ -502,7 +501,7 @@ class Metrics {
    using metrics_vec = std::vector<std::unique_ptr<detail::MetricBase>>;
 
 public:
-   explicit Metrics(std::string data_dir_)
+   explicit Metrics(std::string data_dir_, const auto& spec, auto& em_map, auto& p_groups)
    : data_dir(std::move(data_dir_))
    {
       // const std::time_t time = std::time({});
@@ -510,44 +509,48 @@ public:
       // std::strftime(std::data(timestr), std::size(timestr), "%y%m%d%H%M", std::localtime(&time));
       //
       // data_dir += "_" + std::string(timestr);
-   }
 
-   void addMetric(std::unique_ptr<detail::MetricBase>&& m) {
-      metrics.push_back(std::move(m));
-   }
+      for (const auto& s : spec) {
+         switch (s) {
+            case MetricType::ParticleDump:
+               {
+                  for (auto& [name, g] : p_groups) {
+                     metrics.push_back(std::make_unique<ParticleDumpMetric>(g, adios.DeclareIO("Particles_" + name + "_dump")));
+                  }
+                  break;
+               }
+            case MetricType::ParticleDiag:
+               {
+                  for (auto& [name, g] : p_groups) {
+                     metrics.push_back(std::make_unique<ParticleMetric>(g, adios.DeclareIO("Particles_" + name)));
+                  }
+                  break;
+               }
+            case MetricType::ParticleEnergy:
+               {
+                  metrics.push_back(std::make_unique<ParticleTotalEnergyMetric>(p_groups, adios.DeclareIO("Particle_energy")));
+                  break;
+               }
+            case MetricType::FieldDump:
+               {
+                  metrics.push_back(std::make_unique<EMFieldsMetric>(em_map,  adios.DeclareIO("EMFields_dump")));
+                  break;
+               }
+            case MetricType::FieldEnergy:
+               {
+                  metrics.push_back(std::make_unique<EMTotalEnergyMetric>(em_map,  adios.DeclareIO("EMFields_energy")));
+                  break;
+               }
+            default:
+               break;
+         } // end switch(s)
+      } // end for(s)
+   } // end Metric ctor
 
-   void add_em_metrics(auto& em) {
-      // addMetric(
-      //    std::make_unique<EMFieldsMetric>(
-      //       em.emdata.em_map,
-      //       adios.DeclareIO("EMFields")
-      //    )
-      // );
-
-      addMetric(
-         std::make_unique<EMTotalEnergyMetric>(em.emdata.em_map, adios.DeclareIO("EMFieldsTotalEnergy"))
-      );
-   }
-
-   void add_particle_metric(const auto& pg) {
-      // addMetric(
-      //    std::make_unique<ParticleDumpMetric>(pg, adios.DeclareIO("Particles_" + pg.name + "_dump"))
-      // );
-
-      addMetric(
-         std::make_unique<ParticleTotalEnergyMetric>(pg, adios.DeclareIO("ParticleTotalEnergy"))
-      );
-   }
-
-   // void add_particle_metric(const auto& pg) {
-   //    addMetric(
-   //       std::make_unique<ParticleMetric>(pg, adios.DeclareIO("Particles_" + pg.name))
-   //    );
-   // }
 
    void write(const std::size_t step, const double time) const {
-      static constexpr size_t padding      = 10;
-      std::string             count_padded = std::to_string(step);
+      static constexpr auto padding = 10zu;
+      auto count_padded = std::to_string(step);
       count_padded.insert(count_padded.begin(), padding - count_padded.length(), '0');
       count_padded += file_ext; // default extension is .bp
 

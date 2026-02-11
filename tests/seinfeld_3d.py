@@ -3,8 +3,7 @@
 import subprocess
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as anim
-from adios2 import FileReader
+from adios2 import FileReader, Stream
 from scipy import constants
 
 from scripts.particle_generation import create_particles
@@ -13,7 +12,7 @@ from scripts.domain_params import *
 sim_name = 'seinfeld3D'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
-particle_data = project_path + '/data'
+data_path = project_path + '/data'
 
 shape = (57, 57, 113)
 
@@ -76,10 +75,21 @@ particle_params = ParticleParams(
 )
 
 # ===== Electromagnetic Params =====
+Bz_applied = np.full((shape[0] - 1, shape[1] - 1, shape[2]), 0.1)
+with Stream(data_path + f'/{sim_name}_applied_fields.bp', 'w') as f:
+    f.write('Bz', Bz_applied, Bz_applied.shape, (0, 0, 0), Bz_applied.shape)
+
 em_params = EMParams(
     save_interval=save_interval,
     pml_depth=6,
-    em_bcs=(1, 1, 1, 1, 1, 1)
+    em_bcs=(1, 1, 1, 1, 1, 1),
+    applied_fields=data_path + f'/{sim_name}_applied_fields.bp'
+)
+
+# ===== Metrics Params =====
+metric_params = Metrics(
+    data_path,
+    (MetricType.ParticleEnergy, MetricType.FieldEnergy)
 )
 
 sim_params = Simulation(
@@ -96,12 +106,13 @@ sim_params = Simulation(
     deltas=(dx, dy, dz),
     em_params=em_params,
     particle_params=particle_params,
+    metric_params=metric_params,
     coll_enabled=False
 )
 
 print(f'Setting up "{sim_name}"')
-create_particles(sim_params, electrons, particle_data)
-create_particles(sim_params, ions, particle_data)
+create_particles(sim_params, electrons, data_path)
+create_particles(sim_params, ions, data_path)
 update_header(sim_params, project_path=project_path)
 
 subprocess.run(
@@ -112,7 +123,7 @@ subprocess.run(
 
 subprocess.run(build_path + '/game_engine').check_returncode()
 
-with FileReader(particle_data + f'/{sim_name}/fields_energy.bp') as f:
+with FileReader(data_path + f'/{sim_name}/fields_energy.bp') as f:
     variables = f.available_variables()
     steps = int(variables['Time']['AvailableStepsCount'])
     ex = f.read('Ex Energy', step_selection=[0, steps])
@@ -124,7 +135,7 @@ with FileReader(particle_data + f'/{sim_name}/fields_energy.bp') as f:
 
 field_energy = ex + ey + ez + bx + by + bz
 
-with FileReader(particle_data + f'/{sim_name}/particles_energy.bp') as f:
+with FileReader(data_path + f'/{sim_name}/particles_energy.bp') as f:
     variables = f.available_variables()
     steps = int(variables['Time']['AvailableStepsCount'])
     time = f.read('Time', step_selection=[0, steps]) * 1e9
@@ -133,10 +144,10 @@ with FileReader(particle_data + f'/{sim_name}/particles_energy.bp') as f:
 
 particle_energy = e_energy + i_energy
 
-lsp_particle_data = np.genfromtxt('/home/cepheid/Desktop/lsp_particle_energy.csv', delimiter=',', skip_header=1)
+lsp_particle_data= np.genfromtxt('./data/seinfeld-3d-lsp-particles-energy.txt', skip_header=1)
 lsp_particles = np.interp(time, lsp_particle_data[:, 0], lsp_particle_data[:, 1])
 
-lsp_field_data = np.genfromtxt('/home/cepheid/Desktop/lsp_field_energy.csv', delimiter=',', skip_header=1)
+lsp_field_data = np.genfromtxt('./data/seinfeld-3d-lsp-fields-energy.txt', skip_header=1)
 lsp_fields = np.interp(time, lsp_field_data[:, 0], lsp_field_data[:, 1])
 
 fig, ax1 = plt.subplots(figsize=(10, 6), layout='constrained')
@@ -153,17 +164,15 @@ ax2.plot(time, field_energy, color='b', label='Field Energy')
 line1, label1 = ax1.get_legend_handles_labels()
 line2, label2 = ax2.get_legend_handles_labels()
 
-# ax1.set_ylim([2.27e-4, 2.31e-4])
-# ax1.set_yticks(np.arange(0.000226, 0.000231, 0.0000005))
+ax1.set_ylim([2.27e-4, 2.31e-4])
+ax1.set_yticks(np.arange(0.000226, 0.000231, 0.0000005))
 ax1.set_xlabel('Time (ns)')
 ax1.set_ylabel('Particle KE (J)')
 ax1.set_title(f'Total Energy Seinfeld 3D')
 
-# ax2.set_ylim([0.0, 3.25e-6])
-# ax2.set_yticks(np.arange(0.0, 3.2e-6, 1.0e-6))
+ax2.set_ylim([0.0, 3.25e-6])
+ax2.set_yticks(np.arange(0.0, 3.2e-6, 1.0e-6))
 ax2.set_ylabel('Field Energy (J)')
 ax2.legend(line1 + line2, label1 + label2)
 
 plt.show()
-
-

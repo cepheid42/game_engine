@@ -1,5 +1,6 @@
 from pathlib import Path
 from dataclasses import dataclass, field
+from enum import StrEnum
 
 @dataclass
 class EMParams:
@@ -9,6 +10,7 @@ class EMParams:
     pml_grade: float = 3.5
     pml_alpha_max: float = 0.2
     em_bcs: tuple = (2, 2, 2, 2, 2, 2)
+    applied_fields: str = ''
 
 @dataclass
 class ParticleParams:
@@ -148,6 +150,23 @@ class Particles:
             '   }'
         )
 
+
+class MetricType(StrEnum):
+    ParticleDump = 'MetricType::ParticleDump'
+    ParticleDiagnostics = 'MetricType::ParticleDiag'
+    ParticleEnergy = 'MetricType::ParticleEnergy'
+    FieldDump = 'MetricType::FieldDump'
+    FieldEnergy = 'MetricType::FieldEnergy'
+
+@dataclass
+class Metrics:
+    data_path: str = ''
+    metrics: tuple = ()
+
+    def __repr__(self):
+        return ',\n\t'.join(m for m in self.metrics)
+
+
 @dataclass
 class Simulation:
     name: str
@@ -158,6 +177,7 @@ class Simulation:
     t_end: float
     em_params: EMParams = field(default_factory=EMParams)
     particle_params: ParticleParams = field(default_factory=ParticleParams)
+    metric_params: Metrics = field(default_factory=Metrics)
     cfl: float = 1.0
     x_range: tuple = ()
     y_range: tuple = ()
@@ -179,6 +199,7 @@ def update_header(params: Simulation, project_path: str, ionization_test_overrid
     em_params = params.em_params
     em_bcs = em_params.em_bcs
     particles = params.particle_params
+    metrics = params.metric_params
 
     project_path = Path(project_path)
     header_path = project_path / "params/program_params.hpp"
@@ -258,6 +279,8 @@ def update_header(params: Simulation, project_path: str, ionization_test_overrid
         '// Periodic = 0, PML = 1, Reflecting = 2\n'
         f'inline constexpr std::array BCSelect = {{{bc_str}}};\n'
         '\n'
+        f'inline constexpr auto applied_fields_path = "{em_params.applied_fields}";\n'
+        '\n'
         '/*---------------------------------------------------------------/\n'
         '/-                     Particle Parameters                      -/\n'
         '/---------------------------------------------------------------*/\n'
@@ -274,6 +297,16 @@ def update_header(params: Simulation, project_path: str, ionization_test_overrid
         '\n'
         f'inline constexpr std::array<CollisionSpec, {len(particles.collisions)}> collision_spec = {{\n'
         f'{collision_types}\n'
+        '};\n'
+        '\n'
+        '/*---------------------------------------------------------------/\n'
+        '/-                      Metrics Parameters                      -/\n'
+        '/---------------------------------------------------------------*/\n'
+        'enum class MetricType { ParticleDump, ParticleDiag, ParticleEnergy, FieldDump, FieldEnergy };\n'
+        '\n'
+        f'inline constexpr auto metric_data_path = "{metrics.data_path}";\n'
+        f'inline constexpr std::array<MetricType, {len(metrics.metrics)}> metric_spec = {{\n'
+        f'\t{metrics}\n'
         '};\n'
         '\n'
         '#endif //PROGRAM_PARAM_HPP\n'

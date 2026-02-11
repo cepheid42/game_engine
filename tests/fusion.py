@@ -11,7 +11,7 @@ from scripts.particle_generation import create_particles
 
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
-particle_data = project_path + '/data'
+data_path = project_path + '/data'
 
 shape = (2, 2, 2)
 
@@ -119,6 +119,12 @@ DT_params = FusionParams(
     cross_section_file='/tests/cross_section_data/DT_nHe4_BH_eV_m2.txt'
 )
 
+# ===== Collisions and Particle Params =====
+metric_params = Metrics(
+    data_path,
+    (MetricType.ParticleDump, )
+)
+
 collision_types = ['DD', 'DT']
 collision_temps = [5, 10, 19]
 
@@ -173,13 +179,14 @@ for c in collision_types:
             z_range=(zmin, zmax),
             deltas=(dx, dy, dz),
             particle_params=particle_params,
+            metric_params=metric_params,
             em_enabled=False,
             push_enabled=False,
             jdep_enabled=False
         )
 
-        create_particles(sim_params, deuterium, particle_data)
-        create_particles(sim_params, tritium, particle_data)
+        create_particles(sim_params, deuterium, data_path)
+        create_particles(sim_params, tritium, data_path)
         update_header(sim_params, project_path=project_path)
 
         subprocess.run(
@@ -290,7 +297,7 @@ for i, t in enumerate(collision_temps):
     if has_DD:
         # plot DD
         dd_file = f'/DD_fusion_{t}keV/neutrons_dump_{nt-1:010d}.bp'
-        with FileReader(particle_data + dd_file) as f:
+        with FileReader(data_path + dd_file) as f:
             final_time = f.read("Time")[0]
             weights = f.read('Weight')
             gammas = f.read('Gamma')
@@ -303,7 +310,7 @@ for i, t in enumerate(collision_temps):
         # plot DT
         dt_file = f'/DT_fusion_{t}keV/neutrons_dump_{nt-1:010d}.bp'
 
-        with FileReader(particle_data + dt_file) as f:
+        with FileReader(data_path + dt_file) as f:
             final_time = f.read("Time")[0]
             weights = f.read('Weight')
             gammas = f.read('Gamma')
@@ -323,6 +330,6 @@ if has_DT:
 ax[0].legend(loc=4)
 ax[0].text(0.04, 0.9, '(a)', fontsize=18, weight='bold', transform=ax[0].transAxes)
 ax[1].text(0.04, 0.9, '(b)', fontsize=18, weight='bold', transform=ax[1].transAxes)
-plt.savefig(particle_data + f'/fusion_test_reactivity_fwhm.png')
-plt.close(fig)
-# plt.show()
+# plt.savefig(data_path + f'/fusion_test_reactivity_fwhm.png')
+# plt.close(fig)
+plt.show()

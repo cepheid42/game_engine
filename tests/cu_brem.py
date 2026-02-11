@@ -12,7 +12,7 @@ from scripts.particle_generation import create_particles
 sim_name = 'cu_brems'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
-particle_data = project_path + '/data/'
+data_path = project_path + '/data/'
 
 shape = (2, 2, 2)
 
@@ -105,6 +105,12 @@ particle_params = ParticleParams(
     )
 )
 
+# ===== Metrics Params =====
+metric_params = Metrics(
+    data_path,
+    (MetricType.ParticleDump,)
+)
+
 sim_params = Simulation(
     name=sim_name,
     shape=shape,
@@ -118,6 +124,7 @@ sim_params = Simulation(
     z_range=(zmin, zmax),
     deltas=(dx, dy, dz),
     particle_params=particle_params,
+    metric_params=metric_params,
     em_enabled=False,
     push_enabled=False,
     jdep_enabled=False
@@ -135,8 +142,8 @@ for name, cppc, _, _, _ in sims:
     copper.ppc = cppc
     print(f'Setting up "{name}"')
 
-    create_particles(sim_params, electrons, particle_data)
-    create_particles(sim_params, copper, particle_data)
+    create_particles(sim_params, electrons, data_path)
+    create_particles(sim_params, copper, data_path)
     update_header(sim_params, project_path=project_path)
 
     subprocess.run(
@@ -197,7 +204,7 @@ for name, cppc, label, marker, color in sims:
     photon_weights = np.zeros(nt)
     for i in range(start, stop, step):
         file_name = f'{name}/photons_dump_{i:010d}.bp'
-        with FileReader(particle_data + file_name) as f:
+        with FileReader(data_path + file_name) as f:
             times[i] = f.read('Time')[0] * 1.0e15
             photon_weights[i] = f.read('Weight').sum()
 
@@ -213,7 +220,7 @@ for name, cppc, label, marker, color in sims:
 
     i_step = 42
     file_name = f'{name}/photons_dump_{i_step:010d}.bp'
-    with FileReader(particle_data + file_name) as f:
+    with FileReader(data_path + file_name) as f:
         weights = f.read('Weight')
         gammas = f.read('Gamma')
 

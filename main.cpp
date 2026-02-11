@@ -5,7 +5,7 @@
 #include "particles/particles.hpp"
 #include "particles/pusher.hpp"
 #include "particles/current_deposition.hpp"
-// #include "particles/collisions.hpp"
+#include "particles/collisions.hpp"
 
 #include "barkeep.h"
 
@@ -15,7 +15,7 @@
 using namespace tf;
 using namespace tf::electromagnetics;
 using namespace tf::particles;
-// using namespace tf::collisions;
+using namespace tf::collisions;
 using namespace tf::metrics;
 
 namespace bk = barkeep;
@@ -31,29 +31,29 @@ int main() {
       particle_groups.insert({std::string{species.name}, ParticleGroup(species)});
    }
 
-   // std::vector<Collisions> collisions;
-   // for (const auto& col : collision_spec) {
-   //    collisions.emplace_back(col, particle_groups);
-   // }
+   std::vector<Collisions> collisions;
+   for (const auto& col : collision_spec) {
+      collisions.emplace_back(col, particle_groups);
+   }
 
    emsolver_t emsolver(Nx, Ny, Nz);
    // add_gaussianbeam(emsolver);
 
    std::ranges::fill(emsolver.emdata.Bz_app, 0.1);
 
-   Metrics metrics(std::string{sim_path} + "/data/" + std::string{sim_name});
-   if constexpr (em_enabled) {
-      metrics.add_em_metrics(emsolver);
-   }
+   const Metrics metrics(
+      std::string{sim_path} + "/data/" + std::string{sim_name},
+      metric_spec,
+      emsolver.emdata.em_map,
+      particle_groups
+   );
 
    if constexpr (push_enabled or coll_enabled) {
       emsolver.particle_correction();
       for (auto& g : particle_groups | std::views::values) {
          BorisPush::backstep_velocity(g, emsolver.emdata);
-         // metrics.add_particle_metric(g);
       }
    }
-   metrics.add_particle_metric(particle_groups);
 
    auto time = 0.0;
    auto step = 0zu;
@@ -99,12 +99,12 @@ int main() {
       }
       timers["Jdep"].stop_timer();
 
-      // // Collisions
-      // timers["Collisions"].start_timer();
-      // for (auto& c : collisions) {
-      //    c.advance(step);
-      // }
-      // timers["Collisions"].stop_timer();
+      // Collisions
+      timers["Collisions"].start_timer();
+      for (auto& c : collisions) {
+         c.advance(step);
+      }
+      timers["Collisions"].stop_timer();
 
       // Metrics output
       timers["IO"].start_timer();

@@ -12,7 +12,7 @@ from scripts.particle_generation import create_particles
 sim_name = 'ionization'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
-particle_data = project_path + '/data/'
+data_path = project_path + '/data/'
 
 shape = (2, 2, 2)
 
@@ -111,6 +111,13 @@ particle_params = ParticleParams(
     )
 )
 
+# ===== Metric Params =====
+metric_params = Metrics(
+    data_path,
+    (MetricType.ParticleDump,)
+)
+
+
 sim_params = Simulation(
     name=sim_name,
     shape=shape,
@@ -124,14 +131,15 @@ sim_params = Simulation(
     z_range=(zmin, zmax),
     deltas=(dx, dy, dz),
     particle_params=particle_params,
+    metric_params=metric_params,
     em_enabled=False,
     push_enabled=False,
     jdep_enabled=False
 )
 
 print(f'Setting up "{sim_name}"')
-create_particles(sim_params, electrons, particle_data)
-create_particles(sim_params, neutral_aluminum, particle_data)
+create_particles(sim_params, electrons, data_path)
+create_particles(sim_params, neutral_aluminum, data_path)
 update_header(sim_params, project_path=project_path, ionization_test_override=True)
 
 subprocess.run(
@@ -149,7 +157,7 @@ stop = nt
 ionized = []
 for n in range(start, stop, step):
     file_name = f'{sim_name}/Al_products_dump_{n:010d}.bp'
-    with FileReader(particle_data + file_name) as f:
+    with FileReader(data_path + file_name) as f:
         ionized.append(f.read('Weight').sum())
 ionized = np.array(ionized)
 
@@ -180,6 +188,6 @@ ax.plot(time, mean_ion_charge, c=good_colors[0], label=r'$M_{\mathrm{p}}=10^0$',
         linestyle='none', marker='o', mec=good_colors[0], mew=1.5, ms=5)
 
 ax.legend(loc=4)
-plt.savefig(particle_data + f'/ionization_test_mean_ion_charge.png')
-plt.close(fig)
-# plt.show()
+# plt.savefig(data_path + f'/ionization_test_mean_ion_charge.png')
+# plt.close(fig)
+plt.show()

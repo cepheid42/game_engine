@@ -12,7 +12,7 @@ from scripts.domain_params import *
 sim_name = 'carbon_thermal_eq'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
-particle_data = project_path + '/data/'
+data_path = project_path + '/data/'
 
 shape = (2, 2, 2)
 xmin, xmax = 0.0, 1e-6
@@ -69,7 +69,7 @@ carbon2 = Particles(
     pz_range=pz_range
 )
 
-coulombParams = CoulombParams()
+# coulombParams = CoulombParams()
 
 particle_params = ParticleParams(
     save_interval=save_interval,
@@ -81,6 +81,12 @@ particle_params = ParticleParams(
         Collision(groups=('carbon1', 'carbon1'), channels=('coulomb',), self_scatter=True),
         Collision(groups=('carbon2', 'carbon2'), channels=('coulomb',), self_scatter=True),
     )
+)
+
+# ===== Metrics Params =====
+metric_params = Metrics(
+    data_path,
+    (MetricType.ParticleDump,)
 )
 
 sim_params = Simulation(
@@ -96,14 +102,15 @@ sim_params = Simulation(
     z_range=(zmin, zmax),
     deltas=(dx, dy, dz),
     particle_params=particle_params,
+    metric_params=metric_params,
     push_enabled=False,
     jdep_enabled=False,
     em_enabled=False
 )
 
 print(f'Setting up "{sim_name}"')
-create_particles(sim_params, carbon1, particle_data)
-create_particles(sim_params, carbon2, particle_data)
+create_particles(sim_params, carbon1, data_path)
+create_particles(sim_params, carbon2, data_path)
 update_header(sim_params, project_path=project_path)
 
 subprocess.run(
@@ -114,10 +121,9 @@ subprocess.run(
 
 subprocess.run(build_path + '/game_engine').check_returncode()
 
-
 def calculate_Temp(t, group_name):
     filename = f'{sim_name}/{group_name}_dump_{t:010d}.bp'
-    with FileReader(particle_data + filename) as f:
+    with FileReader(data_path + filename) as f:
         weight = f.read('Weight')
         velocity = f.read('Velocity')
 
@@ -148,7 +154,6 @@ good_colors = ['#db6d00', '#006ddb', '#920000', '#52a736', '#9B30FF']
 
 fig, ax = plt.subplots(figsize=(8, 8), layout='constrained')
 
-
 eV_to_erg = 1.60218e-12
 s_to_ps = 1.0e12
 m_carbon_g = 1.9945e-23 # g
@@ -174,6 +179,6 @@ ax.set_ylabel('Temperature (eV)')
 # ax.set_ylim([200, 1300])
 ax.legend()
 
-plt.savefig(particle_data + f'/carbon_eq_test_temperature.png')
-plt.close(fig)
-# plt.show()
+# plt.savefig(data_path + f'/carbon_eq_test_temperature.png')
+# plt.close(fig)
+plt.show()
