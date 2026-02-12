@@ -527,7 +527,7 @@ void bremsstrahlungCollision(
    const auto probability_coef = cross_section_m2 * params.max_weight * params.scatter_coef * brem.rate_multiplier
                                  * v_ep * gamma_ep / gamma_ei;
 
-   // std::println("{:18.15e}, {:16.10f}, {:18.15f}, {:18.15f}, {:18.15f}", cross_section_m2, params.scatter_coef, v_ep, gamma_ep, gamma_ei);
+   // std::println("{:18.15e}: {:18.15e}, {:16.10f}, {:18.15f}, {:18.15f}, {:18.15f}", probability_coef, cross_section_m2, params.scatter_coef, v_ep, gamma_ep, gamma_ei);
 
    auto prod_mult = brem.production_multiplier;
    auto scatter_probability = probability_coef * prod_mult;

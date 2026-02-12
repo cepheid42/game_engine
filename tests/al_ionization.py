@@ -9,10 +9,13 @@ from adios2 import FileReader
 from scripts.domain_params import *
 from scripts.particle_generation import create_particles
 
+# =============================
+# ===== Simulation Params =====
+# =============================
 sim_name = 'ionization'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
-data_path = project_path + '/data/'
+data_path = project_path + f'/data/{sim_name}'
 
 shape = (2, 2, 2)
 
@@ -29,11 +32,14 @@ t_end = 3.18e-15
 nt = int(t_end / dt) + 1
 cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
+save_interval = 10
+
+# =====================
 # ===== Particles =====
+# =====================
 px_range=(xmin, xmax)
 py_range=(ymin, ymax)
 pz_range=(zmin, zmax)
-save_interval = 10
 
 electrons = Particles(
     name='electrons',
@@ -91,7 +97,9 @@ ionized_aluminum = Particles(
     pz_range=pz_range,
 )
 
+# ==========================================
 # ===== Collisions and Particle Params =====
+# ==========================================
 ionization_params = IonizationParams(
     products=('electron_products', 'Al_products'),
     ionization_energy=5.9858,
@@ -111,13 +119,17 @@ particle_params = ParticleParams(
     )
 )
 
-# ===== Metric Params =====
+# ==========================
+# ===== Metrics Params =====
+# ==========================
 metric_params = Metrics(
     data_path,
     (MetricType.ParticleDump,)
 )
 
-
+# ============================
+# ===== Simulation Class =====
+# ============================
 sim_params = Simulation(
     name=sim_name,
     shape=shape,
@@ -137,6 +149,9 @@ sim_params = Simulation(
     jdep_enabled=False
 )
 
+# ===========================
+# ===== Compile and Run =====
+# ===========================
 print(f'Setting up "{sim_name}"')
 create_particles(sim_params, electrons, data_path)
 create_particles(sim_params, neutral_aluminum, data_path)
@@ -150,13 +165,16 @@ subprocess.run(
 
 subprocess.run(build_path + '/game_engine').check_returncode()
 
+# ===========================
+# ===== Post Processing =====
+# ===========================
 step = save_interval
 start = step
 stop = nt
 
 ionized = []
 for n in range(start, stop, step):
-    file_name = f'{sim_name}/Al_products_dump_{n:010d}.bp'
+    file_name = f'/Al_products_dump_{n:010d}.bp'
     with FileReader(data_path + file_name) as f:
         ionized.append(f.read('Weight').sum())
 ionized = np.array(ionized)

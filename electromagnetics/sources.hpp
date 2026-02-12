@@ -325,15 +325,15 @@ void add_rmf_antennas(auto& emsolver, const auto rmf_params) {
 
 void add_gaussianbeam(auto& em) {
    using temporal_vec = std::vector<std::unique_ptr<TemporalSource>>;
-
-   constexpr auto freq = constants::c / 8.0e-7; // Hz -> c / 800 nm
-   constexpr auto omega = 2.0 * constants::pi * freq;
+   constexpr auto lambda = 8.0e-7; // 0.8 microns, or 800 nm
+   constexpr auto omega = 2.0 * constants::pi * constants::c / lambda;
 
    constexpr auto amp = 1.583 * 2.75e13; // V/m
    constexpr auto w0 = 2.5479e-6; // meters, waste size
 
    constexpr auto width = 1.2739827e-14; // ~12.74 fs
-   constexpr auto delay = 3.0 * width;
+   constexpr auto delay = 30.0e-15; // 30 fs
+
 
    vec3 waist_pos{0.0, 0.0, 0.0};
 

@@ -9,9 +9,13 @@ from adios2 import FileReader
 from scripts.domain_params import *
 from scripts.particle_generation import create_particles
 
+# =============================
+# ===== Simulation Params =====
+# =============================
+sim_name = 'fusion_test'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
-data_path = project_path + '/data'
+data_path = project_path + f'/data/{sim_name}'
 
 shape = (2, 2, 2)
 
@@ -28,7 +32,9 @@ t_end = 1.0e-12
 nt = int(t_end / dt) + 1
 cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
+# =====================
 # ===== Particles =====
+# =====================
 px_range=(xmin, xmax)
 py_range=(ymin, ymax)
 pz_range=(zmin, zmax)
@@ -104,7 +110,9 @@ helium4 = Particles(
     pz_range=pz_range
 )
 
+# ==========================================
 # ===== Collisions and Particle Params =====
+# ==========================================
 DD_params = FusionParams(
     products=('neutrons', 'helium3'),
     energy_gain=3.269e6,
@@ -119,12 +127,17 @@ DT_params = FusionParams(
     cross_section_file='/tests/cross_section_data/DT_nHe4_BH_eV_m2.txt'
 )
 
-# ===== Collisions and Particle Params =====
+# ==========================
+# ===== Metrics Params =====
+# ==========================
 metric_params = Metrics(
     data_path,
     (MetricType.ParticleDump, )
 )
 
+# ============================
+# ===== Simulation Class =====
+# ============================
 collision_types = ['DD', 'DT']
 collision_temps = [5, 10, 19]
 
@@ -154,6 +167,7 @@ for c in collision_types:
 
     for t in collision_temps:
         sim_name = f'{c}_fusion_{t}keV'
+        data_path = project_path + f'/data/{sim_name}'
         print(f'Setting up "{sim_name}"')
 
         TeV = float(t) * 1.0e3
@@ -185,6 +199,9 @@ for c in collision_types:
             jdep_enabled=False
         )
 
+        # ===========================
+        # ===== Compile and Run =====
+        # ===========================
         create_particles(sim_params, deuterium, data_path)
         create_particles(sim_params, tritium, data_path)
         update_header(sim_params, project_path=project_path)
@@ -198,6 +215,10 @@ for c in collision_types:
         subprocess.run(build_path + '/game_engine').check_returncode()
         print()
 
+
+# ===========================
+# ===== Post Processing =====
+# ===========================
 if not (plot_DD or plot_DT):
     exit()
 
@@ -296,8 +317,8 @@ DT_fwhm = np.zeros(3)
 for i, t in enumerate(collision_temps):
     if has_DD:
         # plot DD
-        dd_file = f'/DD_fusion_{t}keV/neutrons_dump_{nt-1:010d}.bp'
-        with FileReader(data_path + dd_file) as f:
+        dd_file = f'/data/DD_fusion_{t}keV/neutrons_dump_{nt-1:010d}.bp'
+        with FileReader(project_path + dd_file) as f:
             final_time = f.read("Time")[0]
             weights = f.read('Weight')
             gammas = f.read('Gamma')
@@ -308,9 +329,9 @@ for i, t in enumerate(collision_temps):
 
     if has_DT:
         # plot DT
-        dt_file = f'/DT_fusion_{t}keV/neutrons_dump_{nt-1:010d}.bp'
+        dt_file = f'/data/DT_fusion_{t}keV/neutrons_dump_{nt-1:010d}.bp'
 
-        with FileReader(data_path + dt_file) as f:
+        with FileReader(project_path + dt_file) as f:
             final_time = f.read("Time")[0]
             weights = f.read('Weight')
             gammas = f.read('Gamma')

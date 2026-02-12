@@ -9,10 +9,13 @@ from scipy import constants
 from scripts.particle_generation import create_particles
 from scripts.domain_params import *
 
+# =============================
+# ===== Simulation Params =====
+# =============================
 sim_name = 'carbon_thermal_eq'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
-data_path = project_path + '/data/'
+data_path = project_path + f'/data/{sim_name}'
 
 shape = (2, 2, 2)
 xmin, xmax = 0.0, 1e-6
@@ -30,7 +33,9 @@ cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
 save_interval = nt // 100
 
+# =====================
 # ===== Particles =====
+# =====================
 px_range = (xmin, xmax)
 py_range = (ymin, ymax)
 pz_range = (zmin, zmax)
@@ -69,8 +74,9 @@ carbon2 = Particles(
     pz_range=pz_range
 )
 
-# coulombParams = CoulombParams()
-
+# ==========================================
+# ===== Collisions and Particle Params =====
+# ==========================================
 particle_params = ParticleParams(
     save_interval=save_interval,
     particle_bcs='periodic',
@@ -83,12 +89,17 @@ particle_params = ParticleParams(
     )
 )
 
+# ==========================
 # ===== Metrics Params =====
+# ==========================
 metric_params = Metrics(
     data_path,
     (MetricType.ParticleDump,)
 )
 
+# ============================
+# ===== Simulation Class =====
+# ============================
 sim_params = Simulation(
     name='carbon_thermal_eq',
     shape=shape,
@@ -108,6 +119,9 @@ sim_params = Simulation(
     em_enabled=False
 )
 
+# ===========================
+# ===== Compile and Run =====
+# ===========================
 print(f'Setting up "{sim_name}"')
 create_particles(sim_params, carbon1, data_path)
 create_particles(sim_params, carbon2, data_path)
@@ -121,8 +135,11 @@ subprocess.run(
 
 subprocess.run(build_path + '/game_engine').check_returncode()
 
+# ===========================
+# ===== Post Processing =====
+# ===========================
 def calculate_Temp(t, group_name):
-    filename = f'{sim_name}/{group_name}_dump_{t:010d}.bp'
+    filename = f'/{group_name}_dump_{t:010d}.bp'
     with FileReader(data_path + filename) as f:
         weight = f.read('Weight')
         velocity = f.read('Velocity')

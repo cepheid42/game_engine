@@ -133,13 +133,14 @@ class Particles:
     temp: tuple
     density: float
     ppc: tuple
+    file_path: str = ''
     distribution: str = 'relativistic'
     px_range: tuple = ()
     py_range: tuple = ()
     pz_range: tuple = ()
 
     def __repr__(self):
-        filestr = f'/data/{self.name.lower()}.bp' if self.distribution != 'none' else ''
+        filestr = f'{self.file_path}/{self.name.lower()}.bp' if self.distribution != 'none' else ''
         return (
             '   ParticleGroupSpec{\n'
             f'      .name = "{self.name}",\n'
@@ -186,7 +187,7 @@ class Simulation:
     em_enabled: bool = True
     push_enabled: bool = True
     jdep_enabled: bool = True
-    coll_enabled: bool = True
+    collisions_enabled: bool = True
 
 
 def update_header(params: Simulation, project_path: str, ionization_test_override: bool=False):
@@ -216,6 +217,9 @@ def update_header(params: Simulation, project_path: str, ionization_test_overrid
     }
 
     bc_str = f'{em_bcs[0]}zu, {em_bcs[1]}zu, {em_bcs[2]}zu, {em_bcs[3]}zu, {em_bcs[4]}zu, {em_bcs[5]}zu'
+
+    for p in particles.particle_data:
+        p.file_path = f'/data/{params.name}'
 
     particle_types = ',\n'.join([str(p) for p in particles.particle_data])
     collision_types = ',\n'.join([str(c) for c in particles.collisions])
@@ -259,7 +263,7 @@ def update_header(params: Simulation, project_path: str, ionization_test_overrid
         f'inline constexpr auto   em_enabled = {str(params.em_enabled).lower()};\n'
         f'inline constexpr auto push_enabled = {str(params.push_enabled).lower()};\n'
         f'inline constexpr auto jdep_enabled = {str(params.jdep_enabled).lower()};\n'
-        f'inline constexpr auto coll_enabled = {str(params.coll_enabled).lower()};\n'
+        f'inline constexpr auto coll_enabled = {str(params.collisions_enabled).lower()};\n'
         '\n'
         '/*---------------------------------------------------------------/\n'
         '/-                        EM Parameters                         -/\n'

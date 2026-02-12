@@ -1,5 +1,6 @@
 from collections.abc import Callable, Iterable
 
+import os
 import numpy as np
 from scipy import constants
 from adios2 import Stream
@@ -108,14 +109,14 @@ def maxwell_juttner_distribution(mass, T_M, count):
     velocities[:, :] = u
     return velocities
 
-def write_particle_file(name, file_dir, mass, charge, positions, velocities, weights, gammas, atomic_number = 0, tracer = False, sourcer = False):
-    with Stream(file_dir + f'/{name.lower().replace(" ","_")}.bp', 'w') as f:
-        f.write_attribute('Name', name)
-        f.write_attribute('Mass', mass)
+def write_particle_file(data_path, particles, positions, velocities, weights, gammas, tracer=False, sourcer=False):
+    with Stream(data_path + f'/{particles.name.lower().replace(" ","_")}.bp', 'w') as f:
+        f.write_attribute('Name', particles.name)
+        f.write_attribute('Mass', particles.mass)
         f.write_attribute("Mass/Unit", "kg")
-        f.write_attribute('Charge', charge)
+        f.write_attribute('Charge', particles.charge)
         f.write_attribute("Charge/Unit", "C")
-        f.write_attribute("Atomic Number", np.array([atomic_number],np.uint64)[0])
+        f.write_attribute("Atomic Number", np.array([particles.atomic_number],np.uint64)[0])
         # f.write_attribute('Tracer', np.array([tracer],np.uint64)[0])
         # f.write_attribute('Sourcer', np.array([sourcer],np.uint64)[0])
         f.write("Position", positions.copy(), positions.shape, [0, 0], positions.shape)
@@ -126,8 +127,11 @@ def write_particle_file(name, file_dir, mass, charge, positions, velocities, wei
         f.write("Gamma", gammas, gammas.shape, [0], gammas.shape)
 
 
+def create_particles(domain, particles, data_path):
+    if not os.path.exists(data_path):
+        print(f'Creating simulation data directory "{data_path}"...')
+        os.makedirs(data_path)
 
-def create_particles(domain, particles, file_dir):
     print(f'Creating {particles.name}...', end=' ', flush=True)
 
     if particles.distribution == 'none':
@@ -149,11 +153,9 @@ def create_particles(domain, particles, file_dir):
     z_center = 0.5 * (z_coords[:-1] + z_coords[1:])
 
     # ----- Unpack particle params -----
-    name = particles.name
-    mass = particles.mass
-    charge = particles.charge
-    atomic_number = particles.atomic_number
-    temp = particles.temp       # Eventually, these will have to be arrays, or maybe functions?
+    # name = particles.name
+    # mass = particles.mass
+    # temp = particles.temp       # Eventually, these will have to be arrays, or maybe functions?
     density = particles.density # ^
     ppc_x, ppc_y, ppc_z = particles.ppc
     distribution = particles.distribution
@@ -174,7 +176,7 @@ def create_particles(domain, particles, file_dir):
     fake_geom = np.argwhere(fake_geom)
 
     if not fake_geom.shape[0]:
-        raise ValueError(f'Warning: Particle geometry empty for {name} group.')
+        raise ValueError(f'Warning: Particle geometry empty for {particles.name} group.')
 
     # Get cell positions
     xc = x_coords[fake_geom[:, 0]]
@@ -207,14 +209,15 @@ def create_particles(domain, particles, file_dir):
 
     # Sample particle velocities
     if distribution == 'thermal':
-        velocities = thermal_distribution(mass, temp, num_particles)
+        velocities = thermal_distribution(particles.mass, particles.temp, num_particles)
     elif distribution == 'constant':
-        velocities = constant_distribution(mass, temp, num_particles)
+        velocities = constant_distribution(particles.mass, particles.temp, num_particles)
     elif distribution == 'relativistic':
-        velocities = maxwell_juttner_distribution(mass, temp, num_particles)
+        velocities = maxwell_juttner_distribution(particles.mass, particles.temp, num_particles)
     else:
-        raise ValueError(f'Invalid distribution "{distribution}" for {name} group.')
+        raise ValueError(f'Invalid distribution "{distribution}" for {particles.name} group.')
 
     gammas = 1.0 / np.sqrt(1 - ((velocities/constants.c)**2).sum(axis=1))
-    write_particle_file(name, file_dir, mass, charge, positions, velocities, weights, gammas, atomic_number, False, False)
+
+    write_particle_file(data_path, particles, positions, velocities, weights, gammas)
     print('Done')

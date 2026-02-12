@@ -9,10 +9,13 @@ from adios2 import FileReader
 from scripts.domain_params import *
 from scripts.particle_generation import create_particles
 
+# =============================
+# ===== Simulation Params =====
+# =============================
 sim_name = 'cu_brems'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
-data_path = project_path + '/data/'
+data_path = project_path + f'/data/{sim_name}'
 
 shape = (2, 2, 2)
 
@@ -29,7 +32,9 @@ t_end = 4.2e-14
 nt = int(t_end / dt) + 1
 cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
+# =====================
 # ===== Particles =====
+# =====================
 px_range=(xmin, xmax)
 py_range=(ymin, ymax)
 pz_range=(zmin, zmax)
@@ -37,6 +42,7 @@ e_eV = 40.0e6
 v_e = constants.c * np.sqrt(1 - (1 + constants.eV * e_eV / (constants.m_e * constants.c**2))**-2)
 e_den = 1.0e27 # m^3
 cu_den = 8.0e28 # m^3
+cu_temp = (1.0, 1.0, 1.0)
 
 electrons = Particles(
     name='electrons',
@@ -52,18 +58,15 @@ electrons = Particles(
     pz_range=pz_range
 )
 
-cu_temp = 1.0e-50
 copper = Particles(
     name='copper',
     mass=63.55 * constants.atomic_mass,
     charge=0,
     atomic_number=29,
-    temp=(cu_temp, cu_temp, cu_temp), # eV
-    # temp=(0.0, 0.0, 0.0), # eV
+    temp=cu_temp, # eV
     density=cu_den, # m^-3,
     ppc=(100, 10, 10),
     distribution='thermal',
-    # distribution='constant',
     px_range=px_range,
     py_range=py_range,
     pz_range=pz_range
@@ -83,7 +86,9 @@ photons = Particles(
     pz_range=pz_range
 )
 
+# ==========================================
 # ===== Collisions and Particle Params =====
+# ==========================================
 radiation_params = RadiationParams(
     products='photons',
     reduce_electron_energy=False,
@@ -105,12 +110,17 @@ particle_params = ParticleParams(
     )
 )
 
+# ==========================
 # ===== Metrics Params =====
+# ==========================
 metric_params = Metrics(
     data_path,
     (MetricType.ParticleDump,)
 )
 
+# ============================
+# ===== Simulation Class =====
+# ============================
 sim_params = Simulation(
     name=sim_name,
     shape=shape,
@@ -130,6 +140,9 @@ sim_params = Simulation(
     jdep_enabled=False
 )
 
+# ===========================
+# ===== Compile and Run =====
+# ===========================
 sims = [
     ["wi2we", ( 40, 1, 100), r"$w_{\mathrm{i}} = 2w_{\mathrm{e}}$", 'o', "#db6d00"],
     # ["wiwe",  ( 80, 1, 100), r"$w_{\mathrm{i}} = w_{\mathrm{e}}$", 's', "#006ddb"],
@@ -140,6 +153,7 @@ sims = [
 for name, cppc, _, _, _ in sims:
     sim_params.name = name
     copper.ppc = cppc
+    data_path = project_path + f'/data/{name}'
     print(f'Setting up "{name}"')
 
     create_particles(sim_params, electrons, data_path)
@@ -154,7 +168,9 @@ for name, cppc, _, _, _ in sims:
 
     subprocess.run(build_path + '/game_engine').check_returncode()
 
-
+# ===========================
+# ===== Post Processing =====
+# ===========================
 plt.style.use('/home/cepheid/TriForce/game_engine/data/triforce.mplstyle')
 good_colors=["#db6d00","#006ddb","#920000","#52a736","#9B30FF"]
 
@@ -203,8 +219,8 @@ for name, cppc, label, marker, color in sims:
     times = np.zeros(nt)
     photon_weights = np.zeros(nt)
     for i in range(start, stop, step):
-        file_name = f'{name}/photons_dump_{i:010d}.bp'
-        with FileReader(data_path + file_name) as f:
+        file_name = f'/data/{name}/photons_dump_{i:010d}.bp'
+        with FileReader(project_path + file_name) as f:
             times[i] = f.read('Time')[0] * 1.0e15
             photon_weights[i] = f.read('Weight').sum()
 
@@ -219,8 +235,8 @@ for name, cppc, label, marker, color in sims:
     k_over_gm1_bins = np.logspace(-7, 0, n_bins)
 
     i_step = 42
-    file_name = f'{name}/photons_dump_{i_step:010d}.bp'
-    with FileReader(data_path + file_name) as f:
+    file_name = f'/data/{name}/photons_dump_{i_step:010d}.bp'
+    with FileReader(project_path + file_name) as f:
         weights = f.read('Weight')
         gammas = f.read('Gamma')
 

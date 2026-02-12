@@ -37,9 +37,8 @@ int main() {
    }
 
    emsolver_t emsolver(Nx, Ny, Nz);
-   // add_gaussianbeam(emsolver);
+   add_gaussianbeam(emsolver);
 
-   std::ranges::fill(emsolver.emdata.Bz_app, 0.1);
 
    const Metrics metrics(
       std::string{sim_path} + "/data/" + std::string{sim_name},
@@ -84,7 +83,7 @@ int main() {
       // Particle Push
       timers["Push"].start_timer();
       for (auto& g : particle_groups | std::views::values) {
-         // g.reset_positions();
+         g.reset_positions();
          BorisPush::advance(g, emsolver.emdata, step);
          if (step % 100 == 0) {
             g.sort_particles();

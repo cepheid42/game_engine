@@ -108,6 +108,8 @@ struct EMData {
    }
 
    void load_applied_fields() {
+      if (std::string(applied_fields_path).empty()) { return; }
+
       adios2::ADIOS adios{};
       adios2::IO io = adios.DeclareIO("EMFieldsExternal");
       adios2::Engine reader = io.Open(applied_fields_path, adios2::Mode::Read);

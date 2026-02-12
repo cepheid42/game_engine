@@ -3,8 +3,8 @@ project(
     'cpp',
     version : '0.0.1',
     default_options : [
-        'optimization=2',
-        'debug=true',
+        'optimization=3',
+        'debug=false',
         'warning_level=3',
 #        'werror=true',
         'cpp_std=c++23',
