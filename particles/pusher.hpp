@@ -53,12 +53,12 @@ static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qd
    using BzStrategy = interp::InterpolationStrategy<XRedShape,  YRedShape,  ZFullShape>;
 
    static constexpr vec3 offset{
-      XFullShape::Order % 2 == 0 ? 0.5f : 1.0f,
-      YFullShape::Order % 2 == 0 ? 0.5f : 1.0f,
-      ZFullShape::Order % 2 == 0 ? 0.5f : 1.0f
+      XFullShape::Order % 2 == 0 ? 0.5 : 1.0,
+      YFullShape::Order % 2 == 0 ? 0.5 : 1.0,
+      ZFullShape::Order % 2 == 0 ? 0.5 : 1.0
    };
-   const vec3 loc_full = getCellIndices<float>(p.location + offset);
-   const vec3 loc_half = loc_full + 0.5f;
+   const vec3 loc_full = getCellIndices<double>(p.location + offset);
+   const vec3 loc_half = loc_full + 0.5;
 
    const vec3 fid = loc_full.to_uint();
    const vec3 hid = loc_half.to_uint();
@@ -95,21 +95,21 @@ void apply_particle_bcs(auto& p, const auto& new_loc, const auto& old_loc) {
 template<ParticleBCType BC>
 requires (BC == ParticleBCType::Periodic)
 void apply_particle_bcs(auto& p, auto& new_loc, auto& old_loc) {
-   constexpr auto fnx = static_cast<float>(Nx - 1);
-   constexpr auto fny = static_cast<float>(Ny - 1);
-   constexpr auto fnz = static_cast<float>(Nz - 1);
+   constexpr auto fnx = static_cast<double>(Nx - 1);
+   constexpr auto fny = static_cast<double>(Ny - 1);
+   constexpr auto fnz = static_cast<double>(Nz - 1);
 
    if (new_loc[0] <= nHalo or new_loc[0] >= fnx - nHalo) {
-      new_loc[0] = fnx + new_loc[0] - 2.0f * std::floor(new_loc[0] + 0.5f);
-      old_loc[0] = fnx + old_loc[0] - 2.0f * std::floor(old_loc[0] + 0.5f);
+      new_loc[0] = fnx + new_loc[0] - 2.0 * std::floor(new_loc[0] + 0.5);
+      old_loc[0] = fnx + old_loc[0] - 2.0 * std::floor(old_loc[0] + 0.5);
    }
    if (new_loc[1] <= nHalo or new_loc[1] >= fny - nHalo) {
-      new_loc[1] = fny + new_loc[1] - 2.0f * std::floor(new_loc[1] + 0.5f);
-      old_loc[1] = fny + old_loc[1] - 2.0f * std::floor(old_loc[1] + 0.5f);
+      new_loc[1] = fny + new_loc[1] - 2.0 * std::floor(new_loc[1] + 0.5);
+      old_loc[1] = fny + old_loc[1] - 2.0 * std::floor(old_loc[1] + 0.5);
    }
    if (new_loc[2] <= nHalo or new_loc[2] >= fnz - nHalo) {
-      new_loc[2] = fnz + new_loc[2] - 2.0f * std::floor(new_loc[2] + 0.5f);
-      old_loc[2] = fnz + old_loc[2] - 2.0f * std::floor(old_loc[2] + 0.5f);
+      new_loc[2] = fnz + new_loc[2] - 2.0 * std::floor(new_loc[2] + 0.5);
+      old_loc[2] = fnz + old_loc[2] - 2.0 * std::floor(old_loc[2] + 0.5);
    }
 
    p.old_location = old_loc;
@@ -122,12 +122,13 @@ void apply_particle_bcs(auto& p, const auto& new_loc, const auto& old_loc) {
    constexpr std::size_t BC_DEPTH = 3zu;
 
    const auto [inew, jnew, knew] = getCellIndices(new_loc);
-   const auto disabled = ((inew < BC_DEPTH or inew > Nx - 1 - BC_DEPTH) and !x_collapsed) or
-                         ((jnew < BC_DEPTH or jnew > Ny - 1 - BC_DEPTH) and !y_collapsed) or
-                         ((knew < BC_DEPTH or knew > Nz - 1 - BC_DEPTH) and !z_collapsed);
+   const auto disabled = ((inew < BC_DEPTH or inew > Nx - 2 - BC_DEPTH) and !x_collapsed) or
+                         ((jnew < BC_DEPTH or jnew > Ny - 2 - BC_DEPTH) and !y_collapsed) or
+                         ((knew < BC_DEPTH or knew > Nz - 2 - BC_DEPTH) and !z_collapsed);
    if (disabled) {
-      p.weight = -1.0f;
+      p.weight = -1.0;
    }
+
    p.old_location = old_loc;
    p.location = new_loc;
 }
@@ -159,7 +160,7 @@ struct BorisPush {
       if (p.is_disabled()) { return; }
 
       auto old_loc = p.location;
-      auto new_loc = p.location + (delta_inv * p.velocity).to_float();
+      auto new_loc = p.location + (delta_inv * p.velocity);
 
       apply_particle_bcs<PBCSelect>(p, new_loc, old_loc);
    } // end update_position()

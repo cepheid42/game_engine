@@ -55,7 +55,9 @@ def thermal_distribution(mass, T_M, num_particles, velocity=0.0):
     v_avg = np.array(np.mean(velocities, axis=0), dtype=np.float64)
     v2_avg = np.mean(velocities**2, axis=0)
     denom = np.sqrt(np.abs(v2_avg - v_avg**2))
-    velocities = (v_thermal / denom) * (velocities - v_avg)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        velocities = (v_thermal / denom) * (velocities - v_avg)
+    velocities[np.isnan(velocities)] = 0.0
     return velocities
 
 

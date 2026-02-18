@@ -295,7 +295,7 @@ def update_header(params: Simulation, project_path: str, ionization_test_overrid
         '\n'
         f'inline constexpr auto PBCSelect = {particle_bcs[particles.particle_bcs]};\n'
         '\n'
-        'inline constexpr std::array particle_spec = {\n'
+        f'inline constexpr std::array<ParticleGroupSpec, {len(particles.particle_data)}> particle_spec = {{\n'
         f'{particle_types}\n'
         '};\n'
         '\n'

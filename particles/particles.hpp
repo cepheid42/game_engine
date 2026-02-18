@@ -22,11 +22,11 @@ namespace tf::particles
 struct Particle {
    vec3<double> velocity; // change to beta and make it a float
    double gamma;
-   vec3<float> location;
-   vec3<float> old_location;
-   float weight;
+   vec3<double> location;
+   vec3<double> old_location;
+   double weight;
 
-   [[nodiscard]] bool is_disabled() const { return weight <= 0.0f; }
+   [[nodiscard]] bool is_disabled() const { return weight <= 0.0; }
 }; // end struct Particle
 
 template <typename T = std::size_t>
@@ -85,7 +85,7 @@ static void initializeFromFile(const std::string& filename, auto& group) {
       const vec3 vel{v_vec[3 * i], v_vec[3 * i + 1], v_vec[3 * i + 2]};
       const auto weight = w_vec[i];
 
-      const auto loc = ((pos - mins) / deltas).to_float();
+      const auto loc = ((pos - mins) / deltas);
       const auto gamma = g_vec[i];
 
       group.particles.emplace_back(
@@ -153,29 +153,34 @@ struct ParticleGroup {
    }
 
    void reset_positions() {
-      if constexpr (x_collapsed or y_collapsed or z_collapsed) {
+      if constexpr (push_enabled and (x_collapsed or y_collapsed or z_collapsed)) {
          #pragma omp parallel for simd num_threads(nThreads)
          for (std::size_t pid = 0; pid < particles.size(); pid++) {
-            if constexpr (x_collapsed) { particles[pid].location[0] = 0.5f; }
-            if constexpr (y_collapsed) { particles[pid].location[1] = 0.5f; }
-            if constexpr (z_collapsed) { particles[pid].location[2] = 0.5f; }
+            if constexpr (x_collapsed) { particles[pid].location[0] = 0.5; }
+            if constexpr (y_collapsed) { particles[pid].location[1] = 0.5; }
+            if constexpr (z_collapsed) { particles[pid].location[2] = 0.5; }
          }
       }
    }
 
+   void remove_particles() {}
+
    void sort_particles() {
-      if (is_sorted) { return; }
-      std::erase_if(particles, [](const Particle& p) { return p.is_disabled(); });
-      boost::sort::block_indirect_sort(
-         particles.begin(), particles.end(),
-         [](const Particle& a, const Particle& b) {
-            return morton_encode(getCellIndices<std::size_t>(a.location))
-                 < morton_encode(getCellIndices<std::size_t>(b.location));
-         },
-         nThreads
-      );
-      is_sorted = true;
+      if constexpr (push_enabled) {
+         if (is_sorted) { return; }
+         std::erase_if(particles, [](const Particle& p) { return p.is_disabled(); });
+         boost::sort::block_indirect_sort(
+            particles.begin(), particles.end(),
+            [](const Particle& a, const Particle& b) {
+               return morton_encode(getCellIndices<std::size_t>(a.location))
+                    < morton_encode(getCellIndices<std::size_t>(b.location));
+            },
+            nThreads
+         );
+         is_sorted = true;
+      }
    }
+
 }; // end struct ParticleGroup
 } // end namespace tf::particles
 

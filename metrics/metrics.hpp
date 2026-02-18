@@ -325,6 +325,8 @@ struct ParticleDumpMetric final : detail::MetricBase {
       var_gamma.SetSelection({{0, 0}, {nParticles, 1}}); // {{start}, {count}}
       
       for (const auto& p: group.particles) {
+         // if (p.is_disabled()) { continue; }
+
          for (std::size_t d = 0; d < 3; d++) {
             position.push_back(lb[d] + delta[d] * p.location[d]);
             velocity.push_back(p.velocity[d]);

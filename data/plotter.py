@@ -124,7 +124,7 @@ def plot_distributions(start, stop, step, group_name, file_dir):
 
 def load_field(n, name, file_dir):
     filename = f'/fields_{n:010d}.bp'
-    with FileReader(data_dir + file_dir + filename) as f:
+    with FileReader(file_dir + filename) as f:
         return f.read(name)
 
 
@@ -197,7 +197,7 @@ def plot_single_field(n, step, name, file_dir):
 
 def plot_fields(n, step, file_dir):
     def plot(name, ax, figure):
-        field = load_field(n, name, file_dir)
+        field = load_field(n, name, file_dir + '/lsi_test')
         nnx, nny, nnz = field.shape
         # field = field[:, :, nnz // 2]
         field = field[:, 0, :]
@@ -562,9 +562,13 @@ def main():
     # with mp.Pool(16) as p:
     #    p.starmap(plot_metric, targs)
 
-    # targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
-    # with mp.Pool(8) as p:
-    #    p.starmap(plot_fields, targs)
+    file_dir = '/home/cepheid/TriForce/game_engine/data'
+    start = 0
+    stop = 2000
+    step = 75
+    targs = [(n, step, file_dir) for n in range(start, stop + step, step)]
+    with mp.Pool(8) as p:
+       p.starmap(plot_fields, targs)
 
     # targs = [(n, step, 'Jz', file_dir) for n in range(start, stop + step, step)]
     # with mp.Pool(16) as p:
@@ -579,12 +583,12 @@ def main():
     # plot_single_field(0, 1, 'Ex', file_dir)
     # plot_single_field(0, 1, 'Ez', file_dir)
 
-    fname = 'SB_G4_Z29_kdsdk_MeV_barns.csv'
-    oname = 'SB_G4_Z29_kdsdk_eV_m2.txt'
-    data = np.genfromtxt('/home/cepheid/TriForce/game_engine/tests/mikes_files/' + fname, dtype=np.float64)
-    data[:, 0] *= 1e6
-    data[:, 1:] *= 1e-28
-    np.savetxt('/home/cepheid/TriForce/game_engine/tests/cross_section_data/' + oname, data)
+    # fname = 'SB_G4_Z29_kdsdk_MeV_barns.csv'
+    # oname = 'SB_G4_Z29_kdsdk_eV_m2.txt'
+    # data = np.genfromtxt('/home/cepheid/TriForce/game_engine/tests/mikes_files/' + fname, dtype=np.float64)
+    # data[:, 0] *= 1e6
+    # data[:, 1:] *= 1e-28
+    # np.savetxt('/home/cepheid/TriForce/game_engine/tests/cross_section_data/' + oname, data)
 
 
 if __name__ == '__main__':

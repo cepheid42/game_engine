@@ -43,8 +43,14 @@ struct EMSolver {
       apply_srcs(t);
       updateE();
       updateEBCs();
-      particle_correction(); // for the particles and shit
-      zero_currents();       // also for the particles, don't need last week's currents
+
+      if constexpr (push_enabled) {
+         particle_correction(); // for the particles and shit
+      }
+
+      if constexpr (jdep_enabled) {
+         zero_currents();       // also for the particles, don't need last week's currents
+      }
    }
 
    static void advance(const auto) requires (!em_enabled) {}

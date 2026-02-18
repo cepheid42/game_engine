@@ -88,7 +88,7 @@ particle_params = ParticleParams(
 # ==================================
 em_params = EMParams(
     save_interval=save_interval,
-    pml_depth=15,
+    pml_depth=25,
     em_bcs=(1, 1, 2, 2, 1, 1),
 )
 
@@ -109,7 +109,7 @@ sim_params = Simulation(
     nthreads=32,
     dt=dt,
     t_end=t_end,
-    nt=nt,
+    nt= nt,
     cfl=cfl,
     x_range=(xmin, xmax),
     y_range=(ymin, ymax),
@@ -128,13 +128,15 @@ print(f'Setting up "{sim_name}"')
 create_particles(sim_params, electrons, data_path)
 create_particles(sim_params, ions, data_path)
 update_header(sim_params, project_path=project_path)
-#
+
+print('Compiling...')
 subprocess.run(
     ['meson', 'compile', '-C', build_path, '-j4'],
     stdout=subprocess.DEVNULL,
     stderr=subprocess.DEVNULL
 ).check_returncode()
 
+print('Running...')
 subprocess.run(build_path + '/game_engine').check_returncode()
 
 # ===========================
@@ -142,14 +144,6 @@ subprocess.run(build_path + '/game_engine').check_returncode()
 # ===========================
 J_to_kJ = 1.0e-3
 s_to_fs = 1.0e15
-
-# 7501/7500 (8.25 steps/s)
-#         EM: 00:04:47.136323652
-#       Push: 00:06:22.394499093
-#       Jdep: 00:03:58.154574705
-#         IO: 00:00:00.979463212
-# Collisions: 00:00:00.000446610
-#      Total: 00:15:10.879185717
 
 with FileReader(data_path + '/fields_energy.bp') as f:
     variables = f.available_variables()
@@ -192,19 +186,21 @@ for i, a in enumerate(ax):
     a.set_ylabel(label)
 
 ax[0].plot(time, field_energy, 'b-', label='TriForce')
-ax[1].plot(time, e_energy, 'b-', label='TriForce')
-ax[2].plot(time, i_energy, 'b-', label='TriForce')
+ax[1].plot(time, e_energy, 'b-')
+ax[2].plot(time, i_energy, 'b-')
 
 ax[0].plot(smith_field_data[:, 0], smith_field_data[:, 1], 'r--', label='Smith')
-ax[1].plot(smith_electron_data[:, 0], smith_electron_data[:, 1], 'r--', label='Smith')
-ax[2].plot(smith_proton_data[:, 0], smith_proton_data[:, 1], 'r--', label='Smith')
+ax[1].plot(smith_electron_data[:, 0], smith_electron_data[:, 1], 'r--')
+ax[2].plot(smith_proton_data[:, 0], smith_proton_data[:, 1], 'r--')
 
 # ax[0].set_ylim([0, 100])
 # ax[1].set_ylim([0, 15])
 # ax[2].set_ylim([0, 15])
 
-plt.savefig(data_path + f'/lsi_comp_normal.png')
-plt.close(fig)
+ax[0].legend()
 
-# plt.show()
+# plt.savefig(data_path + f'/lsi_comp_normal.png')
+# plt.close(fig)
+
+plt.show()
 

@@ -42,6 +42,26 @@ struct CurrentDeposition {
       } // end for(i)
    } // end deposit()
 
+   // template<int D, typename Strategy>
+   // static void deposit(auto& J,
+   //                     const auto p0, const auto p1,
+   //                     const auto& shapeI0, const auto& shapeJ0,
+   //                     const auto& shapeDI, const auto& shapeDJ, const auto&,
+   //                     const auto ci, const auto cj, const auto, const auto qA)
+   // {
+   //    using Outer = Strategy::OuterShape;
+   //    // Return if particle has not moved in this direction (therefore no current)
+   //    if (p0 == p1) { return; }
+   //    for (int i = Outer::Begin; i <= Outer::End; ++i) {
+   //       const auto idx = i - Outer::Begin;;
+   //       const auto& s0i = shapeI0[idx];
+   //       const auto& dsi = shapeDI[idx];
+   //       const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, 0zu, 0zu);
+   //       #pragma omp atomic update
+   //       J(x, y, z) += qA * (s0i + 0.5 * dsi);
+   //    } // end for(i)
+   // } // end deposit()
+
    static void updateJ(const auto& p, auto& emdata, const auto charge) {
       // Aliases for X/Y/Z shape functions
       using XShape = interp::InterpolationShape<x_collapsed ? 1 : interpolation_order>::Type;
@@ -60,9 +80,9 @@ struct CurrentDeposition {
       const auto z_vel = z_collapsed ? p.velocity[2] : 1.0;
       // Offsets for Even/Odd order interpolation
       static constexpr vec3 offsets{
-         XShape::Order % 2 == 0 ? 0.5f : 1.0f,
-         YShape::Order % 2 == 0 ? 0.5f : 1.0f,
-         ZShape::Order % 2 == 0 ? 0.5f : 1.0f,
+         XShape::Order % 2 == 0 ? 0.5 : 1.0,
+         YShape::Order % 2 == 0 ? 0.5 : 1.0,
+         ZShape::Order % 2 == 0 ? 0.5 : 1.0,
       };
       // Early return if Jdep isn't needed
       if (p.is_disabled()) { return; }
@@ -71,10 +91,10 @@ struct CurrentDeposition {
       const auto y_coeff = static_cast<double>(p.weight) * charge * dtAxz * y_vel;
       const auto z_coeff = static_cast<double>(p.weight) * charge * dtAxy * z_vel;
       // Find cell indices and determine first relay point
-      const vec3<float> i0 = getCellIndices<float>(p.old_location + offsets);
-      const vec3<float> i1 = getCellIndices<float>(p.location + offsets);
+      const vec3<double> i0 = getCellIndices<double>(p.old_location + offsets);
+      const vec3<double> i1 = getCellIndices<double>(p.location + offsets);
       const auto same_idx = is_equal(i0, i1);
-      const vec3<float> relay{
+      const vec3<double> relay{
          same_idx[0] ? p.location[0] : std::max(i1[0], i0[0]) - offsets[0],
          same_idx[1] ? p.location[1] : std::max(i1[1], i0[1]) - offsets[1],
          same_idx[2] ? p.location[2] : std::max(i1[2], i0[2]) - offsets[2],

@@ -37,8 +37,7 @@ int main() {
    }
 
    emsolver_t emsolver(Nx, Ny, Nz);
-   add_gaussianbeam(emsolver);
-
+   // add_gaussianbeam(emsolver);
 
    const Metrics metrics(
       std::string{sim_path} + "/data/" + std::string{sim_name},
@@ -73,37 +72,43 @@ int main() {
 
    progress_bar->show();
    for (step = 1; step <= Nt; step++, time += dt) {
-      // std::println("--------------- Step {} ---------------", step);
+      if constexpr (em_enabled) {
+         // Electromagnetics
+         timers["EM"].start_timer();
+         emsolver.advance(time);
+         timers["EM"].stop_timer();
+      }
 
-      // Electromagnetics
-      timers["EM"].start_timer();
-      emsolver.advance(time);
-      timers["EM"].stop_timer();
-
-      // Particle Push
-      timers["Push"].start_timer();
-      for (auto& g : particle_groups | std::views::values) {
-         g.reset_positions();
-         BorisPush::advance(g, emsolver.emdata, step);
-         if (step % 100 == 0) {
-            g.sort_particles();
+      if constexpr (push_enabled) {
+         // Particle Push
+         timers["Push"].start_timer();
+         for (auto& g : particle_groups | std::views::values) {
+            g.reset_positions();
+            BorisPush::advance(g, emsolver.emdata, step);
+            if (step % 100 == 0) {
+               g.sort_particles();
+            }
          }
+         timers["Push"].stop_timer();
       }
-      timers["Push"].stop_timer();
 
-      // Current Deposition
-      timers["Jdep"].start_timer();
-      for (auto& g : particle_groups | std::views::values) {
-         CurrentDeposition::advance(g, emsolver.emdata);
+      if constexpr (jdep_enabled) {
+         // Current Deposition
+         timers["Jdep"].start_timer();
+         for (auto& g : particle_groups | std::views::values) {
+            CurrentDeposition::advance(g, emsolver.emdata);
+         }
+         timers["Jdep"].stop_timer();
       }
-      timers["Jdep"].stop_timer();
 
-      // Collisions
-      timers["Collisions"].start_timer();
-      for (auto& c : collisions) {
-         c.advance(step);
+      if constexpr (coll_enabled) {
+         // Collisions
+         timers["Collisions"].start_timer();
+         for (auto& c : collisions) {
+            c.advance(step);
+         }
+         timers["Collisions"].stop_timer();
       }
-      timers["Collisions"].stop_timer();
 
       // Metrics output
       timers["IO"].start_timer();
