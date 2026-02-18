@@ -28,12 +28,12 @@ inline constexpr auto dt    = 2.5e-09;
 inline constexpr auto t_end = 5e-06;
 inline constexpr auto Nt    = 2001zu;
 
-inline constexpr auto sim_name = "free_effusion";
+inline constexpr auto sim_name = "efield_only";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
 
-inline constexpr auto   em_enabled = false;
+inline constexpr auto   em_enabled = true;
 inline constexpr auto push_enabled = true;
-inline constexpr auto jdep_enabled = false;
+inline constexpr auto jdep_enabled = true;
 inline constexpr auto coll_enabled = false;
 
 /*---------------------------------------------------------------/
@@ -62,21 +62,21 @@ inline constexpr auto applied_fields_path = "";
 enum class ParticleBCType { Reflecting, Periodic, Outflow };
 
 inline constexpr auto particle_save_interval = 50zu;
-inline constexpr auto interpolation_order = 1zu;
+inline constexpr auto interpolation_order = 2zu;
 
 inline constexpr auto PBCSelect = ParticleBCType::Outflow;
 
 inline constexpr std::array<ParticleGroupSpec, 2> particle_spec = {
    ParticleGroupSpec{
       .name = "electrons",
-      .filepath = "/data/free_effusion/electrons.bp",
+      .filepath = "/data/efield_only/electrons.bp",
       .mass = 9.1093837015e-31,
       .charge = -1.0,
       .atomic_number = 0
    },
    ParticleGroupSpec{
       .name = "ions",
-      .filepath = "/data/free_effusion/ions.bp",
+      .filepath = "/data/efield_only/ions.bp",
       .mass = 1.67262192369e-27,
       .charge = 1.0,
       .atomic_number = 1
@@ -92,10 +92,9 @@ inline constexpr std::array<CollisionSpec, 0> collision_spec = {
 /---------------------------------------------------------------*/
 enum class MetricType { ParticleDump, ParticleDiag, ParticleEnergy, FieldDump, FieldEnergy };
 
-inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/free_effusion";
-inline constexpr std::array<MetricType, 2> metric_spec = {
-	MetricType::ParticleDump,
-	MetricType::FieldDump
+inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/efield_only";
+inline constexpr std::array<MetricType, 1> metric_spec = {
+	MetricType::ParticleDump
 };
 
 #endif //PROGRAM_PARAM_HPP

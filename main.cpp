@@ -72,6 +72,8 @@ int main() {
 
    progress_bar->show();
    for (step = 1; step <= Nt; step++, time += dt) {
+      // std::println("--------------- Step {} | {}---------------", step, time);
+
       if constexpr (em_enabled) {
          // Electromagnetics
          timers["EM"].start_timer();

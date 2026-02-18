@@ -5,6 +5,7 @@
 #include "particles.hpp"
 #include "vec3.hpp"
 
+#include <cassert>
 #include <cmath>
 
 namespace tf::particles {
@@ -72,9 +73,9 @@ struct CurrentDeposition {
       using JyStrategy = interp::InterpolationStrategy<ZShape, XShape, YShape>;
       using JzStrategy = interp::InterpolationStrategy<XShape, YShape, ZShape>;
       // Precompute constants
-      static constexpr auto dtAxy = z_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dx * dy);
-      static constexpr auto dtAxz = y_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dx * dz);
       static constexpr auto dtAyz = x_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dy * dz);
+      static constexpr auto dtAxz = y_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dx * dz);
+      static constexpr auto dtAxy = z_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dx * dy);
       const auto x_vel = x_collapsed ? p.velocity[0] : 1.0;
       const auto y_vel = y_collapsed ? p.velocity[1] : 1.0;
       const auto z_vel = z_collapsed ? p.velocity[2] : 1.0;

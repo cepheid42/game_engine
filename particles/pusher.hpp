@@ -8,6 +8,7 @@
 #include "program_params.hpp"
 #include "vec3.hpp"
 
+#include <cassert>
 #include <cmath>
 
 namespace tf::particles {
@@ -21,6 +22,7 @@ auto FieldToParticleInterp(const auto& F,
    using JShape = Strategy::MiddleShape;
    using KShape = Strategy::InnerShape;
    auto result = 0.0;
+   // auto sum = 0.0;
    for (int i = IShape::Begin; i <= IShape::End; ++i) {
       const auto& s0i = shapeI[i - IShape::Begin];
       for (int j = JShape::Begin; j <= JShape::End; ++j) {
@@ -29,9 +31,12 @@ auto FieldToParticleInterp(const auto& F,
             const auto& s0k = shapeK[k - KShape::Begin];
             const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
             result += s0i * s0j * s0k * F(x, y, z);
+
+            // sum += s0i * s0j * s0k;
          } // end for(k)
       } // end for(j)
    } // end for(i)
+
    return result;
 } // end FieldToParticle()
 
@@ -80,6 +85,7 @@ static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qd
    const auto byc = FieldToParticleInterp<1, ByStrategy>(emdata.By_total, zh_r, xh_r, yf_a, hid.z, hid.x, fid.y);
    const auto bzc = FieldToParticleInterp<2, BzStrategy>(emdata.Bz_total, xh_r, yh_r, zf_a, hid.x, hid.y, fid.z);
 
+   // return {vec3{qdt, 0.0, 0.0}, vec3{0.0, 0.0, 0.0}};
    return {qdt * vec3{exc, eyc, ezc}, qdt * vec3{bxc, byc, bzc}};
 } // end FieldAtParticle
 
