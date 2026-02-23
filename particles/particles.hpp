@@ -154,8 +154,8 @@ struct ParticleGroup {
 
    void reset_positions() {
       if constexpr (push_enabled and (x_collapsed or y_collapsed or z_collapsed)) {
-         #pragma omp parallel for simd num_threads(nThreads)
-         for (std::size_t pid = 0; pid < particles.size(); pid++) {
+         #pragma omp parallel for num_threads(nThreads)
+         for (auto pid = 0zu; pid < particles.size(); pid++) {
             if constexpr (x_collapsed) { particles[pid].location[0] = 0.5; }
             if constexpr (y_collapsed) { particles[pid].location[1] = 0.5; }
             if constexpr (z_collapsed) { particles[pid].location[2] = 0.5; }
@@ -163,7 +163,7 @@ struct ParticleGroup {
       }
    }
 
-   void remove_particles() {}
+   // void remove_particles() {}
 
    void sort_particles() {
       if constexpr (push_enabled) {

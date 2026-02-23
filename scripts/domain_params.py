@@ -1,10 +1,14 @@
 from pathlib import Path
 from dataclasses import dataclass, field
 from enum import StrEnum
+from math import ceil
+from scipy import constants
+
+import numpy as np
 
 @dataclass
 class EMParams:
-    save_interval: int = 1
+    save_interval: int = 10
     nhalo: int = 0
     pml_depth: int = 10
     pml_grade: float = 3.5
@@ -218,6 +222,9 @@ def update_header(params: Simulation, project_path: str, ionization_test_overrid
 
     bc_str = f'{em_bcs[0]}zu, {em_bcs[1]}zu, {em_bcs[2]}zu, {em_bcs[3]}zu, {em_bcs[4]}zu, {em_bcs[5]}zu'
 
+    dt_em = 0.99 / (constants.c * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2))
+    num_subcycles_em = max(1, ceil(params.dt / dt_em))
+
     for p in particles.particle_data:
         p.file_path = f'/data/{params.name}'
 
@@ -272,6 +279,8 @@ def update_header(params: Simulation, project_path: str, ionization_test_overrid
         'enum class EMSide { Lo, Hi };\n'
         '\n'
         f'inline constexpr auto em_save_interval = {em_params.save_interval}zu;\n'
+        f'inline constexpr auto em_subcycles = {num_subcycles_em}zu;\n'
+        f'inline constexpr auto dt_em = {dt_em};\n'
         '\n'
         f'inline constexpr auto PMLDepth    = {em_params.pml_depth}zu;\n'
         f'inline constexpr auto PMLGrade    = {em_params.pml_grade};\n'

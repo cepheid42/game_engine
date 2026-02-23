@@ -85,7 +85,6 @@ int main() {
          // Particle Push
          timers["Push"].start_timer();
          for (auto& g : particle_groups | std::views::values) {
-            g.reset_positions();
             BorisPush::advance(g, emsolver.emdata, step);
             if (step % 100 == 0) {
                g.sort_particles();

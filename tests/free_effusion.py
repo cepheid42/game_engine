@@ -22,9 +22,9 @@ Test 1 from
 https://pubs.aip.org/aip/pop/article/32/1/013902/3330730/Step-by-step-verification-of-particle-in-cell
 '''
 
-shape = (207, 207, 2)
+shape = (107, 107, 2)
 
-dx = dy = 5.0e-3 # meters
+dx = dy = 0.01 # meters
 dz = 1.0
 
 xmin, xmax = -3*dx, 1.0 + 3*dx # meters
@@ -42,10 +42,10 @@ save_interval = 50
 # ===== Particles =====
 # =====================
 e_temp = 1.0 # eV, ~11600K
-e_den = 5.0e11 # m^-3
 i_temp = 0.02585 # eV, kT -> T = 300K
+e_den = 5.0e11 # m^-3
 i_den = 5.0e11 # m^-3
-ppc = (5, 5, 1) # (10, 10, 1) in paper
+ppc = (20, 20, 1)
 px_range = (0.0, 1.0) # meters
 py_range = (0.0, 1.0)
 pz_range = (zmin, zmax)
@@ -102,7 +102,7 @@ metric_params = Metrics(
 sim_params = Simulation(
     name=sim_name,
     shape=shape,
-    nthreads=48,
+    nthreads=32,
     dt=dt,
     t_end=t_end,
     nt=nt,
@@ -126,7 +126,7 @@ print(f'Setting up "{sim_name}"')
 create_particles(sim_params, electrons, data_path)
 create_particles(sim_params, ions, data_path)
 update_header(sim_params, project_path=project_path)
-
+#
 subprocess.run(
     ['meson', 'compile', '-C', build_path, '-j4'],
     stdout=subprocess.DEVNULL,
@@ -149,7 +149,7 @@ for n in range(0, nt, save_interval):
         eden_tf.append(weight.sum())
         eKE_tf.append(energy.sum())
 
-eden_tf = np.array(eden_tf) / e_den
+eden_tf = np.array(eden_tf) / (e_den)
 eKE_tf = np.array(eKE_tf) * 1e7
 
 iden_tf = []
@@ -163,7 +163,7 @@ for n in range(0, nt, save_interval):
         iden_tf.append(weight.sum())
         iKE_tf.append(energy.sum())
 
-iden_tf = np.array(iden_tf) / i_den
+iden_tf = np.array(iden_tf) / (i_den)
 iKE_tf = np.array(iKE_tf) * 1e7
 time = np.linspace(0, t_end, nt // save_interval + 1) * 1.0e6
 
@@ -178,8 +178,8 @@ eden_th = 1.0 - (e_theory_slope * time) / (e_den * 1e6)
 iden_th = 1.0 - (i_theory_slope * time) / (i_den * 1e6)
 
 # Load Parodi 2025 plot data
-eKE_pp = np.genfromtxt('./data/effusion_electron_KE.txt')
-iKE_pp = np.genfromtxt('./data/effusion_ion_KE.txt')
+eKE_pp = np.genfromtxt('data/effusion_electron_ke.txt')
+iKE_pp = np.genfromtxt('data/effusion_ion_ke.txt')
 
 eden_pp = np.genfromtxt('./data/effusion_eden.txt')
 iden_pp = np.genfromtxt('./data/effusion_iden.txt')

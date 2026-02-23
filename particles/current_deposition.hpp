@@ -88,9 +88,9 @@ struct CurrentDeposition {
       // Early return if Jdep isn't needed
       if (p.is_disabled()) { return; }
       // Current Density coefficients
-      const auto x_coeff = static_cast<double>(p.weight) * charge * dtAyz * x_vel;
-      const auto y_coeff = static_cast<double>(p.weight) * charge * dtAxz * y_vel;
-      const auto z_coeff = static_cast<double>(p.weight) * charge * dtAxy * z_vel;
+      const auto x_coeff = p.weight * charge * dtAyz * x_vel;
+      const auto y_coeff = p.weight * charge * dtAxz * y_vel;
+      const auto z_coeff = p.weight * charge * dtAxy * z_vel;
       // Find cell indices and determine first relay point
       const vec3<double> i0 = getCellIndices<double>(p.old_location + offsets);
       const vec3<double> i1 = getCellIndices<double>(p.location + offsets);
@@ -101,10 +101,10 @@ struct CurrentDeposition {
          same_idx[2] ? p.location[2] : std::max(i1[2], i0[2]) - offsets[2],
       };
       // Calculate normalized locations for first segment
+      const vec3 idx0 = i0.to_uint();
       auto p0 = p.old_location - i0;
       auto p1 = relay - i0;
-      const vec3 idx0 = i0.to_uint();
-      const vec3 idx1 = i1.to_uint();
+
       // Create shape arrays for first segment
       auto s0i = XShape::shape_array(p0[0]);
       auto s0j = YShape::shape_array(p0[1]);
@@ -119,6 +119,7 @@ struct CurrentDeposition {
       // If particle has changed assignment cell in any direction, do second deposition step
       if (!(same_idx[0] and same_idx[1] and same_idx[2])) {
          // Calculate normalized locations for second segment
+         const vec3 idx1 = i1.to_uint();
          p0 = relay - i1;
          p1 = p.location - i1;
          // Create shape arrays for second segment
@@ -138,7 +139,7 @@ struct CurrentDeposition {
 
    static void advance(const auto& g, auto& emdata) requires(jdep_enabled) {
       #pragma omp parallel for num_threads(nThreads)
-      for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
+      for (auto pid = 0zu; pid < g.num_particles(); pid++) {
          updateJ(g.particles[pid], emdata, g.charge);
       }
    }

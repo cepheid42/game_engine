@@ -128,7 +128,7 @@ struct PMLData {
 
     void calculate_coeffs(const std::vector<double>& sigma, const std::vector<double>& alpha) {
        static constexpr auto kappa_bc = 1.0;
-       constexpr auto coef1 = -dt / constants::eps0;
+       constexpr auto coef1 = -dt_em / constants::eps0;
        for (auto i = 0lu; i < PMLDepth; i++) {
         b[i] = std::exp(coef1 * ((sigma[i] / kappa_bc) + alpha[i]));
         c[i] = (sigma[i] * (b[i] - 1.0)) / (kappa_bc * (sigma[i] + (kappa_bc * alpha[i])));

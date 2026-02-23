@@ -1,4 +1,4 @@
-#ifndef PUSHER_HPPx0
+#ifndef PUSHER_HPP
 #define PUSHER_HPP
 
 #include "constants.hpp"
@@ -22,17 +22,14 @@ auto FieldToParticleInterp(const auto& F,
    using JShape = Strategy::MiddleShape;
    using KShape = Strategy::InnerShape;
    auto result = 0.0;
-   // auto sum = 0.0;
-   for (int i = IShape::Begin; i <= IShape::End; ++i) {
+   for (auto i = IShape::Begin; i <= IShape::End; ++i) {
       const auto& s0i = shapeI[i - IShape::Begin];
-      for (int j = JShape::Begin; j <= JShape::End; ++j) {
+      for (auto j = JShape::Begin; j <= JShape::End; ++j) {
          const auto& s0j = shapeJ[j - JShape::Begin];
-         for (int k = KShape::Begin; k <= KShape::End; ++k) {
+         for (auto k = KShape::Begin; k <= KShape::End; ++k) {
             const auto& s0k = shapeK[k - KShape::Begin];
             const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
             result += s0i * s0j * s0k * F(x, y, z);
-
-            // sum += s0i * s0j * s0k;
          } // end for(k)
       } // end for(j)
    } // end for(i)
@@ -85,7 +82,6 @@ static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qd
    const auto byc = FieldToParticleInterp<1, ByStrategy>(emdata.By_total, zh_r, xh_r, yf_a, hid.z, hid.x, fid.y);
    const auto bzc = FieldToParticleInterp<2, BzStrategy>(emdata.Bz_total, xh_r, yh_r, zf_a, hid.x, hid.y, fid.z);
 
-   // return {vec3{qdt, 0.0, 0.0}, vec3{0.0, 0.0, 0.0}};
    return {qdt * vec3{exc, eyc, ezc}, qdt * vec3{bxc, byc, bzc}};
 } // end FieldAtParticle
 
@@ -125,7 +121,7 @@ void apply_particle_bcs(auto& p, auto& new_loc, auto& old_loc) {
 template<ParticleBCType BC>
 requires (BC == ParticleBCType::Outflow)
 void apply_particle_bcs(auto& p, const auto& new_loc, const auto& old_loc) {
-   constexpr std::size_t BC_DEPTH = 3zu;
+   constexpr std::size_t BC_DEPTH = 6zu;
 
    const auto [inew, jnew, knew] = getCellIndices(new_loc);
    const auto disabled = ((inew < BC_DEPTH or inew > Nx - 2 - BC_DEPTH) and !x_collapsed) or
@@ -174,27 +170,28 @@ struct BorisPush {
 
    static void advance_velocity(group_t& g, const emdata_t& emdata) {
       #pragma omp parallel for num_threads(nThreads)
-      for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
+      for (auto pid = 0zu; pid < g.num_particles(); pid++) {
          update_velocity(g.particles[pid], emdata, g.qdt_over_2m);
       }
    } // end advance_velocity
 
    static void advance_position(group_t& g) {
       #pragma omp parallel for num_threads(nThreads)
-      for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
+      for (auto pid = 0zu; pid < g.num_particles(); pid++) {
          update_position(g.particles[pid]);
       }
    } // end advance_position
 
    static void backstep_velocity(auto& g, const auto& emdata) requires(push_enabled) {
       #pragma omp parallel for num_threads(nThreads)
-      for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
+      for (auto pid = 0zu; pid < g.num_particles(); pid++) {
          update_velocity(g.particles[pid], emdata, -0.5 * g.qdt_over_2m);
       }
    }
 
    static void advance(auto& g, const auto& emdata, const auto) requires(push_enabled) {
       if (g.is_photons) { return; }
+      g.reset_positions();
       advance_velocity(g, emdata);
       advance_position(g);
       g.cell_map_updated = false;

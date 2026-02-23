@@ -70,8 +70,8 @@ struct EMData {
    }
 
    void init_coefficients() {
-      constexpr auto e_coeff = dt / constants::eps0;
-      constexpr auto h_coeff = dt / constants::mu0;
+      constexpr auto e_coeff = dt_em / constants::eps0;
+      constexpr auto h_coeff = dt_em / constants::mu0;
 
       // todo: add loss terms
       Cexe.fill(1.0);
