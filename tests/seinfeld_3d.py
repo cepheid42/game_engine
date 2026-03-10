@@ -128,7 +128,7 @@ sim_params = Simulation(
 # ===== Compile and Run =====
 # ===========================
 print(f'Setting up "{sim_name}"')
-# create_particles(sim_params, electrons, data_path)
+create_particles(sim_params, electrons, data_path)
 # create_particles(sim_params, ions, data_path)
 # update_header(sim_params, project_path=project_path)
 #
@@ -140,59 +140,59 @@ print(f'Setting up "{sim_name}"')
 #
 # subprocess.run(build_path + '/game_engine').check_returncode()
 
-# ===========================
-# ===== Post Processing =====
-# ===========================
-with FileReader(data_path + f'/fields_energy.bp') as f:
-    variables = f.available_variables()
-    steps = int(variables['Time']['AvailableStepsCount'])
-    ex = f.read('Ex Energy', step_selection=[0, steps])
-    ey = f.read('Ey Energy', step_selection=[0, steps])
-    ez = f.read('Ez Energy', step_selection=[0, steps])
-    bx = f.read('Bx Energy', step_selection=[0, steps])
-    by = f.read('By Energy', step_selection=[0, steps])
-    bz = f.read('Bz Energy', step_selection=[0, steps])
-
-field_energy = ex + ey + ez + bx + by + bz
-
-with FileReader(data_path + f'/particles_energy.bp') as f:
-    variables = f.available_variables()
-    steps = int(variables['Time']['AvailableStepsCount'])
-    time = f.read('Time', step_selection=[0, steps]) * 1e9
-    e_energy = f.read('electrons', step_selection=[0, steps])
-    i_energy = f.read('ions', step_selection=[0, steps])
-
-particle_energy = e_energy + i_energy
-
-lsp_particle_data= np.genfromtxt('./data/seinfeld-3d-lsp-particles-energy.txt', skip_header=1)
-lsp_field_data = np.genfromtxt('./data/seinfeld-3d-lsp-fields-energy.txt', skip_header=1)
-
-fig, ax1 = plt.subplots(figsize=(10, 6), layout='constrained')
-ax1.set_xlim([0.0, 80.0])
-ax1.grid()
-ax2 = ax1.twinx()
-
-ax1.plot(lsp_particle_data[:, 0], lsp_particle_data[:, 1], 'm:', label='LSP Particles')
-ax1.plot(time, particle_energy, color='r', label='Particle KE')
-
-ax2.plot(lsp_field_data[:, 0], lsp_field_data[:, 1], 'c:', label='LSP Fields')
-ax2.plot(time, field_energy, color='b', label='Field Energy')
-
-line1, label1 = ax1.get_legend_handles_labels()
-line2, label2 = ax2.get_legend_handles_labels()
-
-ax1.set_ylim([2.27e-4, 2.31e-4])
-ax1.set_yticks(np.arange(0.000226, 0.000231, 0.0000005))
-ax1.set_xlabel('Time (ns)')
-ax1.set_ylabel('Particle KE (J)')
-ax1.set_title(f'Total Energy Seinfeld 3D')
-
-ax2.set_ylim([0.0, 3.25e-6])
-ax2.set_yticks(np.arange(0.0, 3.2e-6, 1.0e-6))
-ax2.set_ylabel('Field Energy (J)')
-ax2.legend(line1 + line2, label1 + label2)
-
-# plt.savefig(data_path + f'/seinfeld3d_comparison.png')
-# plt.close(fig)
-
-plt.show()
+# # ===========================
+# # ===== Post Processing =====
+# # ===========================
+# with FileReader(data_path + f'/fields_energy.bp') as f:
+#     variables = f.available_variables()
+#     steps = int(variables['Time']['AvailableStepsCount'])
+#     ex = f.read('Ex Energy', step_selection=[0, steps])
+#     ey = f.read('Ey Energy', step_selection=[0, steps])
+#     ez = f.read('Ez Energy', step_selection=[0, steps])
+#     bx = f.read('Bx Energy', step_selection=[0, steps])
+#     by = f.read('By Energy', step_selection=[0, steps])
+#     bz = f.read('Bz Energy', step_selection=[0, steps])
+#
+# field_energy = ex + ey + ez + bx + by + bz
+#
+# with FileReader(data_path + f'/particles_energy.bp') as f:
+#     variables = f.available_variables()
+#     steps = int(variables['Time']['AvailableStepsCount'])
+#     time = f.read('Time', step_selection=[0, steps]) * 1e9
+#     e_energy = f.read('electrons', step_selection=[0, steps])
+#     i_energy = f.read('ions', step_selection=[0, steps])
+#
+# particle_energy = e_energy + i_energy
+#
+# lsp_particle_data= np.genfromtxt('./data/seinfeld-3d-lsp-particles-energy.txt', skip_header=1)
+# lsp_field_data = np.genfromtxt('./data/seinfeld-3d-lsp-fields-energy.txt', skip_header=1)
+#
+# fig, ax1 = plt.subplots(figsize=(10, 6), layout='constrained')
+# ax1.set_xlim([0.0, 80.0])
+# ax1.grid()
+# ax2 = ax1.twinx()
+#
+# ax1.plot(lsp_particle_data[:, 0], lsp_particle_data[:, 1], 'm:', label='LSP Particles')
+# ax1.plot(time, particle_energy, color='r', label='Particle KE')
+#
+# ax2.plot(lsp_field_data[:, 0], lsp_field_data[:, 1], 'c:', label='LSP Fields')
+# ax2.plot(time, field_energy, color='b', label='Field Energy')
+#
+# line1, label1 = ax1.get_legend_handles_labels()
+# line2, label2 = ax2.get_legend_handles_labels()
+#
+# ax1.set_ylim([2.27e-4, 2.31e-4])
+# ax1.set_yticks(np.arange(0.000226, 0.000231, 0.0000005))
+# ax1.set_xlabel('Time (ns)')
+# ax1.set_ylabel('Particle KE (J)')
+# ax1.set_title(f'Total Energy Seinfeld 3D')
+#
+# ax2.set_ylim([0.0, 3.25e-6])
+# ax2.set_yticks(np.arange(0.0, 3.2e-6, 1.0e-6))
+# ax2.set_ylabel('Field Energy (J)')
+# ax2.legend(line1 + line2, label1 + label2)
+#
+# # plt.savefig(data_path + f'/seinfeld3d_comparison.png')
+# # plt.close(fig)
+#
+# plt.show()

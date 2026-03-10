@@ -134,9 +134,39 @@ def create_particles(domain, particles, data_path):
         print(f'Creating simulation data directory "{data_path}"...')
         os.makedirs(data_path)
 
-    print(f'Creating {particles.name}...', end=' ', flush=True)
+    print(f'Creating "{particles.name}" particle file...', end=' ', flush=True)
+
+    # ----- Unpack particle params -----
+    # name = particles.name
+    # mass = particles.mass
+    temp = particles.temp       # Eventually, these will have to be arrays, or maybe functions?
+    density = particles.density # ^
+    ppc_x, ppc_y, ppc_z = particles.ppc
+    distribution = particles.distribution
+    px_min, px_max = particles.px_range
+    py_min, py_max = particles.py_range
+    pz_min, pz_max = particles.pz_range
 
     if particles.distribution == 'none':
+        return
+
+    if particles.distribution == 'sp_uniformE':
+        pos = np.array([[px_min, py_min, pz_min]], dtype=np.float64)
+        vel = np.zeros_like(pos)
+        wts = np.array([1.0])
+        gms = np.array([1.0])
+        write_particle_file(data_path, particles, pos, vel, wts, gms)
+        print('Done')
+        return
+
+    if particles.distribution == 'sp_uniformB':
+        pos = np.array([[px_min, py_min, pz_min]], dtype=np.float64)
+        # these are actually velocity, not temperature
+        vel = np.array([[temp[0], temp[1], temp[2]]], dtype=np.float64)
+        wts = np.array([1.0])
+        gms = np.array([1.0])
+        write_particle_file(data_path, particles, pos, vel, wts, gms)
+        print('Done')
         return
 
     nx, ny, nz = domain.shape
@@ -153,17 +183,6 @@ def create_particles(domain, particles, data_path):
     zmin, zmax = domain.z_range
     z_coords = np.linspace(zmin, zmax, nz, endpoint=True)
     z_center = 0.5 * (z_coords[:-1] + z_coords[1:])
-
-    # ----- Unpack particle params -----
-    # name = particles.name
-    # mass = particles.mass
-    # temp = particles.temp       # Eventually, these will have to be arrays, or maybe functions?
-    density = particles.density # ^
-    ppc_x, ppc_y, ppc_z = particles.ppc
-    distribution = particles.distribution
-    px_min, px_max = particles.px_range
-    py_min, py_max = particles.py_range
-    pz_min, pz_max = particles.pz_range
 
     # ----- Generate particle positions -----
     # "Fake" geometry generation (will be replaced when full geometry support is added)

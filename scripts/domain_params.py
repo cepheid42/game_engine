@@ -20,7 +20,9 @@ class EMParams:
 class ParticleParams:
     save_interval: int = 1
     particle_bcs: str = 'outflow'
+    bc_depth : int = 3
     interp_order: int = 2
+    sort_frequency: int = 100
     particle_data: tuple = ()
     collisions: tuple = ()
 
@@ -300,9 +302,11 @@ def update_header(params: Simulation, project_path: str, ionization_test_overrid
         'enum class ParticleBCType { Reflecting, Periodic, Outflow };\n'
         '\n'
         f'inline constexpr auto particle_save_interval = {particles.save_interval}zu;\n'
+        f'inline constexpr auto sort_frequency = {particles.sort_frequency}zu;\n'
         f'inline constexpr auto interpolation_order = {particles.interp_order}zu;\n'
         '\n'
         f'inline constexpr auto PBCSelect = {particle_bcs[particles.particle_bcs]};\n'
+        f'inline constexpr auto PBCDepth = {particles.bc_depth}zu;\n'
         '\n'
         f'inline constexpr std::array<ParticleGroupSpec, {len(particles.particle_data)}> particle_spec = {{\n'
         f'{particle_types}\n'

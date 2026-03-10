@@ -122,6 +122,12 @@ struct ParticleGroup {
      qdt_over_2m((mass != 0.0) ? charge * dt / (2.0 * mass) : 0.0), // for photon groups
      is_photons(mass == 0.0)
    {
+      // std::println("Particle Group {}", name);
+      // std::println("\tFile: {}", file_);
+      // std::println("\tMass: {}", mass);
+      // std::println("\tCharge: {}", charge);
+      // std::println("\tqdt_over_2m: {}", qdt_over_2m);
+
       if (not file_.empty()) {
          initializeFromFile(file_, *this);
       }

@@ -1,8 +1,10 @@
 #ifndef EM_SOLVER_HPP
 #define EM_SOLVER_HPP
 
-#include "em_definitions.hpp"
 #include "em_data.hpp"
+#include "em_definitions.hpp"
+
+#include <print>
 
 namespace tf::electromagnetics {
 
@@ -46,10 +48,6 @@ struct EMSolver {
          updateEBCs();
       }
 
-      if constexpr (push_enabled) {
-         particle_correction(); // for the particles and shit
-      }
-
       if constexpr (jdep_enabled) {
          zero_currents();       // also for the particles, don't need last week's currents
       }
@@ -69,15 +67,20 @@ struct EMSolver {
       HzUpdate::apply(emdata.Hz, emdata.Ex, emdata.Ey, emdata.empty, emdata.Chzh, emdata.Chzex, emdata.Chzey, emdata.empty, {0, 0, 0, 0, 0, 0});
    }
 
-   void particle_correction() {
-      std::ranges::copy(emdata.Hx, emdata.Bx.begin());
-      std::ranges::copy(emdata.Hy, emdata.By.begin());
-      std::ranges::copy(emdata.Hz, emdata.Bz.begin());
+   void computeBField() {
+      if constexpr (em_enabled) {
+         std::ranges::copy(emdata.Hx, emdata.Bx.begin());
+         std::ranges::copy(emdata.Hy, emdata.By.begin());
+         std::ranges::copy(emdata.Hz, emdata.Bz.begin());
 
-      HxUpdate::apply(emdata.Bx, emdata.Ey, emdata.Ez, emdata.empty, emdata.Chxh, emdata.Chxey2, emdata.Chxez2, emdata.empty, {0, 0, 0, 0, 0, 0});
-      HyUpdate::apply(emdata.By, emdata.Ez, emdata.Ex, emdata.empty, emdata.Chyh, emdata.Chyez2, emdata.Chyex2, emdata.empty, {0, 0, 0, 0, 0, 0});
-      HzUpdate::apply(emdata.Bz, emdata.Ex, emdata.Ey, emdata.empty, emdata.Chzh, emdata.Chzex2, emdata.Chzey2, emdata.empty, {0, 0, 0, 0, 0, 0});
+         HxUpdate::apply(emdata.Bx, emdata.Ey, emdata.Ez, emdata.empty, emdata.Chxh, emdata.Chxey2, emdata.Chxez2, emdata.empty, {0, 0, 0, 0, 0, 0});
+         HyUpdate::apply(emdata.By, emdata.Ez, emdata.Ex, emdata.empty, emdata.Chyh, emdata.Chyez2, emdata.Chyex2, emdata.empty, {0, 0, 0, 0, 0, 0});
+         HzUpdate::apply(emdata.Bz, emdata.Ex, emdata.Ey, emdata.empty, emdata.Chzh, emdata.Chzex2, emdata.Chzey2, emdata.empty, {0, 0, 0, 0, 0, 0});
+      }
+   }
 
+   void updateTotalFields() {
+      // std::println("Updating total Fields");
       #pragma omp parallel num_threads(nThreads)
       {
          #pragma omp for

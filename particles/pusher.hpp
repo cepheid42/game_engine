@@ -96,43 +96,35 @@ void apply_particle_bcs(auto& p, const auto& new_loc, const auto& old_loc) {
 
 template<ParticleBCType BC>
 requires (BC == ParticleBCType::Periodic)
-void apply_particle_bcs(auto& p, auto& new_loc, auto& old_loc) {
+void apply_particle_bcs(auto& p) {
    constexpr auto fnx = static_cast<double>(Nx - 1);
    constexpr auto fny = static_cast<double>(Ny - 1);
    constexpr auto fnz = static_cast<double>(Nz - 1);
 
-   if (new_loc[0] <= nHalo or new_loc[0] >= fnx - nHalo) {
-      new_loc[0] = fnx + new_loc[0] - 2.0 * std::floor(new_loc[0] + 0.5);
-      old_loc[0] = fnx + old_loc[0] - 2.0 * std::floor(old_loc[0] + 0.5);
+   if (p.location[0] <= nHalo or p.location[0] >= fnx - nHalo) {
+      p.location[0] = fnx + p.location[0] - 2.0 * std::floor(p.location[0] + 0.5);
+      p.old_location[0] = fnx + p.old_location[0] - 2.0 * std::floor(p.old_location[0] + 0.5);
    }
-   if (new_loc[1] <= nHalo or new_loc[1] >= fny - nHalo) {
-      new_loc[1] = fny + new_loc[1] - 2.0 * std::floor(new_loc[1] + 0.5);
-      old_loc[1] = fny + old_loc[1] - 2.0 * std::floor(old_loc[1] + 0.5);
+   if (p.location[1] <= nHalo or p.location[1] >= fny - nHalo) {
+      p.location[1] = fny + p.location[1] - 2.0 * std::floor(p.location[1] + 0.5);
+      p.old_location[1] = fny + p.old_location[1] - 2.0 * std::floor(p.old_location[1] + 0.5);
    }
-   if (new_loc[2] <= nHalo or new_loc[2] >= fnz - nHalo) {
-      new_loc[2] = fnz + new_loc[2] - 2.0 * std::floor(new_loc[2] + 0.5);
-      old_loc[2] = fnz + old_loc[2] - 2.0 * std::floor(old_loc[2] + 0.5);
+   if (p.location[2] <= nHalo or p.location[2] >= fnz - nHalo) {
+      p.location[2] = fnz + p.location[2] - 2.0 * std::floor(p.location[2] + 0.5);
+      p.old_location[2] = fnz + p.old_location[2] - 2.0 * std::floor(p.old_location[2] + 0.5);
    }
-
-   p.old_location = old_loc;
-   p.location = new_loc;
 }
 
 template<ParticleBCType BC>
 requires (BC == ParticleBCType::Outflow)
-void apply_particle_bcs(auto& p, const auto& new_loc, const auto& old_loc) {
-   constexpr std::size_t BC_DEPTH = 6zu;
-
-   const auto [inew, jnew, knew] = getCellIndices(new_loc);
-   const auto disabled = ((inew < BC_DEPTH or inew > Nx - 2 - BC_DEPTH) and !x_collapsed) or
-                         ((jnew < BC_DEPTH or jnew > Ny - 2 - BC_DEPTH) and !y_collapsed) or
-                         ((knew < BC_DEPTH or knew > Nz - 2 - BC_DEPTH) and !z_collapsed);
+void apply_particle_bcs(auto& p) {
+   const auto [inew, jnew, knew] = getCellIndices(p.location);
+   const auto disabled = ((inew < PBCDepth or inew > Nx - 2 - PBCDepth) and !x_collapsed) or
+                         ((jnew < PBCDepth or jnew > Ny - 2 - PBCDepth) and !y_collapsed) or
+                         ((knew < PBCDepth or knew > Nz - 2 - PBCDepth) and !z_collapsed);
    if (disabled) {
       p.weight = -1.0;
    }
-
-   p.old_location = old_loc;
-   p.location = new_loc;
 }
 
 struct BorisPush {
@@ -141,9 +133,7 @@ struct BorisPush {
 
    static void update_velocity(Particle& p, const emdata_t& emdata, const auto qdt) {
       if (p.is_disabled()) { return; }
-
       const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
-
       // u = gamma * v
       const auto um = p.gamma * p.velocity + eps;
       const auto t = bet / std::sqrt(1.0 + um.length_squared() * constants::over_c_sqr);
@@ -151,22 +141,38 @@ struct BorisPush {
       const auto u_prime = um + cross(um, t);
       const auto u_plus = um + cross(u_prime, s);
       const auto u = u_plus + eps;
-
-      p.gamma = std::sqrt(1.0 + u.length_squared() * constants::over_c_sqr);
-      p.velocity = u / p.gamma;
+      const auto gamma = std::sqrt(1.0 + u.length_squared() * constants::over_c_sqr);
+      p.velocity = u / gamma;
+      p.gamma = calculateGammaV(p.velocity);
    } // end update_velocity()
 
-   static void update_position(Particle& p) {
-      static constexpr vec3 delta_inv{dt / dx, dt / dy, dt / dz};
-
+   static void first_half_position(Particle& p) {
+      static constexpr vec3 delta_inv{0.5 * dt / dx, 0.5 * dt / dy, 0.5 * dt / dz};
       if (p.is_disabled()) { return; }
+      p.old_location = p.location;
+      p.location += (delta_inv * p.velocity);
+   } // end first_half_position()
 
-      auto old_loc = p.location;
-      auto new_loc = p.location + (delta_inv * p.velocity);
+   static void second_half_position(Particle& p) {
+      static constexpr vec3 delta_inv{0.5 * dt / dx, 0.5 * dt / dy, 0.5 * dt / dz};
+      if (p.is_disabled()) { return; }
+      p.location += (delta_inv * p.velocity);
+      apply_particle_bcs<PBCSelect>(p);
+   } // end second_half_position()
 
-      apply_particle_bcs<PBCSelect>(p, new_loc, old_loc);
-   } // end update_position()
+   static void first_advance_position(group_t& g) {
+      #pragma omp parallel for num_threads(nThreads)
+      for (auto pid = 0zu; pid < g.num_particles(); pid++) {
+         first_half_position(g.particles[pid]);
+      }
+   } // end first_advance_position
 
+   static void second_advance_position(group_t& g) {
+      #pragma omp parallel for num_threads(nThreads)
+      for (auto pid = 0zu; pid < g.num_particles(); pid++) {
+         second_half_position(g.particles[pid]);
+      }
+   } // end second_advance_position
 
    static void advance_velocity(group_t& g, const emdata_t& emdata) {
       #pragma omp parallel for num_threads(nThreads)
@@ -175,25 +181,16 @@ struct BorisPush {
       }
    } // end advance_velocity
 
-   static void advance_position(group_t& g) {
-      #pragma omp parallel for num_threads(nThreads)
-      for (auto pid = 0zu; pid < g.num_particles(); pid++) {
-         update_position(g.particles[pid]);
-      }
-   } // end advance_position
-
-   static void backstep_velocity(auto& g, const auto& emdata) requires(push_enabled) {
-      #pragma omp parallel for num_threads(nThreads)
-      for (auto pid = 0zu; pid < g.num_particles(); pid++) {
-         update_velocity(g.particles[pid], emdata, -0.5 * g.qdt_over_2m);
-      }
-   }
-
-   static void advance(auto& g, const auto& emdata, const auto) requires(push_enabled) {
+   static void advance(auto& g, const auto& emdata, const auto step) requires(push_enabled) {
       if (g.is_photons) { return; }
       g.reset_positions();
-      advance_velocity(g, emdata);
-      advance_position(g);
+
+      if (step % sort_frequency == 0) { g.sort_particles(); }
+
+      first_advance_position(g);   // aligns position n -> n+1/2
+      advance_velocity(g, emdata); // aligns velocity n -> n+1
+      second_advance_position(g);  // aligns position n+1/2 -> n+1
+
       g.cell_map_updated = false;
       g.is_sorted = false;
    } // end advance()

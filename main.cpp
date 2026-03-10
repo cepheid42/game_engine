@@ -47,9 +47,8 @@ int main() {
    );
 
    if constexpr (push_enabled or coll_enabled) {
-      emsolver.particle_correction();
       for (auto& g : particle_groups | std::views::values) {
-         BorisPush::backstep_velocity(g, emsolver.emdata);
+         BorisPush::first_advance_position(g);
       }
    }
 
@@ -72,7 +71,7 @@ int main() {
 
    progress_bar->show();
    for (step = 1; step <= Nt; step++, time += dt) {
-      // std::println("--------------- Step {} | {}---------------", step, time);
+      // std::println("--------------- Step {} | {} ---------------", step, time);
 
       if constexpr (em_enabled) {
          // Electromagnetics
@@ -84,11 +83,10 @@ int main() {
       if constexpr (push_enabled) {
          // Particle Push
          timers["Push"].start_timer();
+         emsolver.computeBField();
+         emsolver.updateTotalFields();
          for (auto& g : particle_groups | std::views::values) {
             BorisPush::advance(g, emsolver.emdata, step);
-            if (step % 100 == 0) {
-               g.sort_particles();
-            }
          }
          timers["Push"].stop_timer();
       }
