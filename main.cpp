@@ -46,11 +46,11 @@ int main() {
       particle_groups
    );
 
-   if constexpr (push_enabled or coll_enabled) {
-      for (auto& g : particle_groups | std::views::values) {
-         BorisPush::first_advance_position(g);
-      }
-   }
+   // if constexpr (push_enabled or coll_enabled) {
+   //    for (auto& g : particle_groups | std::views::values) {
+   //       BorisPush::first_advance_position(g);
+   //    }
+   // }
 
    auto time = 0.0;
    auto step = 0zu;
@@ -69,9 +69,9 @@ int main() {
    metrics.write(step, time);
    timers["IO"].stop_timer();
 
-   progress_bar->show();
+   // progress_bar->show();
    for (step = 1; step <= Nt; step++, time += dt) {
-      // std::println("--------------- Step {} | {} ---------------", step, time);
+      std::println("--------------- Step {} | {} ---------------", step, time);
 
       if constexpr (em_enabled) {
          // Electromagnetics
@@ -114,7 +114,7 @@ int main() {
       metrics.write(step, time);
       timers["IO"].stop_timer();
    }
-   progress_bar->done();
+   // progress_bar->done();
    timers["Main"].stop_timer();
 
    print_final_timers(timers);

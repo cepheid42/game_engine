@@ -43,12 +43,12 @@ constexpr auto getCellIndex(const auto& loc) -> std::size_t {
 
 constexpr auto calculateGammaV(const auto& v) {
    // Calculates gamma using regular velocity
-   return 1.0 / std::sqrt(1.0 - v.length_squared() * constants::over_c_sqr);
+   return 1.0 / std::sqrt(1.0 - (v / constants::c).length_squared());
 }
 
 constexpr auto calculateGammaP(const auto& p, const auto m) {
    // Calculates gamma using momentum
-   return std::sqrt(1.0 + p.length_squared() * constants::over_c_sqr / math::SQR(m));
+   return std::sqrt(1.0 + (p / (constants::c * m)).length_squared());
 }
 
 static void initializeFromFile(const std::string& filename, auto& group) {
@@ -89,7 +89,7 @@ static void initializeFromFile(const std::string& filename, auto& group) {
       const auto gamma = g_vec[i];
 
       group.particles.emplace_back(
-         vel,
+         gamma * vel,
          gamma,
          loc,
          loc,
@@ -119,15 +119,9 @@ struct ParticleGroup {
      atomic_number(atomic_number_),
      mass(mass_),
      charge(charge_ * constants::q_e),
-     qdt_over_2m((mass != 0.0) ? charge * dt / (2.0 * mass) : 0.0), // for photon groups
+     qdt_over_2m((mass != 0.0) ? 0.5 * charge * dt / mass : 0.0), // for photon groups
      is_photons(mass == 0.0)
    {
-      // std::println("Particle Group {}", name);
-      // std::println("\tFile: {}", file_);
-      // std::println("\tMass: {}", mass);
-      // std::println("\tCharge: {}", charge);
-      // std::println("\tqdt_over_2m: {}", qdt_over_2m);
-
       if (not file_.empty()) {
          initializeFromFile(file_, *this);
       }

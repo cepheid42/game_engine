@@ -8,7 +8,7 @@
 #include "program_params.hpp"
 #include "vec3.hpp"
 
-#include <cassert>
+// #include <cassert>
 #include <cmath>
 
 namespace tf::particles {
@@ -134,30 +134,30 @@ struct BorisPush {
    static void update_velocity(Particle& p, const emdata_t& emdata, const auto qdt) {
       if (p.is_disabled()) { return; }
       const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
+
       // u = gamma * v
-      const auto um = p.gamma * p.velocity + eps;
-      const auto t = bet / std::sqrt(1.0 + um.length_squared() * constants::over_c_sqr);
+      const auto um = p.velocity + eps;
+      const auto t = bet / std::sqrt(1.0 + (um / constants::c).length_squared());
       const auto s = 2.0 * t / (1.0 + t.length_squared());
       const auto u_prime = um + cross(um, t);
       const auto u_plus = um + cross(u_prime, s);
       const auto u = u_plus + eps;
-      const auto gamma = std::sqrt(1.0 + u.length_squared() * constants::over_c_sqr);
-      p.velocity = u / gamma;
-      p.gamma = calculateGammaV(p.velocity);
+      p.gamma = std::sqrt(1.0 + (u / constants::c).length_squared());
+      p.velocity = u;
    } // end update_velocity()
 
    static void first_half_position(Particle& p) {
       static constexpr vec3 delta_inv{0.5 * dt / dx, 0.5 * dt / dy, 0.5 * dt / dz};
       if (p.is_disabled()) { return; }
       p.old_location = p.location;
-      p.location += (delta_inv * p.velocity);
+      p.location += (delta_inv * p.velocity / p.gamma);
    } // end first_half_position()
 
    static void second_half_position(Particle& p) {
       static constexpr vec3 delta_inv{0.5 * dt / dx, 0.5 * dt / dy, 0.5 * dt / dz};
       if (p.is_disabled()) { return; }
-      p.location += (delta_inv * p.velocity);
-      apply_particle_bcs<PBCSelect>(p);
+      p.location += (delta_inv * p.velocity / p.gamma);
+      // apply_particle_bcs<PBCSelect>(p);
    } // end second_half_position()
 
    static void first_advance_position(group_t& g) {
@@ -182,17 +182,17 @@ struct BorisPush {
    } // end advance_velocity
 
    static void advance(auto& g, const auto& emdata, const auto step) requires(push_enabled) {
-      if (g.is_photons) { return; }
-      g.reset_positions();
+      // if (g.is_photons) { return; }
+      // g.reset_positions();
 
-      if (step % sort_frequency == 0) { g.sort_particles(); }
+      // if (step % sort_frequency == 0) { g.sort_particles(); }
 
       first_advance_position(g);   // aligns position n -> n+1/2
       advance_velocity(g, emdata); // aligns velocity n -> n+1
       second_advance_position(g);  // aligns position n+1/2 -> n+1
 
-      g.cell_map_updated = false;
-      g.is_sorted = false;
+      // g.cell_map_updated = false;
+      // g.is_sorted = false;
    } // end advance()
 
    static void advance(auto&, const auto&, const auto) requires (!push_enabled) {}

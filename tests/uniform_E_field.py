@@ -24,7 +24,7 @@ Tests from https://iopscience.iop.org/article/10.3847/1538-4365/aab114
 
 shape = (16, 16, 16)
 
-xmin, xmax = 0.0, 4e17 # meters
+xmin, xmax = -1.0, 4e17 # meters
 ymin, ymax = 0.0, 4e17
 zmin, zmax = 0.0, 4e17
 
@@ -37,17 +37,21 @@ t_end = 1e9 # seconds
 nt = int(t_end / dt) + 1
 cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
-save_interval = nt // 1000
+save_interval = nt // 5000
 
 # =====================
 # ===== Particles =====
 # =====================
-px_range = (0.0, dx) # meters
-py_range = (ymax / 2, dy)
-pz_range = (zmax / 2, dz)
-
 mass = 1.0
 charge = 1.0 / constants.e
+Ex_amp = constants.c
+
+gamma_half = np.sqrt(1.0 + (charge * constants.e * Ex_amp * 0.5 * dt / (mass * constants.c))**2)
+x_half = (mass * constants.c**2) / (charge * constants.e * Ex_amp) * (gamma_half - 1.0)
+
+px_range = (x_half, dx) # meters
+py_range = (ymax / 2, dy)
+pz_range = (zmax / 2, dz)
 
 singleton = Particles(
     name='singleton',
@@ -77,7 +81,7 @@ particle_params = ParticleParams(
 # ==================================
 # ===== Electromagnetic Params =====
 # ==================================
-Ex_amp = constants.c
+
 Ex_applied = np.full((shape[0] - 1, shape[1] - 1, shape[2]), Ex_amp)
 with Stream(data_path + f'/{sim_name}_applied_fields.bp', 'w') as f:
     f.write('Ex', Ex_applied, Ex_applied.shape, (0, 0, 0), Ex_applied.shape)
@@ -123,20 +127,20 @@ sim_params = Simulation(
 # ===========================
 print(f'Setting up "{sim_name}"')
 
-if not os.path.exists(data_path):
-    print(f'Creating simulation data directory "{data_path}"...')
-    os.makedirs(data_path)
-
-create_particles(sim_params, singleton, data_path)
-update_header(sim_params, project_path=project_path)
-
-subprocess.run(
-    ['meson', 'compile', '-C', build_path, '-j4'],
-    stdout=subprocess.DEVNULL,
-    stderr=subprocess.DEVNULL
-).check_returncode()
-
-subprocess.run(build_path + '/game_engine').check_returncode()
+# if not os.path.exists(data_path):
+#     print(f'Creating simulation data directory "{data_path}"...')
+#     os.makedirs(data_path)
+#
+# create_particles(sim_params, singleton, data_path)
+# update_header(sim_params, project_path=project_path)
+#
+# subprocess.run(
+#     ['meson', 'compile', '-C', build_path, '-j4'],
+#     stdout=subprocess.DEVNULL,
+#     stderr=subprocess.DEVNULL
+# ).check_returncode()
+#
+# subprocess.run(build_path + '/game_engine').check_returncode()
 
 # ===========================
 # ===== Post Processing =====
@@ -157,7 +161,7 @@ vel = np.array(vel).reshape(-1, 3)
 
 time = np.linspace(0, t_end, nt // save_interval + 1)
 
-gamma_an = np.sqrt(1.0 + (charge * constants.e * Ex_amp * time)**2 / (mass * constants.c)**2)
+gamma_an = np.sqrt(1.0 + (charge * constants.e * Ex_amp * time / (mass * constants.c))**2)
 x_an = (mass * constants.c**2) / (charge * constants.e * Ex_amp) * (gamma_an - 1.0)
 v_an = (charge * constants.e * Ex_amp * time) / (mass * gamma_an)
 
@@ -173,7 +177,7 @@ ax[0].set_xlabel('time (ns)')
 ax[0].set_ylabel('x (m)')
 ax[0].set_yscale('log')
 ax[0].set_xlim([0, 10e8])
-ax[0].set_ylim([1e-15, 1])
+# ax[0].set_ylim([1e-15, 1])
 # ax[0].plot(time, x_an, label='Analytic')
 ax[0].plot(time, pos_data, label='TF')
 ax[0].legend()
@@ -183,8 +187,9 @@ ax[1].set_xlabel('time (ns)')
 ax[1].set_ylabel(r'$\gamma$')
 ax[1].set_yscale('log')
 ax[1].set_xlim([0, 10e8])
-ax[1].set_ylim([1e-16, 1e-10])
+# ax[1].set_ylim([1e-16, 1e-10])
 # ax[1].plot(time, gamma_an, label='Analytic')
+# ax[1].plot(time, gammas, label='TF')
 ax[1].plot(time, gamma_data, label='TF')
 ax[1].legend()
 

@@ -24,13 +24,17 @@ Tests from https://iopscience.iop.org/article/10.3847/1538-4365/aab114
 
 shape = (16, 16, 16)
 
-Bz_amp = constants.c #* 1e6
+mass = 1.0
+charge = 1.0 / constants.e # charge * e == 1
 gamma_an = 1e6
-Tc = 2 * np.pi * gamma_an / Bz_amp
+v_perp = constants.c * np.sqrt(1 - 1 / gamma_an**2)
+Bz_amp = gamma_an * v_perp
+omega_c = Bz_amp / gamma_an
+Tc = 2 * np.pi / omega_c
 
-xmin, xmax = -10.1, 10.1 # meters
-ymin, ymax = -10.1, 10.1
-zmin, zmax = -10.1, 10.1
+xmin, xmax = -1.1, 1.1 # meters
+ymin, ymax = -1.1, 1.1
+zmin, zmax = -1.1, 1.1
 
 dx = (xmax - xmin) / (shape[0] - 1)
 dy = (ymax - ymin) / (shape[1] - 1)
@@ -41,18 +45,14 @@ t_end = 10000 * dt # seconds
 nt = int(t_end / dt) + 1
 cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
-save_interval = nt // 100
+save_interval = 20
 
 # =====================
 # ===== Particles =====
 # =====================
-px_range = (0.0, 0.0) # meters
+px_range = (-1.0, 0.0) # meters
 py_range = (0.0, 0.0)
 pz_range = (0.0, 0.0)
-
-mass = 1.0
-charge = 1.0 / constants.e
-v_perp = 0.00005 * constants.c * (1.0 - 5e-13)
 
 singleton = Particles(
     name='singleton',
@@ -60,7 +60,7 @@ singleton = Particles(
     charge=charge,
     atomic_number=0,
     # actually velocity for sp_uniformB distribution
-    temp=(-v_perp, 0.0, 0.0),
+    temp=(0.0, -v_perp, 0.0),
     density=1.0, # m^-3,
     ppc=(1, 1, 1),
     distribution='sp_uniformB',
@@ -83,7 +83,7 @@ particle_params = ParticleParams(
 # ==================================
 # ===== Electromagnetic Params =====
 # ==================================
-Bz_applied = np.full((shape[0] - 1, shape[1] - 1, shape[2]), Bz_amp)
+Bz_applied = np.full((shape[0] - 1, shape[1] - 1, shape[2]), -Bz_amp)
 with Stream(data_path + f'/{sim_name}_applied_fields.bp', 'w') as f:
     f.write('Bz', Bz_applied, Bz_applied.shape, (0, 0, 0), Bz_applied.shape)
 
@@ -147,23 +147,48 @@ subprocess.run(build_path + '/game_engine').check_returncode()
 # ===== Post Processing =====
 # ===========================
 pos = []
-for n in range(0, 2500, 100): #nt, save_interval):
+gammas = []
+time = []
+for n in range(0, nt, save_interval):
     file = f'/singleton_dump_{n:010d}.bp'
     with FileReader(data_path + file) as f:
         pos.append(f.read("Position"))
+        gammas.append(f.read("Gamma"))
+        time.append(f.read("Time")[0])
 
+time = np.array(time)
 pos = np.array(pos).reshape(-1, 3)
+gammas = np.array(gammas).reshape(-1, 1)
 
-print(pos)
-# Rc_an = gamma_an * 1.0e3 * v_perp / (1.0 * Bz_amp)
-# p_Rc = plt.Circle((0, 0), Rc_an, fill=False)
+Rc_an = gamma_an * v_perp / Bz_amp
+p_Rc = plt.Circle((0, 0), Rc_an, fill=False)
 
-fig, ax = plt.subplots(figsize=(6, 6), layout='constrained')
-ax.set_aspect('equal')
-ax.set_xlim([xmin, xmax])
-ax.set_ylim([ymin, ymax])
-# ax.add_patch(p_Rc)
+theta_an = -omega_c * time
+theta_c = -np.unwrap(np.arctan2(pos[:, 1], pos[:, 0])) + np.pi
+gamma_data = np.abs(gammas - gamma_an) / gamma_an
 
-ax.plot(pos[:, 0], pos[:, 1])
+fig, ax = plt.subplots(1, 3, figsize=(18, 6), layout='constrained')
+
+ax[0].set_xlabel('x')
+ax[0].set_ylabel('y')
+ax[0].set_xlim([xmin, xmax])
+ax[0].set_ylim([ymin, ymax])
+ax[0].add_patch(p_Rc)
+ax[0].plot(pos[:, 0], pos[:, 1])
+
+ax[1].set_xlabel(r't / $T_c$')
+ax[1].set_ylabel(r'$|\gamma - \gamma_{an}|$ / $\gamma_{an}$')
+ax[1].set_xlim([0, 100])
+ax[1].set_ylim([1e-16, 1e-13])
+ax[1].set_yscale('log')
+ax[1].plot(time / Tc, gamma_data)
+
+ax[2].set_xlabel(r't / $T_c$')
+ax[2].set_ylabel(r'$|\theta_c - \theta_{an}|$')
+ax[2].set_xlim([0, 100])
+ax[2].set_ylim([0, 0.25])
+ax[2].plot(time / Tc, np.abs(theta_c - theta_an))
+# ax[2].plot(time / Tc, theta_an)
+# ax[2].plot(time / Tc, theta_c)
 
 plt.show()

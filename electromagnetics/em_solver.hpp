@@ -80,7 +80,6 @@ struct EMSolver {
    }
 
    void updateTotalFields() {
-      // std::println("Updating total Fields");
       #pragma omp parallel num_threads(nThreads)
       {
          #pragma omp for

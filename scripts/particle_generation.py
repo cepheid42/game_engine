@@ -164,7 +164,7 @@ def create_particles(domain, particles, data_path):
         # these are actually velocity, not temperature
         vel = np.array([[temp[0], temp[1], temp[2]]], dtype=np.float64)
         wts = np.array([1.0])
-        gms = np.array([1.0])
+        gms = np.array([1e6])
         write_particle_file(data_path, particles, pos, vel, wts, gms)
         print('Done')
         return

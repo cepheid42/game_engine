@@ -329,7 +329,7 @@ struct ParticleDumpMetric final : detail::MetricBase {
 
          for (std::size_t d = 0; d < 3; d++) {
             position.push_back(lb[d] + delta[d] * p.location[d]);
-            velocity.push_back(p.velocity[d]);
+            velocity.push_back(p.velocity[d] / p.gamma);
          }
          weight.push_back(p.weight);
          gamma.push_back(p.gamma);
