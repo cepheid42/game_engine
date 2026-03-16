@@ -16,7 +16,7 @@ from scripts.domain_params import *
 sim_name = 'uniform_E_field'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
-data_path = project_path + f'/data/{sim_name}'
+# data_path = project_path + f'/data/{sim_name}'
 
 '''
 Tests from https://iopscience.iop.org/article/10.3847/1538-4365/aab114
@@ -25,8 +25,8 @@ Tests from https://iopscience.iop.org/article/10.3847/1538-4365/aab114
 shape = (16, 16, 16)
 
 xmin, xmax = -1.0, 4e17 # meters
-ymin, ymax = 0.0, 4e17
-zmin, zmax = 0.0, 4e17
+ymin, ymax = -1.0, 4e17
+zmin, zmax = -1.0, 4e17
 
 dx = (xmax - xmin) / (shape[0] - 1)
 dy = (ymax - ymin) / (shape[1] - 1)
@@ -37,7 +37,7 @@ t_end = 1e9 # seconds
 nt = int(t_end / dt) + 1
 cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
-save_interval = nt // 5000
+save_interval = 200
 
 # =====================
 # ===== Particles =====
@@ -72,131 +72,137 @@ singleton = Particles(
 # ==========================================
 particle_params = ParticleParams(
     save_interval=save_interval,
-    particle_bcs='outflow',
     bc_depth=0,
     interp_order=1,
     particle_data=(singleton,)
 )
 
-# ==================================
-# ===== Electromagnetic Params =====
-# ==================================
-
-Ex_applied = np.full((shape[0] - 1, shape[1] - 1, shape[2]), Ex_amp)
-with Stream(data_path + f'/{sim_name}_applied_fields.bp', 'w') as f:
-    f.write('Ex', Ex_applied, Ex_applied.shape, (0, 0, 0), Ex_applied.shape)
-
-em_params = EMParams(
-    save_interval=save_interval,
-    applied_fields=data_path + f'/{sim_name}_applied_fields.bp'
-)
-
-# ==========================
-# ===== Metrics Params =====
-# ==========================
-metric_params = Metrics(
-    data_path,
-    (MetricType.ParticleDump,)
-)
-
 # ============================
 # ===== Simulation Class =====
 # ============================
-sim_params = Simulation(
-    name=sim_name,
-    shape=shape,
-    nthreads=1,
-    dt=dt,
-    t_end=t_end,
-    nt=nt,
-    cfl=cfl,
-    x_range=(xmin, xmax),
-    y_range=(ymin, ymax),
-    z_range=(zmin, zmax),
-    deltas=(dx, dy, dz),
-    em_params=em_params,
-    particle_params=particle_params,
-    metric_params=metric_params,
-    em_enabled=False,
-    jdep_enabled=False,
-    collisions_enabled=False
-)
+pushers = [ParticlePushType.Boris, ParticlePushType.HC]
+sim_names = [sim_name + '_' + pusher.split(':')[-1] for pusher in pushers]
 
-# ===========================
-# ===== Compile and Run =====
-# ===========================
-print(f'Setting up "{sim_name}"')
+for pusher, name in zip(pushers, sim_names):
+    data_path = project_path + f'/data/{name}'
+    fields_path = data_path + f'/{name}_applied_fields.bp'
 
-# if not os.path.exists(data_path):
-#     print(f'Creating simulation data directory "{data_path}"...')
-#     os.makedirs(data_path)
-#
-# create_particles(sim_params, singleton, data_path)
-# update_header(sim_params, project_path=project_path)
-#
-# subprocess.run(
-#     ['meson', 'compile', '-C', build_path, '-j4'],
-#     stdout=subprocess.DEVNULL,
-#     stderr=subprocess.DEVNULL
-# ).check_returncode()
-#
-# subprocess.run(build_path + '/game_engine').check_returncode()
+    Ex_applied = np.full((shape[0] - 1, shape[1] - 1, shape[2]), Ex_amp)
+    with Stream(fields_path, 'w') as f:
+        f.write('Ex', Ex_applied, Ex_applied.shape, (0, 0, 0), Ex_applied.shape)
+
+    em_params = EMParams(
+        save_interval=save_interval,
+        applied_fields=fields_path
+    )
+
+    metric_params = Metrics(
+        data_path,
+        (MetricType.ParticleDump,)
+    )
+
+    particle_params.push_type = pusher
+    sim_params = Simulation(
+        name=name,
+        shape=shape,
+        nthreads=1,
+        dt=dt,
+        t_end=t_end,
+        nt=nt,
+        cfl=cfl,
+        x_range=(xmin, xmax),
+        y_range=(ymin, ymax),
+        z_range=(zmin, zmax),
+        deltas=(dx, dy, dz),
+        em_params=em_params,
+        particle_params=particle_params,
+        metric_params=metric_params,
+        em_enabled=False,
+        jdep_enabled=False,
+        collisions_enabled=False
+    )
+
+    # ===========================
+    # ===== Compile and Run =====
+    # ===========================
+    print(f'Setting up "{name}"')
+
+    if not os.path.exists(data_path):
+        print(f'Creating simulation data directory "{data_path}"...')
+        os.makedirs(data_path)
+
+    create_particles(sim_params, singleton, data_path)
+    update_header(sim_params, project_path=project_path)
+
+    subprocess.run(
+        ['meson', 'compile', '-C', build_path, '-j4'],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    ).check_returncode()
+
+    subprocess.run(build_path + '/game_engine').check_returncode()
+
+    break
 
 # ===========================
 # ===== Post Processing =====
 # ===========================
-gammas = []
-vel = []
-pos = []
+boris_path = project_path + f'/data/{sim_names[0]}'
+boris_gammas = []
+boris_pos = []
 for n in range(0, nt, save_interval):
     file = f'/singleton_dump_{n:010d}.bp'
-    with FileReader(data_path + file) as f:
-        gammas.append(f.read('Gamma'))
-        vel.append(f.read("Velocity"))
-        pos.append(f.read("Position"))
+    with FileReader(boris_path + file) as f:
+        boris_gammas.append(f.read('Gamma'))
+        boris_pos.append(f.read("Position"))
 
-gammas = np.array(gammas).flatten()
-pos = np.array(pos).reshape(-1, 3)
-vel = np.array(vel).reshape(-1, 3)
+boris_gammas = np.array(boris_gammas).flatten()
+boris_pos = np.array(boris_pos).reshape(-1, 3)
 
-time = np.linspace(0, t_end, nt // save_interval + 1)
+hc_path = project_path + f'/data/{sim_names[1]}'
+hc_gammas = []
+hc_pos = []
+for n in range(0, nt, save_interval):
+    file = f'/singleton_dump_{n:010d}.bp'
+    with FileReader(hc_path + file) as f:
+        hc_gammas.append(f.read('Gamma'))
+        hc_pos.append(f.read("Position"))
+
+hc_gammas = np.array(hc_gammas).flatten()
+hc_pos = np.array(hc_pos).reshape(-1, 3)
+
+time = np.linspace(0, t_end, boris_gammas.shape[0])
 
 gamma_an = np.sqrt(1.0 + (charge * constants.e * Ex_amp * time / (mass * constants.c))**2)
 x_an = (mass * constants.c**2) / (charge * constants.e * Ex_amp) * (gamma_an - 1.0)
 v_an = (charge * constants.e * Ex_amp * time) / (mass * gamma_an)
 
-# x_error = np.mean((pos[:, 0] - x_an)**2)
-# v_error = np.mean((vel[:, 0] - v_an)**2)
-# print(f'MSE position = {x_error}')
-# print(f'MSE velocity = {v_error}')
-
 fig, ax = plt.subplots(1, 2, figsize=(10, 4), layout='constrained')
 
-pos_data = np.abs(pos[:, 0] - x_an) / np.abs(x_an)
+# for b, a in zip(boris_gammas, gamma_an):
+#     print(f'{b:25.25f} | {a:25.25f}')
+boris_pos = np.abs(boris_pos[:, 0] - x_an) / np.abs(x_an)
+hc_pos = np.abs(hc_pos[:, 0] - x_an) / np.abs(x_an)
+
 ax[0].set_xlabel('time (ns)')
-ax[0].set_ylabel('x (m)')
+ax[1].set_ylabel(r'|x - x_{an}| / |x_{an}|')
 ax[0].set_yscale('log')
 ax[0].set_xlim([0, 10e8])
 # ax[0].set_ylim([1e-15, 1])
-# ax[0].plot(time, x_an, label='Analytic')
-ax[0].plot(time, pos_data, label='TF')
+ax[0].plot(time, boris_pos, ls='--', c='r', marker='P', ms=8, markevery=100, label='Boris')
+ax[0].plot(time, hc_pos, ls='--', c='b', marker='D', ms=8, markevery=100, fillstyle='none', label='HC')
 ax[0].legend()
 
-gamma_data = np.abs(gammas - gamma_an) / gamma_an
+boris_gammas = np.abs(boris_gammas - gamma_an) / gamma_an
+hc_gammas = np.abs(hc_gammas - gamma_an) / gamma_an
+
 ax[1].set_xlabel('time (ns)')
-ax[1].set_ylabel(r'$\gamma$')
+ax[1].set_ylabel(r'$|\gamma - \gamma_{an}|$ / $\gamma_{an}$')
 ax[1].set_yscale('log')
 ax[1].set_xlim([0, 10e8])
 # ax[1].set_ylim([1e-16, 1e-10])
-# ax[1].plot(time, gamma_an, label='Analytic')
-# ax[1].plot(time, gammas, label='TF')
-ax[1].plot(time, gamma_data, label='TF')
+ax[1].plot(time, boris_gammas, ls='--', c='r', marker='P', ms=8, markevery=100, label='Boris')
+ax[1].plot(time, hc_gammas, ls='--', c='b', marker='D', ms=8, markevery=100, fillstyle='none', label='HC')
 ax[1].legend()
-
-# ax[2].set_xlabel('time (ns)')
-# ax[2].set_ylabel(r'$v_x$ (m/s)')
-# ax[2].plot(time, v_an, label='Analytic')
-# ax[2].plot(time, vel[:, 0], label='TF')
-# ax[2].legend()
 
 plt.show()

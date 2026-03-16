@@ -23,12 +23,12 @@ inline constexpr auto dx = 0.14666666666666667;
 inline constexpr auto dy = 0.14666666666666667;
 inline constexpr auto dz = 0.14666666666666667;
 
-inline constexpr auto cfl   = 0.37100441541173;
-inline constexpr auto dt    = 1.0479225109763647e-10;
+inline constexpr auto cfl   = 0.74200883082346;
+inline constexpr auto dt    = 2.0958450219527293e-10;
 inline constexpr auto t_end = 2.095845021952729e-06;
-inline constexpr auto Nt    = 20001zu;
+inline constexpr auto Nt    = 10001zu;
 
-inline constexpr auto sim_name = "uniform_B_field";
+inline constexpr auto sim_name = "uniform_B_field_Boris";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
 
 inline constexpr auto   em_enabled = false;
@@ -42,7 +42,7 @@ inline constexpr auto coll_enabled = false;
 enum class EMFace { X, Y, Z };
 enum class EMSide { Lo, Hi };
 
-inline constexpr auto em_save_interval = 20zu;
+inline constexpr auto em_save_interval = 5zu;
 inline constexpr auto em_subcycles = 1zu;
 inline constexpr auto dt_em = 2.796309808645475e-10;
 
@@ -56,24 +56,25 @@ inline constexpr auto nHalo = 0zu;
 // Periodic = 0, PML = 1, Reflecting = 2
 inline constexpr std::array BCSelect = {2zu, 2zu, 2zu, 2zu, 2zu, 2zu};
 
-inline constexpr auto applied_fields_path = "/home/cepheid/TriForce/game_engine/data/uniform_B_field/uniform_B_field_applied_fields.bp";
+inline constexpr auto applied_fields_path = "/home/cepheid/TriForce/game_engine/data/uniform_B_field_Boris/uniform_B_field_Boris_applied_fields.bp";
 
 /*---------------------------------------------------------------/
 /-                     Particle Parameters                      -/
 /---------------------------------------------------------------*/
 enum class ParticleBCType { Reflecting, Periodic, Outflow };
+enum class ParticlePushType { Ballistic, Boris, HigueraCary };
 
-inline constexpr auto particle_save_interval = 20zu;
+inline constexpr auto particle_save_interval = 5zu;
 inline constexpr auto sort_frequency = 100zu;
 inline constexpr auto interpolation_order = 1zu;
-
+inline constexpr auto ParticlePushSelect = ParticlePushType::Boris;
 inline constexpr auto PBCSelect = ParticleBCType::Outflow;
 inline constexpr auto PBCDepth = 0zu;
 
 inline constexpr std::array<ParticleGroupSpec, 1> particle_spec = {
    ParticleGroupSpec{
       .name = "singleton",
-      .filepath = "/data/uniform_B_field/singleton.bp",
+      .filepath = "/data/uniform_B_field_Boris/singleton.bp",
       .mass = 1.0,
       .charge = 6.241509074460763e+18,
       .atomic_number = 0
@@ -89,7 +90,7 @@ inline constexpr std::array<CollisionSpec, 0> collision_spec = {
 /---------------------------------------------------------------*/
 enum class MetricType { ParticleDump, ParticleDiag, ParticleEnergy, FieldDump, FieldEnergy };
 
-inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/uniform_B_field";
+inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/uniform_B_field_Boris";
 inline constexpr std::array<MetricType, 1> metric_spec = {
 	MetricType::ParticleDump
 };

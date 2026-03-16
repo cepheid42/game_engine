@@ -1,11 +1,11 @@
-#include "program_params.hpp"
 #include "em_solver.hpp"
 #include "metrics.hpp"
+#include "program_params.hpp"
 #include "timers.hpp"
+#include "particles/current_deposition.hpp"
 #include "particles/particles.hpp"
 #include "particles/pusher.hpp"
-#include "particles/current_deposition.hpp"
-#include "particles/collisions.hpp"
+// #include "particles/collisions.hpp"
 
 #include "barkeep.h"
 
@@ -15,7 +15,7 @@
 using namespace tf;
 using namespace tf::electromagnetics;
 using namespace tf::particles;
-using namespace tf::collisions;
+// using namespace tf::collisions;
 using namespace tf::metrics;
 
 namespace bk = barkeep;
@@ -31,10 +31,10 @@ int main() {
       particle_groups.insert({std::string{species.name}, ParticleGroup(species)});
    }
 
-   std::vector<Collisions> collisions;
-   for (const auto& col : collision_spec) {
-      collisions.emplace_back(col, particle_groups);
-   }
+   // std::vector<Collisions> collisions;
+   // for (const auto& col : collision_spec) {
+   //    collisions.emplace_back(col, particle_groups);
+   // }
 
    emsolver_t emsolver(Nx, Ny, Nz);
    // add_gaussianbeam(emsolver);
@@ -45,12 +45,6 @@ int main() {
       emsolver.emdata.em_map,
       particle_groups
    );
-
-   // if constexpr (push_enabled or coll_enabled) {
-   //    for (auto& g : particle_groups | std::views::values) {
-   //       BorisPush::first_advance_position(g);
-   //    }
-   // }
 
    auto time = 0.0;
    auto step = 0zu;
@@ -69,9 +63,9 @@ int main() {
    metrics.write(step, time);
    timers["IO"].stop_timer();
 
-   // progress_bar->show();
+   progress_bar->show();
    for (step = 1; step <= Nt; step++, time += dt) {
-      std::println("--------------- Step {} | {} ---------------", step, time);
+      // std::println("--------------- Step {} | {} ---------------", step, time);
 
       if constexpr (em_enabled) {
          // Electromagnetics
@@ -86,7 +80,7 @@ int main() {
          emsolver.computeBField();
          emsolver.updateTotalFields();
          for (auto& g : particle_groups | std::views::values) {
-            BorisPush::advance(g, emsolver.emdata, step);
+            ParticlePusher::advance(g, emsolver.emdata, step);
          }
          timers["Push"].stop_timer();
       }
@@ -100,21 +94,21 @@ int main() {
          timers["Jdep"].stop_timer();
       }
 
-      if constexpr (coll_enabled) {
-         // Collisions
-         timers["Collisions"].start_timer();
-         for (auto& c : collisions) {
-            c.advance(step);
-         }
-         timers["Collisions"].stop_timer();
-      }
+      // if constexpr (coll_enabled) {
+      //    // Collisions
+      //    timers["Collisions"].start_timer();
+      //    for (auto& c : collisions) {
+      //       c.advance(step);
+      //    }
+      //    timers["Collisions"].stop_timer();
+      // }
 
       // Metrics output
       timers["IO"].start_timer();
       metrics.write(step, time);
       timers["IO"].stop_timer();
    }
-   // progress_bar->done();
+   progress_bar->done();
    timers["Main"].stop_timer();
 
    print_final_timers(timers);

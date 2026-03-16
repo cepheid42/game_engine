@@ -11,7 +11,6 @@
 #include <adios2.h>
 
 #include <algorithm>
-#include <fstream>
 #include <print>
 #include <span>
 #include <utility>
@@ -20,7 +19,7 @@
 namespace tf::particles
 {
 struct Particle {
-   vec3<double> velocity; // change to beta and make it a float
+   vec3<double> beta_gamma; // change to beta and make it a float
    double gamma;
    vec3<double> location;
    vec3<double> old_location;
@@ -41,15 +40,15 @@ constexpr auto getCellIndex(const auto& loc) -> std::size_t {
    return z + ((Nz - 1) * y) + ((Ny - 1) * (Nz - 1) * x);
 }
 
-constexpr auto calculateGammaV(const auto& v) {
-   // Calculates gamma using regular velocity
-   return 1.0 / std::sqrt(1.0 - (v / constants::c).length_squared());
-}
-
-constexpr auto calculateGammaP(const auto& p, const auto m) {
-   // Calculates gamma using momentum
-   return std::sqrt(1.0 + (p / (constants::c * m)).length_squared());
-}
+// constexpr auto calculateGammaV(const auto& v) {
+//    // Calculates gamma using regular velocity
+//    return 1.0 / std::sqrt(1.0 - (v / constants::c).length_squared());
+// }
+//
+// constexpr auto calculateGammaP(const auto& p, const auto m) {
+//    // Calculates gamma using momentum
+//    return std::sqrt(1.0 + (p / (constants::c * m)).length_squared());
+// }
 
 static void initializeFromFile(const std::string& filename, auto& group) {
    constexpr vec3 deltas{dx, dy, dz};
@@ -89,7 +88,7 @@ static void initializeFromFile(const std::string& filename, auto& group) {
       const auto gamma = g_vec[i];
 
       group.particles.emplace_back(
-         gamma * vel,
+         gamma * vel / constants::c,
          gamma,
          loc,
          loc,

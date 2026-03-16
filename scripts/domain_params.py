@@ -6,6 +6,23 @@ from scipy import constants
 
 import numpy as np
 
+class MetricType(StrEnum):
+    ParticleDump = 'MetricType::ParticleDump'
+    ParticleDiagnostics = 'MetricType::ParticleDiag'
+    ParticleEnergy = 'MetricType::ParticleEnergy'
+    FieldDump = 'MetricType::FieldDump'
+    FieldEnergy = 'MetricType::FieldEnergy'
+
+class ParticlePushType(StrEnum):
+    Ballistic = 'ParticlePushType::Ballistic'
+    Boris = 'ParticlePushType::Boris'
+    HC = 'ParticlePushType::HigueraCary'
+
+class ParticleBCType(StrEnum):
+    Reflecting = 'ParticleBCType::Reflecting'
+    Periodic = 'ParticleBCType::Periodic'
+    Outflow = 'ParticleBCType::Outflow'
+
 @dataclass
 class EMParams:
     save_interval: int = 10
@@ -19,7 +36,8 @@ class EMParams:
 @dataclass
 class ParticleParams:
     save_interval: int = 1
-    particle_bcs: str = 'outflow'
+    push_type: ParticlePushType = ParticlePushType.Boris
+    particle_bcs: ParticleBCType = ParticleBCType.Outflow
     bc_depth : int = 3
     interp_order: int = 2
     sort_frequency: int = 100
@@ -157,14 +175,6 @@ class Particles:
             '   }'
         )
 
-
-class MetricType(StrEnum):
-    ParticleDump = 'MetricType::ParticleDump'
-    ParticleDiagnostics = 'MetricType::ParticleDiag'
-    ParticleEnergy = 'MetricType::ParticleEnergy'
-    FieldDump = 'MetricType::FieldDump'
-    FieldEnergy = 'MetricType::FieldEnergy'
-
 @dataclass
 class Metrics:
     data_path: str = ''
@@ -215,12 +225,6 @@ def update_header(params: Simulation, project_path: str, ionization_test_overrid
     x_collapsed = nx == 2
     y_collapsed = ny == 2
     z_collapsed = nz == 2
-
-    particle_bcs = {
-        'reflecting': 'ParticleBCType::Reflecting',
-        'periodic': 'ParticleBCType::Periodic',
-        'outflow': 'ParticleBCType::Outflow'
-    }
 
     bc_str = f'{em_bcs[0]}zu, {em_bcs[1]}zu, {em_bcs[2]}zu, {em_bcs[3]}zu, {em_bcs[4]}zu, {em_bcs[5]}zu'
 
@@ -300,12 +304,13 @@ def update_header(params: Simulation, project_path: str, ionization_test_overrid
         '/-                     Particle Parameters                      -/\n'
         '/---------------------------------------------------------------*/\n'
         'enum class ParticleBCType { Reflecting, Periodic, Outflow };\n'
+        'enum class ParticlePushType { Ballistic, Boris, HigueraCary };\n'
         '\n'
         f'inline constexpr auto particle_save_interval = {particles.save_interval}zu;\n'
         f'inline constexpr auto sort_frequency = {particles.sort_frequency}zu;\n'
         f'inline constexpr auto interpolation_order = {particles.interp_order}zu;\n'
-        '\n'
-        f'inline constexpr auto PBCSelect = {particle_bcs[particles.particle_bcs]};\n'
+        f'inline constexpr auto ParticlePushSelect = {str(particles.push_type)};\n'
+        f'inline constexpr auto PBCSelect = {str(particles.particle_bcs)};\n'
         f'inline constexpr auto PBCDepth = {particles.bc_depth}zu;\n'
         '\n'
         f'inline constexpr std::array<ParticleGroupSpec, {len(particles.particle_data)}> particle_spec = {{\n'
