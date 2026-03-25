@@ -3,7 +3,6 @@
 
 #include <cmath>
 #include <vector>
-// #include <cassert>
 
 namespace tf::math
 {

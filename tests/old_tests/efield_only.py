@@ -13,7 +13,7 @@ from scripts.domain_params import *
 # ===== Simulation Params =====
 # =============================
 sim_name = 'efield_only'
-project_path = '/home/cepheid/TriForce/game_engine'
+project_path = '/'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
 
@@ -191,15 +191,15 @@ with FileReader(data_path + f'/fields_energy.bp') as f:
 total_energy_tf = ex + ey + ez + bx + by + bz + iKE_tf + eKE_tf
 
 # Load Parodi 2025 plot data
-eden_pp = np.genfromtxt('data/efield_only_eden.txt')
-iden_pp = np.genfromtxt('data/efield_only_iden.txt')
+eden_pp = np.genfromtxt('../data/efield_only_eden.txt')
+iden_pp = np.genfromtxt('../data/efield_only_iden.txt')
 
-iKE_pp = np.genfromtxt('./data/efield_only_ion_ke.txt')
-iPE_pp = np.genfromtxt('./data/efield_only_ion_pe.txt')
-eKE_pp = np.genfromtxt('./data/efield_only_electron_ke.txt')
-ePE_pp = np.genfromtxt('./data/efield_only_electron_pe.txt')
+iKE_pp = np.genfromtxt('../data/efield_only_ion_ke.txt')
+iPE_pp = np.genfromtxt('../data/efield_only_ion_pe.txt')
+eKE_pp = np.genfromtxt('../data/efield_only_electron_ke.txt')
+ePE_pp = np.genfromtxt('../data/efield_only_electron_pe.txt')
 
-total_energy_pp = np.genfromtxt('./data/efield_only_total_particle_energy.txt')
+total_energy_pp = np.genfromtxt('../data/efield_only_total_particle_energy.txt')
 
 time = np.linspace(0, t_end, nt // save_interval + 1) * 1.0e6
 

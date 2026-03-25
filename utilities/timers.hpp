@@ -3,8 +3,8 @@
 
 #include <chrono>
 #include <print>
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 namespace tf::utilities {
 //========== Timer Classes =========

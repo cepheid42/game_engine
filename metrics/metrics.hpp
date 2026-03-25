@@ -9,8 +9,8 @@
 
 #include <adios2.h>
 #include <algorithm>
-#include <unordered_map>
 #include <memory>
+#include <unordered_map>
 
 namespace tf::metrics {
 // =======================================
@@ -495,7 +495,6 @@ struct ParticleMetric final : detail::MetricBase {
    std::vector<double>      KE_total;
    std::array<std::size_t, 3> dims{Nx - 1, Ny - 1, Nz - 1};
 }; // end struct ParticleMetric
-
 
 // =======================================
 // ======== Metrics Superclass ===========

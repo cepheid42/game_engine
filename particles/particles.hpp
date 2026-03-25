@@ -2,7 +2,7 @@
 #define PARTICLE_HPP
 
 #include "constants.hpp"
-#include "math_utils.hpp"
+// #include "math_utils.hpp"
 #include "morton.hpp"
 #include "program_params.hpp"
 #include "vec3.hpp"
@@ -110,25 +110,23 @@ struct ParticleGroup {
    bool cell_map_updated{false};
    bool is_sorted{false};
    bool is_photons{false};
+   bool is_tracer{false};
    std::vector<Particle> particles{};
    std::map<std::size_t, std::span<Particle>> cell_map{};
 
-   ParticleGroup(std::string name_, const std::string& file_, const double mass_, const double charge_, const std::size_t atomic_number_)
-   : name(std::move(name_)),
-     atomic_number(atomic_number_),
-     mass(mass_),
-     charge(charge_ * constants::q_e),
+   explicit ParticleGroup(const ParticleGroupSpec& spec)
+   : name(spec.name),
+     atomic_number(spec.atomic_number),
+     mass(spec.mass),
+     charge(spec.charge * constants::q_e),
      qdt_over_2m((mass != 0.0) ? 0.5 * charge * dt / mass : 0.0), // for photon groups
-     is_photons(mass == 0.0)
+     is_photons(mass == 0.0),
+     is_tracer(spec.tracer)
    {
-      if (not file_.empty()) {
-         initializeFromFile(file_, *this);
+      if (not spec.filepath.empty()) {
+         initializeFromFile(std::string{spec.filepath}, *this);
       }
    }
-
-   explicit ParticleGroup(const ParticleGroupSpec& spec)
-   : ParticleGroup(std::string{spec.name}, std::string{spec.filepath}, spec.mass, spec.charge, spec.atomic_number)
-   {}
 
    [[nodiscard]] std::size_t num_particles() const { return particles.size(); }
 

@@ -111,22 +111,22 @@ def maxwell_juttner_distribution(mass, T_M, count):
     velocities[:, :] = u
     return velocities
 
-def write_particle_file(data_path, particles, positions, velocities, weights, gammas, tracer=False, sourcer=False):
+def write_particle_file(data_path, particles, positions, velocities, weights, gammas):
     with Stream(data_path + f'/{particles.name.lower().replace(" ","_")}.bp', 'w') as f:
+        f.write("Position", positions.copy(), positions.shape, [0, 0], positions.shape)
+        f.write("Velocity", velocities.copy(), velocities.shape, [0, 0], velocities.shape)
+        f.write("Weight", weights, weights.shape, [0], weights.shape)
+        f.write("Gamma", gammas, gammas.shape, [0], gammas.shape)
         f.write_attribute('Name', particles.name)
         f.write_attribute('Mass', particles.mass)
         f.write_attribute("Mass/Unit", "kg")
         f.write_attribute('Charge', particles.charge)
         f.write_attribute("Charge/Unit", "C")
         f.write_attribute("Atomic Number", np.array([particles.atomic_number],np.uint64)[0])
-        # f.write_attribute('Tracer', np.array([tracer],np.uint64)[0])
+        f.write_attribute('Tracer', np.array([particles.tracer],np.uint64)[0])
         # f.write_attribute('Sourcer', np.array([sourcer],np.uint64)[0])
-        f.write("Position", positions.copy(), positions.shape, [0, 0], positions.shape)
         f.write_attribute("Unit", "m", "Position")
-        f.write("Velocity", velocities.copy(), velocities.shape, [0, 0], velocities.shape)
         f.write_attribute("Unit", "m/s", "Velocity")
-        f.write("Weight", weights, weights.shape, [0], weights.shape)
-        f.write("Gamma", gammas, gammas.shape, [0], gammas.shape)
 
 
 def create_particles(domain, particles, data_path):
@@ -148,6 +148,7 @@ def create_particles(domain, particles, data_path):
     pz_min, pz_max = particles.pz_range
 
     if particles.distribution == 'none':
+        print('Done')
         return
 
     if particles.distribution == 'sp_uniformE':
@@ -165,6 +166,25 @@ def create_particles(domain, particles, data_path):
         vel = np.array([[temp[0], temp[1], temp[2]]], dtype=np.float64)
         wts = np.array([1.0])
         gms = np.array([1e6])
+        write_particle_file(data_path, particles, pos, vel, wts, gms)
+        print('Done')
+        return
+
+    if particles.distribution == 'sp_forcefree':
+        pos = np.array([[px_min, py_min, pz_min]], dtype=np.float64)
+        # these are actually velocity, not temperature
+        vel = np.array([[temp[0], temp[1], temp[2]]], dtype=np.float64)
+        wts = np.array([1.0])
+        gms = np.array([1.0e6])
+        write_particle_file(data_path, particles, pos, vel, wts, gms)
+        print('Done')
+        return
+
+    if particles.distribution == 'sp_perpfields':
+        pos = np.array([[0, 0, 0]], dtype=np.float64)
+        vel = np.array([[0, 0, 0]], dtype=np.float64)
+        wts = np.array([1.0])
+        gms = np.array([1.0])
         write_particle_file(data_path, particles, pos, vel, wts, gms)
         print('Done')
         return

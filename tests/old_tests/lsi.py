@@ -13,7 +13,7 @@ from scripts.domain_params import *
 # ===== Simulation Params =====
 # =============================
 sim_name = 'lsi_test'
-project_path = '/home/cepheid/TriForce/game_engine'
+project_path = '/'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
 
@@ -167,9 +167,9 @@ field_energy = (ex + ey + ez + bx + by + bz) * J_to_kJ / dy
 e_energy = e_energy * J_to_kJ / dy
 i_energy = i_energy * J_to_kJ / dy
 
-smith_field_data = np.genfromtxt('./data/smith_lsi_field_energy.csv', delimiter=',')
-smith_electron_data = np.genfromtxt('./data/smith_lsi_electron_energy.csv', delimiter=',')
-smith_proton_data = np.genfromtxt('./data/smith_lsi_proton_energy.csv', delimiter=',')
+smith_field_data = np.genfromtxt('../data/smith_lsi_field_energy.csv', delimiter=',')
+smith_electron_data = np.genfromtxt('../data/smith_lsi_electron_energy.csv', delimiter=',')
+smith_proton_data = np.genfromtxt('../data/smith_lsi_proton_energy.csv', delimiter=',')
 
 y_labels = [
     (r'Field (kJ m$^{-1}$)', smith_field_data, [0, 100]),

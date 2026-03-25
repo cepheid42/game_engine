@@ -7,7 +7,7 @@ import math
 from scripts.particle_generation import create_particles
 from scripts.domain_params import *
 
-project_path = '/home/cepheid/TriForce/game_engine'
+project_path = '/'
 particle_data = project_path + '/data'
 
 shape = (751, 2, 751)

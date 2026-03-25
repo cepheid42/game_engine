@@ -1,9 +1,9 @@
 #ifndef TRIFORCE_RNG_UTILS_H
 #define TRIFORCE_RNG_UTILS_H
 
-#include <random>
-#include <array>
 #include <algorithm>
+#include <array>
+#include <random>
 
 namespace tf::random {
   struct shuffleVector {

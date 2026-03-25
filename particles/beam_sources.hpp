@@ -5,7 +5,6 @@
 #include "vec3.hpp"
 
 #include <adios2.h>
-
 #include <algorithm>
 
 namespace tf::particles

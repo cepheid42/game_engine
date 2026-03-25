@@ -1,15 +1,15 @@
 #ifndef EM_BOUNDARIES_HPP
 #define EM_BOUNDARIES_HPP
 
-#include "program_params.hpp"
 #include "array.hpp"
 #include "constants.hpp"
 #include "math_utils.hpp"
+#include "program_params.hpp"
 
-#include <vector>
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <vector>
 
 namespace tf::electromagnetics {
 template<EMSide S, std::size_t Depth>

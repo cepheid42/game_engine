@@ -1,8 +1,8 @@
 #ifndef EM_ARRAY_HPP
 #define EM_ARRAY_HPP
 
-#include "vec3.hpp"
 #include "traits.hpp"
+#include "vec3.hpp"
 
 #include <vector>
 

@@ -13,7 +13,7 @@ from scripts.particle_generation import create_particles
 # ===== Simulation Params =====
 # =============================
 sim_name = 'cu_brems'
-project_path = '/home/cepheid/TriForce/game_engine'
+project_path = '/'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
 
@@ -205,7 +205,7 @@ Ngamma_theory = e_den * cu_den * v_e * length * sigmaB * time_theory
 
 ax[0].plot(time_theory * 1e15, Ngamma_theory, '-k', label='Theory')
 
-Martinez_fig9b_data = np.loadtxt("/home/cepheid/TriForce/game_engine/tests/mikes_files/Martinez_fig9b_data.csv", delimiter=",")
+Martinez_fig9b_data = np.loadtxt("/tests/mikes_files/Martinez_fig9b_data.csv", delimiter=",")
 ax[1].plot(Martinez_fig9b_data[:,0], Martinez_fig9b_data[:,1], '-k')
 
 me_c2 = constants.electron_mass * constants.speed_of_light**2

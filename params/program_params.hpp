@@ -77,7 +77,8 @@ inline constexpr std::array<ParticleGroupSpec, 1> particle_spec = {
       .filepath = "/data/uniform_B_field_Boris/singleton.bp",
       .mass = 1.0,
       .charge = 6.241509074460763e+18,
-      .atomic_number = 0
+      .atomic_number = 0,
+      .tracer = true
    }
 };
 

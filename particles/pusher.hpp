@@ -126,8 +126,6 @@ void apply_particle_bcs(auto& p) {
    }
 }
 
-
-
 template<ParticlePushType P>
 struct ParticleVelocityUpdate {
    static void operator()(Particle&, const auto&, auto)
@@ -137,12 +135,11 @@ struct ParticleVelocityUpdate {
    static void operator()(Particle& p, const auto& emdata, const auto qdt)
    requires (P == ParticlePushType::Boris)
    {
-      if (p.is_disabled()) { return; }
-      const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
+      // const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
+      const auto eps = qdt * vec3{constants::c * (1.0 - 5.0e-5), 0.0, 0.0};
+      const auto bet = qdt * vec3{0.0, 0.0, 1.0};
 
-      // u = gamma * v
-      const auto um = p.beta_gamma + (eps / constants::c);
-
+      const auto um = p.beta_gamma + (eps / constants::c); // todo: eps/c could be moved out of here
       const auto t = bet / std::sqrt(1.0 + um.length_squared());
       const auto s = 2.0 * t / (1.0 + t.length_squared());
       const auto u_prime = um + cross(um, t);
@@ -155,21 +152,20 @@ struct ParticleVelocityUpdate {
    static void operator()(Particle& p, const auto& emdata, const auto qdt)
    requires (P == ParticlePushType::HigueraCary)
    {
-      if (p.is_disabled()) { return; }
-      const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
+      // const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
+      const auto eps = qdt * vec3{constants::c * (1.0 - 5.0e-5), 0.0, 0.0};
+      const auto bet = qdt * vec3{0.0, 0.0, 1.0};
 
-      // u = gamma * v
       const auto um = p.beta_gamma + (eps / constants::c);
       const auto tau2 = bet.length_squared();
       const auto gamma_m2 = 1.0 + um.length_squared();
       const auto sigma = gamma_m2 - tau2;
-      const auto u_star = dot(um, bet / constants::c);
-      const auto gamma_new = std::sqrt(0.5 * (sigma + std::sqrt(math::SQR(sigma) + 4.0 * (tau2 + math::SQR(u_star)))));
+      const auto u_star2 = math::SQR(dot(um, bet / constants::c));
+      const auto gamma_new = std::sqrt(0.5 * (sigma + std::sqrt(math::SQR(sigma) + 4.0 * (tau2 + u_star2))));
       const auto t = bet / gamma_new;
       const auto s = 1.0 / (1.0 + t.length_squared());
       const auto up = s * (um + dot(um, t) * t + cross(um, t));
       const auto u = up + (eps / constants::c) + cross(up, t);
-
       p.gamma = std::sqrt(1.0 + u.length_squared());
       p.beta_gamma = u;
    } // end Higuera-Cary Velocity Update
@@ -178,17 +174,14 @@ struct ParticleVelocityUpdate {
 struct ParticlePusher {
    using emdata_t = electromagnetics::EMData;
    using group_t = ParticleGroup;
+   static constexpr vec3 delta_inv{0.5 * constants::c * dt / dx, 0.5 * constants::c * dt / dy, 0.5 * constants::c * dt / dz};
 
    static void first_half_position(Particle& p) {
-      static constexpr vec3 delta_inv{0.5 * constants::c * dt / dx, 0.5 * constants::c * dt / dy, 0.5 * constants::c * dt / dz};
-      if (p.is_disabled()) { return; }
       p.old_location = p.location;
       p.location += (delta_inv * p.beta_gamma / p.gamma);
    } // end first_half_position()
 
    static void second_half_position(Particle& p) {
-      static constexpr vec3 delta_inv{0.5 * constants::c * dt / dx, 0.5 * constants::c * dt / dy, 0.5 * constants::c * dt / dz};
-      if (p.is_disabled()) { return; }
       p.location += (delta_inv * p.beta_gamma / p.gamma);
       apply_particle_bcs<PBCSelect>(p);
    } // end second_half_position()
@@ -196,6 +189,7 @@ struct ParticlePusher {
    static void first_advance_position(group_t& g) {
       #pragma omp parallel for num_threads(nThreads)
       for (auto pid = 0zu; pid < g.num_particles(); pid++) {
+         if (g.particles[pid].is_disabled()) { continue; }
          first_half_position(g.particles[pid]);
       }
    } // end first_advance_position
@@ -203,13 +197,17 @@ struct ParticlePusher {
    static void second_advance_position(group_t& g) {
       #pragma omp parallel for num_threads(nThreads)
       for (auto pid = 0zu; pid < g.num_particles(); pid++) {
+         if (g.particles[pid].is_disabled()) { continue; }
          second_half_position(g.particles[pid]);
       }
    } // end second_advance_position
 
    static void advance_velocity(group_t& g, const emdata_t& emdata) {
+      // todo: Using operator() requires... instantiation. Does this cause slowdowns by instantiating
+      //       a new object every time the function is called? Does it even matter?
       #pragma omp parallel for num_threads(nThreads)
       for (auto pid = 0zu; pid < g.num_particles(); pid++) {
+         if (g.particles[pid].is_disabled()) { continue; }
          ParticleVelocityUpdate<ParticlePushSelect>()(g.particles[pid], emdata, g.qdt_over_2m);
       }
    } // end advance_velocity

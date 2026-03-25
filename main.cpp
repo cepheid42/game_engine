@@ -9,6 +9,8 @@
 
 #include "barkeep.h"
 
+#include <iostream>
+#include <print>
 #include <ranges>
 #include <unordered_map>
 
@@ -63,7 +65,7 @@ int main() {
    metrics.write(step, time);
    timers["IO"].stop_timer();
 
-   progress_bar->show();
+   // progress_bar->show();
    for (step = 1; step <= Nt; step++, time += dt) {
       // std::println("--------------- Step {} | {} ---------------", step, time);
 
@@ -77,8 +79,8 @@ int main() {
       if constexpr (push_enabled) {
          // Particle Push
          timers["Push"].start_timer();
-         emsolver.computeBField();
-         emsolver.updateTotalFields();
+         // emsolver.computeBField();
+         // emsolver.updateTotalFields();
          for (auto& g : particle_groups | std::views::values) {
             ParticlePusher::advance(g, emsolver.emdata, step);
          }
@@ -108,7 +110,7 @@ int main() {
       metrics.write(step, time);
       timers["IO"].stop_timer();
    }
-   progress_bar->done();
+   // progress_bar->done();
    timers["Main"].stop_timer();
 
    print_final_timers(timers);

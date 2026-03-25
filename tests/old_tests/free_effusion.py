@@ -13,7 +13,7 @@ from scripts.domain_params import *
 # ===== Simulation Params =====
 # =============================
 sim_name = 'free_effusion'
-project_path = '/home/cepheid/TriForce/game_engine'
+project_path = '/'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
 
@@ -178,11 +178,11 @@ eden_th = 1.0 - (e_theory_slope * time) / (e_den * 1e6)
 iden_th = 1.0 - (i_theory_slope * time) / (i_den * 1e6)
 
 # Load Parodi 2025 plot data
-eKE_pp = np.genfromtxt('data/effusion_electron_ke.txt')
-iKE_pp = np.genfromtxt('data/effusion_ion_ke.txt')
+eKE_pp = np.genfromtxt('../data/effusion_electron_ke.txt')
+iKE_pp = np.genfromtxt('../data/effusion_ion_ke.txt')
 
-eden_pp = np.genfromtxt('./data/effusion_eden.txt')
-iden_pp = np.genfromtxt('./data/effusion_iden.txt')
+eden_pp = np.genfromtxt('../data/effusion_eden.txt')
+iden_pp = np.genfromtxt('../data/effusion_iden.txt')
 
 fig, ax = plt.subplots(2, 2, figsize=(8, 8), layout='constrained', sharex=True)
 

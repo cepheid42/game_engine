@@ -1,10 +1,10 @@
 #ifndef EM_DEFINITIONS_HPP
 #define EM_DEFINITIONS_HPP
 
-#include "program_params.hpp"
-#include "typelist.hpp"
 #include "bc_data.hpp"
 #include "bc_functors.hpp"
+#include "program_params.hpp"
+#include "typelist.hpp"
 #include "update_functors.hpp"
 
 namespace tf::electromagnetics {

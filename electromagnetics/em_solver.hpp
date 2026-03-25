@@ -4,11 +4,7 @@
 #include "em_data.hpp"
 #include "em_definitions.hpp"
 
-#include <print>
-
 namespace tf::electromagnetics {
-
-
 struct EMSolver {
    using offset_t = std::array<std::size_t, 6>;
 
