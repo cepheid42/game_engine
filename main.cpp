@@ -65,8 +65,8 @@ int main() {
    metrics.write(step, time);
    timers["IO"].stop_timer();
 
-   // progress_bar->show();
-   for (step = 1; step <= Nt; step++, time += dt) {
+   progress_bar->show();
+   for (step = 1, time = dt; step <= Nt; step++, time += dt) {
       // std::println("--------------- Step {} | {} ---------------", step, time);
 
       if constexpr (em_enabled) {
@@ -80,7 +80,7 @@ int main() {
          // Particle Push
          timers["Push"].start_timer();
          // emsolver.computeBField();
-         // emsolver.updateTotalFields();
+         emsolver.updateTotalFields();
          for (auto& g : particle_groups | std::views::values) {
             ParticlePusher::advance(g, emsolver.emdata, step);
          }
@@ -110,7 +110,7 @@ int main() {
       metrics.write(step, time);
       timers["IO"].stop_timer();
    }
-   // progress_bar->done();
+   progress_bar->done();
    timers["Main"].stop_timer();
 
    print_final_timers(timers);

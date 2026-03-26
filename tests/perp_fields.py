@@ -57,11 +57,12 @@ px_range = (0.0, dx) # meters
 py_range = (0.0, dy)
 pz_range = (0.0, dz)
 
-singleton = Particles(
-    name='singleton',
+single_particle = Particles(
+    name='sp',
     mass=mass,
     charge=charge,
     atomic_number=0,
+    tracer=True,
     temp=(0.0, 0.0, 0.0), # eV
     density=1.0, # m^-3,
     ppc=(1, 1, 1),
@@ -78,7 +79,7 @@ particle_params = ParticleParams(
     save_interval=save_interval,
     bc_depth=0,
     interp_order=1,
-    particle_data=(singleton,)
+    particle_data=(single_particle,)
 )
 
 # ============================
@@ -89,28 +90,21 @@ pushers = [
     ParticlePushType.HC
 ]
 sim_names = [sim_name + '_' + pusher.split(':')[-1] for pusher in pushers]
+Ex_applied = np.full((shape[0] - 1, shape[1], shape[2]), Ex_amp)
+Bz_applied = np.full((shape[0] - 1, shape[1] - 1, shape[2]), Bz_amp)
 
 for pusher, name in zip(pushers, sim_names):
     data_path = project_path + f'/data/{name}'
     fields_path = data_path + f'/{name}_applied_fields.bp'
 
-    Ex_applied = np.full((shape[0] - 1, shape[1], shape[2]), Ex_amp)
-    Bz_applied = np.full((shape[0] - 1, shape[1] - 1, shape[2]), Bz_amp)
     with Stream(fields_path, 'w') as f:
         f.write('Ex', Ex_applied, Ex_applied.shape, (0, 0, 0), Ex_applied.shape)
         f.write('Bz', Bz_applied, Bz_applied.shape, (0, 0, 0), Bz_applied.shape)
 
-    em_params = EMParams(
-        save_interval=save_interval,
-        applied_fields=fields_path
-    )
-
-    metric_params = Metrics(
-        data_path,
-        (MetricType.ParticleDump,)
-    )
-
+    em_params = EMParams(save_interval=save_interval, applied_fields=fields_path)
+    metric_params = Metrics(data_path, (MetricType.ParticleDump,))
     particle_params.push_type = pusher
+
     sim_params = Simulation(
         name=name,
         shape=shape,
@@ -140,7 +134,7 @@ for pusher, name in zip(pushers, sim_names):
         print(f'Creating simulation data directory "{data_path}"...')
         os.makedirs(data_path)
 
-    create_particles(sim_params, singleton, data_path)
+    create_particles(sim_params, single_particle, data_path)
     update_header(sim_params, project_path=project_path)
 
     subprocess.run(

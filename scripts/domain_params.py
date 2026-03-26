@@ -1,10 +1,11 @@
 from pathlib import Path
+import numpy as np
 from dataclasses import dataclass, field
+from scipy import constants
 from enum import StrEnum
 from math import ceil
-from scipy import constants
 
-import numpy as np
+from utilities import *
 
 class MetricType(StrEnum):
     ParticleDump = 'MetricType::ParticleDump'
@@ -17,6 +18,9 @@ class ParticlePushType(StrEnum):
     Ballistic = 'ParticlePushType::Ballistic'
     Boris = 'ParticlePushType::Boris'
     HC = 'ParticlePushType::HigueraCary'
+
+    def get_name(self):
+        return str(self).split(':')[-1]
 
 class ParticleBCType(StrEnum):
     Reflecting = 'ParticleBCType::Reflecting'
@@ -194,10 +198,10 @@ class Simulation:
     nt: int
     dt: float
     t_end: float
+    # cfl: float
     em_params: EMParams = field(default_factory=EMParams)
     particle_params: ParticleParams = field(default_factory=ParticleParams)
     metric_params: Metrics = field(default_factory=Metrics)
-    cfl: float = 1.0
     x_range: tuple = ()
     y_range: tuple = ()
     z_range: tuple = ()
@@ -267,7 +271,7 @@ def update_header(params: Simulation, project_path: str, ionization_test_overrid
         f'inline constexpr auto dy = {float(dy)};\n'
         f'inline constexpr auto dz = {float(dz)};\n'
         '\n'
-        f'inline constexpr auto cfl   = {float(params.cfl)};\n'
+        # f'inline constexpr auto cfl   = {float(cfl)};\n'
         f'inline constexpr auto dt    = {float(params.dt)};\n'
         f'inline constexpr auto t_end = {float(params.t_end)};\n'
         f'inline constexpr auto Nt    = {int(params.nt)}zu;\n'

@@ -1,7 +1,7 @@
 #ifndef METRICS_HPP
 #define METRICS_HPP
 
-#include "array.hpp"
+// #include "array.hpp"
 #include "em_data.hpp"
 #include "interpolation.hpp"
 #include "particles.hpp"
@@ -19,7 +19,6 @@ namespace detail {
    struct MetricBase {
       virtual ~MetricBase() = default;
       virtual void write(const std::string&, const std::string&, std::size_t, double) = 0;
-      std::size_t interval = 100lu;
    };
 } // end namespace detail
 
@@ -283,7 +282,6 @@ struct ParticleDumpMetric final : detail::MetricBase {
      var_w(io.DefineVariable<double>("Weight", {group.num_particles(), 1}, {0, 0}, {group.num_particles(), 1})),
      var_gamma(io.DefineVariable<double>("Gamma", {group.num_particles(), 1}, {0, 0}, {group.num_particles(), 1})),
      var_step(io.DefineVariable<std::size_t>("Step", {1}, {0}, {1}, adios2::ConstantDims)),
-     var_dt(io.DefineVariable<double>("dt", {1}, {0}, {1}, adios2::ConstantDims)),
      var_time(io.DefineVariable<double>("Time", {1}, {0}, {1}, adios2::ConstantDims))
    {
       io.DefineAttribute<std::string>("Name", group.name);
@@ -294,11 +292,9 @@ struct ParticleDumpMetric final : detail::MetricBase {
       io.DefineAttribute<std::size_t>("Atomic Number", group.atomic_number);
       io.DefineAttribute<std::string>("Unit", "m", "Position");
       io.DefineAttribute<std::string>("Unit", "m/s", "Velocity");
-      // io.DefineAttribute<std::size_t>("Tracer", group.tracer);
-      // io.DefineAttribute<std::size_t>("Sourcer", group.sourcer);
+      io.DefineAttribute<std::size_t>("Tracer", group.is_tracer);
       io.DefineAttribute<std::string>("Unit", "s", "Time");
-      io.DefineAttribute<std::string>("Unit", "s", "dt");
-      io.DefineAttribute<double>("Cell Volume", dx * dy * dz);
+      io.DefineAttribute<double>("dt", dt);
    }
 
    static void write(const auto&, const auto&, const auto, const auto) requires(!(push_enabled and coll_enabled)) {}
@@ -307,7 +303,7 @@ struct ParticleDumpMetric final : detail::MetricBase {
       static constexpr vec3 delta{dx, dy, dz};
       static constexpr vec3 lb{x_range[0], y_range[0], z_range[0]};
 
-      const std::string file{dir + "/" + group.name + "_dump" + "_" + step_ext};
+      const std::string file{dir + "/" + group.name + "_dump_" + step_ext};
 
       if (step % particle_save_interval != 0) { return; }
 
@@ -343,7 +339,6 @@ struct ParticleDumpMetric final : detail::MetricBase {
       writer.Put(var_w, weight.data());
       writer.Put(var_gamma, gamma.data());
       writer.Put(var_step, step);
-      writer.Put(var_dt, dt);
       writer.Put(var_time, time);
 
       writer.EndStep();
@@ -362,13 +357,97 @@ struct ParticleDumpMetric final : detail::MetricBase {
    adios2::Variable<double>      var_w;
    adios2::Variable<double>      var_gamma;
    adios2::Variable<std::size_t> var_step;
-   adios2::Variable<double>      var_dt;
    adios2::Variable<double>      var_time;
    std::vector<double>           position{};
    std::vector<double>           velocity{};
    std::vector<double>           weight{};
    std::vector<double>           gamma{};
 }; // end struct ParticleDumpMetric
+
+// =========================================
+// ========= Particle Dump Metric ==========
+struct ParticleTracerMetric final : detail::MetricBase {
+   using group_t = particles::ParticleGroup;
+
+   ParticleTracerMetric(const group_t& group_, adios2::IO&& io_)
+   : io(io_),
+     group(group_),
+     var_p(io.DefineVariable<double>("Position", {particle_save_interval, 3}, {0, 0}, {particle_save_interval, 3}, adios2::ConstantDims)),
+     var_v(io.DefineVariable<double>("Velocity", {particle_save_interval, 3}, {0, 0}, {particle_save_interval, 3}, adios2::ConstantDims)),
+     var_w(io.DefineVariable<double>("Weight",   {particle_save_interval, 1}, {0, 0}, {particle_save_interval, 1}, adios2::ConstantDims)),
+     var_g(io.DefineVariable<double>("Gamma",    {particle_save_interval, 1}, {0, 0}, {particle_save_interval, 1}, adios2::ConstantDims)),
+     var_t(io.DefineVariable<double>("Time",     {particle_save_interval, 1}, {0, 0}, {particle_save_interval, 1}, adios2::ConstantDims)),
+     var_s(io.DefineVariable<std::size_t>("Step",{particle_save_interval, 1}, {0, 0}, {particle_save_interval, 1}, adios2::ConstantDims))
+   {
+      io.DefineAttribute<double>("Mass", group.mass);
+      io.DefineAttribute<double>("Charge", group.charge);
+      io.DefineAttribute<double>("dt", dt);
+      io.DefineAttribute<std::size_t>("Atomic Number", group.atomic_number);
+      io.DefineAttribute<std::size_t>("Tracer", group.is_tracer);
+      io.DefineAttribute<std::string>("Name", group.name);
+      io.DefineAttribute<std::string>("Mass/Unit", "kg");
+      io.DefineAttribute<std::string>("Charge/Unit", "C");
+      io.DefineAttribute<std::string>("Unit", "m", "Position");
+      io.DefineAttribute<std::string>("Unit", "m/s", "Velocity");
+      io.DefineAttribute<std::string>("Unit", "s", "Time");
+   }
+
+   void write(const std::string& dir, const std::string& step_ext, const std::size_t step, const double time) override {
+      static constexpr std::array delta{dx, dy, dz};
+      static constexpr std::array lb{x_range[0], y_range[0], z_range[0]};
+
+      for (const auto& p: group.particles) {
+         // if (p.is_disabled()) { continue; }
+
+         for (std::size_t d = 0; d < 3; d++) {
+            position.push_back(lb[d] + delta[d] * p.location[d]);
+            velocity.push_back(constants::c * p.beta_gamma[d] / p.gamma);
+         }
+         weight.push_back(p.weight);
+         gamma.push_back(p.gamma);
+      }
+      times.push_back(time);
+      steps.push_back(step);
+
+      if (step % particle_save_interval == 0zu) {
+         const std::string file{dir + "/" + group.name + "_tracer_" + step_ext};
+         adios2::Engine writer = io.Open(file, adios2::Mode::Write);
+         writer.BeginStep();
+
+         writer.Put(var_p, position.data());
+         writer.Put(var_v, velocity.data());
+         writer.Put(var_w, weight.data());
+         writer.Put(var_g, gamma.data());
+         writer.Put(var_t, times.data());
+         writer.Put(var_s, steps.data());
+
+         writer.EndStep();
+         writer.Close();
+
+         position.clear();
+         velocity.clear();
+         weight.clear();
+         gamma.clear();
+         times.clear();
+         steps.clear();
+      }
+   } // end write()
+
+   adios2::IO                    io;
+   const group_t&                group;
+   adios2::Variable<double>      var_p;
+   adios2::Variable<double>      var_v;
+   adios2::Variable<double>      var_w;
+   adios2::Variable<double>      var_g;
+   adios2::Variable<double>      var_t;
+   adios2::Variable<std::size_t> var_s;
+   std::vector<double>           position{};
+   std::vector<double>           velocity{};
+   std::vector<double>           weight{};
+   std::vector<double>           gamma{};
+   std::vector<double>           times{};
+   std::vector<std::size_t>      steps{};
+}; // end struct ParticleTracerMetric
 
 // ========================================================
 // ======== Particle Density/Temperature Metric ===========
@@ -516,7 +595,11 @@ public:
             case MetricType::ParticleDump:
                {
                   for (auto& [name, g] : p_groups) {
-                     metrics.push_back(std::make_unique<ParticleDumpMetric>(g, adios.DeclareIO("Particles_" + name + "_dump")));
+                     if (g.is_tracer) {
+                        metrics.push_back(std::make_unique<ParticleTracerMetric>(g, adios.DeclareIO("Particles_" + name + "_tracer")));
+                     } else {
+                        metrics.push_back(std::make_unique<ParticleDumpMetric>(g, adios.DeclareIO("Particles_" + name + "_dump")));
+                     }
                   }
                   break;
                }
@@ -543,6 +626,7 @@ public:
                   break;
                }
             default:
+               assert(false);
                break;
          } // end switch(s)
       } // end for(s)

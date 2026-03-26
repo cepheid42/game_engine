@@ -2,7 +2,7 @@
 #define PARTICLE_HPP
 
 #include "constants.hpp"
-// #include "math_utils.hpp"
+#include "math_utils.hpp"
 #include "morton.hpp"
 #include "program_params.hpp"
 #include "vec3.hpp"
@@ -40,6 +40,14 @@ constexpr auto getCellIndex(const auto& loc) -> std::size_t {
    return z + ((Nz - 1) * y) + ((Ny - 1) * (Nz - 1) * x);
 }
 
+// constexpr auto getParticlePosition(const auto& loc) {
+//    // Should this return a vec3 or std::array?
+//    return {
+//       x_range[0] + dx * loc[0],
+//       y_range[0] + dy * loc[1],
+//       z_range[0] + dz * loc[2]
+//    };
+// }
 // constexpr auto calculateGammaV(const auto& v) {
 //    // Calculates gamma using regular velocity
 //    return 1.0 / std::sqrt(1.0 - (v / constants::c).length_squared());
@@ -48,6 +56,10 @@ constexpr auto getCellIndex(const auto& loc) -> std::size_t {
 // constexpr auto calculateGammaP(const auto& p, const auto m) {
 //    // Calculates gamma using momentum
 //    return std::sqrt(1.0 + (p / (constants::c * m)).length_squared());
+// }
+// constexpr auto calculateGammaB(const auto& p) {
+//    // calculates gamma using gamma*beta
+//    return std::sqrt(1.0 + p.length_squared());
 // }
 
 static void initializeFromFile(const std::string& filename, auto& group) {
@@ -84,7 +96,7 @@ static void initializeFromFile(const std::string& filename, auto& group) {
       const vec3 vel{v_vec[3 * i], v_vec[3 * i + 1], v_vec[3 * i + 2]};
       const auto weight = w_vec[i];
 
-      const auto loc = ((pos - mins) / deltas);
+      const auto loc = (pos - mins) / deltas;
       const auto gamma = g_vec[i];
 
       group.particles.emplace_back(

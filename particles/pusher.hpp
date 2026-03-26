@@ -135,9 +135,9 @@ struct ParticleVelocityUpdate {
    static void operator()(Particle& p, const auto& emdata, const auto qdt)
    requires (P == ParticlePushType::Boris)
    {
-      // const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
-      const auto eps = qdt * vec3{constants::c * (1.0 - 5.0e-5), 0.0, 0.0};
-      const auto bet = qdt * vec3{0.0, 0.0, 1.0};
+      const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
+      // const auto eps = qdt * vec3{constants::c * (1.0 - 5.0e-5), 0.0, 0.0};
+      // const auto bet = qdt * vec3{0.0, 0.0, 1.0};
 
       const auto um = p.beta_gamma + (eps / constants::c); // todo: eps/c could be moved out of here
       const auto t = bet / std::sqrt(1.0 + um.length_squared());
@@ -152,9 +152,9 @@ struct ParticleVelocityUpdate {
    static void operator()(Particle& p, const auto& emdata, const auto qdt)
    requires (P == ParticlePushType::HigueraCary)
    {
-      // const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
-      const auto eps = qdt * vec3{constants::c * (1.0 - 5.0e-5), 0.0, 0.0};
-      const auto bet = qdt * vec3{0.0, 0.0, 1.0};
+      const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
+      // const auto eps = qdt * vec3{constants::c * (1.0 - 5.0e-5), 0.0, 0.0};
+      // const auto bet = qdt * vec3{0.0, 0.0, 1.0};
 
       const auto um = p.beta_gamma + (eps / constants::c);
       const auto tau2 = bet.length_squared();
