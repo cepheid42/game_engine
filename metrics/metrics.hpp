@@ -409,9 +409,11 @@ struct ParticleTracerMetric final : detail::MetricBase {
       times.push_back(time);
       steps.push_back(step);
 
-      if (step % particle_save_interval == 0zu) {
+
+      if (step % particle_save_interval == 0zu and step > 0zu) {
          const std::string file{dir + "/" + group.name + "_tracer_" + step_ext};
          adios2::Engine writer = io.Open(file, adios2::Mode::Write);
+
          writer.BeginStep();
 
          writer.Put(var_p, position.data());

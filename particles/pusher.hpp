@@ -21,6 +21,7 @@ auto FieldToParticleInterp(const auto& F,
    using JShape = Strategy::MiddleShape;
    using KShape = Strategy::InnerShape;
    auto result = 0.0;
+   // auto sum = 0.0;
    for (auto i = IShape::Begin; i <= IShape::End; ++i) {
       const auto& s0i = shapeI[i - IShape::Begin];
       for (auto j = JShape::Begin; j <= JShape::End; ++j) {
@@ -29,9 +30,12 @@ auto FieldToParticleInterp(const auto& F,
             const auto& s0k = shapeK[k - KShape::Begin];
             const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
             result += s0i * s0j * s0k * F(x, y, z);
+            // sum += s0i * s0j * s0k;
          } // end for(k)
       } // end for(j)
    } // end for(i)
+
+   // std::println("Sum: {}", sum);
 
    return result;
 } // end FieldToParticle()
@@ -53,34 +57,49 @@ static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qd
    using ByStrategy = interp::InterpolationStrategy<ZRedShape,  XRedShape,  YFullShape>;
    using BzStrategy = interp::InterpolationStrategy<XRedShape,  YRedShape,  ZFullShape>;
 
-   static constexpr vec3 offset{
-      XFullShape::Order % 2 == 0 ? 0.5 : 1.0,
-      YFullShape::Order % 2 == 0 ? 0.5 : 1.0,
-      ZFullShape::Order % 2 == 0 ? 0.5 : 1.0
-   };
-   const vec3 loc_full = getCellIndices<double>(p.location + offset);
-   const vec3 loc_half = loc_full + 0.5;
+   // static constexpr vec3 offset{
+   //    XFullShape::Order % 2 == 0 ? 0.5 : 1.0,
+   //    YFullShape::Order % 2 == 0 ? 0.5 : 1.0,
+   //    ZFullShape::Order % 2 == 0 ? 0.5 : 1.0
+   // };
+
+   const vec3 loc_full = getCellIndices<double>(p.location);
+   const vec3 loc_half = getCellIndices<double>(p.location + 0.5);
 
    const vec3 fid = loc_full.to_uint();
    const vec3 hid = loc_half.to_uint();
 
    const vec3 p_full = p.location - loc_full;
-   const vec3 p_half = p.location - loc_half;
+   const vec3 p_half = p.location - loc_half - 0.5;
 
-   const auto xh_r =  XRedShape::shape_array(p_half.x);
-   const auto yh_r =  YRedShape::shape_array(p_half.y);
-   const auto zh_r =  ZRedShape::shape_array(p_half.z);
-   const auto xf_a = XFullShape::shape_array(p_full.x);
-   const auto yf_a = YFullShape::shape_array(p_full.y);
-   const auto zf_a = ZFullShape::shape_array(p_full.z);
+   const auto xh =  XRedShape::shape_array(p_half.x);
+   const auto yh =  YRedShape::shape_array(p_half.y);
+   const auto zh =  ZRedShape::shape_array(p_half.z);
+   const auto xf = XFullShape::shape_array(p_full.x);
+   const auto yf = YFullShape::shape_array(p_full.y);
+   const auto zf = ZFullShape::shape_array(p_full.z);
 
-   const auto exc = FieldToParticleInterp<0, ExStrategy>(emdata.Ex_total, yf_a, zf_a, xh_r, fid.y, fid.z, hid.x);
-   const auto eyc = FieldToParticleInterp<1, EyStrategy>(emdata.Ey_total, zf_a, xf_a, yh_r, fid.z, fid.x, hid.y);
-   const auto ezc = FieldToParticleInterp<2, EzStrategy>(emdata.Ez_total, xf_a, yf_a, zh_r, fid.x, fid.y, hid.z);
-   const auto bxc = FieldToParticleInterp<0, BxStrategy>(emdata.Bx_total, yh_r, zh_r, xf_a, hid.y, hid.z, fid.x);
-   const auto byc = FieldToParticleInterp<1, ByStrategy>(emdata.By_total, zh_r, xh_r, yf_a, hid.z, hid.x, fid.y);
-   const auto bzc = FieldToParticleInterp<2, BzStrategy>(emdata.Bz_total, xh_r, yh_r, zf_a, hid.x, hid.y, fid.z);
+   // std::println("\nFC: {}, HC: {}", loc_full, loc_half);
+   // std::println("PF: {}, PH: {}", p_full, p_half);
 
+   // std::println("Xh: ({}), Yf: ({}, {}), Zf: ({}, {})", xh[0], yf[0], yf[1], zf[0], zf[1]);
+   // std::println("Xf: ({}, {}), Yh: ({}), Zf: ({}, {})", xf[0], xf[1], yh[0], zf[0], zf[1]);
+   // std::println("Xf: ({}, {}), Yh: ({}, {}), Zh: ({})", xf[0], xf[1], yf[0], yf[1], zh[0]);
+
+   // std::println("Xf: ({}, {}), Yh: ({}), Zh: ({})", xf[0], xf[1], yh[0], zh[0]);
+   // std::println("Xh: ({}), Yf: ({}, {}), Zh: ({})", xh[0], yf[0], yf[1], zh[0]);
+   // std::println("Xh: ({}), Yh: ({}), Zf: ({}, {})", xh[0], yh[0], zf[0], zf[1]);
+
+   // std::println("Xh: ({}, {}, {}), Yf: ({}, {}, {}), Zf: ({}, {}, {})", xh[0], xh[1], xh[2], yf[0], yf[1], yf[2], zf[0], zf[1], zf[2]);
+
+   const auto exc = FieldToParticleInterp<0, ExStrategy>(emdata.Ex_total, yf, zf, xh, fid.y, fid.z, hid.x);
+   const auto eyc = FieldToParticleInterp<1, EyStrategy>(emdata.Ey_total, zf, xf, yh, fid.z, fid.x, hid.y);
+   const auto ezc = FieldToParticleInterp<2, EzStrategy>(emdata.Ez_total, xf, yf, zh, fid.x, fid.y, hid.z);
+   const auto bxc = FieldToParticleInterp<0, BxStrategy>(emdata.Bx_total, yh, zh, xf, hid.y, hid.z, fid.x);
+   const auto byc = FieldToParticleInterp<1, ByStrategy>(emdata.By_total, zh, xh, yf, hid.z, hid.x, fid.y);
+   const auto bzc = FieldToParticleInterp<2, BzStrategy>(emdata.Bz_total, xh, yh, zf, hid.x, hid.y, fid.z);
+   // exit(0);
+   // return {};
    return {qdt * vec3{exc, eyc, ezc}, qdt * vec3{bxc, byc, bzc}};
 } // end FieldAtParticle
 
@@ -186,21 +205,21 @@ struct ParticlePusher {
       apply_particle_bcs<PBCSelect>(p);
    } // end second_half_position()
 
-   static void first_advance_position(group_t& g) {
+   static void firstdvance_position(group_t& g) {
       #pragma omp parallel for num_threads(nThreads)
       for (auto pid = 0zu; pid < g.num_particles(); pid++) {
          if (g.particles[pid].is_disabled()) { continue; }
          first_half_position(g.particles[pid]);
       }
-   } // end first_advance_position
+   } // end firstdvance_position
 
-   static void second_advance_position(group_t& g) {
+   static void seconddvance_position(group_t& g) {
       #pragma omp parallel for num_threads(nThreads)
       for (auto pid = 0zu; pid < g.num_particles(); pid++) {
          if (g.particles[pid].is_disabled()) { continue; }
          second_half_position(g.particles[pid]);
       }
-   } // end second_advance_position
+   } // end seconddvance_position
 
    static void advance_velocity(group_t& g, const emdata_t& emdata) {
       // todo: Using operator() requires... instantiation. Does this cause slowdowns by instantiating
@@ -218,9 +237,9 @@ struct ParticlePusher {
 
       if (step % sort_frequency == 0) { g.sort_particles(); }
 
-      first_advance_position(g);   // aligns position n -> n+1/2
+      firstdvance_position(g);   // aligns position n -> n+1/2
       advance_velocity(g, emdata); // aligns velocity n -> n+1
-      second_advance_position(g);  // aligns position n+1/2 -> n+1
+      seconddvance_position(g);  // aligns position n+1/2 -> n+1
 
       g.cell_map_updated = false;
       g.is_sorted = false;

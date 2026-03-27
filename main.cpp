@@ -79,7 +79,7 @@ int main() {
       if constexpr (push_enabled) {
          // Particle Push
          timers["Push"].start_timer();
-         // emsolver.computeBField();
+         emsolver.computeBField();
          emsolver.updateTotalFields();
          for (auto& g : particle_groups | std::views::values) {
             ParticlePusher::advance(g, emsolver.emdata, step);

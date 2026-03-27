@@ -189,6 +189,15 @@ def create_particles(domain, particles, data_path):
         print('Done')
         return
 
+    if particles.distribution == 'sp_interp':
+        pos = np.array([[px_min, py_min, pz_min]], dtype=np.float64)
+        vel = np.array([[temp[0], temp[1], temp[2]]], dtype=np.float64)
+        wts = np.array([1.0])
+        gms = np.array([1.0])
+        write_particle_file(data_path, particles, pos, vel, wts, gms)
+        print('Done')
+        return
+
     nx, ny, nz = domain.shape
     dx, dy, dz = domain.deltas
 

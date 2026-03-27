@@ -41,7 +41,7 @@ inline constexpr auto coll_enabled = false;
 enum class EMFace { X, Y, Z };
 enum class EMSide { Lo, Hi };
 
-inline constexpr auto em_save_interval = 200zu;
+inline constexpr auto em_save_interval = 20000zu;
 inline constexpr auto em_subcycles = 1zu;
 inline constexpr auto dt_em = 50841996.52082682;
 
@@ -63,7 +63,7 @@ inline constexpr auto applied_fields_path = "/home/cepheid/TriForce/game_engine/
 enum class ParticleBCType { Reflecting, Periodic, Outflow };
 enum class ParticlePushType { Ballistic, Boris, HigueraCary };
 
-inline constexpr auto particle_save_interval = 200zu;
+inline constexpr auto particle_save_interval = 20000zu;
 inline constexpr auto sort_frequency = 100zu;
 inline constexpr auto interpolation_order = 1zu;
 inline constexpr auto ParticlePushSelect = ParticlePushType::HigueraCary;

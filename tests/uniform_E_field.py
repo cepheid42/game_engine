@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 
-import os
-import subprocess
-import numpy as np
 import matplotlib.pyplot as plt
 from adios2 import FileReader, Stream
-from scipy import constants
 
 from scripts.particle_generation import create_particles
 from scripts.domain_params import *
+from scripts.utilities import *
 
 # =============================
 # ===== Simulation Params =====
@@ -34,9 +31,8 @@ dz = (zmax - zmin) / (shape[2] - 1)
 dt = 1e3 # seconds
 t_end = 1e9 # seconds
 nt = int(t_end / dt) + 1
-cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
-save_interval = 200
+save_interval = 20000
 
 # =====================
 # ===== Particles =====
@@ -87,122 +83,99 @@ pushers = [
 sim_names = [sim_name + '_' + pusher.split(':')[-1] for pusher in pushers]
 Ex_applied = np.full((shape[0] - 1, shape[1], shape[2]), Ex_amp)
 
-# for pusher, name in zip(pushers, sim_names):
-#     data_path = project_path + f'/data/{name}'
-#     fields_path = data_path + f'/{name}_applied_fields.bp'
-#
-#     with Stream(fields_path, 'w') as f:
-#         f.write('Ex', Ex_applied, Ex_applied.shape, (0, 0, 0), Ex_applied.shape)
-#
-#     em_params = EMParams(save_interval=save_interval, applied_fields=fields_path)
-#     metric_params = Metrics(data_path, (MetricType.ParticleDump,))
-#     particle_params.push_type = pusher
-#
-#     sim_params = Simulation(
-#         name=name,
-#         shape=shape,
-#         nthreads=1,
-#         dt=dt,
-#         t_end=t_end,
-#         nt=nt,
-#         x_range=(xmin, xmax),
-#         y_range=(ymin, ymax),
-#         z_range=(zmin, zmax),
-#         deltas=(dx, dy, dz),
-#         em_params=em_params,
-#         particle_params=particle_params,
-#         metric_params=metric_params,
-#         em_enabled=False,
-#         jdep_enabled=False,
-#         collisions_enabled=False
-#     )
-#
-#     # ===========================
-#     # ===== Compile and Run =====
-#     # ===========================
-#     print(f'Setting up "{name}"')
-#
-#     if not os.path.exists(data_path):
-#         print(f'Creating simulation data directory "{data_path}"...')
-#         os.makedirs(data_path)
-#
-#     create_particles(sim_params, single_particle, data_path)
-#     update_header(sim_params, project_path=project_path)
-#
-#     subprocess.run(
-#         ['meson', 'compile', '-C', build_path, '-j4'],
-#         check=True,
-#         # stdout=subprocess.PIPE,
-#         # stderr=subprocess.STDOUT
-#     )
-#
-#     subprocess.run(
-#         build_path + '/game_engine',
-#         check=True,
-#         # stdout=subprocess.PIPE,
-#         # stderr=subprocess.STDOUT
-#     )
+for pusher, name in zip(pushers, sim_names):
+    data_path = project_path + f'/data/{name}'
+    fields_path = data_path + f'/{name}_applied_fields.bp'
+
+    with Stream(fields_path, 'w') as f:
+        f.write('Ex', Ex_applied, Ex_applied.shape, (0, 0, 0), Ex_applied.shape)
+
+    em_params = EMParams(save_interval=save_interval, applied_fields=fields_path)
+    metric_params = Metrics(data_path, (MetricType.ParticleDump,))
+    particle_params.push_type = pusher
+
+    sim_params = Simulation(
+        name=name,
+        shape=shape,
+        nthreads=1,
+        dt=dt,
+        t_end=t_end,
+        nt=nt,
+        x_range=(xmin, xmax),
+        y_range=(ymin, ymax),
+        z_range=(zmin, zmax),
+        deltas=(dx, dy, dz),
+        em_params=em_params,
+        particle_params=particle_params,
+        metric_params=metric_params,
+        em_enabled=False,
+        jdep_enabled=False,
+        collisions_enabled=False
+    )
+
+    # ===========================
+    # ===== Compile and Run =====
+    # ===========================
+    print(f'Setting up "{name}"')
+    create_data_dir(data_path)
+    create_particles(sim_params, single_particle, data_path)
+    update_header(sim_params, project_path=project_path)
+
+    compile_project(build_path, output=True)
+    run_project(build_path + '/game_engine', output=True)
 
 # ===========================
 # ===== Post Processing =====
 # ===========================
-boris_path = project_path + f'/data/{sim_names[0]}'
-boris_gammas = []
-boris_pos = []
-time = []
-for n in range(save_interval, nt, save_interval):
-    file = f'/{single_particle.name}_tracer_{n:010d}.bp'
-    with FileReader(boris_path + file) as f:
-        boris_gammas.append(f.read('Gamma'))
-        boris_pos.append(f.read("Position"))
-        time.append(f.read("Time"))
+sims = dict()
+for name in sim_names:
+    sim_path = project_path + f'/data/{name}'
+    pos = []
+    gs = []
+    times = []
+    for n in range(save_interval, nt, save_interval):
+        file = f'/{single_particle.name}_tracer_{n:010d}.bp'
+        with FileReader(sim_path + file) as f:
+            pos.append(f.read('Position'))
+            gs.append(f.read('Gamma'))
+            times.append(f.read("Time"))
 
-boris_gammas = np.array(boris_gammas).flatten()
-boris_pos = np.array(boris_pos).reshape(-1, 3)
-time = np.array(time).flatten()
+    sims[name] = ParticlePlotData(
+        positions=np.array(pos).reshape(-1, 3),
+        gammas=np.array(gs).flatten(),
+        times=np.array(times).flatten()
+    )
 
-hc_path = project_path + f'/data/{sim_names[1]}'
-hc_gammas = []
-hc_pos = []
-for n in range(save_interval, nt, save_interval):
-    file = f'/{single_particle.name}_tracer_{n:010d}.bp'
-    with FileReader(hc_path + file) as f:
-        hc_gammas.append(f.read('Gamma'))
-        hc_pos.append(f.read("Position"))
-
-hc_gammas = np.array(hc_gammas).flatten()
-hc_pos = np.array(hc_pos).reshape(-1, 3)
-
-gamma_an = np.sqrt(1.0 + (charge * constants.e * Ex_amp * time / (mass * constants.c))**2)
-x_an = (mass * constants.c**2) / (charge * constants.e * Ex_amp) * (gamma_an - 1.0)
-v_an = (charge * constants.e * Ex_amp * time) / (mass * gamma_an)
+plot_params = [
+    ('--', 'r', 'P', 8, 'full'), # Boris
+    ('--', 'b', 'D', 8, 'none')  # HC
+]
 
 fig, ax = plt.subplots(1, 2, figsize=(10, 4), layout='constrained')
-
-boris_pos = np.abs(boris_pos[:, 0] - x_an) / np.abs(x_an)
-hc_pos = np.abs(hc_pos[:, 0] - x_an) / np.abs(x_an)
-
-mark_every = time.shape[0] // 20
 
 ax[0].set_xlabel('time')
 ax[0].set_ylabel(r'|x - x_{an}| / |x_{an}|')
 ax[0].set_yscale('log')
 ax[0].set_xlim([0, 10e8])
 ax[0].set_ylim([1e-15, 1])
-ax[0].plot(time, boris_pos, ls='--', c='r', marker='P', ms=8, markevery=mark_every, label='Boris')
-ax[0].plot(time, hc_pos, ls='--', c='b', marker='D', ms=8, markevery=mark_every, fillstyle='none', label='HC')
-ax[0].legend()
-
-boris_gammas = np.abs(boris_gammas - gamma_an) / gamma_an
-hc_gammas = np.abs(hc_gammas - gamma_an) / gamma_an
 
 ax[1].set_xlabel('time')
 ax[1].set_ylabel(r'$|\gamma - \gamma_{an}|$ / $\gamma_{an}$')
 # ax[1].set_yscale('log')
 ax[1].set_xlim([0, 10e8])
 # ax[1].set_ylim([1e-16, 1e-10])
-ax[1].plot(time, boris_gammas, ls='--', c='r', marker='P', ms=8, markevery=mark_every, label='Boris')
-# ax[1].plot(time, hc_gammas, ls='--', c='b', marker='D', ms=8, markevery=mark_every, fillstyle='none', label='HC')
-ax[1].legend()
 
+for i, (name, data) in enumerate(sims.items()):
+    name = name.split('_')[-1]
+    ls, c, m, ms, fs = plot_params[i]
+    mark_every = data.times.shape[0] // 20
+    gamma_an = np.sqrt(1.0 + (charge * constants.e * Ex_amp * data.times / (mass * constants.c))**2)
+    gammas = np.abs(data.gammas - gamma_an) / gamma_an
+    x_an = (mass * constants.c**2) / (charge * constants.e * Ex_amp) * (gamma_an - 1.0)
+    xs = np.abs(data.positions[:, 0] - x_an) / np.abs(x_an)
+    ax[0].plot(data.times, xs, ls=ls, c=c, marker=m, ms=ms, markevery=mark_every, fillstyle=fs, label=name)
+    ax[1].plot(data.times, gammas, ls=ls, c=c, marker=m, ms=ms, markevery=mark_every, fillstyle=fs, label=name)
+
+ax[0].legend()
+ax[1].legend()
 plt.show()

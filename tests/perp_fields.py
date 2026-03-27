@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 
-import os
-import subprocess
-import numpy as np
 import matplotlib.pyplot as plt
 from adios2 import FileReader, Stream
-from scipy import constants
 
 from scripts.particle_generation import create_particles
 from scripts.domain_params import *
+from scripts.utilities import *
 
 # =============================
 # ===== Simulation Params =====
@@ -21,26 +18,21 @@ build_path = project_path + '/buildDir'
 Tests from https://iopscience.iop.org/article/10.3847/1538-4365/aab114
 '''
 
-shape = (160, 160, 160)
+shape = (16, 16, 16)
 
-# xmin, xmax = -1.1e14, 1.1e14 # meters
-# ymin, ymax = -1.1e14, 1.1e14
-# zmin, zmax = -1.1e14, 1.1e14
-
-xmin, xmax = -1.0e16, 1.0e16 # meters
-ymin, ymax = -2.0e16, 1.0e-15
-zmin, zmax = -1.0e16, 1.0e16
+xmin, xmax = -100.0, 1.0e13 # meters
+ymin, ymax = -2.1e16, 100.0
+zmin, zmax = -1.0, 1.0
 
 dx = (xmax - xmin) / (shape[0] - 1)
 dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
 
 dt = 0.5 # seconds
-t_end = 2 * np.pi * 1e7 # seconds
+t_end = 2.0 * np.pi * 1e7 # seconds
 nt = int(t_end / dt) + 1
-cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
-save_interval = 50000
+save_interval = 500000
 
 # =====================
 # ===== Particles =====
@@ -51,7 +43,7 @@ charge = 1.0 / constants.e
 Bz_amp = 1.0
 Ex_amp = constants.c * (1.0 - 5.0e-5)
 v_e = -Ex_amp
-kappa = 1.0 / np.sqrt(1.0 - (v_e / constants.c)**2)
+kappa = gamma_from_velocity(v_e)
 
 px_range = (0.0, dx) # meters
 py_range = (0.0, dy)
@@ -89,7 +81,7 @@ pushers = [
     ParticlePushType.Boris,
     ParticlePushType.HC
 ]
-sim_names = [sim_name + '_' + pusher.split(':')[-1] for pusher in pushers]
+sim_names = [sim_name + '_' + pusher.get_name() for pusher in pushers]
 Ex_applied = np.full((shape[0] - 1, shape[1], shape[2]), Ex_amp)
 Bz_applied = np.full((shape[0] - 1, shape[1] - 1, shape[2]), Bz_amp)
 
@@ -112,7 +104,6 @@ for pusher, name in zip(pushers, sim_names):
         dt=dt,
         t_end=t_end,
         nt=nt,
-        cfl=cfl,
         x_range=(xmin, xmax),
         y_range=(ymin, ymax),
         z_range=(zmin, zmax),
@@ -129,82 +120,100 @@ for pusher, name in zip(pushers, sim_names):
     # ===== Compile and Run =====
     # ===========================
     print(f'Setting up "{name}"')
-
-    if not os.path.exists(data_path):
-        print(f'Creating simulation data directory "{data_path}"...')
-        os.makedirs(data_path)
-
+    create_data_dir(data_path)
     create_particles(sim_params, single_particle, data_path)
     update_header(sim_params, project_path=project_path)
 
-    subprocess.run(
-        ['meson', 'compile', '-C', build_path, '-j4'],
-        check=True,
-        # stdout=subprocess.PIPE,
-        # stderr=subprocess.STDOUT
-    )
-
-    subprocess.run(
-        build_path + '/game_engine',
-        check=True,
-        # stdout=subprocess.PIPE,
-        # stderr=subprocess.STDOUT
-    )
+    compile_project(build_path, output=True)
+    run_project(build_path + '/game_engine', output=True)
 
 # ===========================
 # ===== Post Processing =====
 # ===========================
-boris_path = project_path + f'/data/{sim_names[0]}'
-boris_vel = []
-boris_pos = []
-time = []
-for n in range(0, nt, save_interval):
-    file = f'/singleton_dump_{n:010d}.bp'
-    with FileReader(boris_path + file) as f:
-        boris_vel.append(f.read('Velocity'))
-        boris_pos.append(f.read("Position"))
-        time.append(f.read("Time"))
+skip = 1000
 
-boris_vel = np.array(boris_vel).reshape(-1, 3)
-boris_pos = np.array(boris_pos).reshape(-1, 3)
-time = np.array(time).flatten()
+sims = dict()
+for name in sim_names:
+    sim_path = project_path + f'/data/{name}'
+    vel = []
+    pos = []
+    gs = []
+    times = []
+    for n in range(save_interval, nt, save_interval):
+        file = f'/{single_particle.name}_tracer_{n:010d}.bp'
+        with FileReader(sim_path + file) as f:
+            vel.append(f.read('Velocity')[::skip])
+            pos.append(f.read('Position')[::skip])
+            gs.append(f.read('Gamma')[::skip])
+            times.append(f.read("Time")[::skip])
 
-hc_path = project_path + f'/data/{sim_names[1]}'
-hc_vel = []
-hc_pos = []
-for n in range(0, nt, save_interval):
-    file = f'/singleton_dump_{n:010d}.bp'
-    with FileReader(hc_path + file) as f:
-        hc_vel.append(f.read('Velocity'))
-        hc_pos.append(f.read("Position"))
-
-hc_vel = np.array(hc_vel).reshape(-1, 3)
-hc_pos = np.array(hc_pos).reshape(-1, 3)
+    sims[name] = ParticlePlotData(
+        velocities=np.array(vel).reshape(-1, 3),
+        positions=np.array(pos).reshape(-1, 3),
+        gammas=np.array(gs).flatten(),
+        times=np.array(times).flatten()
+    )
 
 
-fig, ax = plt.subplots(1, 2, figsize=(10, 4), layout='constrained')
+plot_params = [
+    ('--', 'r', 'P', 8, 'full'), # Boris
+    ('--', 'b', 'D', 8, 'none')  # HC
+]
 
-ax[0].set_xlabel('x')
-ax[0].set_ylabel('y')
-# ax[0].set_xlim([0, 8e12])
-# ax[0].set_ylim([-2e16, 0])
-ax[0].plot(boris_pos[:, 0], boris_pos[:, 1], c='r', label='Boris')
-ax[0].plot(hc_pos[:, 0], hc_pos[:, 1], c='b', label='HC')
-# ax[0].legend()
+Bprime = Bz_amp / kappa
+Rc_an = kappa * np.abs(v_e) / Bprime # because fuck you
 
-xp_boris = boris_pos[:, 0]
-yp_boris = kappa * (boris_pos[:, 1] - v_e * time)
+fig, ax = plt.subplots(2, 2, figsize=(12, 8), layout='constrained')
 
-xp_hc = hc_pos[:, 0]
-yp_hc = kappa * (hc_pos[:, 1] - v_e * time)
+ax[0, 0].set_xlabel('x')
+ax[0, 0].set_ylabel('y')
+ax[0, 0].set_xlim([0, 8e12])
+ax[0, 0].set_ylim([-2e16, 0])
 
-ax[1].set_xlabel('x\'')
-ax[1].set_ylabel('y\'')
-ax[1].set_aspect('equal')
-# ax[1].set_xlim([-1e10, 6e10])
-# ax[1].set_ylim([-2.5e10, 2.5e10])
-ax[1].plot(xp_boris, yp_boris, c='r', label='Boris')
-ax[1].plot(xp_hc, yp_hc, c='b', label='HC')
-ax[1].legend()
+ax[0, 1].set_xlabel('x\'')
+ax[0, 1].set_ylabel('y\'')
+ax[0, 1].set_aspect('equal')
+ax[0, 1].set_xlim([-0.9e12, 6.9e12])
+ax[0, 1].set_ylim([-3.1e12, 3.1e12])
 
+ax[1, 0].set_xlim([0, 6.3e7])
+ax[1, 0].set_ylim([1e-15, 1])
+ax[1, 0].set_yscale('log')
+ax[1, 0].set_xlabel('t')
+ax[1, 0].set_ylabel(r'$|R_c - R_{c,an}|$ / $R_{c,an}$')
+
+ax[1, 1].set_xlabel('t')
+ax[1, 1].set_ylabel(r'$\gamma$')
+ax[1, 1].set_ylim([0, 6.3e7])
+ax[1, 1].set_ylim([1e1, 1e6])
+ax[1, 1].set_yscale('log')
+
+for i, (name, data) in enumerate(sims.items()):
+    name = name.split('_')[-1]
+    ls, c, m, ms, fs = plot_params[i]
+    xp = data.positions[:, 0]
+    yp = kappa * (data.positions[:, 1] - v_e * data.times)
+
+    vx = data.velocities[:, 0]
+    vy = data.velocities[:, 1]
+    coef = 1.0 / (1.0 - (v_e * vy / constants.c**2))
+
+    vxp = (vx / kappa) * coef
+    vyp = ((vy / kappa) - v_e + (kappa * vy * v_e**2) / (constants.c**2 * (kappa + 1))) * coef
+
+    gp = kappa * data.gammas * (1.0 - v_e * vy / constants.c**2)
+    Rc = gp * np.sqrt(vxp**2 + vyp**2) / Bprime
+    Rc_err = np.abs(Rc - Rc_an) / Rc_an
+
+    mark_every = data.times.shape[0] // 20
+    ax[0, 0].plot(data.positions[:, 0], data.positions[:, 1], c=c, label=name)
+    ax[0, 1].plot(xp, yp, c=c,  label=name)
+    ax[1, 0].plot(data.times, Rc_err, c=c, marker=m, ms=ms, markevery=mark_every, label=name)
+    ax[1, 1].plot(data.times, data.gammas, c=c, label=name)
+    ax[1, 1].plot(data.times, gp, ls=ls, c=c, label=name)
+
+# ax[0, 0].legend()
+# ax[0, 1].legend()
+# ax[1, 0].legend()
+# ax[1, 1].legend()
 plt.show()

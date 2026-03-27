@@ -121,13 +121,12 @@ for pusher, name in zip(pushers, sim_names):
     # ===== Compile and Run =====
     # ===========================
     print(f'Setting up "{name}"')
-
     create_data_dir(data_path)
     create_particles(sim_params, single_particle, data_path)
     update_header(sim_params, project_path=project_path)
 
     compile_project(build_path, output=True)
-    run_project(build_path + '/game_engine')
+    run_project(build_path + '/game_engine', output=True)
 
 # ===========================
 # ===== Post Processing =====
@@ -153,9 +152,9 @@ for name in sim_names:
         times=np.array(times).flatten()
     )
 
-ax_params = [
-    ('--', 'r', 'P', 8, 'full'),
-    ('--', 'b', 'D', 8, 'none')
+plot_params = [
+    ('--', 'r', 'P', 8, 'full'), # Boris
+    ('--', 'b', 'D', 8, 'none')  # HC
 ]
 
 fig, ax = plt.subplots(1, 2, figsize=(10, 4), layout='constrained')
@@ -171,9 +170,9 @@ ax[1].set_xlim([0, 1e5])
 
 for i, (name, data) in enumerate(sims.items()):
     name = name.split('_')[-1]
-    ls, c, m, ms, fs = ax_params[i]
+    ls, c, m, ms, fs = plot_params[i]
     mark_every = data.times.shape[0] // 20
-    ax[0].plot(data.times, data.positions[:, 0], c=c, marker=m, ms=ms, fillstyle=fs, markevery=mark_every, label=name)
+    ax[0].plot(data.times, -data.positions[:, 0], c=c, marker=m, ms=ms, fillstyle=fs, markevery=mark_every, label=name)
     ax[1].plot(data.times, -data.velocities[:, 0], ls=ls, c=c, marker=m, ms=ms, fillstyle=fs, markevery=mark_every, label=name)
 
 ax[0].legend()

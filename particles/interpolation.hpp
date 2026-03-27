@@ -25,8 +25,8 @@ constexpr auto rotateOrigin(const auto x, const auto y, const auto z) {
 }
 
 struct NGP {
-   static constexpr int         Begin   = -1;
-   static constexpr int         End     = -1;
+   static constexpr std::size_t Begin   = 0;
+   static constexpr std::size_t End     = 0;
    static constexpr std::size_t Order   = 0;
    static constexpr std::size_t Support = 1;
 
@@ -44,8 +44,8 @@ struct NGP {
 };
 
 struct CIC {
-   static constexpr int         Begin   = -1;
-   static constexpr int         End     = 0;
+   static constexpr std::size_t Begin   = 0;
+   static constexpr std::size_t End     = 1;
    static constexpr std::size_t Order   = 1;
    static constexpr std::size_t Support = 2;
 
@@ -54,18 +54,18 @@ struct CIC {
    }
 
    static constexpr auto shape_array(const double x) {
-      return std::array{eval(x - Begin), eval(x)};
+      return std::array{eval(x), eval(x - End)};
    }
 
    static constexpr auto ds_array(const auto x1, const auto& s0) {
-      return std::array{eval(x1 - Begin) - s0[0],
-                        eval(x1)         - s0[1]};
+      return std::array{eval(x1)       - s0[0],
+                        eval(x1 - End) - s0[1]};
    }
 };
 
 struct TSC {
-   static constexpr int         Begin   = -1;
-   static constexpr int         End     = 1;
+   static constexpr std::size_t Begin   = 0;
+   static constexpr std::size_t End     = 2;
    static constexpr std::size_t Order   = 2;
    static constexpr std::size_t Support = 3;
 
@@ -93,42 +93,10 @@ struct TSC {
    }
 };
 
-struct PQS {
-   static constexpr int         Begin   = -1;
-   static constexpr int         End     = 2;
-   static constexpr std::size_t Order   = 3;
-   static constexpr std::size_t Support = 4;
-
-   static constexpr auto innerRadius(const double x) {
-      return (2.0 / 3.0) - math::SQR(x) + 0.5 * math::CUBE(x);
-   }
-
-   static constexpr auto outerRadius(const double x) {
-      return (1.0 / 6.0) * math::CUBE(2.0 - x);
-   }
-
-   static constexpr auto eval(const double x) {
-      const auto absx = std::abs(x);
-      return absx <= 1.0 ? innerRadius(x) : outerRadius(absx);
-   }
-
-   static constexpr auto shape_array(const double x) {
-      return std::array{eval(x - Begin), eval(x), eval(x - 1.0), eval(x - End)};
-   }
-
-   static constexpr auto ds_array(const auto x1, const auto& s0) {
-      return std::array{eval(x1 - Begin) - s0[0],
-                        eval(x1)         - s0[1],
-                        eval(x1 - 1.0)   - s0[2],
-                        eval(x1 - End)   - s0[2]};
-   }
-};
-
 template<int ShapeOrder> struct InterpolationShape;
 template<> struct InterpolationShape<0> { using Type = NGP; };
 template<> struct InterpolationShape<1> { using Type = CIC; };
 template<> struct InterpolationShape<2> { using Type = TSC; };
-template<> struct InterpolationShape<3> { using Type = PQS; };
 
 template<typename Outer, typename Middle, typename Inner>
 struct InterpolationStrategy {

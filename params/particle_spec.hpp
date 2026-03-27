@@ -12,6 +12,7 @@ struct ParticleGroupSpec {
    std::size_t atomic_number;
    bool tracer;
 };
+
 struct CoulombSpec {
    double coulomb_log{10.0};
    double rate_multiplier{1.0};
