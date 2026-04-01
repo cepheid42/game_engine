@@ -210,6 +210,7 @@ class Simulation:
     push_enabled: bool = True
     jdep_enabled: bool = True
     collisions_enabled: bool = True
+    applied_fields_only: bool = False
 
 
 def update_header(params: Simulation, project_path: str, ionization_test_override: bool=False):
@@ -243,6 +244,9 @@ def update_header(params: Simulation, project_path: str, ionization_test_overrid
     particle_types = ',\n'.join([str(p) for p in particles.particle_data])
     collision_types = ',\n'.join([str(c) for c in particles.collisions])
     ionization_test = "#define IONIZATION_TEST_OVERRIDE\n\n" if ionization_test_override else ""
+
+    if params.applied_fields_only:
+        assert em_params.applied_fields != ''
 
     program_params = (
         '#ifndef PROGRAM_PARAM_HPP\n'
@@ -283,6 +287,7 @@ def update_header(params: Simulation, project_path: str, ionization_test_overrid
         f'inline constexpr auto push_enabled = {str(params.push_enabled).lower()};\n'
         f'inline constexpr auto jdep_enabled = {str(params.jdep_enabled).lower()};\n'
         f'inline constexpr auto coll_enabled = {str(params.collisions_enabled).lower()};\n'
+        f'inline constexpr auto applied_fields_only = {str(params.applied_fields_only).lower()};\n'
         '\n'
         '/*---------------------------------------------------------------/\n'
         '/-                        EM Parameters                         -/\n'

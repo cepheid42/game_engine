@@ -110,7 +110,8 @@ for pusher, name in zip(pushers, sim_names):
         metric_params=metric_params,
         em_enabled=False,
         jdep_enabled=False,
-        collisions_enabled=False
+        collisions_enabled=False,
+        applied_fields_only=True
     )
 
     # ===========================

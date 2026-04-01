@@ -20,7 +20,7 @@ Tests from https://iopscience.iop.org/article/10.3847/1538-4365/aab114
 
 shape = (16, 16, 16)
 
-xmin, xmax = -100.0, 1.0e13 # meters
+xmin, xmax = -1.0e13, 1.0e13 # meters
 ymin, ymax = -2.1e16, 100.0
 zmin, zmax = -1.0, 1.0
 
@@ -113,7 +113,8 @@ for pusher, name in zip(pushers, sim_names):
         metric_params=metric_params,
         em_enabled=False,
         jdep_enabled=False,
-        collisions_enabled=False
+        collisions_enabled=False,
+        applied_fields_only=True
     )
 
     # ===========================
@@ -130,7 +131,7 @@ for pusher, name in zip(pushers, sim_names):
 # ===========================
 # ===== Post Processing =====
 # ===========================
-skip = 1000
+skip = 10000
 
 sims = dict()
 for name in sim_names:

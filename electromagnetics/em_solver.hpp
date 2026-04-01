@@ -32,7 +32,11 @@ struct EMSolver {
    explicit EMSolver(const std::size_t nx, const std::size_t ny, const std::size_t nz)
    : emdata(nx, ny, nz),
      bcdata(this->emdata)
-   {}
+   {
+      if constexpr (applied_fields_only) {
+         updateTotalFields();
+      }
+   }
 
    void advance(const auto t) requires(em_enabled) {
       for (auto i = 0zu; i < em_subcycles; i++) {
@@ -64,15 +68,13 @@ struct EMSolver {
    }
 
    void computeBField() {
-      if constexpr (em_enabled) {
-         std::ranges::copy(emdata.Hx, emdata.Bx.begin());
-         std::ranges::copy(emdata.Hy, emdata.By.begin());
-         std::ranges::copy(emdata.Hz, emdata.Bz.begin());
+      std::ranges::copy(emdata.Hx, emdata.Bx.begin());
+      std::ranges::copy(emdata.Hy, emdata.By.begin());
+      std::ranges::copy(emdata.Hz, emdata.Bz.begin());
 
-         HxUpdate::apply(emdata.Bx, emdata.Ey, emdata.Ez, emdata.empty, emdata.Chxh, emdata.Chxey2, emdata.Chxez2, emdata.empty, {0, 0, 0, 0, 0, 0});
-         HyUpdate::apply(emdata.By, emdata.Ez, emdata.Ex, emdata.empty, emdata.Chyh, emdata.Chyez2, emdata.Chyex2, emdata.empty, {0, 0, 0, 0, 0, 0});
-         HzUpdate::apply(emdata.Bz, emdata.Ex, emdata.Ey, emdata.empty, emdata.Chzh, emdata.Chzex2, emdata.Chzey2, emdata.empty, {0, 0, 0, 0, 0, 0});
-      }
+      HxUpdate::apply(emdata.Bx, emdata.Ey, emdata.Ez, emdata.empty, emdata.Chxh, emdata.Chxey2, emdata.Chxez2, emdata.empty, {0, 0, 0, 0, 0, 0});
+      HyUpdate::apply(emdata.By, emdata.Ez, emdata.Ex, emdata.empty, emdata.Chyh, emdata.Chyez2, emdata.Chyex2, emdata.empty, {0, 0, 0, 0, 0, 0});
+      HzUpdate::apply(emdata.Bz, emdata.Ex, emdata.Ey, emdata.empty, emdata.Chzh, emdata.Chzex2, emdata.Chzey2, emdata.empty, {0, 0, 0, 0, 0, 0});
    }
 
    void updateTotalFields() {

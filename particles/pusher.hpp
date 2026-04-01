@@ -21,7 +21,6 @@ auto FieldToParticleInterp(const auto& F,
    using JShape = Strategy::MiddleShape;
    using KShape = Strategy::InnerShape;
    auto result = 0.0;
-   // auto sum = 0.0;
    for (auto i = IShape::Begin; i <= IShape::End; ++i) {
       const auto& s0i = shapeI[i - IShape::Begin];
       for (auto j = JShape::Begin; j <= JShape::End; ++j) {
@@ -30,7 +29,6 @@ auto FieldToParticleInterp(const auto& F,
             const auto& s0k = shapeK[k - KShape::Begin];
             const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
             result += s0i * s0j * s0k * F(x, y, z);
-            // sum += s0i * s0j * s0k;
          } // end for(k)
       } // end for(j)
    } // end for(i)
@@ -57,12 +55,6 @@ static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qd
    using ByStrategy = interp::InterpolationStrategy<ZRedShape,  XRedShape,  YFullShape>;
    using BzStrategy = interp::InterpolationStrategy<XRedShape,  YRedShape,  ZFullShape>;
 
-   // static constexpr vec3 offset{
-   //    XFullShape::Order % 2 == 0 ? 0.5 : 1.0,
-   //    YFullShape::Order % 2 == 0 ? 0.5 : 1.0,
-   //    ZFullShape::Order % 2 == 0 ? 0.5 : 1.0
-   // };
-
    const vec3 loc_full = getCellIndices<double>(p.location);
    const vec3 loc_half = getCellIndices<double>(p.location + 0.5);
 
@@ -79,27 +71,14 @@ static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qd
    const auto yf = YFullShape::shape_array(p_full.y);
    const auto zf = ZFullShape::shape_array(p_full.z);
 
-   // std::println("\nFC: {}, HC: {}", loc_full, loc_half);
-   // std::println("PF: {}, PH: {}", p_full, p_half);
-
-   // std::println("Xh: ({}), Yf: ({}, {}), Zf: ({}, {})", xh[0], yf[0], yf[1], zf[0], zf[1]);
-   // std::println("Xf: ({}, {}), Yh: ({}), Zf: ({}, {})", xf[0], xf[1], yh[0], zf[0], zf[1]);
-   // std::println("Xf: ({}, {}), Yh: ({}, {}), Zh: ({})", xf[0], xf[1], yf[0], yf[1], zh[0]);
-
-   // std::println("Xf: ({}, {}), Yh: ({}), Zh: ({})", xf[0], xf[1], yh[0], zh[0]);
-   // std::println("Xh: ({}), Yf: ({}, {}), Zh: ({})", xh[0], yf[0], yf[1], zh[0]);
-   // std::println("Xh: ({}), Yh: ({}), Zf: ({}, {})", xh[0], yh[0], zf[0], zf[1]);
-
-   // std::println("Xh: ({}, {}, {}), Yf: ({}, {}, {}), Zf: ({}, {}, {})", xh[0], xh[1], xh[2], yf[0], yf[1], yf[2], zf[0], zf[1], zf[2]);
-
    const auto exc = FieldToParticleInterp<0, ExStrategy>(emdata.Ex_total, yf, zf, xh, fid.y, fid.z, hid.x);
    const auto eyc = FieldToParticleInterp<1, EyStrategy>(emdata.Ey_total, zf, xf, yh, fid.z, fid.x, hid.y);
    const auto ezc = FieldToParticleInterp<2, EzStrategy>(emdata.Ez_total, xf, yf, zh, fid.x, fid.y, hid.z);
    const auto bxc = FieldToParticleInterp<0, BxStrategy>(emdata.Bx_total, yh, zh, xf, hid.y, hid.z, fid.x);
    const auto byc = FieldToParticleInterp<1, ByStrategy>(emdata.By_total, zh, xh, yf, hid.z, hid.x, fid.y);
    const auto bzc = FieldToParticleInterp<2, BzStrategy>(emdata.Bz_total, xh, yh, zf, hid.x, hid.y, fid.z);
-   // exit(0);
-   // return {};
+   // std::println("{}, {}, {}", bxc, byc, bzc);
+
    return {qdt * vec3{exc, eyc, ezc}, qdt * vec3{bxc, byc, bzc}};
 } // end FieldAtParticle
 
@@ -155,9 +134,6 @@ struct ParticleVelocityUpdate {
    requires (P == ParticlePushType::Boris)
    {
       const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
-      // const auto eps = qdt * vec3{constants::c * (1.0 - 5.0e-5), 0.0, 0.0};
-      // const auto bet = qdt * vec3{0.0, 0.0, 1.0};
-
       const auto um = p.beta_gamma + (eps / constants::c); // todo: eps/c could be moved out of here
       const auto t = bet / std::sqrt(1.0 + um.length_squared());
       const auto s = 2.0 * t / (1.0 + t.length_squared());
@@ -172,8 +148,6 @@ struct ParticleVelocityUpdate {
    requires (P == ParticlePushType::HigueraCary)
    {
       const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
-      // const auto eps = qdt * vec3{constants::c * (1.0 - 5.0e-5), 0.0, 0.0};
-      // const auto bet = qdt * vec3{0.0, 0.0, 1.0};
 
       const auto um = p.beta_gamma + (eps / constants::c);
       const auto tau2 = bet.length_squared();
@@ -205,25 +179,23 @@ struct ParticlePusher {
       apply_particle_bcs<PBCSelect>(p);
    } // end second_half_position()
 
-   static void firstdvance_position(group_t& g) {
+   static void first_advance_position(group_t& g) {
       #pragma omp parallel for num_threads(nThreads)
       for (auto pid = 0zu; pid < g.num_particles(); pid++) {
          if (g.particles[pid].is_disabled()) { continue; }
          first_half_position(g.particles[pid]);
       }
-   } // end firstdvance_position
+   } // end first_advance_position
 
-   static void seconddvance_position(group_t& g) {
+   static void second_advance_position(group_t& g) {
       #pragma omp parallel for num_threads(nThreads)
       for (auto pid = 0zu; pid < g.num_particles(); pid++) {
          if (g.particles[pid].is_disabled()) { continue; }
          second_half_position(g.particles[pid]);
       }
-   } // end seconddvance_position
+   } // end second_advance_position
 
    static void advance_velocity(group_t& g, const emdata_t& emdata) {
-      // todo: Using operator() requires... instantiation. Does this cause slowdowns by instantiating
-      //       a new object every time the function is called? Does it even matter?
       #pragma omp parallel for num_threads(nThreads)
       for (auto pid = 0zu; pid < g.num_particles(); pid++) {
          if (g.particles[pid].is_disabled()) { continue; }
@@ -237,9 +209,9 @@ struct ParticlePusher {
 
       if (step % sort_frequency == 0) { g.sort_particles(); }
 
-      firstdvance_position(g);   // aligns position n -> n+1/2
+      first_advance_position(g);   // aligns position n -> n+1/2
       advance_velocity(g, emdata); // aligns velocity n -> n+1
-      seconddvance_position(g);  // aligns position n+1/2 -> n+1
+      second_advance_position(g);  // aligns position n+1/2 -> n+1
 
       g.cell_map_updated = false;
       g.is_sorted = false;
