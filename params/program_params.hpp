@@ -23,9 +23,9 @@ inline constexpr auto dx = 782778.8649706458;
 inline constexpr auto dy = 782778.8649706458;
 inline constexpr auto dz = 314960629921.2598;
 
-inline constexpr auto dt    = 1e-07;
-inline constexpr auto t_end = 0.3141592653589793;
-inline constexpr auto Nt    = 3141593zu;
+inline constexpr auto dt    = 1e-09;
+inline constexpr auto t_end = 0.031415926535897934;
+inline constexpr auto Nt    = 31415927zu;
 
 inline constexpr auto sim_name = "magnetic_mirror_HigueraCary";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";

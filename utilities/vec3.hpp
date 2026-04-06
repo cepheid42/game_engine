@@ -6,6 +6,8 @@
 #include <iostream>
 #include <string>
 #include <type_traits>
+#include <x86intrin.h>
+
 
 // ===== Vector Types =====
 // ========================
@@ -173,18 +175,45 @@ constexpr auto unit_vector(const tf::vec3<T>& u) -> tf::vec3<T> {
 }
 
 template <typename T>
-constexpr auto dot(const tf::vec3<T>& u, const tf::vec3<T>& v) -> T {
+constexpr auto dot_product(const tf::vec3<T>& u, const tf::vec3<T>& v) -> T {
    // Performs u @ v
    return (u.x * v.x) + (u.y * v.y) + (u.z * v.z);
 }
 
 template <typename T>
-constexpr auto cross(const tf::vec3<T>& u, const tf::vec3<T>& v) -> tf::vec3<T> {
+constexpr auto cross_product(const tf::vec3<T>& u, const tf::vec3<T>& v) -> tf::vec3<T> {
    // Performs u x v
    return {u.y * v.z - u.z * v.y,
            u.z * v.x - u.x * v.z,
            u.x * v.y - u.y * v.x};
 }
+
+// template<typename T>
+// requires (std::is_same_v<T, double>)
+// [[nodiscard]] tf::vec3<T> cross_simd(const tf::vec3<T>& u, const tf::vec3<T>& v) noexcept {
+//    const auto vec0 = _mm256_load_pd(&u[0]);
+//    const auto vec1 = _mm256_load_pd(&v[0]);
+//    const auto tmp0 = _mm256_shuffle_pd( vec0, vec0, _MM_SHUFFLE(3,0,2,1) );
+//    const auto tmp1 = _mm256_shuffle_pd( vec1, vec1, _MM_SHUFFLE(3,1,0,2) );
+//    const auto tmp2 = _mm256_mul_pd( tmp0, vec1 );
+//    const auto tmp3 = _mm256_mul_pd( tmp0, tmp1 );
+//    const auto tmp4 = _mm256_shuffle_pd( tmp2, tmp2, _MM_SHUFFLE(3,0,2,1) );
+//    const auto tmp5 = _mm256_sub_pd( tmp3, tmp4 );
+//    auto result =  tf::vec3<double>{};
+//    _mm256_store_pd(&result[0], tmp5);
+//    return result;
+// }
+
+// [[nodiscard]] inline tf::vec3<float> cross_simd_flt(const tf::vec3<float>& u, const tf::vec3<float>& v) noexcept {
+//    const auto vec0 = _mm_load_ps(u.data);
+//    const auto vec1 = _mm_load_ps(v.data);
+//    const auto tmp0 = _mm_shuffle_ps( vec0, vec0, _MM_SHUFFLE(3,0,2,1) );
+//    const auto tmp1 = _mm_shuffle_ps( vec1, vec1, _MM_SHUFFLE(3,1,0,2) );
+//    const auto tmp2 = _mm_mul_ps( tmp0, vec1 );
+//    const auto tmp3 = _mm_mul_ps( tmp0, tmp1 );
+//    const auto tmp4 = _mm_shuffle_ps( tmp2, tmp2, _MM_SHUFFLE(3,0,2,1) );
+//    return tf::vec3<float>{ _mm_sub_ps( tmp3, tmp4 ) };
+// }
 
 template<typename T>
 constexpr auto is_equal(const tf::vec3<T>& u, const tf::vec3<T>& v) -> tf::vec3<bool> {

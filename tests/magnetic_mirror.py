@@ -36,8 +36,8 @@ dx = (xmax - xmin) / (shape[0] - 1)
 dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
 
-dt = 1.0e-7 # seconds
-t_end = np.pi / 10# seconds
+dt = 1.0e-9 # seconds
+t_end = np.pi / 100# seconds
 nt = int(t_end / dt) + 1
 
 save_interval = 500000
@@ -86,8 +86,6 @@ pushers = [
 ]
 sim_names = [sim_name + '_' + pusher.get_name() for pusher in pushers]
 
-# Bx, By, Bz = gen_magnetic_mirror_fields(B0, L, np.linspace(zmin, zmax, shape[2]), shape)
-
 xf, yf, zf = np.meshgrid(
     np.linspace(xmin, xmax, shape[0]),
     np.linspace(ymin, ymax, shape[1]),
@@ -104,7 +102,7 @@ xh, yh, zh = np.meshgrid(
 
 Bx = -xf[:, :-1, :-1] * B0 * zh[:, :-1, :-1] / L**2
 By = -yf[:-1, :, :-1] * B0 * zh[:-1, :, :-1] / L**2
-Bz = B0 * zf[:-1, :-1, :]# (1.0 + (zf[:-1, :-1, :] / L)**2)
+Bz = B0 * (1.0 + (zf[:-1, :-1, :] / L)**2)
 
 for pusher, name in zip(pushers, sim_names):
     data_path = project_path + f'/data/{name}'

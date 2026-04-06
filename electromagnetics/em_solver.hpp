@@ -38,6 +38,8 @@ struct EMSolver {
       }
    }
 
+   static void advance(const auto) requires (!em_enabled) {}
+
    void advance(const auto t) requires(em_enabled) {
       for (auto i = 0zu; i < em_subcycles; i++) {
          updateH();
@@ -53,7 +55,6 @@ struct EMSolver {
       }
    }
 
-   static void advance(const auto) requires (!em_enabled) {}
 
    void updateE() {
       ExUpdate::apply(emdata.Ex, emdata.Hz, emdata.Hy, emdata.Jx, emdata.Cexe, emdata.Cexhz, emdata.Cexhy, emdata.Cjx, Ex_offsets);
