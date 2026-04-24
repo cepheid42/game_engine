@@ -79,7 +79,7 @@ ax.scatter(Bz_x, Bz_y, Bz_z, c='m', marker='$B_z$', s=180)
 wsx, wsy, wsz = np.meshgrid(dx, dy, dz)
 ax.scatter(wsx, wsy, wsz, c='tab:purple', marker='h', s=180)
 
-particle = np.array([1.25, 1.25, 1.25])
+particle = np.array([1.0, 1.5, 1.5])
 ax.scatter(particle[0], particle[1], particle[2], c='tab:orange', marker='X', s=180)
 
 xs = [[0.5, 0.5], [1.5, 1.5]]

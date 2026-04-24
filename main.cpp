@@ -39,7 +39,7 @@ int main() {
    // }
 
    emsolver_t emsolver(Nx, Ny, Nz);
-   // add_gaussianbeam(emsolver);
+   add_gaussianbeam(emsolver);
 
    const Metrics metrics(
       std::string{sim_path} + "/data/" + std::string{sim_name},

@@ -71,13 +71,16 @@ auto FieldToParticleInterp(const auto& F,
             const auto& s0k = shapeK[k - KShape::Begin];
             const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
             result += s0i * s0j * s0k * F(x, y, z);
+
+            // const auto& [si, sj, sk] = interp::rotateOrigin<D == 2 ? D : !D>(s0i, s0j, s0k);
+            // std::println("({}, {}, {}): {} * {} * {} * {}", x, y, z, si, sj, sk, F(x, y, z));
          } // end for(k)
       } // end for(j)
    } // end for(i)
    return result;
 } // end FieldToParticle()
 
-static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qdt)
+static auto fieldAtParticle(Particle& p, const auto& emdata, const auto qdt)
 -> std::array<vec3<double>, 2>
 {
    using XFullShape = interp::InterpolationShape<x_collapsed ? 1 : interpolation_order>::Type;
@@ -87,21 +90,40 @@ static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qd
    using YRedShape  = interp::InterpolationShape<y_collapsed ? 0 : interpolation_order - 1>::Type;
    using ZRedShape  = interp::InterpolationShape<z_collapsed ? 0 : interpolation_order - 1>::Type;
 
-   // using ExStrategy = interp::InterpolationStrategy<YFullShape, ZFullShape, XRedShape>;
-   // using EyStrategy = interp::InterpolationStrategy<ZFullShape, XFullShape, YRedShape>;
-   // using EzStrategy = interp::InterpolationStrategy<XFullShape, YFullShape, ZRedShape>;
+   using ExStrategy = interp::InterpolationStrategy<YFullShape, ZFullShape, XRedShape>;
+   using EyStrategy = interp::InterpolationStrategy<ZFullShape, XFullShape, YRedShape>;
+   using EzStrategy = interp::InterpolationStrategy<XFullShape, YFullShape, ZRedShape>;
    using BxStrategy = interp::InterpolationStrategy<YRedShape,  ZRedShape,  XFullShape>;
    using ByStrategy = interp::InterpolationStrategy<ZRedShape,  XRedShape,  YFullShape>;
    using BzStrategy = interp::InterpolationStrategy<XRedShape,  YRedShape,  ZFullShape>;
 
+   // p.location = {256.0, 256.5, 64.5}; // Bx node
+   // p.location = {256.5, 256.0, 64.5}; // By node
+   // p.location = {256.5, 256.5, 64.0}; // Bz node
+
+   // Bx Node
+   static constexpr vec3 offset{0.5, 0.5, 0.5};
+
    const vec3 loc_full = getCellIndices<double>(p.location);
-   const vec3 loc_half = getCellIndices<double>(p.location + 0.5);
+   const vec3 loc_half = getCellIndices<double>(p.location) + offset;
+
+   // std::println("Loc: {}, {}, {}", p.location, loc_full, loc_half);
+   //
+   // constexpr vec3 deltas{dx, dy, dz};
+   // constexpr vec3 mins{x_range[0], y_range[0], z_range[0]};
+   // constexpr auto B0 = 1.0e6;
+   // constexpr auto L = 1.0e7;
+   // const auto [px, py, pz] = mins + deltas * p.location;
+   // const auto Bx = -px * pz * B0 / (L * L);
+   // const auto By = -py * pz * B0 / (L * L);
+   // const auto Bz = B0 * (1.0 + math::SQR(pz) / (L * L));
 
    const vec3 fid = loc_full.to_uint();
    const vec3 hid = loc_half.to_uint();
 
    const vec3 p_full = p.location - loc_full;
-   const vec3 p_half = p.location - loc_half - 0.5;
+   const vec3 p_half = p.location - loc_half;
+   // std::println("Ploc: {}, {}", p_full, p_half);
 
    const auto xh =  XRedShape::shape_array(p_half.x);
    const auto yh =  YRedShape::shape_array(p_half.y);
@@ -110,15 +132,27 @@ static auto fieldAtParticle(const Particle& p, const auto& emdata, const auto qd
    const auto yf = YFullShape::shape_array(p_full.y);
    const auto zf = ZFullShape::shape_array(p_full.z);
 
-   // const auto exc = FieldToParticleInterp<0, ExStrategy>(emdata.Ex_total, yf, zf, xh, fid.y, fid.z, hid.x);
-   // const auto eyc = FieldToParticleInterp<1, EyStrategy>(emdata.Ey_total, zf, xf, yh, fid.z, fid.x, hid.y);
-   // const auto ezc = FieldToParticleInterp<2, EzStrategy>(emdata.Ez_total, xf, yf, zh, fid.x, fid.y, hid.z);
+   const auto exc = FieldToParticleInterp<0, ExStrategy>(emdata.Ex_total, yf, zf, xh, fid.y, fid.z, hid.x);
+   const auto eyc = FieldToParticleInterp<1, EyStrategy>(emdata.Ey_total, zf, xf, yh, fid.z, fid.x, hid.y);
+   const auto ezc = FieldToParticleInterp<2, EzStrategy>(emdata.Ez_total, xf, yf, zh, fid.x, fid.y, hid.z);
+
    const auto bxc = FieldToParticleInterp<0, BxStrategy>(emdata.Bx_total, yh, zh, xf, hid.y, hid.z, fid.x);
    const auto byc = FieldToParticleInterp<1, ByStrategy>(emdata.By_total, zh, xh, yf, hid.z, hid.x, fid.y);
    const auto bzc = FieldToParticleInterp<2, BzStrategy>(emdata.Bz_total, xh, yh, zf, hid.x, hid.y, fid.z);
-   // return {(qdt / constants::c) * vec3{exc, eyc, ezc}, qdt * vec3{bxc, byc, bzc}};
 
-   return {vec3{0.0, 0.0, 0.0}, qdt * vec3{bxc, byc, bzc}};
+   return {qdt * vec3{exc, eyc, ezc}, qdt * vec3{bxc, byc, bzc}};
+   // const auto bxc = 0.0;
+   // const auto byc = 0.0;
+   // const auto bzc = 0.0;
+   // std::println("Bx: {} / {} = {}", Bx, bxc, Bx / bxc);
+   // std::println("By: {} / {} = {}", By, byc, By / byc);
+   // std::println("bz1: {}", Bz / bzc1);
+   // std::println("xh: {}", xh[0]);
+   // std::println("yh: {}", yh[0]);
+   // std::println("zf: {}, {}", zf[0], zf[1]);
+   // std::println("Bz: {} / {} = {}", Bz, bzc, Bz / bzc);
+   // exit(0);
+   // return {vec3{0.0, 0.0, 0.0}, qdt * vec3{bxc, byc, bzc}};
 } // end FieldAtParticle
 
 template<ParticlePushType P>

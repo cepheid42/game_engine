@@ -22,18 +22,18 @@ struct CurrentDeposition {
       using Inner = Strategy::InnerShape;
       // Return if particle has not moved in this direction (therefore no current)
       if (p0 == p1) { return; }
-      for (int i = Outer::Begin; i <= Outer::End; ++i) {
+      for (auto i = Outer::Begin; i <= Outer::End; ++i) {
          const auto idx = i - Outer::Begin;
          const auto& s0i = shapeI0[idx];
          const auto& dsi = shapeDI[idx];
-         for (int j = Middle::Begin; j <= Middle::End; ++j) {
+         for (auto j = Middle::Begin; j <= Middle::End; ++j) {
             const auto jdx = j - Middle::Begin;
             const auto& s0j = shapeJ0[jdx];
             const auto& dsj = shapeDJ[jdx];
             const auto tmp = -qA * (s0i * s0j + 0.5 * (dsi * s0j + s0i * dsj) + (1.0 / 3.0) * dsj * dsi);
             // Ask Ayden why this accumulator works if you want to know
             auto acc = 0.0;
-            for (int k = Inner::Begin; k <= Inner::End - 1; ++k) {
+            for (auto k = Inner::Begin; k <= Inner::End - 1; ++k) {
                acc += shapeDK[k - Inner::Begin] * tmp;
                const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
                #pragma omp atomic update
@@ -76,9 +76,9 @@ struct CurrentDeposition {
       static constexpr auto dtAyz = x_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dy * dz);
       static constexpr auto dtAxz = y_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dx * dz);
       static constexpr auto dtAxy = z_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dx * dy);
-      const auto x_vel = x_collapsed ? p.velocity[0] : 1.0;
-      const auto y_vel = y_collapsed ? p.velocity[1] : 1.0;
-      const auto z_vel = z_collapsed ? p.velocity[2] : 1.0;
+      const auto x_vel = x_collapsed ? constants::c * p.beta_gamma[0] / p.gamma : 1.0;
+      const auto y_vel = y_collapsed ? constants::c * p.beta_gamma[1] / p.gamma : 1.0;
+      const auto z_vel = z_collapsed ? constants::c * p.beta_gamma[2] / p.gamma : 1.0;
       // Offsets for Even/Odd order interpolation
       static constexpr vec3 offsets{
          XShape::Order % 2 == 0 ? 0.5 : 1.0,
