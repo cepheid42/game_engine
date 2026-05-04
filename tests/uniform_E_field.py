@@ -3,9 +3,9 @@
 import matplotlib.pyplot as plt
 from adios2 import FileReader, Stream
 
-from scripts.particle_generation import create_particles
-from scripts.domain_params import *
-from scripts.utilities import *
+from pytriforce.particle_generation import create_particles
+from pytriforce.domain_params import *
+from pytriforce.utilities import *
 
 # =============================
 # ===== Simulation Params =====
@@ -53,7 +53,7 @@ single_particle = Particles(
     mass=mass,
     charge=charge,
     atomic_number=0,
-    tracer=True,
+    tracer_fraction=1.0,
     temp=(0.0, 0.0, 0.0), # eV
     density=1.0, # m^-3,
     ppc=(1, 1, 1),
@@ -111,6 +111,7 @@ for pusher, name in zip(pushers, sim_names):
         em_enabled=False,
         jdep_enabled=False,
         collisions_enabled=False,
+        velocity_backstep_enabled=False,
         applied_fields_only=True
     )
 
@@ -123,7 +124,7 @@ for pusher, name in zip(pushers, sim_names):
     update_header(sim_params, project_path=project_path)
 
     compile_project(build_path, output=True)
-    run_project(build_path + '/game_engine', output=True)
+    run_project(build_path + '/tflink3', output=True)
 
 # ===========================
 # ===== Post Processing =====
@@ -155,7 +156,7 @@ plot_params = [
 fig, ax = plt.subplots(1, 2, figsize=(10, 4), layout='constrained')
 
 ax[0].set_xlabel('time')
-ax[0].set_ylabel(r'|x - x_{an}| / |x_{an}|')
+ax[0].set_ylabel(r'$|x - x_{an}|$ / $|x_{an}|$')
 ax[0].set_yscale('log')
 ax[0].set_xlim([0, 10e8])
 ax[0].set_ylim([1e-15, 1])

@@ -161,12 +161,13 @@ class Particles:
     temp: tuple
     density: float
     ppc: tuple
+    tracer_fraction: float = 0.0
     file_path: str = ''
     distribution: str = 'relativistic'
-    tracer: bool = False
     px_range: tuple = ()
     py_range: tuple = ()
     pz_range: tuple = ()
+    geometry: tuple = ()
 
     def __repr__(self):
         filestr = f'{self.file_path}/{self.name.lower()}.bp' if self.distribution != 'none' else ''
@@ -177,7 +178,7 @@ class Particles:
             f'      .mass = {self.mass},\n'
             f'      .charge = {float(self.charge)},\n'
             f'      .atomic_number = {self.atomic_number},\n'
-            f'      .tracer = {str(self.tracer).lower()}\n'
+            f'      .tracer = {str(self.tracer_fraction == 1.0).lower()}\n'
             '   }'
         )
 
@@ -206,10 +207,12 @@ class Simulation:
     y_range: tuple = ()
     z_range: tuple = ()
     deltas: tuple = ()
+    # todo: After all the flags are figured out, clean them up and make them more "intuitive"...
     em_enabled: bool = True
     push_enabled: bool = True
     jdep_enabled: bool = True
     collisions_enabled: bool = True
+    velocity_backstep_enabled: bool = True
     applied_fields_only: bool = False
 
 
@@ -288,6 +291,7 @@ def update_header(params: Simulation, project_path: str, ionization_test_overrid
         f'inline constexpr auto jdep_enabled = {str(params.jdep_enabled).lower()};\n'
         f'inline constexpr auto coll_enabled = {str(params.collisions_enabled).lower()};\n'
         f'inline constexpr auto applied_fields_only = {str(params.applied_fields_only).lower()};\n'
+        f'inline constexpr auto velocity_backstep_enabled = {str(params.velocity_backstep_enabled).lower()};\n'
         '\n'
         '/*---------------------------------------------------------------/\n'
         '/-                        EM Parameters                         -/\n'

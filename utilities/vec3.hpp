@@ -6,7 +6,6 @@
 #include <iostream>
 #include <string>
 #include <type_traits>
-#include <x86intrin.h>
 
 
 // ===== Vector Types =====
@@ -20,7 +19,7 @@ struct vec3 {
 
    T x, y, z;
 
-   constexpr auto operator[](std::size_t i)       ->       T& { return *(reinterpret_cast<T*>(this) + i); }
+   constexpr auto operator[](std::size_t i)       ->       T& { return *(reinterpret_cast<      T*>(this) + i); }
    constexpr auto operator[](std::size_t i) const -> const T& { return *(reinterpret_cast<const T*>(this) + i); }
 
    [[nodiscard]] constexpr auto length_squared() const -> T { return x * x + y * y + z * z; }
@@ -91,23 +90,23 @@ struct vec3 {
 } // end namespace tf
 
 namespace std {
-template <typename T>
-struct tuple_size<tf::vec3<T>> : std::integral_constant<std::size_t, 3> {};
+    template <typename T>
+    struct tuple_size<tf::vec3<T>> : std::integral_constant<std::size_t, 3> {};
 
-template <typename T>
-struct tuple_element<0, tf::vec3<T>> {
-   using type = T;
-};
+    template <typename T>
+    struct tuple_element<0, tf::vec3<T>> {
+       using type = T;
+    };
 
-template <typename T>
-struct tuple_element<1, tf::vec3<T>> {
-   using type = T;
-};
+    template <typename T>
+    struct tuple_element<1, tf::vec3<T>> {
+       using type = T;
+    };
 
-template <typename T>
-struct tuple_element<2, tf::vec3<T>> {
-   using type = T;
-};
+    template <typename T>
+    struct tuple_element<2, tf::vec3<T>> {
+       using type = T;
+    };
 } // end namespace std
 
 // ===== vec3-scalar Operators =====
@@ -188,33 +187,6 @@ constexpr auto cross_product(const tf::vec3<T>& u, const tf::vec3<T>& v) -> tf::
            u.x * v.y - u.y * v.x};
 }
 
-// template<typename T>
-// requires (std::is_same_v<T, double>)
-// [[nodiscard]] tf::vec3<T> cross_simd(const tf::vec3<T>& u, const tf::vec3<T>& v) noexcept {
-//    const auto vec0 = _mm256_load_pd(&u[0]);
-//    const auto vec1 = _mm256_load_pd(&v[0]);
-//    const auto tmp0 = _mm256_shuffle_pd( vec0, vec0, _MM_SHUFFLE(3,0,2,1) );
-//    const auto tmp1 = _mm256_shuffle_pd( vec1, vec1, _MM_SHUFFLE(3,1,0,2) );
-//    const auto tmp2 = _mm256_mul_pd( tmp0, vec1 );
-//    const auto tmp3 = _mm256_mul_pd( tmp0, tmp1 );
-//    const auto tmp4 = _mm256_shuffle_pd( tmp2, tmp2, _MM_SHUFFLE(3,0,2,1) );
-//    const auto tmp5 = _mm256_sub_pd( tmp3, tmp4 );
-//    auto result =  tf::vec3<double>{};
-//    _mm256_store_pd(&result[0], tmp5);
-//    return result;
-// }
-
-// [[nodiscard]] inline tf::vec3<float> cross_simd_flt(const tf::vec3<float>& u, const tf::vec3<float>& v) noexcept {
-//    const auto vec0 = _mm_load_ps(u.data);
-//    const auto vec1 = _mm_load_ps(v.data);
-//    const auto tmp0 = _mm_shuffle_ps( vec0, vec0, _MM_SHUFFLE(3,0,2,1) );
-//    const auto tmp1 = _mm_shuffle_ps( vec1, vec1, _MM_SHUFFLE(3,1,0,2) );
-//    const auto tmp2 = _mm_mul_ps( tmp0, vec1 );
-//    const auto tmp3 = _mm_mul_ps( tmp0, tmp1 );
-//    const auto tmp4 = _mm_shuffle_ps( tmp2, tmp2, _MM_SHUFFLE(3,0,2,1) );
-//    return tf::vec3<float>{ _mm_sub_ps( tmp3, tmp4 ) };
-// }
-
 template<typename T>
 constexpr auto is_equal(const tf::vec3<T>& u, const tf::vec3<T>& v) -> tf::vec3<bool> {
    return {u.x == v.x, u.y == v.y, u.z == v.z};
@@ -223,9 +195,7 @@ constexpr auto is_equal(const tf::vec3<T>& u, const tf::vec3<T>& v) -> tf::vec3<
 
 template <typename T>
 constexpr auto operator>>(std::istringstream& in, tf::vec3<T>& v) -> std::istringstream& {
-   for (std::size_t i = 0; i < 3; i++) {
-      in >> v[i];
-   }
+   in >> v.x >> v.y >> v.z;
    return in;
 }
 

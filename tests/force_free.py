@@ -3,9 +3,9 @@
 import matplotlib.pyplot as plt
 from adios2 import FileReader, Stream
 
-from scripts.particle_generation import create_particles
-from scripts.domain_params import *
-from scripts.utilities import *
+from pytriforce.particle_generation import create_particles
+from pytriforce.domain_params import *
+from pytriforce.utilities import *
 
 # =============================
 # ===== Simulation Params =====
@@ -54,7 +54,7 @@ single_particle = Particles(
     mass=mass,
     charge=charge,
     atomic_number=0,
-    tracer=True,
+    tracer_fraction=1.0,
     temp=(0.0, vy, 0.0), # eV
     density=1.0, # m^-3,
     ppc=(1, 1, 1),
@@ -118,16 +118,16 @@ for pusher, name in zip(pushers, sim_names):
         applied_fields_only=True
     )
 
-    # ===========================
-    # ===== Compile and Run =====
-    # ===========================
-    print(f'Setting up "{name}"')
-    create_data_dir(data_path)
-    create_particles(sim_params, single_particle, data_path)
-    update_header(sim_params, project_path=project_path)
-
-    compile_project(build_path, output=True)
-    run_project(build_path + '/game_engine', output=True)
+    # # ===========================
+    # # ===== Compile and Run =====
+    # # ===========================
+    # print(f'Setting up "{name}"')
+    # create_data_dir(data_path)
+    # create_particles(sim_params, single_particle, data_path)
+    # update_header(sim_params, project_path=project_path)
+    #
+    # compile_project(build_path, output=True)
+    # run_project(build_path + '/tflink3', output=True)
 
 # ===========================
 # ===== Post Processing =====

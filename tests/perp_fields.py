@@ -3,9 +3,9 @@
 import matplotlib.pyplot as plt
 from adios2 import FileReader, Stream
 
-from scripts.particle_generation import create_particles
-from scripts.domain_params import *
-from scripts.utilities import *
+from pytriforce.particle_generation import create_particles
+from pytriforce.domain_params import *
+from pytriforce.utilities import *
 
 # =============================
 # ===== Simulation Params =====
@@ -54,7 +54,7 @@ single_particle = Particles(
     mass=mass,
     charge=charge,
     atomic_number=0,
-    tracer=True,
+    tracer_fraction=1.0,
     temp=(0.0, 0.0, 0.0), # eV
     density=1.0, # m^-3,
     ppc=(1, 1, 1),
@@ -114,6 +114,7 @@ for pusher, name in zip(pushers, sim_names):
         em_enabled=False,
         jdep_enabled=False,
         collisions_enabled=False,
+        velocity_backstep_enabled=False,
         applied_fields_only=True
     )
 
@@ -126,7 +127,7 @@ for pusher, name in zip(pushers, sim_names):
     update_header(sim_params, project_path=project_path)
 
     compile_project(build_path, output=True)
-    run_project(build_path + '/game_engine', output=True)
+    run_project(build_path + '/tflink3', output=True)
 
 # ===========================
 # ===== Post Processing =====
@@ -209,12 +210,12 @@ for i, (name, data) in enumerate(sims.items()):
     mark_every = data.times.shape[0] // 20
     ax[0, 0].plot(data.positions[:, 0], data.positions[:, 1], c=c, label=name)
     ax[0, 1].plot(xp, yp, c=c,  label=name)
-    ax[1, 0].plot(data.times, Rc_err, c=c, marker=m, ms=ms, markevery=mark_every, label=name)
-    ax[1, 1].plot(data.times, data.gammas, c=c, label=name)
+    ax[1, 0].plot(data.times, Rc_err, c=c, marker=m, ms=ms, markevery=mark_every, fillstyle=fs, label=name)
+    ax[1, 1].plot(data.times, data.gammas, c=c,  label=name)
     ax[1, 1].plot(data.times, gp, ls=ls, c=c, label=name)
 
-# ax[0, 0].legend()
-# ax[0, 1].legend()
-# ax[1, 0].legend()
-# ax[1, 1].legend()
+ax[0, 0].legend()
+ax[0, 1].legend()
+ax[1, 0].legend()
+ax[1, 1].legend()
 plt.show()

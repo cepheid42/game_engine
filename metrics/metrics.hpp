@@ -102,6 +102,148 @@ struct EMFieldsMetric final : detail::MetricBase {
 }; // end struct EMFieldsMetric
 
 // =====================================
+// ====== EM Field Slice Metric ========
+struct EMFieldSliceMetric final : detail::MetricBase {
+   using pointer_t = Array3D<double>*;
+   using emdata_t = electromagnetics::EMData;
+
+   struct FieldVariable {
+      pointer_t                field;
+      adios2::Variable<double> variable;
+      adios2::Variable<double> x_range_var;
+      adios2::Variable<double> y_range_var;
+      adios2::Variable<double> z_range_var;
+   };
+
+   struct RangeData {
+      std::vector<double> xrange;
+      std::vector<double> yrange;
+      std::vector<double> zrange;
+   };
+
+   EMFieldSliceMetric(auto& em_map, const std::vector<std::array<std::string,2>>& components_, const std::vector<std::array<std::size_t,6>>& bounds_, adios2::IO&& io_, const bool separate_files_ = false)
+   : components(components_), bounds(bounds_), io(io_),
+     var_step(io.DefineVariable<std::size_t>("Step")),
+     var_dt(io.DefineVariable<double>("dt")),
+     var_time(io.DefineVariable<double>("Time")),
+     separate_files(separate_files_)
+   {
+      std::vector<std::string> names;
+      std::array<double,3> offsets = {0, 0, 0};
+      for (std::size_t i = 0; i < components.size(); i++) {
+         auto& [name, component] = components[i];
+         auto& bound = bounds[i];
+
+         fields.push_back({
+            .field = em_map[component],
+            .variable = io.DefineVariable<double>(
+               name,
+               {1, bound[1] - bound[0], bound[3] - bound[2], bound[5] - bound[4]}, // shape (global)
+               {0, 0, 0, 0},                                                       // start (local)
+               {1, bound[1] - bound[0], bound[3] - bound[2], bound[5] - bound[4]}, // count (local)
+               adios2::ConstantDims
+            ),
+            .x_range_var = io.DefineVariable<double>(name + "/XRange", {bound[1]-bound[0]}, {0}, {bound[1]-bound[0]}),
+            .y_range_var = io.DefineVariable<double>(name + "/YRange", {bound[3]-bound[2]}, {0}, {bound[3]-bound[2]}),
+            .z_range_var = io.DefineVariable<double>(name + "/ZRange", {bound[5]-bound[4]}, {0}, {bound[5]-bound[4]}),
+
+         });
+         fields_data.emplace_back(bound[1] - bound[0], bound[3] - bound[2], bound[5] - bound[4]);
+         std::string component_name = component;
+         if (component_name[0] == 'H') { component_name[0] = 'B'; }
+         io.DefineAttribute<std::string>("Component", component_name, name);
+
+         if (component[0] == 'H') {
+               io.DefineAttribute<std::string>("Unit", "T", name);
+               offsets = {component[1] != 'x' ? 0.5 : 0.0, component[1] != 'y' ? 0.5 : 0.0, component[1] != 'z' ? 0.5 : 0.0};
+            } else {
+               if (component[0] == 'E') { io.DefineAttribute<std::string>("Unit", "V/m", name); }
+               else if (component[0] == 'J') { io.DefineAttribute<std::string>("Unit", "A/m^{2}", name); }
+               offsets = {component[1] == 'x' ? 0.5 : 0.0, component[1] == 'y' ? 0.5 : 0.0, component[1] == 'z' ? 0.5 : 0.0};
+            }
+
+         io.DefineAttribute<std::string>("Unit", "m", name + "/XRange");
+         io.DefineAttribute<std::string>("Unit", "m", name + "/YRange");
+         io.DefineAttribute<std::string>("Unit", "m", name + "/ZRange");
+
+         names.push_back(name);
+         RangeData temp;
+
+         for (std::size_t j = bound[0]; j < bound[1]; j++) {
+            temp.xrange.push_back(x_range[0] + (static_cast<double>(j) + offsets[0]) * dx);
+         }
+         for (std::size_t j = bound[2]; j < bound[3]; j++) {
+            temp.yrange.push_back(y_range[0] + (static_cast<double>(j) + offsets[1]) * dy);
+         }
+         for (std::size_t j = bound[4]; j < bound[5]; j++) {
+            temp.zrange.push_back(z_range[0] + (static_cast<double>(j) + offsets[2]) * dz);
+         }
+         range_datas.push_back(temp);
+
+      }
+      io.DefineAttribute<std::string>("Unit", "s", "Time");
+      io.DefineAttribute<std::string>("Unit", "s", "dt");
+      io.DefineAttribute<std::string>("Cell Volume/Unit", "m^{3}");
+      io.DefineAttribute<std::string>("Name", names.data(), names.size());
+      io.DefineAttribute<std::string>("File Type", "Field");
+
+   }
+
+   static void write(const auto&, const auto&, const auto, const auto) requires(!em_enabled) {}
+   void write(const std::string& dir, const std::string& step_ext, const std::size_t step, const double time) override {
+      const std::string file = separate_files ? dir + "/fields_" + step_ext : dir + "/fields_slices.bp";
+      static constexpr auto cell_volume = dx * dy * dz;
+
+      io.DefineAttribute<double>("Cell Volume", cell_volume);
+
+      // append after step 0
+      adios2::Engine writer = io.Open(file, (step == 0 or separate_files) ? adios2::Mode::Write : adios2::Mode::Append);
+      writer.BeginStep();
+
+      for (std::size_t l = 0; l < bounds.size(); l++) {
+         auto& bound = bounds[l];
+         auto& [field, variable, x_range_var, y_range_var, z_range_var] = fields[l];
+         auto& field_data = fields_data[l];
+
+         if (writer.OpenMode() == adios2::Mode::Write) {
+            const auto& [xrange, yrange, zrange] = range_datas[l];
+            writer.Put(x_range_var, xrange.data());
+            writer.Put(y_range_var, yrange.data());
+            writer.Put(z_range_var, zrange.data());
+         }
+
+         // update data for this field slice
+         for (std::size_t i = 0; i < field_data.nx(); i++) {
+            for (std::size_t j = 0; j < field_data.ny(); j++) {
+               for (std::size_t k = 0; k < field_data.nz(); k++) {
+                  field_data(i, j, k) = field->operator()(i + bound[0], j + bound[2], k + bound[4]) * (components[l][1][0] == 'H' ? constants::mu0 : 1.0);
+               }
+            }
+         }
+
+         writer.Put(variable, field_data.data());
+         writer.Put(var_step, step);
+         writer.Put(var_dt, dt);
+         writer.Put(var_time, time);
+      }
+
+      writer.EndStep();
+      writer.Close();
+   }
+
+   std::vector<std::array<std::string,2>> components;
+   std::vector<std::array<std::size_t,6>> bounds;
+   adios2::IO                    io;
+   adios2::Variable<std::size_t> var_step;
+   adios2::Variable<double>      var_dt;
+   adios2::Variable<double>      var_time;
+   std::vector<FieldVariable>    fields;
+   std::vector<Array3D<double>>  fields_data;
+   std::vector<RangeData>        range_datas;
+   bool                          separate_files;
+};
+
+// =====================================
 // ======== EM Energy Metric ===========
 struct EMTotalEnergyMetric final : detail::MetricBase {
    using field_map = std::unordered_map<std::string, Array3D<double>&>;
@@ -248,7 +390,7 @@ struct ParticleTotalEnergyMetric final : detail::MetricBase {
          {
             #pragma omp for reduction(+:result)
             for (std::size_t i = 0; i < gv.group.num_particles(); i++) {
-               result += (gv.group.particles[i].gamma - 1.0) * static_cast<double>(gv.group.particles[i].weight);
+               result += (gv.group.particles[i].gamma() - 1.0) * static_cast<double>(gv.group.particles[i].weight);
             }
          }
          result *= gv.group.mass * constants::c_sqr;
@@ -279,8 +421,8 @@ struct ParticleDumpMetric final : detail::MetricBase {
      group(group_),
      var_loc(io.DefineVariable<double>("Position", {group.num_particles(), 3}, {0, 0}, {group.num_particles(), 3})),
      var_vel(io.DefineVariable<double>("Velocity", {group.num_particles(), 3}, {0, 0}, {group.num_particles(), 3})),
-     var_w(io.DefineVariable<double>("Weight", {group.num_particles(), 1}, {0, 0}, {group.num_particles(), 1})),
      var_gamma(io.DefineVariable<double>("Gamma", {group.num_particles(), 1}, {0, 0}, {group.num_particles(), 1})),
+     var_w(io.DefineVariable<float>("Weight", {group.num_particles(), 1}, {0, 0}, {group.num_particles(), 1})),
      var_step(io.DefineVariable<std::size_t>("Step", {1}, {0}, {1}, adios2::ConstantDims)),
      var_time(io.DefineVariable<double>("Time", {1}, {0}, {1}, adios2::ConstantDims))
    {
@@ -325,10 +467,10 @@ struct ParticleDumpMetric final : detail::MetricBase {
 
          for (std::size_t d = 0; d < 3; d++) {
             position.push_back(lb[d] + delta[d] * p.location[d]);
-            velocity.push_back(constants::c * p.beta_gamma[d] / p.gamma);
+            velocity.push_back(constants::c * p.beta_gamma[d] / p.gamma());
          }
          weight.push_back(p.weight);
-         gamma.push_back(p.gamma);
+         gamma.push_back(p.gamma());
       }
       
       adios2::Engine writer = io.Open(file, adios2::Mode::Write);
@@ -354,14 +496,14 @@ struct ParticleDumpMetric final : detail::MetricBase {
    const group_t&                group;
    adios2::Variable<double>      var_loc;
    adios2::Variable<double>      var_vel;
-   adios2::Variable<double>      var_w;
    adios2::Variable<double>      var_gamma;
+   adios2::Variable<float>       var_w;
    adios2::Variable<std::size_t> var_step;
    adios2::Variable<double>      var_time;
    std::vector<double>           position{};
    std::vector<double>           velocity{};
-   std::vector<double>           weight{};
    std::vector<double>           gamma{};
+   std::vector<float>            weight{};
 }; // end struct ParticleDumpMetric
 
 // =========================================
@@ -401,10 +543,10 @@ struct ParticleTracerMetric final : detail::MetricBase {
 
          for (std::size_t d = 0; d < 3; d++) {
             position.push_back(lb[d] + delta[d] * p.location[d]);
-            velocity.push_back(constants::c * p.beta_gamma[d] / p.gamma);
+            velocity.push_back(constants::c * p.beta_gamma[d] / p.gamma());
          }
          weight.push_back(p.weight);
-         gamma.push_back(p.gamma);
+         gamma.push_back(p.gamma());
       }
       times.push_back(time);
       steps.push_back(step);
@@ -495,49 +637,23 @@ struct ParticleMetric final : detail::MetricBase {
       // first order density
       #pragma omp parallel num_threads(nThreads) default(none) shared(mc2)
       {
-      //    #pragma omp for
-      //    for (std::size_t pid = 0; pid < group->num_particles(); pid++) {
-      //       const auto& p   = group->particles[pid];
-      //       if (p.disabled) { continue; }
-      //       const vec3 loc_half = particles::getCellIndices<float>(p.location + 1.0f) + 0.5f;
-      //       const vec3 hid = loc_half.as_type<std::size_t>();
-      //
-      //       const vec3 p_half = p.location - loc_half;
-      //       const auto shapeI0 = Shape::shape_array(p_half[0]);
-      //       const auto shapeJ0 = Shape::shape_array(p_half[1]);
-      //       const auto shapeK0 = Shape::shape_array(p_half[2]);
-      //
-      //       for (int i = Shape::Begin; i <= Shape::End; ++i) {
-      //          const auto& s0i = shapeI0[i - Shape::Begin];
-      //          for (int j = Shape::Begin; j <= Shape::End; ++j) {
-      //             const auto& s0j = shapeJ0[j - Shape::Begin];
-      //             for (int k = Shape::Begin; k <= Shape::End; ++k) {
-      //                const auto& s0k = shapeK0[k - Shape::Begin];
-      //                #pragma omp atomic update
-      //                density(hid[0] + i, hid[1] + j, hid[2] + k) += s0i * s0j * s0k * p.weight;
-      //             } // end for(k)
-      //          } // end for(j)
-      //       } // end for(i)
-      //    }
-
-
-         #pragma omp for simd
+         #pragma omp for
          for (std::size_t pid = 0; pid < group.num_particles(); pid++) {
             const auto& p   = group.particles[pid];
             const auto cid = particles::getCellIndex(p.location);
             #pragma omp atomic update
             density[cid] += p.weight;
             #pragma omp atomic update
-            KE_total[cid] += p.weight * mc2 * (p.gamma - 1.0);
+            KE_total[cid] += p.weight * mc2 * (p.gamma() - 1.0);
          }
 
-         #pragma omp for simd
+         #pragma omp for
          for (std::size_t i = 0; i < T_avg.size(); i++) {
             if (density[i] == 0.0) { continue; }
             T_avg[i] = temp_coef * KE_total[i] / density[i];
          }
 
-         #pragma omp for simd
+         #pragma omp for
          for (std::size_t i = 0; i < density.size(); i++) {
             density[i] *= V_cell_inv;
          }

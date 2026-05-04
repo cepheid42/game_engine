@@ -49,11 +49,11 @@ void apply_particle_bcs(auto& p) {
                          ((jnew < PBCDepth or jnew > Ny - 2 - PBCDepth) and !y_collapsed) or
                          ((knew < PBCDepth or knew > Nz - 2 - PBCDepth) and !z_collapsed);
    if (disabled) {
-      p.weight = -1.0;
+      p.weight = -1.0f;
    }
 }
 
-template <int D, typename Strategy>
+template <typename Strategy>
 auto FieldToParticleInterp(const auto& F,
                            const auto& shapeI, const auto& shapeJ, const auto& shapeK,
                            const auto ci, const auto cj, const auto ck)
@@ -69,11 +69,8 @@ auto FieldToParticleInterp(const auto& F,
          const auto& s0j = shapeJ[j - JShape::Begin];
          for (auto k = KShape::Begin; k <= KShape::End; ++k) {
             const auto& s0k = shapeK[k - KShape::Begin];
-            const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
+            const auto& [x, y, z] = Strategy::permute(ci + i, cj + j, ck + k);
             result += s0i * s0j * s0k * F(x, y, z);
-
-            // const auto& [si, sj, sk] = interp::rotateOrigin<D == 2 ? D : !D>(s0i, s0j, s0k);
-            // std::println("({}, {}, {}): {} * {} * {} * {}", x, y, z, si, sj, sk, F(x, y, z));
          } // end for(k)
       } // end for(j)
    } // end for(i)
@@ -90,40 +87,23 @@ static auto fieldAtParticle(Particle& p, const auto& emdata, const auto qdt)
    using YRedShape  = interp::InterpolationShape<y_collapsed ? 0 : interpolation_order - 1>::Type;
    using ZRedShape  = interp::InterpolationShape<z_collapsed ? 0 : interpolation_order - 1>::Type;
 
-   using ExStrategy = interp::InterpolationStrategy<YFullShape, ZFullShape, XRedShape>;
-   using EyStrategy = interp::InterpolationStrategy<ZFullShape, XFullShape, YRedShape>;
-   using EzStrategy = interp::InterpolationStrategy<XFullShape, YFullShape, ZRedShape>;
-   using BxStrategy = interp::InterpolationStrategy<YRedShape,  ZRedShape,  XFullShape>;
-   using ByStrategy = interp::InterpolationStrategy<ZRedShape,  XRedShape,  YFullShape>;
-   using BzStrategy = interp::InterpolationStrategy<XRedShape,  YRedShape,  ZFullShape>;
+   using ExStrategy = interp::InterpolationStrategy<0, YFullShape, ZFullShape, XRedShape>;
+   using EyStrategy = interp::InterpolationStrategy<1, ZFullShape, XFullShape, YRedShape>;
+   using EzStrategy = interp::InterpolationStrategy<2, XFullShape, YFullShape, ZRedShape>;
+   using BxStrategy = interp::InterpolationStrategy<0, YRedShape,  ZRedShape,  XFullShape>;
+   using ByStrategy = interp::InterpolationStrategy<1, ZRedShape,  XRedShape,  YFullShape>;
+   using BzStrategy = interp::InterpolationStrategy<2, XRedShape,  YRedShape,  ZFullShape>;
 
-   // p.location = {256.0, 256.5, 64.5}; // Bx node
-   // p.location = {256.5, 256.0, 64.5}; // By node
-   // p.location = {256.5, 256.5, 64.0}; // Bz node
-
-   // Bx Node
    static constexpr vec3 offset{0.5, 0.5, 0.5};
 
    const vec3 loc_full = getCellIndices<double>(p.location);
    const vec3 loc_half = getCellIndices<double>(p.location) + offset;
-
-   // std::println("Loc: {}, {}, {}", p.location, loc_full, loc_half);
-   //
-   // constexpr vec3 deltas{dx, dy, dz};
-   // constexpr vec3 mins{x_range[0], y_range[0], z_range[0]};
-   // constexpr auto B0 = 1.0e6;
-   // constexpr auto L = 1.0e7;
-   // const auto [px, py, pz] = mins + deltas * p.location;
-   // const auto Bx = -px * pz * B0 / (L * L);
-   // const auto By = -py * pz * B0 / (L * L);
-   // const auto Bz = B0 * (1.0 + math::SQR(pz) / (L * L));
 
    const vec3 fid = loc_full.to_uint();
    const vec3 hid = loc_half.to_uint();
 
    const vec3 p_full = p.location - loc_full;
    const vec3 p_half = p.location - loc_half;
-   // std::println("Ploc: {}, {}", p_full, p_half);
 
    const auto xh =  XRedShape::shape_array(p_half.x);
    const auto yh =  YRedShape::shape_array(p_half.y);
@@ -132,27 +112,15 @@ static auto fieldAtParticle(Particle& p, const auto& emdata, const auto qdt)
    const auto yf = YFullShape::shape_array(p_full.y);
    const auto zf = ZFullShape::shape_array(p_full.z);
 
-   const auto exc = FieldToParticleInterp<0, ExStrategy>(emdata.Ex_total, yf, zf, xh, fid.y, fid.z, hid.x);
-   const auto eyc = FieldToParticleInterp<1, EyStrategy>(emdata.Ey_total, zf, xf, yh, fid.z, fid.x, hid.y);
-   const auto ezc = FieldToParticleInterp<2, EzStrategy>(emdata.Ez_total, xf, yf, zh, fid.x, fid.y, hid.z);
+   const auto exc = FieldToParticleInterp<ExStrategy>(emdata.Ex_total, yf, zf, xh, fid.y, fid.z, hid.x);
+   const auto eyc = FieldToParticleInterp<EyStrategy>(emdata.Ey_total, zf, xf, yh, fid.z, fid.x, hid.y);
+   const auto ezc = FieldToParticleInterp<EzStrategy>(emdata.Ez_total, xf, yf, zh, fid.x, fid.y, hid.z);
 
-   const auto bxc = FieldToParticleInterp<0, BxStrategy>(emdata.Bx_total, yh, zh, xf, hid.y, hid.z, fid.x);
-   const auto byc = FieldToParticleInterp<1, ByStrategy>(emdata.By_total, zh, xh, yf, hid.z, hid.x, fid.y);
-   const auto bzc = FieldToParticleInterp<2, BzStrategy>(emdata.Bz_total, xh, yh, zf, hid.x, hid.y, fid.z);
+   const auto bxc = FieldToParticleInterp<BxStrategy>(emdata.Bx_total, yh, zh, xf, hid.y, hid.z, fid.x);
+   const auto byc = FieldToParticleInterp<ByStrategy>(emdata.By_total, zh, xh, yf, hid.z, hid.x, fid.y);
+   const auto bzc = FieldToParticleInterp<BzStrategy>(emdata.Bz_total, xh, yh, zf, hid.x, hid.y, fid.z);
 
-   return {qdt * vec3{exc, eyc, ezc}, qdt * vec3{bxc, byc, bzc}};
-   // const auto bxc = 0.0;
-   // const auto byc = 0.0;
-   // const auto bzc = 0.0;
-   // std::println("Bx: {} / {} = {}", Bx, bxc, Bx / bxc);
-   // std::println("By: {} / {} = {}", By, byc, By / byc);
-   // std::println("bz1: {}", Bz / bzc1);
-   // std::println("xh: {}", xh[0]);
-   // std::println("yh: {}", yh[0]);
-   // std::println("zf: {}, {}", zf[0], zf[1]);
-   // std::println("Bz: {} / {} = {}", Bz, bzc, Bz / bzc);
-   // exit(0);
-   // return {vec3{0.0, 0.0, 0.0}, qdt * vec3{bxc, byc, bzc}};
+   return {(qdt / constants::c) * vec3{exc, eyc, ezc}, qdt * vec3{bxc, byc, bzc}};
 } // end FieldAtParticle
 
 template<ParticlePushType P>
@@ -171,7 +139,6 @@ struct ParticleVelocityUpdate {
       const auto u_prime = um + cross_product(um, t);
       const auto u_plus = um + cross_product(u_prime, s);
       const auto u = u_plus + eps;
-      p.gamma = std::sqrt(1.0 + u.length_squared());
       p.beta_gamma = u;
    } // end Boris Velocity Update
 
@@ -190,7 +157,6 @@ struct ParticleVelocityUpdate {
       const auto s = 1.0 / (1.0 + t.length_squared());
       const auto up = s * (um + dot_product(um, t) * t + cross_product(um, t));
       const auto u = up + eps + cross_product(up, t);
-      p.gamma = std::sqrt(1.0 + u.length_squared());
       p.beta_gamma = u;
    } // end Higuera-Cary Velocity Update
 };
@@ -198,33 +164,74 @@ struct ParticleVelocityUpdate {
 struct ParticlePusher {
    using emdata_t = electromagnetics::EMData;
    using group_t = ParticleGroup;
-   static constexpr vec3 delta_inv{0.5 * constants::c * dt / dx, 0.5 * constants::c * dt / dy, 0.5 * constants::c * dt / dz};
 
-   static void first_half_position(Particle& p) {
+   // static constexpr vec3 delta_inv{0.5 * constants::c * dt / dx, 0.5 * constants::c * dt / dy, 0.5 * constants::c * dt / dz};
+   //
+   // static void first_half_position(Particle& p) {
+   //    p.old_location = p.location;
+   //    p.location += (delta_inv * p.beta_gamma / p.gamma());
+   // } // end first_half_position()
+   //
+   // static void second_half_position(Particle& p) {
+   //    p.location += (delta_inv * p.beta_gamma / p.gamma());
+   //    apply_particle_bcs<PBCSelect>(p);
+   // } // end second_half_position()
+   //
+   // static void first_advance_position(group_t& g) {
+   //    #pragma omp parallel for num_threads(nThreads)
+   //    for (auto pid = 0zu; pid < g.num_particles(); pid++) {
+   //       if (g.particles[pid].is_disabled()) { continue; }
+   //       first_half_position(g.particles[pid]);
+   //    }
+   // } // end first_advance_position
+   //
+   // static void second_advance_position(group_t& g) {
+   //    #pragma omp parallel for num_threads(nThreads)
+   //    for (auto pid = 0zu; pid < g.num_particles(); pid++) {
+   //       if (g.particles[pid].is_disabled()) { continue; }
+   //       second_half_position(g.particles[pid]);
+   //    }
+   // } // end second_advance_position
+   //
+   // static void advance_velocity(group_t& g, const emdata_t& emdata) {
+   //    #pragma omp parallel for num_threads(nThreads)
+   //    for (auto pid = 0zu; pid < g.num_particles(); pid++) {
+   //       if (g.particles[pid].is_disabled()) { continue; }
+   //       ParticleVelocityUpdate<ParticlePushSelect>()(g.particles[pid], emdata, g.qdt_over_2m);
+   //    }
+   // } // end advance_velocity
+   //
+   // static void advance(auto& g, const auto& emdata, const auto step) requires(push_enabled) {
+   //    if (g.is_photons) { return; }
+   //    g.reset_positions();
+   //
+   //    if (step % sort_frequency == 0) { g.sort_particles(); }
+   //
+   //    first_advance_position(g);   // aligns position n -> n+1/2
+   //    advance_velocity(g, emdata); // aligns velocity n -> n+1
+   //    second_advance_position(g);  // aligns position n+1/2 -> n+1
+   //
+   //    g.cell_map_updated = false;
+   //    g.is_sorted = false;
+   // } // end advance()
+
+
+   static constexpr vec3 cdt_delta_inv{constants::c * dt / dx, constants::c * dt / dy, constants::c * dt / dz};
+
+   static void update_position(Particle& p) {
       p.old_location = p.location;
-      p.location += (delta_inv * p.beta_gamma / p.gamma);
-   } // end first_half_position()
-
-   static void second_half_position(Particle& p) {
-      p.location += (delta_inv * p.beta_gamma / p.gamma);
+      p.location += (cdt_delta_inv * p.beta_gamma / p.gamma());
       apply_particle_bcs<PBCSelect>(p);
-   } // end second_half_position()
+   } // end update_position()
 
-   static void first_advance_position(group_t& g) {
+   static void advance_position(group_t& g) {
       #pragma omp parallel for num_threads(nThreads)
       for (auto pid = 0zu; pid < g.num_particles(); pid++) {
          if (g.particles[pid].is_disabled()) { continue; }
-         first_half_position(g.particles[pid]);
+         update_position(g.particles[pid]);
       }
    } // end first_advance_position
 
-   static void second_advance_position(group_t& g) {
-      #pragma omp parallel for num_threads(nThreads)
-      for (auto pid = 0zu; pid < g.num_particles(); pid++) {
-         if (g.particles[pid].is_disabled()) { continue; }
-         second_half_position(g.particles[pid]);
-      }
-   } // end second_advance_position
 
    static void advance_velocity(group_t& g, const emdata_t& emdata) {
       #pragma omp parallel for num_threads(nThreads)
@@ -233,6 +240,13 @@ struct ParticlePusher {
          ParticleVelocityUpdate<ParticlePushSelect>()(g.particles[pid], emdata, g.qdt_over_2m);
       }
    } // end advance_velocity
+   //
+   static void backstep_velocity(group_t& g, const emdata_t& emdata) {
+      #pragma omp parallel for num_threads(nThreads)
+      for (std::size_t pid = 0; pid < g.num_particles(); pid++) {
+         ParticleVelocityUpdate<ParticlePushSelect>()(g.particles[pid], emdata, -0.5 * g.qdt_over_2m);
+      }
+   }
 
    static void advance(auto& g, const auto& emdata, const auto step) requires(push_enabled) {
       if (g.is_photons) { return; }
@@ -240,9 +254,8 @@ struct ParticlePusher {
 
       if (step % sort_frequency == 0) { g.sort_particles(); }
 
-      first_advance_position(g);   // aligns position n -> n+1/2
-      advance_velocity(g, emdata); // aligns velocity n -> n+1
-      second_advance_position(g);  // aligns position n+1/2 -> n+1
+      advance_velocity(g, emdata); // n -> n+1
+      advance_position(g);         // n-1/2 -> n+1/2
 
       g.cell_map_updated = false;
       g.is_sorted = false;

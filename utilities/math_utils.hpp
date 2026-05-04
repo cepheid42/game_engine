@@ -9,6 +9,9 @@ namespace tf::math
 template<typename T> constexpr auto SQR(T x)  { return x * x; }
 template<typename T> constexpr auto CUBE(T x) { return x * x * x; }
 
+constexpr auto is_even = [](const unsigned long i) { return i % 2 == 0; };
+constexpr auto is_odd = [](const unsigned long i) { return !is_even(i); };
+
 // This function create a uniform spread of points over a given range
 // This should mimic Numpy's linspace function exactly.
 template<typename T>

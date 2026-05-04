@@ -33,6 +33,10 @@ struct EMSolver {
    : emdata(nx, ny, nz),
      bcdata(this->emdata)
    {
+      if constexpr (em_enabled) {
+         computeBField();
+      }
+
       if constexpr (applied_fields_only) {
          updateTotalFields();
       }
@@ -182,6 +186,7 @@ struct EMSolver {
       std::ranges::fill(emdata.Jz, 0.0);
    }
 
+   // todo: move these out so that EMSolver can be static
    emdata_t emdata;
    bcdata_t bcdata;
 }; // end struct EMSolver

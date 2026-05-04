@@ -37,14 +37,14 @@ struct Timer
 }; // end struct Timer
 
 inline auto create_timers() -> std::unordered_map<std::string, Timer> {
-   std::unordered_map<std::string, Timer> timers{};
-   timers["Main"] = Timer{};
-   timers["EM"] = Timer{};
-   timers["Push"] = Timer{};
-   timers["Jdep"] = Timer{};
-   timers["Collisions"] = Timer{};
-   timers["IO"] = Timer{};
-   return timers;
+   return std::unordered_map<std::string, Timer>{
+      {"Main",       Timer{}},
+      {"EM",         Timer{}},
+      {"Push",       Timer{}},
+      {"Jdep",       Timer{}},
+      {"Collisions", Timer{}},
+      {"IO",         Timer{}}
+   };
 } // end create_timers()
 
 inline void print_final_timers(std::unordered_map<std::string, Timer>& timers) {

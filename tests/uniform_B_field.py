@@ -3,9 +3,9 @@
 import matplotlib.pyplot as plt
 from adios2 import FileReader, Stream
 
-from scripts.particle_generation import create_particles
-from scripts.domain_params import *
-from scripts.utilities import *
+from pytriforce.particle_generation import create_particles
+from pytriforce.domain_params import *
+from pytriforce.utilities import *
 
 # =============================
 # ===== Simulation Params =====
@@ -54,7 +54,7 @@ single_particle = Particles(
     mass=mass,
     charge=charge,
     atomic_number=0,
-    tracer=True,
+    tracer_fraction=1.0,
     # actually velocity for sp_uniformB distribution
     temp=(0.0, -v_perp, 0.0),
     density=1.0, # m^-3,
@@ -113,6 +113,7 @@ for pusher, name in zip(pushers, sim_names):
         em_enabled=False,
         jdep_enabled=False,
         collisions_enabled=False,
+        velocity_backstep_enabled=False,
         applied_fields_only=True
     )
 
@@ -126,7 +127,7 @@ for pusher, name in zip(pushers, sim_names):
     update_header(sim_params, project_path=project_path)
 
     compile_project(build_path, output=True)
-    run_project(build_path + '/game_engine', output=True)
+    run_project(build_path + '/tflink3', output=True)
 
 # ===========================
 # ===== Post Processing =====
@@ -181,7 +182,7 @@ ax[1].set_yscale('log')
 ax[2].set_xlabel(r't / $T_c$')
 ax[2].set_ylabel(r'$|\theta_c - \theta_{an}|$')
 ax[2].set_xlim([0, 100])
-ax[2].set_ylim([0, 0.25])
+# ax[2].set_ylim([0, 0.25])
 
 for i, (name, data) in enumerate(sims.items()):
     name = name.split('_')[-1]

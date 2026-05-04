@@ -31,11 +31,10 @@ struct CurrentDeposition {
             const auto& s0j = shapeJ0[jdx];
             const auto& dsj = shapeDJ[jdx];
             const auto tmp = -qA * (s0i * s0j + 0.5 * (dsi * s0j + s0i * dsj) + (1.0 / 3.0) * dsj * dsi);
-            // Ask Ayden why this accumulator works if you want to know
             auto acc = 0.0;
             for (auto k = Inner::Begin; k <= Inner::End - 1; ++k) {
                acc += shapeDK[k - Inner::Begin] * tmp;
-               const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, cj + j, ck + k);
+               const auto& [x, y, z] = Strategy::permute(ci + i, cj + j, ck + k);
                #pragma omp atomic update
                J(x, y, z) += acc;
             } // end for(k)
@@ -43,35 +42,15 @@ struct CurrentDeposition {
       } // end for(i)
    } // end deposit()
 
-   // template<int D, typename Strategy>
-   // static void deposit(auto& J,
-   //                     const auto p0, const auto p1,
-   //                     const auto& shapeI0, const auto& shapeJ0,
-   //                     const auto& shapeDI, const auto& shapeDJ, const auto&,
-   //                     const auto ci, const auto cj, const auto, const auto qA)
-   // {
-   //    using Outer = Strategy::OuterShape;
-   //    // Return if particle has not moved in this direction (therefore no current)
-   //    if (p0 == p1) { return; }
-   //    for (int i = Outer::Begin; i <= Outer::End; ++i) {
-   //       const auto idx = i - Outer::Begin;;
-   //       const auto& s0i = shapeI0[idx];
-   //       const auto& dsi = shapeDI[idx];
-   //       const auto& [x, y, z] = interp::rotateOrigin<D == 2 ? D : !D>(ci + i, 0zu, 0zu);
-   //       #pragma omp atomic update
-   //       J(x, y, z) += qA * (s0i + 0.5 * dsi);
-   //    } // end for(i)
-   // } // end deposit()
-
    static void updateJ(const auto& p, auto& emdata, const auto charge) {
       // Aliases for X/Y/Z shape functions
       using XShape = interp::InterpolationShape<x_collapsed ? 1 : interpolation_order>::Type;
       using YShape = interp::InterpolationShape<y_collapsed ? 1 : interpolation_order>::Type;
       using ZShape = interp::InterpolationShape<z_collapsed ? 1 : interpolation_order>::Type;
       // Interpolation Strategies for each J
-      using JxStrategy = interp::InterpolationStrategy<YShape, ZShape, XShape>;
-      using JyStrategy = interp::InterpolationStrategy<ZShape, XShape, YShape>;
-      using JzStrategy = interp::InterpolationStrategy<XShape, YShape, ZShape>;
+      using JxStrategy = interp::InterpolationStrategy<0, YShape, ZShape, XShape>;
+      using JyStrategy = interp::InterpolationStrategy<1, ZShape, XShape, YShape>;
+      using JzStrategy = interp::InterpolationStrategy<2, XShape, YShape, ZShape>;
       // Precompute constants
       static constexpr auto dtAyz = x_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dy * dz);
       static constexpr auto dtAxz = y_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dx * dz);
@@ -88,9 +67,9 @@ struct CurrentDeposition {
       // Early return if Jdep isn't needed
       if (p.is_disabled()) { return; }
       // Current Density coefficients
-      const auto x_coeff = p.weight * charge * dtAyz * x_vel;
-      const auto y_coeff = p.weight * charge * dtAxz * y_vel;
-      const auto z_coeff = p.weight * charge * dtAxy * z_vel;
+      const auto x_coeff = static_cast<double>(p.weight) * charge * dtAyz * x_vel;
+      const auto y_coeff = static_cast<double>(p.weight) * charge * dtAxz * y_vel;
+      const auto z_coeff = static_cast<double>(p.weight) * charge * dtAxy * z_vel;
       // Find cell indices and determine first relay point
       const vec3<double> i0 = getCellIndices<double>(p.old_location + offsets);
       const vec3<double> i1 = getCellIndices<double>(p.location + offsets);
@@ -138,6 +117,8 @@ struct CurrentDeposition {
    
 
    static void advance(const auto& g, auto& emdata) requires(jdep_enabled) {
+      if (g.is_tracer) { return; }
+
       #pragma omp parallel for num_threads(nThreads)
       for (auto pid = 0zu; pid < g.num_particles(); pid++) {
          updateJ(g.particles[pid], emdata, g.charge);

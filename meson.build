@@ -1,5 +1,5 @@
 project(
-    'game_engine',
+    'tflink3',
     'cpp',
     version : '0.0.1',
     default_options : [
@@ -15,19 +15,9 @@ project(
     ]
 )
 
-#if use_cuda
-#    add_languages('cuda')
-#    cuda_opts = [
-#        'example'
-#    ]
-#else
-#    cuda_opts = []
-#endif
-
 debug_opts = [
-#    '-Wnrvo',
     '-Wconversion',
-#    '-Wsign-conversion'
+#    '-Wnrvo',
 #    '-fopt-info-note-vec-missed=missed.txt',
 #    '-DNDEBUG',
 #    '-fno-omit-frame-pointer',
@@ -58,14 +48,14 @@ sources = [
 
 deps = [
     dependency('adios2', required : true),
-    dependency('OpenMP', required : true),
-#    dependency('cuda')
+    dependency('OpenMP'),
+    dependency('openPMD'),
 ]
 
-game_engine = executable(
-    'game_engine',
+executable(
+    'tflink3',
     sources : sources,
-    cpp_args : gcc_opts + debug_opts, # + cuda_opts,
+    cpp_args : gcc_opts + debug_opts,
     include_directories : includes,
     dependencies : deps
 )

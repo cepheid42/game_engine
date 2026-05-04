@@ -19,13 +19,15 @@
 namespace tf::particles
 {
 struct Particle {
-   vec3<double> beta_gamma; // change to beta and make it a float
-   double gamma;
+   vec3<double> beta_gamma;
    vec3<double> location;
    vec3<double> old_location;
-   double weight;
+   float weight;
 
-   [[nodiscard]] bool is_disabled() const { return weight <= 0.0; }
+   // todo: store cell_ids as uint16 and fractional position as floats, then calculate as needed
+
+   [[nodiscard]] auto       gamma() const -> double { return std::sqrt(1.0 + beta_gamma.length_squared()); }
+   [[nodiscard]] auto is_disabled() const -> bool   { return weight <= 0.0f; }
 }; // end struct Particle
 
 template <typename T = std::size_t>
@@ -75,21 +77,18 @@ static void initializeFromFile(const std::string& filename, auto& group) {
    reader.BeginStep();
 
    const auto p_data = io.InquireVariable<double>("Position");
-   const auto v_data = io.InquireVariable<double>("Velocity");
+   const auto v_data = io.InquireVariable<double>("BetaGamma"); // gamma * beta
    const auto w_data = io.InquireVariable<double>("Weight");
-   const auto g_data = io.InquireVariable<double>("Gamma");
 
    const auto num_particles = p_data.Shape()[0];
 
    std::vector<double> p_vec(3 * num_particles);
    std::vector<double> v_vec(3 * num_particles);
    std::vector<double> w_vec(num_particles);
-   std::vector<double> g_vec(num_particles);
 
    reader.Get(p_data, p_vec, adios2::Mode::Sync);
    reader.Get(v_data, v_vec, adios2::Mode::Sync);
    reader.Get(w_data, w_vec, adios2::Mode::Sync);
-   reader.Get(g_data, g_vec, adios2::Mode::Sync);
 
    for (auto i = 0lu; i < num_particles; i++) {
       const vec3 pos{p_vec[3 * i], p_vec[3 * i + 1], p_vec[3 * i + 2]};
@@ -97,11 +96,9 @@ static void initializeFromFile(const std::string& filename, auto& group) {
       const auto weight = w_vec[i];
 
       const auto loc = (pos - mins) / deltas;
-      const auto gamma = g_vec[i];
 
       group.particles.emplace_back(
-         gamma * vel / constants::c,
-         gamma,
+         vel,
          loc,
          loc,
          weight
@@ -176,7 +173,7 @@ struct ParticleGroup {
 
    void sort_particles() {
       if constexpr (push_enabled) {
-         if (is_sorted) { return; }
+         if (is_tracer or is_sorted) { return; }
          std::erase_if(particles, [](const Particle& p) { return p.is_disabled(); });
          boost::sort::block_indirect_sort(
             particles.begin(), particles.end(),

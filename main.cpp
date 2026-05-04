@@ -9,7 +9,6 @@
 
 #include "barkeep.h"
 
-#include <iostream>
 #include <print>
 #include <ranges>
 #include <unordered_map>
@@ -39,7 +38,28 @@ int main() {
    // }
 
    emsolver_t emsolver(Nx, Ny, Nz);
-   add_gaussianbeam(emsolver);
+
+   // todo: streamline this into emsolver using specs
+   // if constexpr (laser_enabled) {
+   //    add_gaussianbeam(emsolver);
+   // }
+   //
+   // if constexpr (rmf_enabled) {
+   //    add_rmf_antennas(emsolver, rmf_params);
+   // }
+   //
+   // if constexpr (raman_enabled) {
+   //    add_raman_source(emsolver);
+   // }
+
+   if constexpr (velocity_backstep_enabled) {
+      // computeBFields() and updateTotalFields()
+      // is done in EMSolver ctor
+      for (auto& g : particle_groups | std::views::values) {
+         ParticlePusher::backstep_velocity(g, emsolver.emdata);
+      }
+   }
+
 
    const Metrics metrics(
       std::string{sim_path} + "/data/" + std::string{sim_name},

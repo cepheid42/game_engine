@@ -12,35 +12,22 @@
 #include <string>
 #include <vector>
 
+#include "constants.hpp"
+
 namespace tf::interp
 {
 /*---------------------------------------------------------------/
 /-                     Interpolation Classes                    -/
 /---------------------------------------------------------------*/
-template<int D>
-constexpr auto rotateOrigin(const auto x, const auto y, const auto z) {
-   if      constexpr (D == 0) { return std::array{y, z, x}; } // 1, 2, 0
-   else if constexpr (D == 1) { return std::array{z, x, y}; } // 2, 0, 1
-   else                       { return std::array{x, y, z}; } // 0, 1, 2
-}
-
 struct NGP {
    static constexpr std::size_t Begin   = 0;
    static constexpr std::size_t End     = 0;
    static constexpr std::size_t Order   = 0;
    static constexpr std::size_t Support = 1;
 
-   static constexpr auto eval(const double) {
-      return 1.0;
-   }
-
-   static constexpr auto shape_array(const double) {
-      return std::array{1.0};
-   }
-
-   static constexpr auto ds_array(const auto, const auto&) {
-      return std::array{1.0};
-   }
+   static constexpr auto eval(const double) { return 1.0; }
+   static constexpr auto shape_array(const double) { return std::array{1.0}; }
+   static constexpr auto ds_array(const auto, const auto&) { return std::array{1.0}; }
 };
 
 struct CIC {
@@ -49,17 +36,20 @@ struct CIC {
    static constexpr std::size_t Order   = 1;
    static constexpr std::size_t Support = 2;
 
-   static constexpr auto eval(const double x) {
-      return 1.0 - std::abs(x);
-   }
+   static constexpr auto eval(const double x) { return 1.0 - std::abs(x); }
 
    static constexpr auto shape_array(const double x) {
-      return std::array{eval(x), eval(x - End)};
+      return std::array{
+         eval(x),
+         eval(x - 1.0)
+      };
    }
 
    static constexpr auto ds_array(const auto x1, const auto& s0) {
-      return std::array{eval(x1)       - s0[0],
-                        eval(x1 - End) - s0[1]};
+      return std::array{
+         eval(x1)       - s0[0],
+         eval(x1 - 1.0) - s0[1]
+      };
    }
 };
 
@@ -69,13 +59,8 @@ struct TSC {
    static constexpr std::size_t Order   = 2;
    static constexpr std::size_t Support = 3;
 
-   static constexpr auto innerRadius(const auto x) {
-      return 0.75 - math::SQR(x);
-   }
-
-   static constexpr auto outerRadius(const auto x) {
-      return 0.5 * math::SQR(1.5 - x);
-   }
+   static constexpr auto innerRadius(const auto x) { return 0.75 - math::SQR(x); }
+   static constexpr auto outerRadius(const auto x) { return 0.5 * math::SQR(1.5 - x); }
 
    static constexpr auto eval(const auto x) {
       const auto absx = std::abs(x);
@@ -83,13 +68,19 @@ struct TSC {
    }
 
    static constexpr auto shape_array(const auto x) {
-      return std::array{eval(x - Begin), eval(x), eval(x - End)};
+      return std::array{
+         eval(x),
+         eval(x - 1.0), // todo: Are these shifted correctly?
+         eval(x - 2.0)
+      };
    }
 
    static constexpr auto ds_array(const auto x1, const auto& s0) {
-      return std::array{eval(x1 - Begin) - s0[0],
-                        eval(x1)         - s0[1],
-                        eval(x1 - End)   - s0[2]};
+      return std::array{
+         eval(x1)       - s0[0],
+         eval(x1 - 1.0) - s0[1], // todo: Are these shifted correctly?
+         eval(x1 - 2.0) - s0[2]
+      };
    }
 };
 
@@ -98,11 +89,36 @@ template<> struct InterpolationShape<0> { using Type = NGP; };
 template<> struct InterpolationShape<1> { using Type = CIC; };
 template<> struct InterpolationShape<2> { using Type = TSC; };
 
-template<typename Outer, typename Middle, typename Inner>
+template<int D, typename Outer, typename Middle, typename Inner>
 struct InterpolationStrategy {
    using OuterShape = Outer;
    using MiddleShape = Middle;
    using InnerShape = Inner;
+   static constexpr auto permute(auto, auto, auto) = delete;
+};
+
+template<typename Outer, typename Middle, typename Inner>
+struct InterpolationStrategy<0, Outer, Middle, Inner> {
+   using OuterShape = Outer;
+   using MiddleShape = Middle;
+   using InnerShape = Inner;
+   static constexpr auto permute(const auto x, const auto y, const auto z) { return std::tuple{z, x, y}; }
+};
+
+template<typename Outer, typename Middle, typename Inner>
+struct InterpolationStrategy<1, Outer, Middle, Inner> {
+   using OuterShape = Outer;
+   using MiddleShape = Middle;
+   using InnerShape = Inner;
+   static constexpr auto permute(const auto x, const auto y, const auto z) { return std::tuple{y, z, x}; }
+};
+
+template<typename Outer, typename Middle, typename Inner>
+struct InterpolationStrategy<2, Outer, Middle, Inner> {
+   using OuterShape = Outer;
+   using MiddleShape = Middle;
+   using InnerShape = Inner;
+   static constexpr auto permute(const auto x, const auto y, const auto z) { return std::tuple{x, y, z}; }
 };
 
 

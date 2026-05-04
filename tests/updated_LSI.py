@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 
 import matplotlib.pyplot as plt
-import numpy as np
-from scipy import constants
-from adios2 import FileReader, Stream
+from adios2 import FileReader
 
-from scripts.particle_generation import create_particles
-from scripts.domain_params import *
-from scripts.utilities import *
+from pytriforce.domain_params import *
+from pytriforce.utilities import *
 
 # =============================
 # ===== Simulation Params =====

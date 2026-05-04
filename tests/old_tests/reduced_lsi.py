@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
 # import numpy as np
-from scipy import constants
 import math
 
-from scripts.particle_generation import create_particles
-from scripts.domain_params import *
+from pytriforce.particle_generation import create_particles
+from pytriforce.domain_params import *
 
 project_path = '/'
 particle_data = project_path + '/data'
