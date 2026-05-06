@@ -3,8 +3,6 @@ import numpy as np
 from collections.abc import Callable, Iterable
 from scipy import constants
 from adios2 import Stream
-from copy import deepcopy
-
 
 # ===== Velocity Sampling Utilities =====
 # =======================================

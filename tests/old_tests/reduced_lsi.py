@@ -3,8 +3,7 @@
 # import numpy as np
 import math
 
-from pytriforce.particle_generation import create_particles
-from pytriforce.domain_params import *
+from core.pytriforce.domain_params import *
 
 project_path = '/'
 particle_data = project_path + '/data'

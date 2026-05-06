@@ -3,7 +3,7 @@ import numpy as np
 from scipy import interpolate
 import matplotlib.pyplot as plt
 
-from utilities import get_rotation_matrix
+from ..utilities import get_rotation_matrix
 
 
 class ConstantField:

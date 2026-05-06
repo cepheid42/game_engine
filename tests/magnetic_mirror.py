@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
-from pytriforce.domain_params import *
-from pytriforce.utilities import *
+from core.pytriforce.utilities import *
 
 # =============================
 # ===== Simulation Params =====

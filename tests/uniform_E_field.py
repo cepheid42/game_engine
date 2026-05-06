@@ -1,11 +1,8 @@
-#!/usr/bin/env python3
+# #!/usr/bin/env python3
 
-import matplotlib.pyplot as plt
 from adios2 import FileReader, Stream
 
-from pytriforce.particle_generation import create_particles
-from pytriforce.domain_params import *
-from pytriforce.utilities import *
+from core.pytriforce import *
 
 # =============================
 # ===== Simulation Params =====
@@ -17,6 +14,8 @@ build_path = project_path + '/buildDir'
 '''
 Tests from https://iopscience.iop.org/article/10.3847/1538-4365/aab114
 '''
+
+flags = params.SimFlags()
 
 shape = (16, 16, 16)
 
@@ -48,7 +47,7 @@ px_range = (x_half, dx) # meters
 py_range = (ymax / 2, dy)
 pz_range = (zmax / 2, dz)
 
-single_particle = Particles(
+single_particle = ParticleGroup(
     name='sp',
     mass=mass,
     charge=charge,
@@ -115,16 +114,16 @@ for pusher, name in zip(pushers, sim_names):
         applied_fields_only=True
     )
 
-    # ===========================
-    # ===== Compile and Run =====
-    # ===========================
-    print(f'Setting up "{name}"')
-    create_data_dir(data_path)
-    create_particles(sim_params, single_particle, data_path)
-    update_header(sim_params, project_path=project_path)
-
-    compile_project(build_path, output=True)
-    run_project(build_path + '/tflink3', output=True)
+    # # ===========================
+    # # ===== Compile and Run =====
+    # # ===========================
+    # print(f'Setting up "{name}"')
+    # create_data_dir(data_path)
+    # create_particles(sim_params, single_particle, data_path)
+    # update_header(sim_params, project_path=project_path)
+    #
+    # compile_project(build_path, output=True)
+    # run_project(build_path + '/tflink3', output=True)
 
 # ===========================
 # ===== Post Processing =====

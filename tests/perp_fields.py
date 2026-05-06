@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 
-import matplotlib.pyplot as plt
 from adios2 import FileReader, Stream
 
-from pytriforce.particle_generation import create_particles
-from pytriforce.domain_params import *
-from pytriforce.utilities import *
+from core.pytriforce.utilities import *
 
 # =============================
 # ===== Simulation Params =====

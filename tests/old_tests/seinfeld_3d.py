@@ -2,8 +2,7 @@
 
 from adios2 import Stream
 
-from pytriforce.particle_generation import create_particles
-from pytriforce.domain_params import *
+from core.pytriforce.domain_params import *
 
 # =============================
 # ===== Simulation Params =====

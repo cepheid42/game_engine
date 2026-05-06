@@ -1,8 +1,7 @@
-
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import interpolate
-from ..utility import get_rotation_matrix
+from .utilities import get_rotation_matrix
 
 # set serif font
 plt.rc('font', family='serif',serif = "cmr10", size=18)
