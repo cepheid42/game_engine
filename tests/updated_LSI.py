@@ -26,7 +26,7 @@ dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
 
 dt = 4.0e-17
-t_end = 3.0e-13
+t_end = 1.5e-13 #3.0e-13
 nt = int(t_end / dt) + 1
 
 save_interval = 50

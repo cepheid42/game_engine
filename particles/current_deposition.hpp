@@ -63,7 +63,11 @@ struct CurrentDeposition {
       const auto z_vel = z_collapsed ? constants::c * p.beta_gamma[2] / p.gamma() : 1.0;
 
       // Offsets for Even/Odd order interpolation
-      static constexpr vec3 offset{0.5, 0.5, 0.5};
+      static constexpr vec3 offset{
+         XShape::Order % 2 == 0 ? 0.0 : 0.5,
+         YShape::Order % 2 == 0 ? 0.0 : 0.5,
+         ZShape::Order % 2 == 0 ? 0.0 : 0.5
+      };
 
       // Early return if Jdep isn't needed
       if (p.is_disabled()) { return; }

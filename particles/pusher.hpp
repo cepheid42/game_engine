@@ -95,7 +95,11 @@ auto FieldToParticleInterp(const auto& F,
 static auto fieldAtParticle(Particle& p, const auto& emdata, const auto qdt)
 -> std::array<vec3<double>, 2>
 {
-   static constexpr vec3 offset{0.5, 0.5, 0.5};
+   static constexpr vec3 offset{
+      XFullShape::Order % 2 == 0 ? 0.0 : 0.5,
+      YFullShape::Order % 2 == 0 ? 0.0 : 0.5,
+      ZFullShape::Order % 2 == 0 ? 0.0 : 0.5
+   };
 
    const vec3 loc_full = getCellIndices<double>(p.location);
    const vec3 loc_half = getCellIndices<double>(p.location) + offset;
