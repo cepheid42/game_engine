@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
-from ..params.header_utils import *
+from ..header_utils import *
 
 
 class MetricType(StrEnum):
@@ -12,27 +12,35 @@ class MetricType(StrEnum):
     FieldEnergy = 'MetricType::FieldEnergy'
 
 
-class FieldSlice:
-    component : str
-    starts : tuple
-    stops : tuple
-    steps : tuple
-
+# @dataclass
+# class FieldSlice:
+#     component : str
+#     starts : tuple
+#     stops : tuple
+#     steps : tuple
+#
+#     def __repr__(self):
+#         extents = (
+#             self.stops[0] - self.starts[0],
+#             self.stops[1] - self.starts[1],
+#             self.stops[2] - self.starts[2],
+#         )
+#         return (
+#             '   FieldSlice{\n'
+#             f'      .component = "{self.component}",\n'
+#             f'      .starts = {tuple_to_array(self.starts)},\n'
+#             f'      .strides = {tuple_to_array(self.steps)},\n'
+#             f'      .extents = {tuple_to_array(extents)},\n'
+#             '   }'
+#         )
 
 @dataclass
 class Metrics:
     data_path: str = ''
     metrics: tuple = ()
-    field_slices: tuple = ()
+    # field_slices: tuple = ()
 
     def __repr__(self):
-        '''
-
-        Check the MDSpan version for best way to define compile time mdspans
-
-        :return:
-        '''
-
         return str(
             section_label('Metrics Parameters') +
             enum_declaration('MetricType', MetricType) +

@@ -1,2 +1,0 @@
-from particle_generation import create_particles
-from particle import ParticleGroup, ParticleParams, ParticleBCType, ParticleDistributionType, ParticlePusherType

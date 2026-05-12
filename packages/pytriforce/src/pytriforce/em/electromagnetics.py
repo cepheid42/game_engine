@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 
-from ..params.header_utils import *
+from ..header_utils import *
 
 
 class EMBCType(Enum):
@@ -12,7 +12,7 @@ class EMBCType(Enum):
 
 @dataclass
 class EMParams:
-    save_interval: int = 10
+    save_interval: int = 100
     nhalo: int = 0
     pml_depth: int = 10
     pml_grade: float = 3.5

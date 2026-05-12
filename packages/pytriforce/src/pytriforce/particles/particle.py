@@ -1,23 +1,31 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
-from ..params.header_utils import *
-from ..geometry.geometry import ExtrudedShape
+from ..header_utils import *
+# from ..geometry.geometry import ExtrudedShape
 
 
 class ParticleDistributionType(StrEnum):
     NoInit = 'NoInit'
     NonRelativistic = 'NonRelativistic'
     Relativistic = 'Relativistic'
+    SP_UniformE = 'SP_UniformE'
+    SP_UniformB = 'SP_UniformB'
+    SP_ForceFree = 'SP_ForceFree'
+    SP_PerpFields = 'SP_PerpFields'
 
 
-class ParticlePusherType(StrEnum, NameGetter):
+class ParticlePusherType(NameGetter, StrEnum):
     Ballistic = 'ParticlePusherType::Ballistic'
     Boris = 'ParticlePusherType::Boris'
     HigueraCary = 'ParticlePusherType::HigueraCary'
 
 
-class ParticleBCType(StrEnum, NameGetter):
+# todo: add velocity and position enums or whatever
+
+
+
+class ParticleBCType(NameGetter, StrEnum):
     Reflecting = 'ParticleBCType::Reflecting'
     Periodic = 'ParticleBCType::Periodic'
     Outflow = 'ParticleBCType::Outflow'
@@ -26,19 +34,22 @@ class ParticleBCType(StrEnum, NameGetter):
 @dataclass
 class ParticleGroup:
     name : str
+    file_path : str
     mass : float
     charge : float
+    density : float
     temp : tuple
-    density : tuple
     ppc : tuple
     atomic_number : int = 0
     tracer_fraction : float = 0.0
-    file_path : str = None
+    # geometry: ExtrudedShape = None
     distribution : ParticleDistributionType = ParticleDistributionType.Relativistic
-    geometry: ExtrudedShape = None
 
     def __repr__(self):
-        filestr = f'{self.file_path}/{self.name.lower()}.bp' if self.distribution != ParticleDistributionType.NoInit else ''
+        filestr = ''
+        if self.distribution != ParticleDistributionType.NoInit:
+            filestr = f'{self.file_path}/{self.name.lower()}.bp'
+
         return (
             '   ParticleGroupSpec{\n'
             f'      .name = "{self.name}",\n'
@@ -55,32 +66,31 @@ class ParticleGroup:
 class ParticleParams:
     push_type : ParticlePusherType = ParticlePusherType.Boris
     particle_bcs : ParticleBCType = ParticleBCType.Outflow
+    save_interval : int = 100
     bc_depth : int = 1
     sort_frequency : int = 100
     interp_order : int = 1
     particle_groups : tuple = ()
     collisions : tuple = ()
-    geometry_file : str = ""
+    geometry_file : str = ''
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         groupstr = ',\n  '.join([str(g) for g in self.particle_groups])
-        simple_particle_boundary = len(self.geometry_file) == 0
         return str(
             section_label('Particles Params') +
             enum_declaration('ParticlePusherType', ParticlePusherType) +
             enum_declaration('ParticleBCType', ParticleBCType) +
             '\n' +
             constexpr_declaration('ParticlePusherSelect', self.push_type) +
-            '\n' +
             constexpr_declaration('PBCSelect', self.particle_bcs) +
             constexpr_declaration('PBCDepth', f'{self.bc_depth}lu') +
             '\n' +
             constexpr_declaration('sort_frequency', f'{self.sort_frequency}lu') +
             constexpr_declaration('interpolation_order', f'{self.interp_order}lu') +
             '\n' +
-            constexpr_declaration('std::array', 'particle_spec', f'{{\n  {groupstr}\n}}') +
-            '\n' +
             constexpr_declaration('geometry_file', f'"{self.geometry_file}"sv') +
             '\n' +
-            constexpr_declaration('simple_particle_boundary', f'{bool2str(simple_particle_boundary)}')
+            constexpr_declaration('simple_particle_boundary', f'{bool2str(self.geometry_file == '')}') +
+            '\n' +
+            constexpr_declaration('std::array', 'particle_spec', f'{{\n  {groupstr}\n}}')
         )

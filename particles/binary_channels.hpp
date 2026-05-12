@@ -165,11 +165,8 @@ void ionizationCollision(
 
    auto target_ionizes = w1 >= wi_eff or (w1 / wi_eff >= params.rand[2]);
 
-   #ifdef IONIZATION_TEST_OVERRIDE
-   auto electron_scatters = false;
-   #else
-   auto electron_scatters =  w1 < wi_eff or (wi_eff / w1 >= params.rand[2]);
-   #endif
+   // If ionization testing is enabled, this short circuits to always False.
+   const auto electron_scatters = !ionization_test_enabled and (w1 < wi_eff or (wi_eff / w1 >= params.rand[2]));
 
    // parallel particles can cause divide by zero errors
    if (!(target_ionizes or electron_scatters) or dv_len == 0.0) { return; }

@@ -15,7 +15,7 @@ def comment(msg):
     return f'// {msg}\n'
 
 def tuple_to_array(vals):
-    result = f'{{{', '.join(v for v in vals)}}}'
+    result = f'{{{', '.join(str(v) for v in vals)}}}'
     if len(result) > 80:
         result.replace('{', '{\n\t')
         result.replace(', ', ',\n\t')

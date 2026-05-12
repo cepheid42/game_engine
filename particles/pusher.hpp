@@ -11,6 +11,21 @@
 #include <cmath>
 
 namespace tf::particles {
+using XFullShape = interp::InterpolationShape<x_collapsed ? 1 : interpolation_order>::Type;
+using YFullShape = interp::InterpolationShape<y_collapsed ? 1 : interpolation_order>::Type;
+using ZFullShape = interp::InterpolationShape<z_collapsed ? 1 : interpolation_order>::Type;
+using XRedShape  = interp::InterpolationShape<x_collapsed ? 0 : interpolation_order - 1>::Type;
+using YRedShape  = interp::InterpolationShape<y_collapsed ? 0 : interpolation_order - 1>::Type;
+using ZRedShape  = interp::InterpolationShape<z_collapsed ? 0 : interpolation_order - 1>::Type;
+
+using ExStrategy = interp::InterpolationStrategy<0, YFullShape, ZFullShape, XRedShape>;
+using EyStrategy = interp::InterpolationStrategy<1, ZFullShape, XFullShape, YRedShape>;
+using EzStrategy = interp::InterpolationStrategy<2, XFullShape, YFullShape, ZRedShape>;
+using BxStrategy = interp::InterpolationStrategy<0, YRedShape,  ZRedShape,  XFullShape>;
+using ByStrategy = interp::InterpolationStrategy<1, ZRedShape,  XRedShape,  YFullShape>;
+using BzStrategy = interp::InterpolationStrategy<2, XRedShape,  YRedShape,  ZFullShape>;
+
+
 template<ParticleBCType BC>
 requires (BC == ParticleBCType::Reflecting)
 void apply_particle_bcs(auto& p, const auto& new_loc, const auto& old_loc) {
@@ -80,20 +95,6 @@ auto FieldToParticleInterp(const auto& F,
 static auto fieldAtParticle(Particle& p, const auto& emdata, const auto qdt)
 -> std::array<vec3<double>, 2>
 {
-   using XFullShape = interp::InterpolationShape<x_collapsed ? 1 : interpolation_order>::Type;
-   using YFullShape = interp::InterpolationShape<y_collapsed ? 1 : interpolation_order>::Type;
-   using ZFullShape = interp::InterpolationShape<z_collapsed ? 1 : interpolation_order>::Type;
-   using XRedShape  = interp::InterpolationShape<x_collapsed ? 0 : interpolation_order - 1>::Type;
-   using YRedShape  = interp::InterpolationShape<y_collapsed ? 0 : interpolation_order - 1>::Type;
-   using ZRedShape  = interp::InterpolationShape<z_collapsed ? 0 : interpolation_order - 1>::Type;
-
-   using ExStrategy = interp::InterpolationStrategy<0, YFullShape, ZFullShape, XRedShape>;
-   using EyStrategy = interp::InterpolationStrategy<1, ZFullShape, XFullShape, YRedShape>;
-   using EzStrategy = interp::InterpolationStrategy<2, XFullShape, YFullShape, ZRedShape>;
-   using BxStrategy = interp::InterpolationStrategy<0, YRedShape,  ZRedShape,  XFullShape>;
-   using ByStrategy = interp::InterpolationStrategy<1, ZRedShape,  XRedShape,  YFullShape>;
-   using BzStrategy = interp::InterpolationStrategy<2, XRedShape,  YRedShape,  ZFullShape>;
-
    static constexpr vec3 offset{0.5, 0.5, 0.5};
 
    const vec3 loc_full = getCellIndices<double>(p.location);

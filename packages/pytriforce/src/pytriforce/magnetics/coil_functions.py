@@ -1,10 +1,23 @@
-from simsopt.field import CircularCoil
 import numpy as np
-from scipy import interpolate
 import matplotlib.pyplot as plt
+from scipy import interpolate
+from simsopt.field import CircularCoil
 
-from ..utility import get_rotation_matrix
 from ..geometry import Composite3D, Polygon, ExtrudedShape
+
+
+def get_rotation_matrix(angle, axis = (0.0, 0.0, 1.0)):
+    norm = np.linalg.norm(axis)
+    u = axis / (norm + (norm==0))
+    cos_th = np.cos(angle)
+    cos_thm = 1 - cos_th
+    sin_th = np.sin(angle)
+
+    return np.array(
+        [[u[0] * u[0] * cos_thm +		 cos_th, u[0] * u[1] * cos_thm - u[2] * sin_th, u[0] * u[2] * cos_thm + u[1] * sin_th],
+         [u[0] * u[1] * cos_thm + u[2] * sin_th, u[1] * u[1] * cos_thm +		cos_th, u[1] * u[2] * cos_thm - u[0] * sin_th],
+         [u[0] * u[2] * cos_thm - u[1] * sin_th, u[2] * u[1] * cos_thm + u[0] * sin_th, u[2] * u[2] * cos_thm +		   cos_th]]
+    )
 
 
 class ConstantField:
@@ -43,10 +56,10 @@ class CoilSet:
         if len(self.coils) == 0:
             return
 
-        points=np.zeros((3,len(self.coils)))
+        points=np.zeros((3, len(self.coils)))
 
         for i, coil in enumerate(self.coils):
-            points[:,i]=coil.center
+            points[:, i]=coil.center
 
         self.spline, self.coils_s = interpolate.make_splprep(points, s=0)
 
@@ -107,7 +120,16 @@ class GDMTCoils(CoilSet):
     :param n_end_cells: number of end cells on each end of the main mirror
     """
 
-    def __init__(self, currents_main = tuple([1000.0] * 4), currents_nozzle = (4000.0, 4000.0), currents_end_cell = (250.0, 3500.0), r_main = tuple([0.12] * 4), r_nozzle = (0.04, 0.04), r_end_cell = (0.12, 0.05), l_main=0.3, l_end_cell = 0.075, n_end_cells=2):
+    def __init__(self, 
+                 currents_main=tuple([1000.0] * 4), 
+                 currents_nozzle=(4000.0, 4000.0), 
+                 currents_end_cell=(250.0, 3500.0), 
+                 r_main=tuple([0.12] * 4), 
+                 r_nozzle=(0.04, 0.04), 
+                 r_end_cell=(0.12, 0.05), 
+                 l_main=0.3,
+                 l_end_cell=0.075, 
+                 n_end_cells=2):
         super().__init__()
         self.currents_main = currents_main
         self.currents_nozzle = currents_nozzle
@@ -159,13 +181,13 @@ class GDMTCoils(CoilSet):
         self.coils = new_coils
 
         # compute the main mirror ratio
-        main_b = self.assemble().set_points(np.array([[0,0,0],[0,0,self.l_main/2]])).B()
-        self.actual_mirror_ratio = main_b[1,2]/main_b[0,2]
+        main_b = self.assemble().set_points(np.array([[0, 0, 0], [0, 0, self.l_main / 2]])).B()
+        self.actual_mirror_ratio = main_b[1, 2] / main_b[0, 2]
 
         self.actual_end_cell_mirror_ratio = 0.0
         if n_end_cells > 0:
-            end_b = self.assemble().set_points(np.array([[0,0,self.l_main / 2 + (len(self.currents_end_cell) - 1) * self.l_end_cell / len(self.currents_end_cell)],[0,0,self.l_main / 2 + self.l_end_cell]])).B()
-            self.actual_end_cell_mirror_ratio = end_b[1,2]/end_b[0,2]
+            end_b = self.assemble().set_points(np.array([[0, 0, self.l_main / 2 + (len(self.currents_end_cell) - 1) * self.l_end_cell / len(self.currents_end_cell)], [0, 0, self.l_main / 2 + self.l_end_cell]])).B()
+            self.actual_end_cell_mirror_ratio = end_b[1, 2] / end_b[0, 2]
 
         self.compute_lineout_spline()
 
@@ -191,7 +213,13 @@ class ELMOCoils(CoilSet):
     :param ends: boolean indicating whether end coils should be included
     """
 
-    def __init__(self, currents = tuple([2000.0] * 9), r=tuple([0.08] * 9), circle_radius = 0.3, arc=np.pi / 2, spline_points = None, ends=False):
+    def __init__(self, 
+                 currents=tuple([2000.0] * 9), 
+                 r=tuple([0.08] * 9), 
+                 circle_radius=0.3,
+                 arc=np.pi / 2, 
+                 spline_points=None, 
+                 ends=False):
         super().__init__()
         self.currents = currents
         self.r = r
@@ -207,8 +235,8 @@ class ELMOCoils(CoilSet):
             # construct a cubic spline through control points on a circle
             self.spline_points = np.array([
              [0.0, 0.0, self.circle_radius],
-             [self.circle_radius * np.sin(self.arc/3), 0, self.circle_radius * np.cos(self.arc/3)],
-             [self.circle_radius * np.sin(self.arc*2/3), 0, self.circle_radius * np.cos(self.arc*2/3)],
+             [self.circle_radius * np.sin(self.arc / 3), 0, self.circle_radius * np.cos(self.arc / 3)],
+             [self.circle_radius * np.sin(self.arc * 2 / 3), 0, self.circle_radius * np.cos(self.arc * 2 / 3)],
              [self.circle_radius * np.sin(self.arc), 0, self.circle_radius * np.cos(self.arc)]]).T
 
         spline, u = interpolate.make_splprep(self.spline_points, k=3)
@@ -251,24 +279,23 @@ class PCLMSection:
     """
 
     def __init__(self,
-                 n_gdmt_segments = None,
-                 n_elmo_segments = None,
-                 currents_gdmt_main = tuple([1000.0] * 4),
-                 currents_gdmt_nozzle = (4000.0, 4000.0),
-                 currents_gdmt_end_cell = (250.0, 3500.0),
-                 currents_elmo_main = tuple([2000.0] * 9),
-                 r_gdmt_main = tuple([0.12] * 4),
-                 r_gdmt_nozzle = (0.04, 0.04),
-                 r_gdmt_end_cell = (0.10, 0.05),
-                 r_elmo_main = tuple([0.08] * 9),
+                 n_gdmt_segments=None,
+                 n_elmo_segments=None,
+                 currents_gdmt_main=tuple([1000.0] * 4),
+                 currents_gdmt_nozzle=(4000.0, 4000.0),
+                 currents_gdmt_end_cell=(250.0, 3500.0),
+                 currents_elmo_main=tuple([2000.0] * 9),
+                 r_gdmt_main=tuple([0.12] * 4),
+                 r_gdmt_nozzle=(0.04, 0.04),
+                 r_gdmt_end_cell=(0.10, 0.05),
+                 r_elmo_main=tuple([0.08] * 9),
                  l_gdmt_main=0.3,
-                 l_gdmt_end_cell = 0.075,
+                 l_gdmt_end_cell=0.075,
                  n_gdmt_end_cells=2,
-                 elmo_angle = 90,
+                 elmo_angle=90,
                  radius=0.5,
-                 spline_points = None,
-                 testing = False
-    ):
+                 spline_points=None,
+                 testing=False):
 
         n_sides = 360 // elmo_angle
 
@@ -335,13 +362,13 @@ class PCLMSection:
             if i < len(self.elmo_segments):
                 self.all_coils += self.elmo_segments[i].coils
 
-        self.coil_centers=np.zeros((3,len(self.all_coils)))
-        self.coil_normals=np.zeros((2,len(self.all_coils)))
+        self.coil_centers=np.zeros((3, len(self.all_coils)))
+        self.coil_normals=np.zeros((2, len(self.all_coils)))
         self.coil_radii=np.zeros(len(self.all_coils))
 
         for i, coil in enumerate(self.all_coils):
-            self.coil_centers[:,i]=coil.center
-            self.coil_normals[:,i]=coil.normal
+            self.coil_centers[:, i]=coil.center
+            self.coil_normals[:, i]=coil.normal
             self.coil_radii[i]=coil.r0
 
         self.spline, self.coils_s = interpolate.make_splprep(self.coil_centers, s=0)
@@ -356,8 +383,7 @@ class PCLMSection:
             if i < len(self.elmo_segments):
                 self.field += self.elmo_segments[i].assemble()
 
-    def get_vessel_wall(self, dx = 0.01, closed = False):
-
+    def get_vessel_wall(self, dx=0.01, closed=False):
         vessel_wall_outer_frames = []
         vessel_wall_inner_frames = []
         vessel_wall_coils = []
@@ -414,15 +440,15 @@ class PCLMSection:
 
 
 
-    def get_lineout_center(self,n_points = 500):
+    def get_lineout_center(self, n_points=500):
         """
         Evaluates the center spline at the requested number of points
         :param n_points: number of points to interpolate the spline at (default 500)
         :return: interpolated spline, transposed to have shape (n_points, 3)
         """
-        return self.spline(np.linspace(0,1,n_points)).T
+        return self.spline(np.linspace(0, 1, n_points)).T
 
-    def get_spline_outer(self,n_points = 500, psi=0.0, r_frac = 0.5, radius = 0.0):
+    def get_spline_outer(self, n_points=500, psi=0.0, r_frac=0.5, radius=0.0):
         """
         Evaluates an offset spline at the requested number of points
         :param radius: constant radius to use if nonzero
@@ -440,9 +466,9 @@ class PCLMSection:
             if r == 0:
                 r = r_frac * coil.r0
             # print(np.cos(self.coil_normals[1,i]),np.sin(self.coil_normals[1,i]))
-            coil_outers[0,i] += np.sin(psi) * np.sin(self.coil_normals[1,i] + np.pi/2) * r
-            coil_outers[1,i] += np.cos(psi) * r
-            coil_outers[2,i] += np.sin(psi) * np.cos(self.coil_normals[1,i] + np.pi/2) * r
+            coil_outers[0, i] += np.sin(psi) * np.sin(self.coil_normals[1, i] + np.pi / 2) * r
+            coil_outers[1, i] += np.cos(psi) * r
+            coil_outers[2, i] += np.sin(psi) * np.cos(self.coil_normals[1, i] + np.pi / 2) * r
 
         outer_spline, coils_s_outers = interpolate.make_splprep(coil_outers, s=0, k=1)
 
@@ -466,21 +492,21 @@ class PCLMSection:
 
         np.savetxt(filename, coil_data, fmt="% 10.7e", delimiter=", ", header="center_x       center_y       center_z         phi             theta           current         radius")
 
-    def get_lineout(self, plot = True, show = False):
+    def get_lineout(self, plot=True, show=False):
         points = self.get_lineout_center()
 
-        distance = np.sqrt((np.diff(points,axis=0)**2).sum(axis=1)).cumsum()
+        distance = np.sqrt((np.diff(points, axis=0)**2).sum(axis=1)).cumsum()
 
         field = self.field
         lineout_field=field.set_points(points).B()
 
         if plot:
-            plt.figure(figsize=(10,6))
+            plt.figure(figsize=(10, 6))
             plt.plot(distance,np.sqrt((lineout_field**2).sum(axis=1))[:-1])
             plt.xlabel("distance along centerline (m)")
             plt.ylabel("B (T)")
             plt.title("Centerline lineout of magnetic field strength")
-            plt.xlim([distance[0],distance[-1]])
+            plt.xlim([distance[0], distance[-1]])
             plt.grid(ls="--")
             plt.savefig("elmo-lineout.png", bbox_inches="tight", pad_inches=0.05)
             if show:
@@ -488,8 +514,8 @@ class PCLMSection:
 
         return distance, lineout_field
 
-    def get_magnetic_field_deviation_along_axis(self, radius = 0.02, num_lineouts = 4, plot = True, show = False):
-        s = np.linspace(0,1,500)
+    def get_magnetic_field_deviation_along_axis(self, radius=0.02, num_lineouts=4, plot=True, show=False):
+        s = np.linspace(0, 1, 500)
         points = self.spline(s).T
 
         tangents = self.spline.derivative()(s).T
@@ -500,24 +526,24 @@ class PCLMSection:
         offaxis_lineouts_b=[]
 
         # todo: vectorize this
-        for i, psi in enumerate(np.linspace(0, 2*np.pi, num_lineouts, endpoint = False)):
+        for i, psi in enumerate(np.linspace(0, 2 * np.pi, num_lineouts, endpoint = False)):
             for j, tangent in enumerate(tangents):
-                dot = np.dot(tangent, np.array([0.0,0.0,1.0])) / np.linalg.norm(tangent)
+                dot = np.dot(tangent, np.array([0.0, 0.0, 1.0])) / np.linalg.norm(tangent)
                 # detect when we need to flip the sign of the angle with the cross product
-                cross = np.cross(tangent, np.array([0.0,0.0,1.0])) / np.linalg.norm(tangent)
+                cross = np.cross(tangent, np.array([0.0, 0.0, 1.0])) / np.linalg.norm(tangent)
                 # todo: generalize this for things not in the zx plane
                 angle = - np.arccos(dot) * np.sign(cross[1])
                 # print(angle+np.pi/2)
                 # angle += np.pi/2
                 # angle = -np.pi/2 + np.pi/2
-                offaxis_points[i, j, :] = points[j,:]
+                offaxis_points[i, j, :] = points[j, :]
                 offaxis_points[i, j, 0] += r * np.sin(psi) * np.cos(angle)
                 offaxis_points[i, j, 1] += r * np.cos(psi) #* r
                 offaxis_points[i, j, 2] += r * np.sin(psi) * (-np.sin(angle))
 
-            print(offaxis_points[i,:,2])
+            print(offaxis_points[i, :, 2])
 
-            self.field.set_points(offaxis_points[i,:,:])
+            self.field.set_points(offaxis_points[i, :, :])
             offaxis_lineouts_b.append(np.sqrt(((self.field.B())**2).sum(axis=1)))
 
         print(offaxis_lineouts_b)
@@ -560,14 +586,14 @@ class PCLMSection:
 
         average = offaxis_lineouts_b.mean(axis=0).squeeze()
 
-        deviation = ((offaxis_lineouts_b - average[np.newaxis,:])/average[np.newaxis,:])
+        deviation = ((offaxis_lineouts_b - average[np.newaxis, :]) / average[np.newaxis, :])
 
         print(deviation)
 
         if plot:
-            plt.figure(figsize=(10,6))
+            plt.figure(figsize=(10, 6))
             for i in range(deviation.shape[0]):
-                plt.plot(deviation[i,:-1], label=rf"${360/num_lineouts*i:0.1f}^{{\circ}}$")
+                plt.plot(deviation[i, :-1], label=rf"${360 / num_lineouts * i:0.1f}^{{\circ}}$")
                 # break
             plt.xlabel("distance along centerline (m)")
             plt.ylabel("fraction deviation in B")
@@ -585,76 +611,82 @@ class PCLMSection:
 
         # return points, offaxis_lineouts, offaxis_lineouts_b
 
-    def plot_3d_field(self, components, grid, focal_point = (0.0, 0.0, 0.0), streamlines = True, deviation_lines = False, show = False):
-
-        field_type = list(components.keys())[0]
-
-        # compute the magnitude of the field
-        magnitude = np.sqrt(components[field_type]["x"] ** 2 + components[field_type]["y"] ** 2 + components[field_type]["z"] ** 2)
-
-        # begin plotting
-        fig = mlab.figure(f"PCLM magnetic test", bgcolor=(0, 0, 0), size=(1500, 1000))
-        mlab.clf()
-
-        # plot the magnetic field strength
-        density = mlab.contour3d(grid["x"], grid["y"], grid["z"], magnitude, colormap="pink", contours=200, opacity=0.3)
-        mlab.process_ui_events()
-
-        if streamlines:
-            # adds streamlines that trace the magnetic field
-            # size controls the transverse extent of the seed grid
-            # z_offset is relative to the center of the first GDMT segment
-
-            size = self.gdmt1.r_nozzle[0] * 0.75
-            z_offset = self.mirror_length/2
-            streamline = mlab.flow(grid["x"], grid["y"], grid["z"], components[field_type]["x"], components[field_type]["y"], components[field_type]["z"],
-                                   seedtype="sphere", seed_resolution=20, integration_direction="both", opacity=0.2, colormap="Wistia")
-
-            # select a more accurate integrator
-            streamline.stream_tracer.integrator_type = 'runge_kutta45'
-
-            # positioning for sphere seed
-            streamline.seed.widget.center = self.gdmt1_translate + np.array([0, 0, z_offset])
-            streamline.seed.widget.radius = size
-
-            print(streamline.seed.widget.center)
-
-            # positioning for plane seed
-            # set the seed plane location and size; by default, the seed only covers half the interior space, for better visibility
-            # change the '0.0' to 'size' to make it cover the whole interior space
-            # streamline.seed.widget.normal_to_z_axis = 1
-            # streamline.seed.widget.origin = pclm_section.gdmt1_translate + np.array([-size, -size, z_offset])
-            # streamline.seed.widget.point1 = pclm_section.gdmt1_translate + np.array([size, -size, z_offset])
-            # streamline.seed.widget.point2 = pclm_section.gdmt1_translate + np.array([-size, 0.0, z_offset])
-            mlab.process_ui_events()
-
-            # turn off the visualization of the seed grid
-            streamline.seed.visible = False
-            streamline.update_streamlines = True
-
-        if deviation_lines:
-            points, offaxis_lineouts, offaxis_lineouts_b = self.get_magnetic_field_deviation_along_axis()
-
-            colors=[(0,0,1),(1,0.5,0),(0,1,0),(1,0,0)]
-
-            mlab.plot3d(points[:,0],points[:,1], points[:,2], color=(1,1,1), tube_radius = 0.005)
-            for i in range(offaxis_lineouts.shape[0]):
-                mlab.plot3d(offaxis_lineouts[i,:,0],offaxis_lineouts[i,:,1], offaxis_lineouts[i,:,2], color=colors[i], tube_radius = 0.005)
-
-        # tweak the opacity
-        lut = density.module_manager.scalar_lut_manager.lut.table.to_array()
-        lut[:, -1] = 100
-        density.module_manager.scalar_lut_manager.lut.table = lut
-        density.actor.property.backface_culling = True
-
-        # set the view to top-down (along +y)
-        mlab.view(azimuth=90, elevation=90, roll=90, focalpoint=focal_point, distance=2.1)
-
-        # don't make further away objects look smaller due to perspective
-        mlab.gcf().scene.parallel_projection = True
-        mlab.orientation_axes()
-
-        mlab.savefig(f"elmo-test.png")
-
-        if show:
-            mlab.show()
+    # def plot_3d_field(self,
+    #                   components,
+    #                   grid,
+    #                   focal_point=(0.0, 0.0, 0.0),
+    #                   streamlines=True,
+    #                   deviation_lines=False,
+    #                   show=False):
+    #
+    #     field_type = list(components.keys())[0]
+    #
+    #     # compute the magnitude of the field
+    #     magnitude = np.sqrt(components[field_type]["x"]**2 + components[field_type]["y"]**2 + components[field_type]["z"]**2)
+    #
+    #     # begin plotting
+    #     fig = mlab.figure(f"PCLM magnetic test", bgcolor=(0, 0, 0), size=(1500, 1000))
+    #     mlab.clf()
+    #
+    #     # plot the magnetic field strength
+    #     density = mlab.contour3d(grid["x"], grid["y"], grid["z"], magnitude, colormap="pink", contours=200, opacity=0.3)
+    #     mlab.process_ui_events()
+    #
+    #     if streamlines:
+    #         # adds streamlines that trace the magnetic field
+    #         # size controls the transverse extent of the seed grid
+    #         # z_offset is relative to the center of the first GDMT segment
+    #
+    #         size = self.gdmt1.r_nozzle[0] * 0.75
+    #         z_offset = self.mirror_length / 2
+    #         streamline = mlab.flow(grid["x"], grid["y"], grid["z"], components[field_type]["x"], components[field_type]["y"], components[field_type]["z"],
+    #                                seedtype="sphere", seed_resolution=20, integration_direction="both", opacity=0.2, colormap="Wistia")
+    #
+    #         # select a more accurate integrator
+    #         streamline.stream_tracer.integrator_type = 'runge_kutta45'
+    #
+    #         # positioning for sphere seed
+    #         streamline.seed.widget.center = self.gdmt1_translate + np.array([0, 0, z_offset])
+    #         streamline.seed.widget.radius = size
+    #
+    #         print(streamline.seed.widget.center)
+    #
+    #         # positioning for plane seed
+    #         # set the seed plane location and size; by default, the seed only covers half the interior space, for better visibility
+    #         # change the '0.0' to 'size' to make it cover the whole interior space
+    #         # streamline.seed.widget.normal_to_z_axis = 1
+    #         # streamline.seed.widget.origin = pclm_section.gdmt1_translate + np.array([-size, -size, z_offset])
+    #         # streamline.seed.widget.point1 = pclm_section.gdmt1_translate + np.array([size, -size, z_offset])
+    #         # streamline.seed.widget.point2 = pclm_section.gdmt1_translate + np.array([-size, 0.0, z_offset])
+    #         mlab.process_ui_events()
+    #
+    #         # turn off the visualization of the seed grid
+    #         streamline.seed.visible = False
+    #         streamline.update_streamlines = True
+    #
+    #     if deviation_lines:
+    #         points, offaxis_lineouts, offaxis_lineouts_b = self.get_magnetic_field_deviation_along_axis()
+    #
+    #         colors=[(0, 0, 1), (1, 0.5, 0), (0, 1, 0), (1, 0, 0)]
+    #
+    #         mlab.plot3d(points[:, 0], points[:, 1], points[:, 2], color=(1, 1, 1), tube_radius=0.005)
+    #         for i in range(offaxis_lineouts.shape[0]):
+    #             mlab.plot3d(offaxis_lineouts[i, :, 0], offaxis_lineouts[i, :, 1], offaxis_lineouts[i, :, 2], color=colors[i], tube_radius=0.005)
+    #
+    #     # tweak the opacity
+    #     lut = density.module_manager.scalar_lut_manager.lut.table.to_array()
+    #     lut[:, -1] = 100
+    #     density.module_manager.scalar_lut_manager.lut.table = lut
+    #     density.actor.property.backface_culling = True
+    #
+    #     # set the view to top-down (along +y)
+    #     mlab.view(azimuth=90, elevation=90, roll=90, focalpoint=focal_point, distance=2.1)
+    #
+    #     # don't make further away objects look smaller due to perspective
+    #     mlab.gcf().scene.parallel_projection = True
+    #     mlab.orientation_axes()
+    #
+    #     mlab.savefig(f"elmo-test.png")
+    #
+    #     if show:
+    #         mlab.show()
