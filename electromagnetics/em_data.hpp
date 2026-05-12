@@ -7,7 +7,6 @@
 
 #include <adios2.h>
 #include <unordered_map>
-#include <print>
 
 namespace tf::electromagnetics {
 struct EMData {
@@ -65,10 +64,6 @@ struct EMData {
      Bx_total(nx, ny - 1, nz - 1),
      By_total(nx - 1, ny, nz - 1),
      Bz_total(nx - 1, ny - 1, nz)
-     // eps_x(nx - 1, ny, nz),
-     // eps_y(nx, ny - 1, nz),
-     // eps_z(nx, ny, nz - 1),
-     // geom(nx - 1, ny - 1, nz - 1)
    {
       init_coefficients();
       load_applied_fields();
@@ -118,68 +113,26 @@ struct EMData {
       adios2::ADIOS adios{};
       adios2::IO io = adios.DeclareIO("EMFieldsExternal");
       adios2::Engine reader = io.Open(applied_fields_path, adios2::Mode::Read);
-      
+
       reader.BeginStep();
-      
+
       const auto bpEx = io.InquireVariable<double>("Ex");
       const auto bpEy = io.InquireVariable<double>("Ey");
       const auto bpEz = io.InquireVariable<double>("Ez");
       const auto bpBx = io.InquireVariable<double>("Bx");
       const auto bpBy = io.InquireVariable<double>("By");
       const auto bpBz = io.InquireVariable<double>("Bz");
-      
+
       if (bpEx) { reader.Get(bpEx, Ex_app.data(), adios2::Mode::Sync); }
       if (bpEy) { reader.Get(bpEy, Ey_app.data(), adios2::Mode::Sync); }
       if (bpEy) { reader.Get(bpEz, Ez_app.data(), adios2::Mode::Sync); }
       if (bpBx) { reader.Get(bpBx, Bx_app.data(), adios2::Mode::Sync); }
       if (bpBy) { reader.Get(bpBy, By_app.data(), adios2::Mode::Sync); }
       if (bpBz) { reader.Get(bpBz, Bz_app.data(), adios2::Mode::Sync); }
-      
+
       reader.EndStep();
       reader.Close();
    }
-   
-   // void load_geometries() {
-   //    if (std::string(geometry_path).empty()) { return; }
-   //
-   //    adios2::ADIOS adios{};
-   //    adios2::IO io = adios.DeclareIO("EMGeometries");
-   //    adios2::Engine reader = io.Open(geometry_path, adios2::Mode::Read);
-   //
-   //    reader.BeginStep();
-   //
-   //    if (const auto geoms = io.InquireVariable<double>("geom")) {
-   //       reader.Get(geoms, geom.data(), adios2::Mode::Sync);
-   //    }
-   //
-   //    reader.EndStep();
-   //    reader.Close();
-   // }
-   
-   // void load_materials() {
-   //    if (std::string(em_materials_path).empty()) { return; }
-   //
-   //    adios2::ADIOS adios{};
-   //    adios2::IO io = adios.DeclareIO("EMMaterials");
-   //    adios2::Engine reader = io.Open(em_materials_path, adios2::Mode::Read);
-   //
-   //    reader.BeginStep();
-   //
-   //    if (const auto epsx = io.InquireVariable<double>("epsx")) { reader.Get(epsx, eps_x.data(), adios2::Mode::Sync); }
-   //    if (const auto epsy = io.InquireVariable<double>("epsy")) { reader.Get(epsy, eps_y.data(), adios2::Mode::Sync); }
-   //    if (const auto epsz = io.InquireVariable<double>("epsz")) { reader.Get(epsz, eps_z.data(), adios2::Mode::Sync); }
-   //
-   //    // if (const auto mux = io.InquireVariable<double>("mux")) { reader.Get(mux, mu_x.data(), adios2::Mode::Sync); }
-   //    // if (const auto muy = io.InquireVariable<double>("muy")) { reader.Get(muy, mu_y.data(), adios2::Mode::Sync); }
-   //    // if (const auto muz = io.InquireVariable<double>("muz")) { reader.Get(muz, mu_z.data(), adios2::Mode::Sync); }
-   //    //
-   //    // if (const auto sigmax = io.InquireVariable<double>("sigmax")) { reader.Get(sigmax, sigma_x.data(), adios2::Mode::Sync); }
-   //    // if (const auto sigmay = io.InquireVariable<double>("sigmay")) { reader.Get(sigmay, sigma_y.data(), adios2::Mode::Sync); }
-   //    // if (const auto sigmaz = io.InquireVariable<double>("sigmaz")) { reader.Get(sigmaz, sigma_z.data(), adios2::Mode::Sync); }
-   //
-   //    reader.EndStep();
-   //    reader.Close();
-   // }
 
    Array3D<double> Ex;
    Array3D<double> Jx;
@@ -245,23 +198,8 @@ struct EMData {
    Array3D<double> By_total;
    Array3D<double> Bz_total;
 
-   // Array3D<double> eps_x;
-   // Array3D<double> eps_y;
-   // Array3D<double> eps_z;
-
-   // Array3D<double> mu_x;
-   // Array3D<double> mu_y;
-   // Array3D<double> mu_z;
-   //
-   // Array3D<double> sigma_x;
-   // Array3D<double> sigma_y;
-   // Array3D<double> sigma_z;
-   
-   // Array3D<double> geom;
-
    std::vector<GaussianBeam> beams{};
    std::vector<CurrentSource> srcs{};
-   // std::vector<RamanSource> raman{};
 
    Array3D<null_t> empty{}; // for the shits and possibly also some giggles...
 
@@ -274,23 +212,7 @@ struct EMData {
       {"Hz", Hz},
       {"Jx", Jx},
       {"Jy", Jy},
-      {"Jz", Jz},
-      {"Ex_app", Ex_app},
-      {"Ey_app", Ey_app},
-      {"Ez_app", Ez_app},
-      {"Bx_app", Bx_app},
-      {"By_app", By_app},
-      {"Bz_app", Bz_app},
-      {"Ex_total", Ex_total},
-      {"Ey_total", Ey_total},
-      {"Ez_total", Ez_total},
-      {"Bx_total", Bx_total},
-      {"By_total", By_total},
-      {"Bz_total", Bz_total}
-      // {"epsx", eps_x},
-      // {"epsy", eps_y},
-      // {"epsz", eps_z},
-      // {"geom", geom}
+      {"Jz", Jz}
    };
 };
 

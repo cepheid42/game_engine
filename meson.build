@@ -1,15 +1,17 @@
 project(
-    'tflink3',
+    'game_engine',
     'cpp',
     version : '0.0.1',
     default_options : [
-        'optimization=2',
-        'debug=true',
-        'warning_level=3',
-#        'werror=true',
         'cpp_std=c++23',
-#        'b_sanitize=address',
+        'warning_level=3',
         'b_lto=true',
+#        'optimization=2',
+#        'debug=true',
+        'optimization=3',
+        'debug=false',
+#        'werror=true',
+#        'b_sanitize=address',
 #        'b_pgo=generate',
 #        'b_pgo=use'
     ]
@@ -48,12 +50,12 @@ sources = [
 
 deps = [
     dependency('adios2', required : true),
-    dependency('OpenMP'),
-    dependency('openPMD'),
+    dependency('OpenMP', required : true),
+#    dependency('cuda')
 ]
 
-executable(
-    'tflink3',
+game_engine = executable(
+    'game_engine',
     sources : sources,
     cpp_args : gcc_opts + debug_opts,
     include_directories : includes,

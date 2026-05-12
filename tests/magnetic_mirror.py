@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 
-from core.pytriforce.utilities import *
+import matplotlib.pyplot as plt
+import numpy as np
+from adios2 import FileReader, Stream
+
+from scripts.particle_generation import create_particles
+from scripts.simulation import *
+from scripts.utilities import *
 
 # =============================
 # ===== Simulation Params =====
@@ -52,7 +58,7 @@ single_particle = Particles(
     charge=charge,
     atomic_number=0,
     tracer=True,
-    temp=(0.0, v_perp, v_perp), # eV
+    temp=(0.0, 0.0, 10000* v_perp), # eV
     density=1.0, # m^-3,
     ppc=(1, 1, 1),
     distribution='sp_magneticmirror',

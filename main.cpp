@@ -53,8 +53,7 @@ int main() {
    // }
 
    if constexpr (velocity_backstep_enabled) {
-      // computeBFields() and updateTotalFields()
-      // is done in EMSolver ctor
+      // computeBFields() and updateTotalFields() is done in EMSolver ctor
       for (auto& g : particle_groups | std::views::values) {
          ParticlePusher::backstep_velocity(g, emsolver.emdata);
       }

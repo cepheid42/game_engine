@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
+import matplotlib.pyplot as plt
+import numpy as np
 from adios2 import FileReader, Stream
+from scipy import constants
 
-from core.pytriforce.utilities import *
+from scripts.pyforce import *
+
 
 # =============================
 # ===== Simulation Params =====
@@ -51,7 +55,7 @@ single_particle = Particles(
     mass=mass,
     charge=charge,
     atomic_number=0,
-    tracer_fraction=1.0,
+    tracer=True,
     # actually velocity for sp_uniformB distribution
     temp=(0.0, -v_perp, 0.0),
     density=1.0, # m^-3,
@@ -124,7 +128,7 @@ for pusher, name in zip(pushers, sim_names):
     update_header(sim_params, project_path=project_path)
 
     compile_project(build_path, output=True)
-    run_project(build_path + '/tflink3', output=True)
+    run_project(build_path + '/game_engine', output=True)
 
 # ===========================
 # ===== Post Processing =====
@@ -179,7 +183,7 @@ ax[1].set_yscale('log')
 ax[2].set_xlabel(r't / $T_c$')
 ax[2].set_ylabel(r'$|\theta_c - \theta_{an}|$')
 ax[2].set_xlim([0, 100])
-# ax[2].set_ylim([0, 0.25])
+ax[2].set_ylim([0, 0.25])
 
 for i, (name, data) in enumerate(sims.items()):
     name = name.split('_')[-1]

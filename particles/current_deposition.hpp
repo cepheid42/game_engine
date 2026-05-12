@@ -10,7 +10,7 @@
 
 namespace tf::particles {
 struct CurrentDeposition {
-   template<int D, typename Strategy>
+   template<typename Strategy>
    static void deposit(auto& J,
                        const auto p0, const auto p1,
                        const auto& shapeI0, const auto& shapeJ0,
@@ -47,39 +47,44 @@ struct CurrentDeposition {
       using XShape = interp::InterpolationShape<x_collapsed ? 1 : interpolation_order>::Type;
       using YShape = interp::InterpolationShape<y_collapsed ? 1 : interpolation_order>::Type;
       using ZShape = interp::InterpolationShape<z_collapsed ? 1 : interpolation_order>::Type;
+
       // Interpolation Strategies for each J
       using JxStrategy = interp::InterpolationStrategy<0, YShape, ZShape, XShape>;
       using JyStrategy = interp::InterpolationStrategy<1, ZShape, XShape, YShape>;
       using JzStrategy = interp::InterpolationStrategy<2, XShape, YShape, ZShape>;
+
       // Precompute constants
       static constexpr auto dtAyz = x_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dy * dz);
       static constexpr auto dtAxz = y_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dx * dz);
       static constexpr auto dtAxy = z_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dx * dy);
-      const auto x_vel = x_collapsed ? constants::c * p.beta_gamma[0] / p.gamma : 1.0;
-      const auto y_vel = y_collapsed ? constants::c * p.beta_gamma[1] / p.gamma : 1.0;
-      const auto z_vel = z_collapsed ? constants::c * p.beta_gamma[2] / p.gamma : 1.0;
+
+      const auto x_vel = x_collapsed ? constants::c * p.beta_gamma[0] / p.gamma() : 1.0;
+      const auto y_vel = y_collapsed ? constants::c * p.beta_gamma[1] / p.gamma() : 1.0;
+      const auto z_vel = z_collapsed ? constants::c * p.beta_gamma[2] / p.gamma() : 1.0;
+
       // Offsets for Even/Odd order interpolation
-      static constexpr vec3 offsets{
-         XShape::Order % 2 == 0 ? 0.0 : 0.5,
-         YShape::Order % 2 == 0 ? 0.0 : 0.5,
-         ZShape::Order % 2 == 0 ? 0.0 : 0.5
-      };
+      static constexpr vec3 offset{0.5, 0.5, 0.5};
 
       // Early return if Jdep isn't needed
       if (p.is_disabled()) { return; }
+
       // Current Density coefficients
       const auto x_coeff = static_cast<double>(p.weight) * charge * dtAyz * x_vel;
       const auto y_coeff = static_cast<double>(p.weight) * charge * dtAxz * y_vel;
       const auto z_coeff = static_cast<double>(p.weight) * charge * dtAxy * z_vel;
+
       // Find cell indices and determine first relay point
-      const vec3<double> i0 = getCellIndices<double>(p.old_location + offsets);
-      const vec3<double> i1 = getCellIndices<double>(p.location + offsets);
+      const vec3<double> i0 = getCellIndices<double>(p.old_location + offset);
+      const vec3<double> i1 = getCellIndices<double>(p.location + offset);
+
       const auto same_idx = is_equal(i0, i1);
+
       const vec3<double> relay{
-         same_idx[0] ? p.location[0] : std::max(i1[0], i0[0]) - offsets[0],
-         same_idx[1] ? p.location[1] : std::max(i1[1], i0[1]) - offsets[1],
-         same_idx[2] ? p.location[2] : std::max(i1[2], i0[2]) - offsets[2],
+         same_idx[0] ? p.location[0] : std::max(i1[0], i0[0]) - offset[0],
+         same_idx[1] ? p.location[1] : std::max(i1[1], i0[1]) - offset[1],
+         same_idx[2] ? p.location[2] : std::max(i1[2], i0[2]) - offset[2],
       };
+
       // Calculate normalized locations for first segment
       const vec3 idx0 = i0.to_uint();
       auto p0 = p.old_location - i0;
@@ -92,16 +97,19 @@ struct CurrentDeposition {
       auto dsi = XShape::ds_array(p1[0], s0i);
       auto dsj = YShape::ds_array(p1[1], s0j);
       auto dsk = ZShape::ds_array(p1[2], s0k);
+
       // Deposit to J's
-      deposit<0, JxStrategy>(emdata.Jx, p0[0], p1[0], s0j, s0k, dsj, dsk, dsi, idx0[1], idx0[2], idx0[0], x_coeff); // y-z-x
-      deposit<1, JyStrategy>(emdata.Jy, p0[1], p1[1], s0k, s0i, dsk, dsi, dsj, idx0[2], idx0[0], idx0[1], y_coeff); // z-x-y
-      deposit<2, JzStrategy>(emdata.Jz, p0[2], p1[2], s0i, s0j, dsi, dsj, dsk, idx0[0], idx0[1], idx0[2], z_coeff); // x-y-z
+      deposit<JxStrategy>(emdata.Jx, p0[0], p1[0], s0j, s0k, dsj, dsk, dsi, idx0[1], idx0[2], idx0[0], x_coeff); // y-z-x
+      deposit<JyStrategy>(emdata.Jy, p0[1], p1[1], s0k, s0i, dsk, dsi, dsj, idx0[2], idx0[0], idx0[1], y_coeff); // z-x-y
+      deposit<JzStrategy>(emdata.Jz, p0[2], p1[2], s0i, s0j, dsi, dsj, dsk, idx0[0], idx0[1], idx0[2], z_coeff); // x-y-z
+
       // If particle has changed assignment cell in any direction, do second deposition step
       if (!(same_idx[0] and same_idx[1] and same_idx[2])) {
          // Calculate normalized locations for second segment
          const vec3 idx1 = i1.to_uint();
          p0 = relay - i1;
          p1 = p.location - i1;
+
          // Create shape arrays for second segment
          s0i = XShape::shape_array(p0[0]);
          s0j = YShape::shape_array(p0[1]);
@@ -109,10 +117,11 @@ struct CurrentDeposition {
          dsi = XShape::ds_array(p1[0], s0i);
          dsj = YShape::ds_array(p1[1], s0j);
          dsk = ZShape::ds_array(p1[2], s0k);
+
          // Deposit to J's
-         deposit<0, JxStrategy>(emdata.Jx, p0[0], p1[0], s0j, s0k, dsj, dsk, dsi, idx1[1], idx1[2], idx1[0], x_coeff); // y-z-x
-         deposit<1, JyStrategy>(emdata.Jy, p0[1], p1[1], s0k, s0i, dsk, dsi, dsj, idx1[2], idx1[0], idx1[1], y_coeff); // z-x-y
-         deposit<2, JzStrategy>(emdata.Jz, p0[2], p1[2], s0i, s0j, dsi, dsj, dsk, idx1[0], idx1[1], idx1[2], z_coeff); // x-y-z
+         deposit<JxStrategy>(emdata.Jx, p0[0], p1[0], s0j, s0k, dsj, dsk, dsi, idx1[1], idx1[2], idx1[0], x_coeff); // y-z-x
+         deposit<JyStrategy>(emdata.Jy, p0[1], p1[1], s0k, s0i, dsk, dsi, dsj, idx1[2], idx1[0], idx1[1], y_coeff); // z-x-y
+         deposit<JzStrategy>(emdata.Jz, p0[2], p1[2], s0i, s0j, dsi, dsj, dsk, idx1[0], idx1[1], idx1[2], z_coeff); // x-y-z
       }
    } // end updateJ()
    

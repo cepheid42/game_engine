@@ -95,11 +95,7 @@ auto FieldToParticleInterp(const auto& F,
 static auto fieldAtParticle(Particle& p, const auto& emdata, const auto qdt)
 -> std::array<vec3<double>, 2>
 {
-   static constexpr vec3 offset{
-      XFullShape::Order % 2 == 0 ? 0.0 : 0.5,
-      YFullShape::Order % 2 == 0 ? 0.0 : 0.5,
-      ZFullShape::Order % 2 == 0 ? 0.0 : 0.5
-   };
+   static constexpr vec3 offset{0.5, 0.5, 0.5};
 
    const vec3 loc_full = getCellIndices<double>(p.location);
    const vec3 loc_half = getCellIndices<double>(p.location) + offset;
@@ -169,57 +165,6 @@ struct ParticleVelocityUpdate {
 struct ParticlePusher {
    using emdata_t = electromagnetics::EMData;
    using group_t = ParticleGroup;
-
-   // static constexpr vec3 delta_inv{0.5 * constants::c * dt / dx, 0.5 * constants::c * dt / dy, 0.5 * constants::c * dt / dz};
-   //
-   // static void first_half_position(Particle& p) {
-   //    p.old_location = p.location;
-   //    p.location += (delta_inv * p.beta_gamma / p.gamma());
-   // } // end first_half_position()
-   //
-   // static void second_half_position(Particle& p) {
-   //    p.location += (delta_inv * p.beta_gamma / p.gamma());
-   //    apply_particle_bcs<PBCSelect>(p);
-   // } // end second_half_position()
-   //
-   // static void first_advance_position(group_t& g) {
-   //    #pragma omp parallel for num_threads(nThreads)
-   //    for (auto pid = 0zu; pid < g.num_particles(); pid++) {
-   //       if (g.particles[pid].is_disabled()) { continue; }
-   //       first_half_position(g.particles[pid]);
-   //    }
-   // } // end first_advance_position
-   //
-   // static void second_advance_position(group_t& g) {
-   //    #pragma omp parallel for num_threads(nThreads)
-   //    for (auto pid = 0zu; pid < g.num_particles(); pid++) {
-   //       if (g.particles[pid].is_disabled()) { continue; }
-   //       second_half_position(g.particles[pid]);
-   //    }
-   // } // end second_advance_position
-   //
-   // static void advance_velocity(group_t& g, const emdata_t& emdata) {
-   //    #pragma omp parallel for num_threads(nThreads)
-   //    for (auto pid = 0zu; pid < g.num_particles(); pid++) {
-   //       if (g.particles[pid].is_disabled()) { continue; }
-   //       ParticleVelocityUpdate<ParticlePushSelect>()(g.particles[pid], emdata, g.qdt_over_2m);
-   //    }
-   // } // end advance_velocity
-   //
-   // static void advance(auto& g, const auto& emdata, const auto step) requires(push_enabled) {
-   //    if (g.is_photons) { return; }
-   //    g.reset_positions();
-   //
-   //    if (step % sort_frequency == 0) { g.sort_particles(); }
-   //
-   //    first_advance_position(g);   // aligns position n -> n+1/2
-   //    advance_velocity(g, emdata); // aligns velocity n -> n+1
-   //    second_advance_position(g);  // aligns position n+1/2 -> n+1
-   //
-   //    g.cell_map_updated = false;
-   //    g.is_sorted = false;
-   // } // end advance()
-
 
    static constexpr vec3 cdt_delta_inv{constants::c * dt / dx, constants::c * dt / dy, constants::c * dt / dz};
 
