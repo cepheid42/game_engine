@@ -96,9 +96,9 @@ static auto fieldAtParticle(Particle& p, const auto& emdata, const auto qdt)
 -> std::array<vec3<double>, 2>
 {
    static constexpr vec3 offset{
-      XFullShape::Order % 2 == 0 ? 0.0 : 0.5,
-      YFullShape::Order % 2 == 0 ? 0.0 : 0.5,
-      ZFullShape::Order % 2 == 0 ? 0.0 : 0.5
+      XFullShape::Order % 2 == 0 ? 0.5 : 0.0,
+      YFullShape::Order % 2 == 0 ? 0.5 : 0.0,
+      ZFullShape::Order % 2 == 0 ? 0.5 : 0.0
    };
 
    const vec3 loc_full = getCellIndices<double>(p.location);

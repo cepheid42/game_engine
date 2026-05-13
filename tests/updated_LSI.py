@@ -10,7 +10,7 @@ from scripts.pyforce import *
 # =============================
 # ===== Simulation Params =====
 # =============================
-sim_name = 'LSI_HC'
+sim_name = 'lsi_test'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
@@ -87,7 +87,8 @@ particle_params = ParticleParams(
 em_params = EMParams(
     save_interval=save_interval,
     pml_depth=25,
-    em_bcs=(1, 1, 2, 2, 1, 1)
+    em_bcs=(1, 1, 2, 2, 1, 1),
+    laser_enabled=True,
 )
 
 # ==========================
@@ -95,7 +96,8 @@ em_params = EMParams(
 # ==========================
 metric_params = Metrics(
     data_path,
-    (MetricType.ParticleEnergy, MetricType.FieldEnergy)
+    # (MetricType.ParticleEnergy, MetricType.FieldEnergy)
+    (MetricType.FieldDump,)
 )
 
 # ============================
@@ -115,82 +117,118 @@ sim_params = Simulation(
     em_params=em_params,
     particle_params=particle_params,
     metric_params=metric_params,
-    collisions_enabled=False
+    collisions_enabled=False,
+    push_enabled=False,
+    jdep_enabled=False
 )
 
 # ===========================
 # ===== Compile and Run =====
 # ===========================
 print(f'Setting up "{sim_name}"')
-create_data_dir(data_path)
-create_particles(sim_params, electrons, data_path)
-create_particles(sim_params, ions, data_path)
-update_header(sim_params, project_path=project_path)
-
-compile_project(build_path, output=True)
-run_project(build_path + '/game_engine', output=True)
+# create_data_dir(data_path)
+# create_particles(sim_params, electrons, data_path)
+# create_particles(sim_params, ions, data_path)
+# update_header(sim_params, project_path=project_path)
+#
+# compile_project(build_path, output=True)
+# run_project(build_path + '/game_engine', output=True)
 
 # ===========================
 # ===== Post Processing =====
 # ===========================
 J_to_kJ = 1.0e-3
 s_to_fs = 1.0e15
+Vm_to_kVcm = 1.0e-5
+T_to_gauss = 1.0e4
 
-with FileReader(data_path + '/fields_energy.bp') as f:
-    variables = f.available_variables()
-    steps = int(variables['Time']['AvailableStepsCount'])
-    ex = f.read('Ex Energy', step_selection=[0, steps])
-    ey = f.read('Ey Energy', step_selection=[0, steps])
-    ez = f.read('Ez Energy', step_selection=[0, steps])
-    bx = f.read('Bx Energy', step_selection=[0, steps])
-    by = f.read('By Energy', step_selection=[0, steps])
-    bz = f.read('Bz Energy', step_selection=[0, steps])
+ey_lines = []
+bz_lines = []
+times = []
+for n in range(0, nt + save_interval, save_interval):
+    with FileReader(data_path + f'/fields_{n:010d}.bp') as f:
+        ey_lines.append(f.read('Ey')[:, 0, shape[2] // 2])
+        # bz_lines.append(f.read('Bz')[:, 0, shape[2] // 2])
+        bz_lines.append(f.read('Ex')[:, 0, :])
+        print(np.nonzero(bz_lines[-1]))
+        times.append(f.read('Time'))
 
-with FileReader(data_path + '/particles_energy.bp') as f:
-    variables = f.available_variables()
-    steps = int(variables['Time']['AvailableStepsCount'])
-    time = f.read('Time', step_selection=[0, steps])
-    e_energy = f.read('electrons', step_selection=[0, steps])
-    i_energy = f.read('ions', step_selection=[0, steps])
 
-time *= s_to_fs
-field_energy = (ex + ey + ez + bx + by + bz) * J_to_kJ / dy
-e_energy = e_energy * J_to_kJ / dy
-i_energy = i_energy * J_to_kJ / dy
+fig, ax = plt.subplots(2, 1, figsize=(10, 10), layout='constrained')
 
-smith_field_data = np.genfromtxt('./data/smith_lsi_field_energy.csv', delimiter=',')
-smith_electron_data = np.genfromtxt('./data/smith_lsi_electron_energy.csv', delimiter=',')
-smith_proton_data = np.genfromtxt('./data/smith_lsi_proton_energy.csv', delimiter=',')
+# xs = np.linspace(xmin, xmax, shape[0], endpoint=True)
 
-y_labels = [
-    (r'Field (kJ m$^{-1}$)', smith_field_data, [0, 100]),
-    (r'Electron (kJ m$^{-1}$)', smith_electron_data, [0, 15]),
-    (r'Proton (kJ m$^{-1}$)', smith_proton_data, [0, 15])
-]
+num = 25
+fig.suptitle(f't = {times[num]} s')
 
-fig, ax = plt.subplots(3, 1, figsize=(6, 10), layout='constrained')
+ax[1].contourf(bz_lines[num])
 
-for i, a in enumerate(ax):
-    label, _, _ = y_labels[i]
-    a.grid()
-    a.set_xlabel('Time (fs)')
-    a.set_ylabel(label)
+# ax[0].plot(xs, Vm_to_kVcm * ey_lines[num])
+# ax[0].set_xlabel('x')
+# ax[0].set_ylabel('Ey (kV/cm)')
+#
+# ax[1].plot(xs[:-1], T_to_gauss * bz_lines[num])
+# ax[1].set_xlabel('x')
+# ax[1].set_ylabel('Bz (G)')
 
-ax[0].plot(time, field_energy, 'b-', label='TriForce')
-ax[1].plot(time, e_energy, 'b-')
-ax[2].plot(time, i_energy, 'b-')
+plt.show()
 
-ax[0].plot(smith_field_data[:, 0], smith_field_data[:, 1], 'r--', label='Smith')
-ax[1].plot(smith_electron_data[:, 0], smith_electron_data[:, 1], 'r--')
-ax[2].plot(smith_proton_data[:, 0], smith_proton_data[:, 1], 'r--')
+
+# with FileReader(data_path + '/fields_energy.bp') as f:
+#     variables = f.available_variables()
+#     steps = int(variables['Time']['AvailableStepsCount'])
+#     ex = f.read('Ex Energy', step_selection=[0, steps])
+#     ey = f.read('Ey Energy', step_selection=[0, steps])
+#     ez = f.read('Ez Energy', step_selection=[0, steps])
+#     bx = f.read('Bx Energy', step_selection=[0, steps])
+#     by = f.read('By Energy', step_selection=[0, steps])
+#     bz = f.read('Bz Energy', step_selection=[0, steps])
+#
+# with FileReader(data_path + '/particles_energy.bp') as f:
+#     variables = f.available_variables()
+#     steps = int(variables['Time']['AvailableStepsCount'])
+#     time = f.read('Time', step_selection=[0, steps])
+#     e_energy = f.read('electrons', step_selection=[0, steps])
+#     i_energy = f.read('ions', step_selection=[0, steps])
+#
+# time *= s_to_fs
+# field_energy = (ex + ey + ez + bx + by + bz) * J_to_kJ / dy
+# e_energy = e_energy * J_to_kJ / dy
+# i_energy = i_energy * J_to_kJ / dy
+#
+# smith_field_data = np.genfromtxt('./data/smith_lsi_field_energy.csv', delimiter=',')
+# smith_electron_data = np.genfromtxt('./data/smith_lsi_electron_energy.csv', delimiter=',')
+# smith_proton_data = np.genfromtxt('./data/smith_lsi_proton_energy.csv', delimiter=',')
+#
+# y_labels = [
+#     (r'Field (kJ m$^{-1}$)', smith_field_data, [0, 100]),
+#     (r'Electron (kJ m$^{-1}$)', smith_electron_data, [0, 15]),
+#     (r'Proton (kJ m$^{-1}$)', smith_proton_data, [0, 15])
+# ]
+#
+# fig, ax = plt.subplots(3, 1, figsize=(6, 10), layout='constrained')
+#
+# for i, a in enumerate(ax):
+#     label, _, _ = y_labels[i]
+#     a.grid()
+#     a.set_xlabel('Time (fs)')
+#     a.set_ylabel(label)
+#
+# ax[0].plot(time, field_energy, 'b-', label='TriForce')
+# ax[1].plot(time, e_energy, 'b-')
+# ax[2].plot(time, i_energy, 'b-')
+#
+# ax[0].plot(smith_field_data[:, 0], smith_field_data[:, 1], 'r--', label='Smith')
+# ax[1].plot(smith_electron_data[:, 0], smith_electron_data[:, 1], 'r--')
+# ax[2].plot(smith_proton_data[:, 0], smith_proton_data[:, 1], 'r--')
 
 # ax[0].set_ylim([0, 100])
 # ax[1].set_ylim([0, 15])
 # ax[2].set_ylim([0, 15])
 
-ax[0].legend()
+# ax[0].legend()
 
 # plt.savefig(data_path + f'/lsi_comp_normal.png')
 # plt.close(fig)
 
-plt.show()
+# plt.show()

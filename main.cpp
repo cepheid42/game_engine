@@ -37,35 +37,22 @@ int main() {
    //    collisions.emplace_back(col, particle_groups);
    // }
 
-   emsolver_t emsolver(Nx, Ny, Nz);
-
-   // todo: streamline this into emsolver using specs
-   // if constexpr (laser_enabled) {
-   //    add_gaussianbeam(emsolver);
-   // }
-   //
-   // if constexpr (rmf_enabled) {
-   //    add_rmf_antennas(emsolver, rmf_params);
-   // }
-   //
-   // if constexpr (raman_enabled) {
-   //    add_raman_source(emsolver);
-   // }
+   emsolver_t emsolver{Nx, Ny, Nz};
 
    if constexpr (velocity_backstep_enabled) {
-      // computeBFields() and updateTotalFields() is done in EMSolver ctor
+      // initial computeBFields() and updateTotalFields() is done in EMSolver ctor
       for (auto& g : particle_groups | std::views::values) {
          ParticlePusher::backstep_velocity(g, emsolver.emdata);
       }
    }
 
 
-   const Metrics metrics(
+   const Metrics metrics{
       std::string{sim_path} + "/data/" + std::string{sim_name},
       metric_spec,
       emsolver.emdata.em_map,
       particle_groups
-   );
+   };
 
    auto time = 0.0;
    auto step = 0zu;

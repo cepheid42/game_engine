@@ -222,7 +222,7 @@ struct GaussianBeam : CurrentSource {
 }; // end struct GaussianBeam
 
 
-void add_gaussianbeam(auto& em) {
+void add_gaussianbeam(auto& em_data) {
    using temporal_vec = std::vector<std::unique_ptr<TemporalSource>>;
    constexpr auto lambda = 8.0e-7; // 0.8 microns, or 800 nm
    constexpr auto omega = 2.0 * constants::pi * constants::c / lambda;
@@ -259,10 +259,10 @@ void add_gaussianbeam(auto& em) {
       return result;
    };
 
-   em.emdata.beams.emplace_back(
-      &em.emdata.Ey,
-      &em.emdata.Hx,
-      &em.emdata.Hz,
+   em_data.beams.emplace_back(
+      &em_data.Ey,
+      &em_data.Hx,
+      &em_data.Hz,
       w0,
       omega,
       waist_pos,

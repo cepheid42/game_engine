@@ -27,12 +27,12 @@ inline constexpr auto dt    = 4e-17;
 inline constexpr auto t_end = 1.5e-13;
 inline constexpr auto Nt    = 3750zu;
 
-inline constexpr auto sim_name = "LSI_HC";
+inline constexpr auto sim_name = "lsi_test";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
 
 inline constexpr auto   em_enabled = true;
-inline constexpr auto push_enabled = true;
-inline constexpr auto jdep_enabled = true;
+inline constexpr auto push_enabled = false;
+inline constexpr auto jdep_enabled = false;
 inline constexpr auto coll_enabled = false;
 inline constexpr auto applied_fields_only = false;
 inline constexpr auto velocity_backstep_enabled = true;
@@ -58,6 +58,7 @@ inline constexpr auto nHalo = 0zu;
 // Periodic = 0, PML = 1, Reflecting = 2
 inline constexpr std::array BCSelect = {1zu, 1zu, 2zu, 2zu, 1zu, 1zu};
 
+inline constexpr auto laser_enabled = true;
 inline constexpr auto applied_fields_path = "";
 
 /*---------------------------------------------------------------/
@@ -76,7 +77,7 @@ inline constexpr auto PBCDepth = 3zu;
 inline constexpr std::array<ParticleGroupSpec, 2> particle_spec = {
    ParticleGroupSpec{
       .name = "electrons",
-      .filepath = "/data/LSI_HC/electrons.bp",
+      .filepath = "/data/lsi_test/electrons.bp",
       .mass = 9.1093837139e-31,
       .charge = -1.0,
       .atomic_number = 0,
@@ -84,7 +85,7 @@ inline constexpr std::array<ParticleGroupSpec, 2> particle_spec = {
    },
    ParticleGroupSpec{
       .name = "ions",
-      .filepath = "/data/LSI_HC/ions.bp",
+      .filepath = "/data/lsi_test/ions.bp",
       .mass = 1.67262192595e-27,
       .charge = 1.0,
       .atomic_number = 1,
@@ -101,10 +102,9 @@ inline constexpr std::array<CollisionSpec, 0> collision_spec = {
 /---------------------------------------------------------------*/
 enum class MetricType { ParticleDump, ParticleDiag, ParticleEnergy, FieldDump, FieldEnergy };
 
-inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/LSI_HC";
-inline constexpr std::array<MetricType, 2> metric_spec = {
-	MetricType::ParticleEnergy,
-	MetricType::FieldEnergy
+inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/lsi_test";
+inline constexpr std::array<MetricType, 1> metric_spec = {
+	MetricType::FieldDump
 };
 
 #endif //PROGRAM_PARAM_HPP

@@ -157,6 +157,7 @@ def update_header(params, project_path):
         '// Periodic = 0, PML = 1, Reflecting = 2\n'
         f'inline constexpr std::array BCSelect = {{{bc_str}}};\n'
         '\n'
+        f'inline constexpr auto laser_enabled = {str(em_params.laser_enabled).lower()};\n'
         f'inline constexpr auto applied_fields_path = "{em_params.applied_fields}";\n'
         '\n'
         '/*---------------------------------------------------------------/\n'

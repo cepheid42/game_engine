@@ -64,9 +64,9 @@ struct CurrentDeposition {
 
       // Offsets for Even/Odd order interpolation
       static constexpr vec3 offset{
-         XShape::Order % 2 == 0 ? 0.0 : 0.5,
-         YShape::Order % 2 == 0 ? 0.0 : 0.5,
-         ZShape::Order % 2 == 0 ? 0.0 : 0.5
+         XShape::Order % 2 == 0 ? 0.5 : 0.0,
+         YShape::Order % 2 == 0 ? 0.5 : 0.0,
+         ZShape::Order % 2 == 0 ? 0.5 : 0.0
       };
 
       // Early return if Jdep isn't needed

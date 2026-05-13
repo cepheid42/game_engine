@@ -31,8 +31,12 @@ struct EMSolver {
 
    explicit EMSolver(const std::size_t nx, const std::size_t ny, const std::size_t nz)
    : emdata(nx, ny, nz),
-     bcdata(this->emdata)
+     bcdata(emdata)
    {
+      if constexpr (laser_enabled) {
+         add_gaussianbeam(emdata);
+      }
+
       if constexpr (em_enabled) {
          computeBField();
       }
