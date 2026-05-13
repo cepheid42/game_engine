@@ -140,45 +140,41 @@ subprocess.run(
 
 subprocess.run(build_path + '/game_engine').check_returncode()
 
-# # ===========================
-# # ===== Post Processing =====
-# # ===========================
-# J_to_kJ = 1.0e-3
-# s_to_fs = 1.0e15
-# Vm_to_kVcm = 1.0e-5
-# T_to_gauss = 1.0e4
-#
-# ey_lines = []
-# bz_lines = []
-# times = []
-# for n in range(0, nt + save_interval, save_interval):
-#     print(n)
-#     with FileReader(data_path + f'/fields_{n:010d}.bp') as f:
-#         ey_lines.append(f.read('Ey')[:, 0, shape[2] // 2])
-#         # bz_lines.append(f.read('Bz')[:, 0, shape[2] // 2])
-#         bz_lines.append(f.read('Ex')[:, 0, :])
-#         print(np.nonzero(bz_lines[-1]))
-#         # times.append(f.read('Time'))
-#
-#
-# fig, ax = plt.subplots(2, 1, figsize=(10, 10), layout='constrained')
-#
-# # xs = np.linspace(xmin, xmax, shape[0], endpoint=True)
-#
-# num = 25
-# fig.suptitle(f't = {times[num]} s')
-#
-# ax[1].contourf(bz_lines[num])
-#
-# # ax[0].plot(xs, Vm_to_kVcm * ey_lines[num])
-# # ax[0].set_xlabel('x')
-# # ax[0].set_ylabel('Ey (kV/cm)')
-# #
-# # ax[1].plot(xs[:-1], T_to_gauss * bz_lines[num])
-# # ax[1].set_xlabel('x')
-# # ax[1].set_ylabel('Bz (G)')
-#
-# plt.show()
+# ===========================
+# ===== Post Processing =====
+# ===========================
+J_to_kJ = 1.0e-3
+s_to_fs = 1.0e15
+Vm_to_kVcm = 1.0e-5
+T_to_gauss = 1.0e4
+
+ey_lines = []
+bz_lines = []
+times = []
+for n in range(0, nt + save_interval, save_interval):
+    with FileReader(data_path + f'/fields_{n:010d}.bp') as f:
+        ey_lines.append(f.read('Ey')[:, 0, shape[2] // 2])
+        bz_lines.append(f.read('Hz')[:, 0, shape[2] // 2])
+        # bz_lines.append(f.read('Hz')[:, 0, :])
+        times.append(f.read('Time'))
+
+
+fig, ax = plt.subplots(2, 1, figsize=(10, 10), layout='constrained')
+
+xs = np.linspace(xmin, xmax, shape[0], endpoint=True)
+
+num = 25
+fig.suptitle(f't = {times[num]} s')
+
+ax[0].plot(xs, Vm_to_kVcm * ey_lines[num])
+ax[0].set_xlabel('x')
+ax[0].set_ylabel('Ey (kV/cm)')
+
+ax[1].plot(xs[:-1], T_to_gauss * constants.mu_0 * bz_lines[num])
+ax[1].set_xlabel('x')
+ax[1].set_ylabel('Bz (G)')
+
+plt.show()
 
 # with FileReader(data_path + '/fields_energy.bp') as f:
 #     variables = f.available_variables()

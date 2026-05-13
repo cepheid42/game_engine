@@ -1,8 +1,10 @@
 #ifndef EM_SOLVER_HPP
 #define EM_SOLVER_HPP
 
-#include "em_data.hpp"
 #include "em_definitions.hpp"
+#include "em_data.hpp"
+
+#include <print>
 
 namespace tf::electromagnetics {
 
