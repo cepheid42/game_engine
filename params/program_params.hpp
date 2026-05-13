@@ -25,15 +25,15 @@ inline constexpr auto dz = 2e-08;
 
 inline constexpr auto cfl   = 0.8479411200023808;
 inline constexpr auto dt    = 4e-17;
-inline constexpr auto t_end = 3e-13;
-inline constexpr auto Nt    = 7500zu;
+inline constexpr auto t_end = 1.5e-13;
+inline constexpr auto Nt    = 3750zu;
 
 inline constexpr auto sim_name = "lsi_test";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
 
 inline constexpr auto   em_enabled = true;
-inline constexpr auto push_enabled = true;
-inline constexpr auto jdep_enabled = true;
+inline constexpr auto push_enabled = false;
+inline constexpr auto jdep_enabled = false;
 inline constexpr auto coll_enabled = false;
 
 /*---------------------------------------------------------------/
@@ -42,9 +42,9 @@ inline constexpr auto coll_enabled = false;
 enum class EMFace { X, Y, Z };
 enum class EMSide { Lo, Hi };
 
-inline constexpr auto em_save_interval = 75zu;
+inline constexpr auto em_save_interval = 50zu;
 
-inline constexpr auto PMLDepth    = 15zu;
+inline constexpr auto PMLDepth    = 25zu;
 inline constexpr auto PMLGrade    = 3.5;
 inline constexpr auto PMLAlphaMax = 0.2;
 //inline constexpr auto PMLKappaMax = 1.0;
@@ -61,7 +61,7 @@ inline constexpr auto applied_fields_path = "";
 /---------------------------------------------------------------*/
 enum class ParticleBCType { Reflecting, Periodic, Outflow };
 
-inline constexpr auto particle_save_interval = 75zu;
+inline constexpr auto particle_save_interval = 50zu;
 inline constexpr auto interpolation_order = 1zu;
 
 inline constexpr auto PBCSelect = ParticleBCType::Outflow;
@@ -70,14 +70,14 @@ inline constexpr std::array particle_spec = {
    ParticleGroupSpec{
       .name = "electrons",
       .filepath = "/data/lsi_test/electrons.bp",
-      .mass = 9.1093837015e-31,
+      .mass = 9.1093837139e-31,
       .charge = -1.0,
       .atomic_number = 1
    },
    ParticleGroupSpec{
       .name = "ions",
       .filepath = "/data/lsi_test/ions.bp",
-      .mass = 1.67262192369e-27,
+      .mass = 1.67262192595e-27,
       .charge = 1.0,
       .atomic_number = 1
    }
@@ -93,9 +93,8 @@ inline constexpr std::array<CollisionSpec, 0> collision_spec = {
 enum class MetricType { ParticleDump, ParticleDiag, ParticleEnergy, FieldDump, FieldEnergy };
 
 inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/lsi_test";
-inline constexpr std::array<MetricType, 2> metric_spec = {
-	MetricType::ParticleEnergy,
-	MetricType::FieldEnergy
+inline constexpr std::array<MetricType, 1> metric_spec = {
+	MetricType::FieldDump
 };
 
 #endif //PROGRAM_PARAM_HPP

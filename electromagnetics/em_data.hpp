@@ -67,6 +67,17 @@ struct EMData {
    {
       init_coefficients();
       load_applied_fields();
+      em_map = {
+         {"Ex", Ex},
+         {"Ey", Ey},
+         {"Ez", Ez},
+         {"Hx", Hx},
+         {"Hy", Hy},
+         {"Hz", Hz},
+         {"Jx", Jx},
+         {"Jy", Jy},
+         {"Jz", Jz}
+      };
    }
 
    void init_coefficients() {
@@ -203,17 +214,7 @@ struct EMData {
 
    Array3D<null_t> empty{}; // for the shits and possibly also some giggles...
 
-   std::unordered_map<std::string, Array3D<double>&> em_map = {
-      {"Ex", Ex},
-      {"Ey", Ey},
-      {"Ez", Ez},
-      {"Hx", Hx},
-      {"Hy", Hy},
-      {"Hz", Hz},
-      {"Jx", Jx},
-      {"Jy", Jy},
-      {"Jz", Jz}
-   };
+   std::unordered_map<std::string, Array3D<double>&> em_map{};
 };
 
 using emdata_t = EMData;
