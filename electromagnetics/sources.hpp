@@ -6,8 +6,11 @@
 #include "array.hpp"
 #include "math_utils.hpp"
 
+#include <fstream>
+#include <limits>
 #include <cassert>
 #include <memory>
+#include <print>
 
 namespace tf::electromagnetics {
 struct TemporalSource {
@@ -155,35 +158,68 @@ struct GaussianBeam : CurrentSource {
    using array_t  = Array3D<double>;
    using offset_t = std::array<std::size_t, 6>;
 
-   GaussianBeam(array_t* const         f_,
-                const double        waist_,
-                const double        omega_,
-                const vec3<double>& waist_pos_,
+   GaussianBeam(array_t* const      f_,
+                const double        w0_,
+                const double,
+                const vec3<double>&,
                 SpatialSource&&        s_)
    : CurrentSource(f_, std::forward<SpatialSource>(s_)),
-     waist_size(waist_),
-     waist_pos(waist_pos_),
+     w0(w0_),
      coeffs(src.offsets[5] - src.offsets[4])
    {
       const auto& [x0, x1, y0, y1, z0, z1] = src.offsets;
-      assert((z1 - z0) == coeffs.size());
-      const auto xpos = x_range[0] + (static_cast<double>(x0) * dx);
-      const auto z    = waist_pos[0] - xpos; // +x? direction
-      assert(z != 0.0);
-      const auto k  = omega_ / constants::c;
-      const auto zR = 0.5 * k * math::SQR(waist_size);
-      const auto wz = waist_size * std::sqrt(1.0 + math::SQR(z / zR));
-      const auto RC   = z * (1.0 + math::SQR(zR / z));
-      const auto gouy = std::atan2(z, zR);
-      const auto c1   = waist_size / wz;
+
       const auto zmin = z_range[0] + dz * static_cast<double>(z0);
-      const auto zmax = z_range[0] + dz * static_cast<double>(z1 - 1);
+      const auto zmax = z_range[0] + dz * static_cast<double>(z1);
       const auto r = math::linspace(zmin, zmax, z1 - z0, true);
-      const auto wz2 = wz * wz;
-      for (std::size_t i = 0; i < r.size(); ++i) {
-         const auto r2 = r[i] * r[i];
-         coeffs[i] = c1 * std::exp(-r2 / wz2) * std::cos(0.5 * k * r2 / RC - gouy);
+
+      constexpr auto wvl = 8.0e-7;
+      constexpr auto xspot = -15.0e-6;
+
+      constexpr auto k = 2.0 * constants::pi / wvl;
+      const auto xR = constants::pi * math::SQR(w0) / wvl;
+      const auto wx = w0 * std::sqrt(1.0 + math::SQR(xspot / xR));
+      const auto RC = xspot * (1.0 + math::SQR(xR / xspot));
+      const auto gouy = std::atan(xspot / xR);
+
+      for (auto i = 0zu; i < r.size(); ++i) {
+         coeffs[i] = (w0 / wx)
+         * std::exp(-math::SQR(r[i] / wx))
+         * std::cos(k * xspot + 0.5 * k * math::SQR(r[i]) / RC - gouy);
       }
+
+      // std::ofstream file;
+      // file.open("/home/cepheid/TriForce/game_engine/data/coeffs.txt");
+      // file.precision(std::numeric_limits<double>::max_digits10);
+      // for (auto i = 0zu; i < r.size(); ++i) {
+      //    // file << r[i] << '\n';
+      //    file << coeffs[i] << '\n';
+      //    // file << (w0 / wx)
+      //    // * std::exp(-math::SQR(r[i] / wx))
+      //    // * std::cos(k * xspot + 0.5 * k * math::SQR(r[i]) / RC - gouy) << '\n';
+      // }
+      // file.close();
+      // exit(0);
+
+      // assert((z1 - z0) == coeffs.size());
+      // const auto xpos = x_range[0] + (static_cast<double>(x0) * dx);
+      // const auto z    = xpos - waist_pos[0];
+      // assert(z != 0.0);
+      // const auto k  = omega_ / constants::c;
+      // const auto zR = 0.5 * k * math::SQR(waist_size);
+      // const auto wz = waist_size * std::sqrt(1.0 + math::SQR(z / zR));
+      // const auto RC   = -1.0e6 * z * (1.0 + math::SQR(zR / z));
+      // const auto gouy = std::atan(z / zR);
+      // const auto c1   = waist_size / wz;
+      // const auto zmin = z_range[0] + dz * static_cast<double>(z0);
+      // const auto zmax = z_range[0] + dz * static_cast<double>(z1 - 1);
+      // const auto r = math::linspace(zmin, zmax, z1 - z0, true);
+      // const auto wz2 = wz * wz;
+      //
+      // for (std::size_t i = 0; i < r.size(); ++i) {
+      //    const auto r2 = r[i] * r[i];
+      //    coeffs[i] = c1 * std::exp(-r2 / wz2) * std::cos(0.5 * k * r2 / RC - gouy);
+      // }
    } // end GaussianBeam ctor
 
    void apply(const double t) const {
@@ -200,7 +236,7 @@ struct GaussianBeam : CurrentSource {
       }
    }
 
-   double              waist_size;
+   double              w0;
    vec3<double>        waist_pos;
    std::vector<double> coeffs;
 }; // end struct GaussianBeam
@@ -211,29 +247,30 @@ void add_gaussianbeam(auto& em) {
    constexpr auto omega = 2.0 * constants::pi * constants::c / lambda;
 
    constexpr auto amp = 1.583 * 2.75e13; // V/m
-   constexpr auto w0 = 2.5479e-6; // meters, waste size
+   constexpr auto w0 = 2.54796540e-6; // meters, waste size
 
-   constexpr auto width = 1.2739827e-14; // ~12.74 fs
-   constexpr auto delay = 40.0e-15; // 30 fs
+   // constexpr auto width = 1.2739827e-14; // ~12.74 fs
+   // constexpr auto delay = 40.0e-15; // 30 fs
 
+   constexpr auto omega_env = constants::pi / 60.0e-15;
 
    vec3 waist_pos{0.0, 0.0, 0.0};
+   // vec3 waist_pos{x_range[1], 0.0, 0.0};
 
-   constexpr auto x0 = PMLDepth + 20lu;
+   constexpr auto x0 = PMLDepth + 10zu;
    constexpr auto x1 = x0 + 1;
    constexpr auto y0 = 0lu;
    constexpr auto y1 = 1lu;
-   constexpr auto z0 = PMLDepth + 20lu;
-   constexpr auto z1 = Nz - z0;
+   constexpr auto z0 = PMLDepth + 10zu;
+   constexpr auto z1 = Nz - z0 - 1;
 
-   using continuous_t = ContinuousSource;
    auto make_continuous = [&](temporal_vec& srcs) {
-      srcs.push_back(std::make_unique<continuous_t>(omega, 0.0, 0.0, 1.0e30));
+      srcs.push_back(std::make_unique<ContinuousSource>(omega, 0.0, 0.0, 1.0e30));
    };
 
-   using gaussian_t = GaussianSource;
    auto make_gaussian = [&](temporal_vec& srcs) {
-      srcs.push_back(std::make_unique<gaussian_t>(width, 2.0, delay));
+      // srcs.push_back(std::make_unique<GaussianSource>(width, 2.0, delay));
+      srcs.push_back(std::make_unique<ContinuousSource>(omega_env, 0.0, 0.0, 60.0e-15));
    };
 
    auto make_srcvec = [&]() -> temporal_vec {

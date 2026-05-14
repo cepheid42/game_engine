@@ -21,8 +21,6 @@ def update_Ez(Ez, Hy, Hx, ceze, cezh):
                       +  cezh[1:-1, 1:-1, :] * ((Hy[1:, 1:-1, :] - Hy[:-1, 1:-1, :])
                                              -  (Hx[1:-1, 1:, :] - Hx[1:-1, :-1, :])))
 
-
-
 def update_Hx(Hx, Ey, Ez, chxh, chxe):
     Hx[:, :, :] = (chxh[:, :, :] * Hx[:, :, :]
                 +  chxe[:, :, :] * ((Ey[:, :, 1:] - Ey[:, :, :-1])

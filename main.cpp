@@ -5,7 +5,7 @@
 #include "particles/particles.hpp"
 #include "particles/pusher.hpp"
 #include "particles/current_deposition.hpp"
-#include "particles/collisions.hpp"
+// #include "particles/collisions.hpp"
 
 #include "barkeep.h"
 
@@ -15,7 +15,7 @@
 using namespace tf;
 using namespace tf::electromagnetics;
 using namespace tf::particles;
-using namespace tf::collisions;
+// using namespace tf::collisions;
 using namespace tf::metrics;
 
 namespace bk = barkeep;
@@ -31,10 +31,10 @@ int main() {
       particle_groups.insert({std::string{species.name}, ParticleGroup(species)});
    }
 
-   std::vector<Collisions> collisions;
-   for (const auto& col : collision_spec) {
-      collisions.emplace_back(col, particle_groups);
-   }
+   // std::vector<Collisions> collisions;
+   // for (const auto& col : collision_spec) {
+   //    collisions.emplace_back(col, particle_groups);
+   // }
 
    emsolver_t emsolver(Nx, Ny, Nz);
    add_gaussianbeam(emsolver);
@@ -98,12 +98,12 @@ int main() {
       }
       timers["Jdep"].stop_timer();
 
-      // Collisions
-      timers["Collisions"].start_timer();
-      for (auto& c : collisions) {
-         c.advance(step);
-      }
-      timers["Collisions"].stop_timer();
+      // // Collisions
+      // timers["Collisions"].start_timer();
+      // for (auto& c : collisions) {
+      //    c.advance(step);
+      // }
+      // timers["Collisions"].stop_timer();
 
       // Metrics output
       timers["IO"].start_timer();

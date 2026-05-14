@@ -17,18 +17,18 @@ project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
 
-shape = (1501, 2, 1501)
+shape = (1551, 2, 1551)
 
-xmin, xmax = -15.0e-6, 15.0e-6
+xmin, xmax = -15.5e-6, 15.5e-6
 ymin, ymax = 0.0, 0.01
-zmin, zmax = -15.0e-6, 15.0e-6
+zmin, zmax = -15.5e-6, 15.5e-6
 
 dx = (xmax - xmin) / (shape[0] - 1)
 dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
 
 dt = 4.0e-17
-t_end = 1.5e-13 #3.0e-13
+t_end = 3.0e-13
 nt = int(t_end / dt) + 1
 cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
@@ -88,7 +88,7 @@ particle_params = ParticleParams(
 # ==================================
 em_params = EMParams(
     save_interval=save_interval,
-    pml_depth=25,
+    pml_depth=15,
     em_bcs=(1, 1, 2, 2, 1, 1),
 )
 
@@ -97,8 +97,7 @@ em_params = EMParams(
 # ==========================
 metric_params = Metrics(
     data_path,
-    # (MetricType.ParticleEnergy, MetricType.FieldEnergy)
-    (MetricType.FieldDump,)
+    (MetricType.ParticleEnergy, MetricType.FieldEnergy, MetricType.FieldDump)
 )
 
 # ============================
@@ -107,7 +106,7 @@ metric_params = Metrics(
 sim_params = Simulation(
     name=sim_name,
     shape=shape,
-    nthreads=32,
+    nthreads=48,
     dt=dt,
     t_end=t_end,
     nt=nt,
@@ -131,7 +130,7 @@ print(f'Setting up "{sim_name}"')
 create_particles(sim_params, electrons, data_path)
 create_particles(sim_params, ions, data_path)
 update_header(sim_params, project_path=project_path)
-#
+
 subprocess.run(
     ['meson', 'compile', '-C', build_path, '-j4'],
     stdout=subprocess.DEVNULL,
@@ -148,33 +147,34 @@ s_to_fs = 1.0e15
 Vm_to_kVcm = 1.0e-5
 T_to_gauss = 1.0e4
 
-ey_lines = []
-bz_lines = []
-times = []
-for n in range(0, nt + save_interval, save_interval):
-    with FileReader(data_path + f'/fields_{n:010d}.bp') as f:
-        ey_lines.append(f.read('Ey')[:, 0, shape[2] // 2])
-        bz_lines.append(f.read('Hz')[:, 0, shape[2] // 2])
-        # bz_lines.append(f.read('Hz')[:, 0, :])
-        times.append(f.read('Time'))
-
-
-fig, ax = plt.subplots(2, 1, figsize=(10, 10), layout='constrained')
-
 xs = np.linspace(xmin, xmax, shape[0], endpoint=True)
 
-num = 25
-fig.suptitle(f't = {times[num]} s')
+# ey_lines = []
+# bz_lines = []
+# times = []
+for n in range(0, nt, save_interval):
+    with FileReader(data_path + f'/fields_{n:010d}.bp') as f:
+        # ey_lines.append(f.read('Ey')[:, 0, shape[2] // 2])
+        # bz_lines.append(f.read('Hz')[:, 0, shape[2] // 2])
+        # bz_lines.append(f.read('Ey')[:, 0, :])
+        # times.append(f.read('Time'))
+        ey = f.read('Ey')[:, 0, :]
 
-ax[0].plot(xs, Vm_to_kVcm * ey_lines[num])
-ax[0].set_xlabel('x')
-ax[0].set_ylabel('Ey (kV/cm)')
+        fig, ax = plt.subplots(1, 1, figsize=(6, 6), layout='constrained')
+        ax.contourf(ey, levels=50)
+        plt.savefig(data_path + f'/ey_{n:010d}.png')
+        plt.close(fig)
 
-ax[1].plot(xs[:-1], T_to_gauss * constants.mu_0 * bz_lines[num])
-ax[1].set_xlabel('x')
-ax[1].set_ylabel('Bz (G)')
 
-plt.show()
+# ax[0].plot(xs, Vm_to_kVcm * ey_lines[num])
+# ax[0].set_xlabel('x')
+# ax[0].set_ylabel('Ey (kV/cm)')
+#
+# ax[1].plot(xs[:-1], T_to_gauss * constants.mu_0 * bz_lines[num])
+# ax[1].set_xlabel('x')
+# ax[1].set_ylabel('Bz (G)')
+
+# plt.show()
 
 # with FileReader(data_path + '/fields_energy.bp') as f:
 #     variables = f.available_variables()
@@ -228,8 +228,8 @@ plt.show()
 # # ax[1].set_ylim([0, 15])
 # # ax[2].set_ylim([0, 15])
 #
-# plt.savefig(data_path + f'/lsi_comp_normal.png')
-# plt.close(fig)
+# # plt.savefig(data_path + f'/lsi_comp_normal.png')
+# # plt.close(fig)
 #
-# # plt.show()
+# plt.show()
 
