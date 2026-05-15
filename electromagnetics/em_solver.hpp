@@ -164,7 +164,7 @@ struct EMSolver {
          src.apply(t);
       }
 
-      for (const auto& src: emdata.beams) {
+      for (auto& src: emdata.beams) {
          src.apply(t);
       }
    }

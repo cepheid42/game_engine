@@ -88,12 +88,14 @@ def main():
         update_Hy(Hy, Ez, Ex, chyh, chye)
         update_Hz(Hz, Ex, Ey, chzh, chze)
 
+        Ex[nx // 2, ny // 2, nz // 2] += ricker(n, cfl)
+        
         update_Ex(Ex, Hz, Hy, cexe, cexh)
         update_Ey(Ey, Hx, Hz, ceye, ceyh)
         update_Ez(Ez, Hy, Hx, ceze, cezh)
 
 
-        Ex[nx // 2, ny // 2, nz // 2] += ricker(n, cfl)
+
 
         if n % save_step == 0:
             cax.clear()

@@ -28,11 +28,11 @@ dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
 
 dt = 4.0e-17
-t_end = 3.0e-13
+t_end = 1.0e-13 #3.0e-13
 nt = int(t_end / dt) + 1
 cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
-save_interval = 50
+save_interval = 25
 
 # =====================
 # ===== Particles =====
@@ -159,11 +159,12 @@ for n in range(0, nt, save_interval):
         # bz_lines.append(f.read('Ey')[:, 0, :])
         # times.append(f.read('Time'))
         ey = f.read('Ey')[:, 0, :]
+        print(f'{np.max(ey):e}')
 
-        fig, ax = plt.subplots(1, 1, figsize=(6, 6), layout='constrained')
-        ax.contourf(ey, levels=50)
-        plt.savefig(data_path + f'/ey_{n:010d}.png')
-        plt.close(fig)
+        # fig, ax = plt.subplots(1, 1, figsize=(6, 6), layout='constrained')
+        # ax.contourf(ey, levels=50)
+        # plt.savefig(data_path + f'/ey_{n:010d}.png')
+        # plt.close(fig)
 
 
 # ax[0].plot(xs, Vm_to_kVcm * ey_lines[num])

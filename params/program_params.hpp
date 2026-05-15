@@ -25,8 +25,8 @@ inline constexpr auto dz = 2e-08;
 
 inline constexpr auto cfl   = 0.8479411200023808;
 inline constexpr auto dt    = 4e-17;
-inline constexpr auto t_end = 3e-13;
-inline constexpr auto Nt    = 7500zu;
+inline constexpr auto t_end = 1e-13;
+inline constexpr auto Nt    = 2501zu;
 
 inline constexpr auto sim_name = "lsi_test";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
@@ -42,7 +42,7 @@ inline constexpr auto coll_enabled = false;
 enum class EMFace { X, Y, Z };
 enum class EMSide { Lo, Hi };
 
-inline constexpr auto em_save_interval = 50zu;
+inline constexpr auto em_save_interval = 25zu;
 
 inline constexpr auto PMLDepth    = 15zu;
 inline constexpr auto PMLGrade    = 3.5;
@@ -61,7 +61,7 @@ inline constexpr auto applied_fields_path = "";
 /---------------------------------------------------------------*/
 enum class ParticleBCType { Reflecting, Periodic, Outflow };
 
-inline constexpr auto particle_save_interval = 50zu;
+inline constexpr auto particle_save_interval = 25zu;
 inline constexpr auto interpolation_order = 1zu;
 
 inline constexpr auto PBCSelect = ParticleBCType::Outflow;

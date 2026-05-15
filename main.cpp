@@ -37,7 +37,7 @@ int main() {
    // }
 
    emsolver_t emsolver(Nx, Ny, Nz);
-   add_gaussianbeam(emsolver);
+   emsolver.emdata.beams.emplace_back(emsolver.emdata.Ey);
 
 
    const Metrics metrics(
