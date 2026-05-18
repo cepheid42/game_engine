@@ -1,10 +1,10 @@
+#include "program_params.hpp"
 #include "em_solver.hpp"
 #include "metrics.hpp"
-#include "program_params.hpp"
 #include "timers.hpp"
-#include "particles/current_deposition.hpp"
 #include "particles/particles.hpp"
 #include "particles/pusher.hpp"
+#include "particles/current_deposition.hpp"
 // #include "particles/collisions.hpp"
 
 #include "barkeep.h"
@@ -37,7 +37,7 @@ int main() {
    //    collisions.emplace_back(col, particle_groups);
    // }
 
-   emsolver_t emsolver{Nx, Ny, Nz};
+   emsolver_t emsolver(Nx, Ny, Nz);
 
    if constexpr (velocity_backstep_enabled) {
       // initial computeBFields() and updateTotalFields() is done in EMSolver ctor
@@ -46,6 +46,9 @@ int main() {
       }
    }
 
+   if (laser_enabled) {
+      emsolver.emdata.beams.emplace_back(emsolver.emdata.Ey);
+   }
 
    const Metrics metrics{
       std::string{sim_path} + "/data/" + std::string{sim_name},

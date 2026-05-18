@@ -151,56 +151,43 @@ struct CurrentSource {
    SpatialSource  src;
 }; // end struct CurrentSource
 
-struct GaussianBeam : CurrentSource {
+struct GaussianBeam {
    using array_t  = Array3D<double>;
    using offset_t = std::array<std::size_t, 6>;
 
-   GaussianBeam(array_t* const         Ey_,
-                array_t* const         Hx_,
-                array_t* const         Hz_,
-                const double        waist_,
-                const double        omega_,
-                const vec3<double>& waist_pos_,
-                SpatialSource&&        s_)
-   : CurrentSource(Ey_, std::forward<SpatialSource>(s_)),
-     Hx(Hx_),
-     Hz(Hz_),
-     waist_size(waist_),
-     waist_pos(waist_pos_),
-     coeffs(src.offsets[5] - src.offsets[4])
-   {
-      const auto& [x0, x1, y0, y1, z0, z1] = src.offsets;
-      assert((z1 - z0) == coeffs.size());
-      const auto xpos = x_range[0] + (static_cast<double>(x0) * dx);
-      const auto z    = waist_pos[0] - xpos; // +x? direction
-      assert(z != 0.0);
-      const auto k  = omega_ / constants::c;
-      const auto zR = 0.5 * k * math::SQR(waist_size);
-      const auto wz = waist_size * std::sqrt(1.0 + math::SQR(z / zR));
-      const auto RC   = z * (1.0 + math::SQR(zR / z));
-      const auto gouy = std::atan2(z, zR);
-      const auto c1   = waist_size / wz;
-      const auto zmin = z_range[0] + dz * static_cast<double>(z0);
-      const auto zmax = z_range[0] + dz * static_cast<double>(z1 - 1);
-      const auto r = math::linspace(zmin, zmax, z1 - z0, true);
-      const auto wz2 = wz * wz;
-      for (std::size_t i = 0; i < r.size(); ++i) {
-         const auto r2 = r[i] * r[i];
-         coeffs[i] = c1 * std::exp(-r2 / wz2) * std::cos(0.5 * k * r2 / RC - gouy);
-      }
-   } // end GaussianBeam ctor
+   explicit GaussianBeam(array_t& field_)
+   : field(field_),
+     zs(math::linspace(-15.0e-6, 15.0e-6, 1500)),
+     src_prev(1500)
+   {}
 
    void apply(const double t) const {
-      const auto& [x0, x1, y0, y1, z0, z1] = src.offsets;
-      const auto  val                      = src.eval(t);
-      if (val == 0.0) { return; }
+      if (t > 60.0e-15) { return; }
 
-      for (size_t i = x0; i < x1; ++i) {
-         for (size_t j = y0; j < y1; ++j) {
-            for (size_t k = z0; k < z1; ++k) {
-               (*field)(i, j, k) += coeffs[k - z0] * val;
-            }
-         }
+      constexpr auto x0 = PMLDepth + 10zu;
+      constexpr auto z0 = PMLDepth + 10zu;
+      constexpr auto z1 = Nz - z0 - 1zu;
+
+      constexpr auto lambda = 8.0e-7;
+      constexpr auto omega = 2.0 * constants::pi * constants::c / lambda;
+      constexpr auto omega_env = constants::pi / 60.0e-15;
+      constexpr auto E0 = -2.75e13; // V/m
+      constexpr auto w0 = 2.5479e-6;   // meters, waste size
+      constexpr auto xspot = 15.0e-6;
+      constexpr auto xR = constants::pi * math::SQR(w0) / lambda;
+      constexpr auto RC = xspot * (1.0 + math::SQR(xR / xspot));
+      constexpr auto kn = 2.0 * constants::pi / lambda;
+      constexpr auto fudge = 1.288;
+
+      const auto wx = w0 * std::sqrt(1.0 + math::SQR(xspot / xR));
+      const auto gouy = std::atan(xspot / xR);
+      const auto c1 = fudge * E0 * w0 / wx;
+
+      for (auto k = z0; k < z1; ++k) {
+         const auto kdx = k - z0;
+         field(x0, 0, k) += c1 * std::exp(-math::SQR(zs[kdx] / wx))
+                               * std::sin(omega_env * t)
+                               * std::sin(omega * t + 0.5 * kn * math::SQR(zs[kdx]) / RC - gouy);
       }
 
       // const auto H_src = src.eval(t);
@@ -214,65 +201,11 @@ struct GaussianBeam : CurrentSource {
       // }
    }
 
-   array_t* const Hx;
-   array_t* const Hz;
-   double              waist_size;
-   vec3<double>        waist_pos;
-   std::vector<double> coeffs;
+   array_t& field;
+   std::vector<double> zs;
+   std::vector<double> src_prev;
 }; // end struct GaussianBeam
 
-
-void add_gaussianbeam(auto& em_data) {
-   using temporal_vec = std::vector<std::unique_ptr<TemporalSource>>;
-   constexpr auto lambda = 8.0e-7; // 0.8 microns, or 800 nm
-   constexpr auto omega = 2.0 * constants::pi * constants::c / lambda;
-
-   constexpr auto amp = 1.583 * 2.75e13; // V/m
-   constexpr auto w0 = 2.5479e-6; // meters, waste size
-
-   constexpr auto width = 1.2739827e-14; // ~12.74 fs
-   constexpr auto delay = 30.0e-15; // 30 fs
-
-   vec3 waist_pos{0.0, 0.0, 0.0};
-
-   constexpr auto x0 = PMLDepth + 10lu;
-   constexpr auto x1 = x0 + 1;
-   constexpr auto y0 = 0lu;
-   constexpr auto y1 = 1lu;
-   constexpr auto z0 = PMLDepth + 10lu;
-   constexpr auto z1 = Nz - z0;
-
-   using continuous_t = ContinuousSource;
-   auto make_continuous = [&](temporal_vec& srcs) {
-      srcs.push_back(std::make_unique<continuous_t>(omega, 0.0, 0.0, 1.0e30));
-   };
-
-   using gaussian_t = GaussianSource;
-   auto make_gaussian = [&](temporal_vec& srcs) {
-      srcs.push_back(std::make_unique<gaussian_t>(width, 2.0, delay));
-   };
-
-   auto make_srcvec = [&]() -> temporal_vec {
-      temporal_vec result{};
-      make_gaussian(result);
-      make_continuous(result);
-      return result;
-   };
-
-   em_data.beams.emplace_back(
-      &em_data.Ey,
-      &em_data.Hx,
-      &em_data.Hz,
-      w0,
-      omega,
-      waist_pos,
-      SpatialSource(
-         make_srcvec(),
-         amp,
-         {x0, x1, y0, y1, z0, z1}
-      )
-   );
-}
 } // end namespace tf::electromagnetics
 
 #endif //EM_SOURCES_HPP

@@ -1,7 +1,7 @@
 #ifndef METRICS_HPP
 #define METRICS_HPP
 
-// #include "array.hpp"
+#include "array.hpp"
 #include "em_data.hpp"
 #include "interpolation.hpp"
 #include "particles.hpp"
@@ -39,15 +39,8 @@ struct EMFieldsMetric final : detail::MetricBase {
      var_dt(io.DefineVariable<double>("dt")),
      var_time(io.DefineVariable<double>("Time"))
    {
-      BFields.insert({"Bx", Array3D<double>(Nx, Ny - 1, Nz - 1)});
-      BFields.insert({"By", Array3D<double>(Nx - 1, Ny, Nz - 1)});
-      BFields.insert({"Bz", Array3D<double>(Nx - 1, Ny - 1, Nz)});
-
       for (auto& [name, field] : em_map) {
          auto nm = name;
-         if (nm[0] == 'H') {
-            nm[0] = 'B';
-         }
          const auto [xs, ys, zs] = field.dims();
          fields.push_back(FieldVariable{
             .field = &field,
@@ -78,11 +71,6 @@ struct EMFieldsMetric final : detail::MetricBase {
       writer.BeginStep();
 
       for (auto& [field, var] : fields) {
-         if (var.Name()[0] == 'B') {
-            std::ranges::transform(field->begin(), field->end(), BFields[var.Name()].begin(), [](const double el){ return constants::mu0 * el; });
-            field = &BFields[var.Name()];
-         }
-
          writer.Put(var, field->data());
          writer.Put(var_step, step);
          writer.Put(var_dt, dt);
@@ -98,7 +86,6 @@ struct EMFieldsMetric final : detail::MetricBase {
    adios2::Variable<double>      var_dt;
    adios2::Variable<double>      var_time;
    std::vector<FieldVariable>    fields;
-   std::unordered_map<std::string, Array3D<double>> BFields;
 }; // end struct EMFieldsMetric
 
 // =====================================
