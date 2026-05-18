@@ -94,10 +94,9 @@ inline constexpr std::array<CollisionSpec, 0> collision_spec = {
 enum class MetricType { ParticleDump, ParticleDiag, ParticleEnergy, FieldDump, FieldEnergy };
 
 inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/lsi_test";
-inline constexpr std::array<MetricType, 3> metric_spec = {
+inline constexpr std::array<MetricType, 2> metric_spec = {
 	MetricType::ParticleEnergy,
-	MetricType::FieldEnergy,
-	MetricType::FieldDump
+	MetricType::FieldEnergy
 };
 
 #endif //PROGRAM_PARAM_HPP
