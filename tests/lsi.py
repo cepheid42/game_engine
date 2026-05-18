@@ -32,7 +32,7 @@ t_end = 1.0e-13 #3.0e-13
 nt = int(t_end / dt) + 1
 cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
-save_interval = 25
+save_interval = 50
 
 # =====================
 # ===== Particles =====
@@ -90,6 +90,7 @@ em_params = EMParams(
     save_interval=save_interval,
     pml_depth=15,
     em_bcs=(1, 1, 2, 2, 1, 1),
+    laser_enabled=True
 )
 
 # ==========================
@@ -152,21 +153,21 @@ xs = np.linspace(xmin, xmax, shape[0], endpoint=True)
 # ey_lines = []
 # bz_lines = []
 # times = []
+maxes = []
 for n in range(0, nt, save_interval):
     with FileReader(data_path + f'/fields_{n:010d}.bp') as f:
         # ey_lines.append(f.read('Ey')[:, 0, shape[2] // 2])
         # bz_lines.append(f.read('Hz')[:, 0, shape[2] // 2])
         # bz_lines.append(f.read('Ey')[:, 0, :])
         # times.append(f.read('Time'))
-        ey = f.read('Ey')[:, 0, :]
-        print(f'{np.max(ey):e}')
+        maxes.append(f.read('Ey')[:, 0, :])
 
         # fig, ax = plt.subplots(1, 1, figsize=(6, 6), layout='constrained')
         # ax.contourf(ey, levels=50)
         # plt.savefig(data_path + f'/ey_{n:010d}.png')
         # plt.close(fig)
 
-
+print(f'{np.max(np.array(maxes)):e}')
 # ax[0].plot(xs, Vm_to_kVcm * ey_lines[num])
 # ax[0].set_xlabel('x')
 # ax[0].set_ylabel('Ey (kV/cm)')

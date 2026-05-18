@@ -6,8 +6,9 @@
 #include "array.hpp"
 #include "math_utils.hpp"
 
-#include <cassert>
+// #include <cassert>
 #include <memory>
+#include <print>
 
 namespace tf::electromagnetics {
 struct TemporalSource {
@@ -161,7 +162,7 @@ struct GaussianBeam {
      src_prev(1500)
    {}
 
-   void apply(const double t) {
+   void apply(const double t) const {
       if (t > 60.0e-15) { return; }
 
       constexpr auto x0 = PMLDepth + 10zu;
@@ -177,17 +178,17 @@ struct GaussianBeam {
       constexpr auto xR = constants::pi * math::SQR(w0) / lambda;
       constexpr auto RC = xspot * (1.0 + math::SQR(xR / xspot));
       constexpr auto kn = 2.0 * constants::pi / lambda;
+      constexpr auto fudge = 1.288;
 
       const auto wx = w0 * std::sqrt(1.0 + math::SQR(xspot / xR));
       const auto gouy = std::atan(xspot / xR);
+      const auto c1 = fudge * E0 * w0 / wx;
 
       for (auto k = z0; k < z1; ++k) {
          const auto kdx = k - z0;
-
-         field(x0, 0, k) += E0 * std::sqrt(w0 / wx) // TODO: does this truly need a sqrt? What about a fudge factor?
-                         * std::exp(-math::SQR(zs[kdx] / wx))
-                         * std::sin(omega_env * t)
-                         * std::sin(omega * t + 0.5 * kn * math::SQR(zs[kdx]) / RC - gouy);
+         field(x0, 0, k) += c1 * std::exp(-math::SQR(zs[kdx] / wx))
+                               * std::sin(omega_env * t)
+                               * std::sin(omega * t + 0.5 * kn * math::SQR(zs[kdx]) / RC - gouy);
       }
    }
 

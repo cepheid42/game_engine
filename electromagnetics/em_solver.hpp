@@ -159,12 +159,12 @@ struct EMSolver {
    }
 
 
-   void apply_srcs(const double t) {
+   void apply_srcs(const double t) const {
       for (const auto& src: emdata.srcs) {
          src.apply(t);
       }
 
-      for (auto& src: emdata.beams) {
+      for (const auto& src: emdata.beams) {
          src.apply(t);
       }
    }

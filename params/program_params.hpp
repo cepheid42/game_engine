@@ -35,6 +35,7 @@ inline constexpr auto   em_enabled = true;
 inline constexpr auto push_enabled = false;
 inline constexpr auto jdep_enabled = false;
 inline constexpr auto coll_enabled = false;
+inline constexpr auto laser_enabled = true;
 
 /*---------------------------------------------------------------/
 /-                        EM Parameters                         -/
@@ -42,7 +43,7 @@ inline constexpr auto coll_enabled = false;
 enum class EMFace { X, Y, Z };
 enum class EMSide { Lo, Hi };
 
-inline constexpr auto em_save_interval = 25zu;
+inline constexpr auto em_save_interval = 50zu;
 
 inline constexpr auto PMLDepth    = 15zu;
 inline constexpr auto PMLGrade    = 3.5;
@@ -61,7 +62,7 @@ inline constexpr auto applied_fields_path = "";
 /---------------------------------------------------------------*/
 enum class ParticleBCType { Reflecting, Periodic, Outflow };
 
-inline constexpr auto particle_save_interval = 25zu;
+inline constexpr auto particle_save_interval = 50zu;
 inline constexpr auto interpolation_order = 1zu;
 
 inline constexpr auto PBCSelect = ParticleBCType::Outflow;

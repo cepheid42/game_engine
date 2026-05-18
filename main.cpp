@@ -37,8 +37,10 @@ int main() {
    // }
 
    emsolver_t emsolver(Nx, Ny, Nz);
-   emsolver.emdata.beams.emplace_back(emsolver.emdata.Ey);
 
+   if (laser_enabled) {
+      emsolver.emdata.beams.emplace_back(emsolver.emdata.Ey);
+   }
 
    const Metrics metrics(
       std::string{sim_path} + "/data/" + std::string{sim_name},

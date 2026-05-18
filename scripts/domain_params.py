@@ -11,6 +11,7 @@ class EMParams:
     pml_alpha_max: float = 0.2
     em_bcs: tuple = (2, 2, 2, 2, 2, 2)
     applied_fields: str = ''
+    laser_enabled: bool = False
 
 @dataclass
 class ParticleParams:
@@ -264,6 +265,7 @@ def update_header(params: Simulation, project_path: str, ionization_test_overrid
         f'inline constexpr auto push_enabled = {str(params.push_enabled).lower()};\n'
         f'inline constexpr auto jdep_enabled = {str(params.jdep_enabled).lower()};\n'
         f'inline constexpr auto coll_enabled = {str(params.collisions_enabled).lower()};\n'
+        f'inline constexpr auto laser_enabled = {str(em_params.laser_enabled).lower()};\n'
         '\n'
         '/*---------------------------------------------------------------/\n'
         '/-                        EM Parameters                         -/\n'
