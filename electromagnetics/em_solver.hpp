@@ -35,10 +35,6 @@ struct EMSolver {
    : emdata(nx, ny, nz),
      bcdata(emdata)
    {
-      if constexpr (laser_enabled) {
-         add_gaussianbeam(emdata);
-      }
-
       if constexpr (em_enabled) {
          computeBField();
       }

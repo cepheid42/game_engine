@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import constants
 from adios2 import FileReader
 
-from core.pytriforce.domain_params import *
+from scripts.pyforce import *
 
 # =============================
 # ===== Simulation Params =====

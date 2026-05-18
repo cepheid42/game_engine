@@ -8,6 +8,7 @@
 
 #include <cassert>
 #include <memory>
+#include <print>
 
 namespace tf::electromagnetics {
 struct TemporalSource {
@@ -177,11 +178,10 @@ struct GaussianBeam {
       constexpr auto xR = constants::pi * math::SQR(w0) / lambda;
       constexpr auto RC = xspot * (1.0 + math::SQR(xR / xspot));
       constexpr auto kn = 2.0 * constants::pi / lambda;
-      constexpr auto fudge = 1.288;
 
       const auto wx = w0 * std::sqrt(1.0 + math::SQR(xspot / xR));
       const auto gouy = std::atan(xspot / xR);
-      const auto c1 = fudge * E0 * w0 / wx;
+      const auto c1 = 1.196 * E0 * std::sqrt(w0 / wx);
 
       for (auto k = z0; k < z1; ++k) {
          const auto kdx = k - z0;

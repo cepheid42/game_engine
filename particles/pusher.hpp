@@ -96,9 +96,9 @@ static auto fieldAtParticle(Particle& p, const auto& emdata, const auto qdt)
 -> std::array<vec3<double>, 2>
 {
    static constexpr vec3 offset{
-      XFullShape::Order % 2 == 0 ? 0.5 : 0.0,
-      YFullShape::Order % 2 == 0 ? 0.5 : 0.0,
-      ZFullShape::Order % 2 == 0 ? 0.5 : 0.0
+      XFullShape::Order % 2 == 0 ? 0.0 : 0.5,
+      YFullShape::Order % 2 == 0 ? 0.0 : 0.5,
+      ZFullShape::Order % 2 == 0 ? 0.0 : 0.5
    };
 
    const vec3 loc_full = getCellIndices<double>(p.location);
@@ -181,7 +181,7 @@ struct ParticlePusher {
    static void advance_position(group_t& g) {
       #pragma omp parallel for num_threads(nThreads)
       for (auto pid = 0zu; pid < g.num_particles(); pid++) {
-         if (g.particles[pid].is_disabled()) { continue; }
+         // if (g.particles[pid].is_disabled()) { continue; }
          update_position(g.particles[pid]);
       }
    } // end first_advance_position
@@ -190,7 +190,7 @@ struct ParticlePusher {
    static void advance_velocity(group_t& g, const emdata_t& emdata) {
       #pragma omp parallel for num_threads(nThreads)
       for (auto pid = 0zu; pid < g.num_particles(); pid++) {
-         if (g.particles[pid].is_disabled()) { continue; }
+         // if (g.particles[pid].is_disabled()) { continue; }
          ParticleVelocityUpdate<ParticlePushSelect>()(g.particles[pid], emdata, g.qdt_over_2m);
       }
    } // end advance_velocity
