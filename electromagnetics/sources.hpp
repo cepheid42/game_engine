@@ -158,8 +158,7 @@ struct GaussianBeam {
 
    explicit GaussianBeam(array_t& field_)
    : field(field_),
-     zs(math::linspace(-15.0e-6, 15.0e-6, 1500)),
-     src_prev(1500)
+     zs(math::linspace(z_range[0], z_range[1], Nz - 1))
    {}
 
    void apply(const double t) const {
@@ -203,7 +202,6 @@ struct GaussianBeam {
 
    array_t& field;
    std::vector<double> zs;
-   std::vector<double> src_prev;
 }; // end struct GaussianBeam
 
 } // end namespace tf::electromagnetics

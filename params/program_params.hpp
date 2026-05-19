@@ -15,11 +15,11 @@ inline constexpr auto Nx = 551zu;
 inline constexpr auto Ny = 2zu;
 inline constexpr auto Nz = 351zu;
 
-inline constexpr std::array x_range = {-1.55e-05, -5.5e-06};
+inline constexpr std::array x_range = {-1.55e-05, -4.5e-06};
 inline constexpr std::array y_range = {0.0, 0.01};
 inline constexpr std::array z_range = {-1.55e-05, 1.55e-05};
 
-inline constexpr auto dx = 1.8181818181818185e-08;
+inline constexpr auto dx = 2e-08;
 inline constexpr auto dy = 0.01;
 inline constexpr auto dz = 8.857142857142858e-08;
 
@@ -44,7 +44,7 @@ inline constexpr auto ionization_test_enabled = false;
 enum class EMFace { X, Y, Z };
 enum class EMSide { Lo, Hi };
 
-inline constexpr auto em_save_interval = 50zu;
+inline constexpr auto em_save_interval = 5zu;
 inline constexpr auto em_subcycles = 1zu;
 inline constexpr auto dt_em = 4e-17;
 
@@ -67,7 +67,7 @@ inline constexpr auto applied_fields_path = "";
 enum class ParticleBCType { Reflecting, Periodic, Outflow };
 enum class ParticlePushType { Ballistic, Boris, HigueraCary };
 
-inline constexpr auto particle_save_interval = 50zu;
+inline constexpr auto particle_save_interval = 5zu;
 inline constexpr auto sort_frequency = 100zu;
 inline constexpr auto interpolation_order = 1zu;
 inline constexpr auto ParticlePushSelect = ParticlePushType::Boris;
