@@ -47,7 +47,7 @@ Ex_amp = constants.c
 gamma_half = np.sqrt(1.0 + (charge * constants.e * Ex_amp * 0.5 * dt / (mass * constants.c))**2)
 x_half = (mass * constants.c**2) / (charge * constants.e * Ex_amp) * (gamma_half - 1.0)
 
-px_range = (x_half, dx) # meters
+px_range = (0.0, dx) #(x_half, dx) # meters
 py_range = (ymax / 2, dy)
 pz_range = (zmax / 2, dz)
 
@@ -159,7 +159,7 @@ plot_params = [
 fig, ax = plt.subplots(1, 2, figsize=(10, 4), layout='constrained')
 
 ax[0].set_xlabel('time')
-ax[0].set_ylabel(r'|x - x_{an}| / |x_{an}|')
+ax[0].set_ylabel(r'$|x - x_{an}|$ / $|x_{an}|$')
 ax[0].set_yscale('log')
 ax[0].set_xlim([0, 10e8])
 ax[0].set_ylim([1e-15, 1])

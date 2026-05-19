@@ -11,21 +11,21 @@ inline constexpr auto x_collapsed = false;
 inline constexpr auto y_collapsed = true;
 inline constexpr auto z_collapsed = false;
 
-inline constexpr auto Nx = 1551zu;
+inline constexpr auto Nx = 551zu;
 inline constexpr auto Ny = 2zu;
-inline constexpr auto Nz = 1551zu;
+inline constexpr auto Nz = 351zu;
 
-inline constexpr std::array x_range = {-1.55e-05, 1.55e-05};
+inline constexpr std::array x_range = {-1.55e-05, -5.5e-06};
 inline constexpr std::array y_range = {0.0, 0.01};
 inline constexpr std::array z_range = {-1.55e-05, 1.55e-05};
 
-inline constexpr auto dx = 2e-08;
+inline constexpr auto dx = 1.8181818181818185e-08;
 inline constexpr auto dy = 0.01;
-inline constexpr auto dz = 2e-08;
+inline constexpr auto dz = 8.857142857142858e-08;
 
 inline constexpr auto dt    = 4e-17;
-inline constexpr auto t_end = 1.7e-13;
-inline constexpr auto Nt    = 4251zu;
+inline constexpr auto t_end = 3e-14;
+inline constexpr auto Nt    = 750zu;
 
 inline constexpr auto sim_name = "lsi_test";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
@@ -103,9 +103,10 @@ inline constexpr std::array<CollisionSpec, 0> collision_spec = {
 enum class MetricType { ParticleDump, ParticleDiag, ParticleEnergy, FieldDump, FieldEnergy };
 
 inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/lsi_test";
-inline constexpr std::array<MetricType, 2> metric_spec = {
+inline constexpr std::array<MetricType, 3> metric_spec = {
 	MetricType::ParticleEnergy,
-	MetricType::FieldEnergy
+	MetricType::FieldEnergy,
+	MetricType::FieldDump
 };
 
 #endif //PROGRAM_PARAM_HPP
