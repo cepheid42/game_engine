@@ -12,7 +12,7 @@ from scripts.domain_params import *
 # =============================
 # ===== Simulation Params =====
 # =============================
-sim_name = 'lsi_test'
+sim_name = 'lsi_test_full'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
@@ -27,10 +27,9 @@ dx = (xmax - xmin) / (shape[0] - 1)
 dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
 
-print(dx, dz)
 
 dt = 4.0e-17
-t_end = 1.0e-13 #3.0e-13
+t_end = 1.7e-13 #3.0e-13
 nt = int(t_end / dt) + 1
 cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
@@ -100,7 +99,13 @@ em_params = EMParams(
 # ==========================
 metric_params = Metrics(
     data_path,
-    (MetricType.ParticleEnergy, MetricType.FieldEnergy)
+    (
+        MetricType.ParticleEnergy,
+        MetricType.FieldEnergy,
+        MetricType.FieldDump,
+        MetricType.ParticleDump,
+        MetricType.ParticleDiagnostics,
+    )
 )
 
 # ============================
@@ -122,25 +127,25 @@ sim_params = Simulation(
     particle_params=particle_params,
     metric_params=metric_params,
     collisions_enabled=False,
-    jdep_enabled=False,
-    push_enabled=False
+    # jdep_enabled=False,
+    # push_enabled=False
 )
 
-# # ===========================
-# # ===== Compile and Run =====
-# # ===========================
-# print(f'Setting up "{sim_name}"')
-# create_particles(sim_params, electrons, data_path)
-# create_particles(sim_params, ions, data_path)
-# update_header(sim_params, project_path=project_path)
-#
-# subprocess.run(
-#     ['meson', 'compile', '-C', build_path, '-j4'],
-#     stdout=subprocess.DEVNULL,
-#     stderr=subprocess.DEVNULL
-# ).check_returncode()
-#
-# subprocess.run(build_path + '/game_engine').check_returncode()
+# ===========================
+# ===== Compile and Run =====
+# ===========================
+print(f'Setting up "{sim_name}"')
+create_particles(sim_params, electrons, data_path)
+create_particles(sim_params, ions, data_path)
+update_header(sim_params, project_path=project_path)
+
+subprocess.run(
+    ['meson', 'compile', '-C', build_path, '-j4'],
+    stdout=subprocess.DEVNULL,
+    stderr=subprocess.DEVNULL
+).check_returncode()
+
+subprocess.run(build_path + '/game_engine').check_returncode()
 
 # ===========================
 # ===== Post Processing =====
