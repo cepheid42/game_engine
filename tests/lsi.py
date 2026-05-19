@@ -27,6 +27,8 @@ dx = (xmax - xmin) / (shape[0] - 1)
 dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
 
+print(dx, dz)
+
 dt = 4.0e-17
 t_end = 1.0e-13 #3.0e-13
 nt = int(t_end / dt) + 1
@@ -124,21 +126,21 @@ sim_params = Simulation(
     push_enabled=False
 )
 
-# ===========================
-# ===== Compile and Run =====
-# ===========================
-print(f'Setting up "{sim_name}"')
-create_particles(sim_params, electrons, data_path)
-create_particles(sim_params, ions, data_path)
-update_header(sim_params, project_path=project_path)
-
-subprocess.run(
-    ['meson', 'compile', '-C', build_path, '-j4'],
-    stdout=subprocess.DEVNULL,
-    stderr=subprocess.DEVNULL
-).check_returncode()
-
-subprocess.run(build_path + '/game_engine').check_returncode()
+# # ===========================
+# # ===== Compile and Run =====
+# # ===========================
+# print(f'Setting up "{sim_name}"')
+# create_particles(sim_params, electrons, data_path)
+# create_particles(sim_params, ions, data_path)
+# update_header(sim_params, project_path=project_path)
+#
+# subprocess.run(
+#     ['meson', 'compile', '-C', build_path, '-j4'],
+#     stdout=subprocess.DEVNULL,
+#     stderr=subprocess.DEVNULL
+# ).check_returncode()
+#
+# subprocess.run(build_path + '/game_engine').check_returncode()
 
 # ===========================
 # ===== Post Processing =====
@@ -205,15 +207,15 @@ smith_electron_data = np.genfromtxt('./data/smith_lsi_electron_energy.csv', deli
 smith_proton_data = np.genfromtxt('./data/smith_lsi_proton_energy.csv', delimiter=',')
 
 y_labels = [
-    (r'Field (kJ m$^{-1}$)', smith_field_data, [0, 100]),
-    (r'Electron (kJ m$^{-1}$)', smith_electron_data, [0, 15]),
-    (r'Proton (kJ m$^{-1}$)', smith_proton_data, [0, 15])
+    (r'Field (kJ m$^{-1}$)', [0, 100]),
+    (r'Electron (kJ m$^{-1}$)', [0, 15]),
+    (r'Proton (kJ m$^{-1}$)', [0, 15])
 ]
 
 fig, ax = plt.subplots(3, 1, figsize=(6, 10), layout='constrained')
 
 for i, a in enumerate(ax):
-    label, _, _ = y_labels[i]
+    label, _ = y_labels[i]
     a.grid()
     a.set_xlabel('Time (fs)')
     a.set_ylabel(label)
