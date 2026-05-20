@@ -10,7 +10,7 @@ from scripts.pyforce import *
 # =============================
 # ===== Simulation Params =====
 # =============================
-sim_name = 'lsi_test'
+sim_name = 'lsi_test_2ndorder'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
@@ -99,7 +99,9 @@ metric_params = Metrics(
     (
         MetricType.ParticleEnergy,
         MetricType.FieldEnergy,
-        MetricType.FieldDump
+        MetricType.FieldDump,
+        MetricType.ParticleDump,
+        MetricType.ParticleDiagnostics,
     )
 )
 
@@ -147,32 +149,31 @@ Vm_to_kVcm = 1.0e-5
 T_to_gauss = 1.0e4
 Am2_to_Acm2 = 1.0e-4
 
-Jxs = []
-Jys = []
-Jzs = []
-time = 0
-with FileReader(data_path + f'/fields_{750:010d}.bp') as f:
-    # Jxs.append(f.read("Jx")[:, 0, :].T)
-    # Jys.append(f.read("Jy")[:, 0, :].T)
-    # Jzs.append(f.read("Jz")[:, 0, :].T)
-    time = f.read("Time")
-    Ey = f.read('Ey')[:, 0, :].T
+# with FileReader(data_path + f'/electrons_{750:010d}.bp') as f:
+#     density = f.read("Density")[:, 0, :].T
+#
+# print(density.shape)
+#
+# fig, ax = plt.subplots(1, 1, figsize=(8, 8), layout='constrained')
+# im = ax.contourf(density, levels=70, cmap='jet', vmin=1e25, vmax=1.5e26)
+# plt.colorbar(im, ax=ax)
+# plt.show()
 
-
-fig, ax = plt.subplots(1, 1, figsize=(10, 10), layout='constrained')
-fig.suptitle(f't = {time * s_to_ns} ns')
-im = ax.contourf(Ey, levels=70, cmap='jet')
-ax.set_xlabel('x')
-ax.set_ylabel('z')
-ax.set_title('Ey')
-plt.colorbar(im, ax=ax)
-plt.show()
-
+# Jxs = []
+# Jys = []
+# Jzs = []
+# time = 0
+# with FileReader(data_path + f'/fields_{750:010d}.bp') as f:
+#     Jxs.append(f.read("Jx")[:, 0, :].T)
+#     Jys.append(f.read("Jy")[:, 0, :].T)
+#     Jzs.append(f.read("Jz")[:, 0, :].T)
+#     time = f.read("Time")
+#
 # fig, ax = plt.subplots(3, 1, figsize=(6, 12), layout='constrained')
 #
 # fig.suptitle(f't = {time * s_to_ns} ns')
 #
-# a0 = ax[0].contourf(Jxs[-1], levels=70, cmap='jet')
+# a0 = ax[0].contourf(Jxs[-1], levels=70, cmap='jet', vmin=-3e15, vmax=2e15)
 # ax[0].set_xlabel('x')
 # ax[0].set_ylabel('z')
 # ax[0].set_title('Jx')
@@ -182,7 +183,7 @@ plt.show()
 # ax[1].set_ylabel('z')
 # ax[1].set_title('Jy')
 #
-# a2 = ax[2].contourf(Jzs[-1], levels=70, cmap='jet')
+# a2 = ax[2].contourf(Jzs[-1], levels=70, cmap='jet', vmin=-1e15, vmax=1e15)
 # ax[2].set_xlabel('x')
 # ax[2].set_ylabel('z')
 # ax[2].set_title('Jz')
@@ -193,47 +194,47 @@ plt.show()
 #
 # plt.show()
 
-# with FileReader(data_path + '/fields_energy.bp') as f:
-#     variables = f.available_variables()
-#     steps = int(variables['Time']['AvailableStepsCount'])
-#     ex = f.read('Ex Energy', step_selection=[0, steps])
-#     ey = f.read('Ey Energy', step_selection=[0, steps])
-#     ez = f.read('Ez Energy', step_selection=[0, steps])
-#     bx = f.read('Bx Energy', step_selection=[0, steps])
-#     by = f.read('By Energy', step_selection=[0, steps])
-#     bz = f.read('Bz Energy', step_selection=[0, steps])
-#
-# with FileReader(data_path + '/particles_energy.bp') as f:
-#     variables = f.available_variables()
-#     steps = int(variables['Time']['AvailableStepsCount'])
-#     time = f.read('Time', step_selection=[0, steps])
-#     e_energy = f.read('electrons', step_selection=[0, steps])
-#     i_energy = f.read('ions', step_selection=[0, steps])
-#
-# time *= s_to_fs
-# field_energy = (ex + ey + ez + bx + by + bz) * J_to_kJ / dy
-# e_energy = e_energy * J_to_kJ / dy
-# i_energy = i_energy * J_to_kJ / dy
-#
-# y_labels = [
-#     (r'Field (kJ m$^{-1}$)', [0, 100]),
-#     (r'Electron (kJ m$^{-1}$)', [0, 15]),
-#     (r'Proton (kJ m$^{-1}$)', [0, 15])
-# ]
-#
-# fig, ax = plt.subplots(3, 1, figsize=(6, 10), layout='constrained')
-#
-# for i, a in enumerate(ax):
-#     label, _ = y_labels[i]
-#     a.grid()
-#     a.set_xlabel('Time (fs)')
-#     a.set_ylabel(label)
-#
-# ax[0].plot(time, field_energy, 'b-', label='TriForce')
-# ax[1].plot(time, e_energy, 'b-')
-# ax[2].plot(time, i_energy, 'b-')
-#
-# # plt.savefig(data_path + f'/lsi_comp_normal.png')
-# # plt.close(fig)
-#
-# plt.show()
+with FileReader(data_path + '/fields_energy.bp') as f:
+    variables = f.available_variables()
+    steps = int(variables['Time']['AvailableStepsCount'])
+    ex = f.read('Ex Energy', step_selection=[0, steps])
+    ey = f.read('Ey Energy', step_selection=[0, steps])
+    ez = f.read('Ez Energy', step_selection=[0, steps])
+    bx = f.read('Bx Energy', step_selection=[0, steps])
+    by = f.read('By Energy', step_selection=[0, steps])
+    bz = f.read('Bz Energy', step_selection=[0, steps])
+
+with FileReader(data_path + '/particles_energy.bp') as f:
+    variables = f.available_variables()
+    steps = int(variables['Time']['AvailableStepsCount'])
+    time = f.read('Time', step_selection=[0, steps])
+    e_energy = f.read('electrons', step_selection=[0, steps])
+    i_energy = f.read('ions', step_selection=[0, steps])
+
+time *= s_to_fs
+field_energy = (ex + ey + ez + bx + by + bz) * J_to_kJ / dy
+e_energy = e_energy * J_to_kJ / dy
+i_energy = i_energy * J_to_kJ / dy
+
+y_labels = [
+    (r'Field (kJ m$^{-1}$)', [0, 100]),
+    (r'Electron (kJ m$^{-1}$)', [0, 15]),
+    (r'Proton (kJ m$^{-1}$)', [0, 15])
+]
+
+fig, ax = plt.subplots(3, 1, figsize=(6, 10), layout='constrained')
+
+for i, a in enumerate(ax):
+    label, _ = y_labels[i]
+    a.grid()
+    a.set_xlabel('Time (fs)')
+    a.set_ylabel(label)
+
+a0 = ax[0].plot(time, field_energy, 'b-', label='TriForce')
+a1 = ax[1].plot(time, e_energy, 'b-')
+a2 = ax[2].plot(time, i_energy, 'b-')
+
+# plt.savefig(data_path + f'/lsi_comp_normal.png')
+# plt.close(fig)
+
+plt.show()

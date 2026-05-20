@@ -6,7 +6,7 @@
 #include "array.hpp"
 #include "math_utils.hpp"
 
-#include <cassert>
+// #include <cassert>
 #include <memory>
 #include <print>
 
@@ -180,7 +180,7 @@ struct GaussianBeam {
 
       const auto wx = w0 * std::sqrt(1.0 + math::SQR(xspot / xR));
       const auto gouy = std::atan(xspot / xR);
-      const auto c1 = 1.196 * E0 * std::sqrt(w0 / wx);
+      const auto c1 = 1.288 * E0 * w0 / wx; // Fudge it, fudge it all
 
       for (auto k = z0; k < z1; ++k) {
          const auto kdx = k - z0;

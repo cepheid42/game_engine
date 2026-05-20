@@ -54,14 +54,9 @@ struct CurrentDeposition {
       using JzStrategy = interp::InterpolationStrategy<2, XShape, YShape, ZShape>;
 
       // Precompute constants
-      static constexpr auto dtAyz = x_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dy * dz);
-      static constexpr auto dtAxz = y_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dx * dz);
-      static constexpr auto dtAxy = z_collapsed ? 1.0 / (dx * dy * dz) : 1.0 / (dt * dx * dy);
-
-      const auto x_vel = x_collapsed ? constants::c * p.beta_gamma[0] / p.gamma() : 1.0;
-      const auto y_vel = y_collapsed ? constants::c * p.beta_gamma[1] / p.gamma() : 1.0;
-      const auto z_vel = z_collapsed ? constants::c * p.beta_gamma[2] / p.gamma() : 1.0;
-
+      static constexpr auto dtAxy = 1.0 / (dt * dx * dy);
+      static constexpr auto dtAxz = 1.0 / (dt * dx * dz);
+      static constexpr auto dtAyz = 1.0 / (dt * dy * dz);
       // Offsets for Even/Odd order interpolation
       static constexpr vec3 offset{
          XShape::Order % 2 == 0 ? 0.5 : 0.0,
@@ -73,10 +68,9 @@ struct CurrentDeposition {
       if (p.is_disabled()) { return; }
 
       // Current Density coefficients
-      const auto x_coeff = static_cast<double>(p.weight) * charge * dtAyz * x_vel;
-      const auto y_coeff = static_cast<double>(p.weight) * charge * dtAxz * y_vel;
-      const auto z_coeff = static_cast<double>(p.weight) * charge * dtAxy * z_vel;
-
+      const auto x_coeff = static_cast<double>(p.weight) * charge * dtAyz;
+      const auto y_coeff = static_cast<double>(p.weight) * charge * dtAxz;
+      const auto z_coeff = static_cast<double>(p.weight) * charge * dtAxy;
       // Find cell indices and determine first relay point
       const vec3<double> i0 = getCellIndices<double>(p.old_location + offset);
       const vec3<double> i1 = getCellIndices<double>(p.location + offset);
