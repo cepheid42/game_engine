@@ -131,21 +131,21 @@ sim_params = Simulation(
     # push_enabled=False
 )
 
-# ===========================
-# ===== Compile and Run =====
-# ===========================
-print(f'Setting up "{sim_name}"')
-create_particles(sim_params, electrons, data_path)
-create_particles(sim_params, ions, data_path)
-update_header(sim_params, project_path=project_path)
-
-subprocess.run(
-    ['meson', 'compile', '-C', build_path, '-j4'],
-    stdout=subprocess.DEVNULL,
-    stderr=subprocess.DEVNULL
-).check_returncode()
-
-subprocess.run(build_path + '/game_engine').check_returncode()
+# # ===========================
+# # ===== Compile and Run =====
+# # ===========================
+# print(f'Setting up "{sim_name}"')
+# create_particles(sim_params, electrons, data_path)
+# create_particles(sim_params, ions, data_path)
+# update_header(sim_params, project_path=project_path)
+#
+# subprocess.run(
+#     ['meson', 'compile', '-C', build_path, '-j4'],
+#     stdout=subprocess.DEVNULL,
+#     stderr=subprocess.DEVNULL
+# ).check_returncode()
+#
+# subprocess.run(build_path + '/game_engine').check_returncode()
 
 # ===========================
 # ===== Post Processing =====
@@ -154,6 +154,23 @@ J_to_kJ = 1.0e-3
 s_to_fs = 1.0e15
 Vm_to_kVcm = 1.0e-5
 T_to_gauss = 1.0e4
+
+# from matplotlib.cm import ScalarMappable
+# from matplotlib import colors, ticker
+#
+# with FileReader(data_path + f'/electrons_{4250:010d}.bp') as f:
+#     density = f.read("Density")[:, 0, :]
+#     time = f.read("Time")
+#
+# print(time)
+#
+# fig, ax = plt.subplots(1, 1, figsize=(8, 8), layout='constrained')
+# # im = ax.contourf(density, levels=70, cmap='jet')
+# # plt.colorbar(im, ax=ax)
+# norm = colors.LogNorm(vmin=1e24, vmax=1e28)
+# im = ax.contourf(density, levels=np.logspace(24, 28, 50), norm=norm, cmap='jet')
+# fig.colorbar(ScalarMappable(norm=norm, cmap='jet'), ax=ax, shrink=0.82)
+# plt.show()
 
 # xs = np.linspace(xmin, xmax, shape[0], endpoint=True)
 #
