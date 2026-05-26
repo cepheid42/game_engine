@@ -136,7 +136,7 @@ struct EMData {
 
       if (bpEx) { reader.Get(bpEx, Ex_app.data(), adios2::Mode::Sync); }
       if (bpEy) { reader.Get(bpEy, Ey_app.data(), adios2::Mode::Sync); }
-      if (bpEy) { reader.Get(bpEz, Ez_app.data(), adios2::Mode::Sync); }
+      if (bpEz) { reader.Get(bpEz, Ez_app.data(), adios2::Mode::Sync); }
       if (bpBx) { reader.Get(bpBx, Bx_app.data(), adios2::Mode::Sync); }
       if (bpBy) { reader.Get(bpBy, By_app.data(), adios2::Mode::Sync); }
       if (bpBz) { reader.Get(bpBz, Bz_app.data(), adios2::Mode::Sync); }

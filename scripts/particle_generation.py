@@ -192,6 +192,14 @@ def create_particles(domain, particles, data_path):
         print('Done')
         return
 
+    if particles.distribution == 'sp_harmosc':
+        pos = np.array([[px_min, py_min, pz_min]], dtype=np.float64)
+        vel = np.zeros_like(pos)
+        wts = np.array([1.0])
+        write_particle_file(data_path, particles, pos, vel, wts)
+        print('Done')
+        return
+
     nx, ny, nz = domain.shape
     dx, dy, dz = domain.deltas
 

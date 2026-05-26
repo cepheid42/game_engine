@@ -21,12 +21,13 @@ Tests from https://iopscience.iop.org/article/10.3847/1538-4365/aab114
 
 shape = (16, 16, 16)
 
-mass = 1.0
-charge = 1.0 / constants.e # charge * e == 1
+mass = constants.m_e
+charge = 1.0
 gamma_an = 1e6
+Rc = 1.0
 v_perp = velocity_from_gamma(gamma_an)
-Bz_amp = gamma_an * v_perp
-omega_c = Bz_amp / gamma_an
+Bz_amp = gamma_an * mass * v_perp / (constants.e * Rc)
+omega_c = constants.e * Bz_amp / (gamma_an * mass)
 Tc = 2 * np.pi / omega_c
 
 xmin, xmax = -1.1, 1.1 # meters
@@ -41,7 +42,7 @@ dt = Tc / 100 # seconds
 t_end = 10000 * dt # seconds
 nt = int(t_end / dt) + 1
 
-save_interval = 2000
+save_interval = 200
 
 # =====================
 # ===== Particles =====
@@ -57,7 +58,7 @@ single_particle = Particles(
     atomic_number=0,
     tracer=True,
     # actually velocity for sp_uniformB distribution
-    temp=(0.0, -v_perp, 0.0),
+    temp=(0.0, v_perp, 0.0),
     density=1.0, # m^-3,
     ppc=(1, 1, 1),
     distribution='sp_uniformB',
@@ -84,7 +85,7 @@ pushers = [
     ParticlePushType.HC
 ]
 sim_names = [sim_name + '_' + pusher.get_name() for pusher in pushers]
-Bz_applied = np.full((shape[0] - 1, shape[1] - 1, shape[2]), -Bz_amp)
+Bz_applied = np.full((shape[0] - 1, shape[1] - 1, shape[2]), Bz_amp)
 
 for pusher, name in zip(pushers, sim_names):
     data_path = project_path + f'/data/{name}'
@@ -114,7 +115,7 @@ for pusher, name in zip(pushers, sim_names):
         em_enabled=False,
         jdep_enabled=False,
         collisions_enabled=False,
-        velocity_backstep_enabled=False,
+        # velocity_backstep_enabled=False,
         applied_fields_only=True
     )
 
@@ -160,8 +161,7 @@ plot_params = [
     ('--', 'b', 'D', 8, 'none')  # HC
 ]
 
-Rc_an = gamma_an * v_perp / Bz_amp
-p_Rc = plt.Circle((0, 0), Rc_an, fill=False, label=r'$R_c$')
+p_Rc = plt.Circle((0, 0), Rc, fill=False, label=r'$R_c$')
 
 fig, ax = plt.subplots(1, 3, figsize=(16, 4), layout='constrained')
 
@@ -170,8 +170,6 @@ ax[0].set_ylabel('y')
 ax[0].set_aspect('equal')
 ax[0].set_xlim([xmin, xmax])
 ax[0].set_ylim([ymin, ymax])
-ax[0].set_xlim([-1.1, 1.1])
-ax[0].set_ylim([-1.1, 1.1])
 ax[0].add_patch(p_Rc)
 
 ax[1].set_xlabel(r't / $T_c$')
@@ -191,7 +189,7 @@ for i, (name, data) in enumerate(sims.items()):
     mark_every = data.times.shape[0] // 20
     gammas = np.abs(data.gammas - gamma_an) / gamma_an
     theta_an = -omega_c * data.times
-    theta_c = np.pi - np.unwrap(np.arctan2(data.positions[:, 1], data.positions[:, 0]))
+    theta_c = -np.pi + np.unwrap(np.arctan2(data.positions[:, 1], data.positions[:, 0]))
     thetas = np.abs(theta_c - theta_an)
     ax[0].plot(data.positions[:, 0], data.positions[:, 1], c=c, label=name)
     ax[1].plot(data.times / Tc, gammas, c=c, marker=m, ms=ms, markevery=mark_every, fillstyle=fs, label=name)

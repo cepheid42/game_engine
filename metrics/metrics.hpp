@@ -230,15 +230,15 @@ struct ParticleTotalEnergyMetric final : detail::MetricBase {
       writer.BeginStep();
 
       for (const auto& gv: groups) {
+         const auto& group = gv.group;
          auto result = 0.0;
-         #pragma omp parallel num_threads(nThreads) default(shared)
-         {
-            #pragma omp for reduction(+:result)
-            for (std::size_t i = 0; i < gv.group.num_particles(); i++) {
-               result += (gv.group.particles[i].gamma() - 1.0) * static_cast<double>(gv.group.particles[i].weight);
-            }
+
+         #pragma omp parallel for num_threads(nThreads) default(shared) reduction(+:result)
+         for (std::size_t i = 0; i < group.num_particles(); i++) {
+            if (group.particles[i].is_disabled()) { continue; }
+            result += (group.particles[i].gamma() - 1.0) * static_cast<double>(group.particles[i].weight);
          }
-         result *= gv.group.mass * constants::c_sqr;
+         result *= group.mass * constants::c_sqr;
          writer.Put(gv.variable, result);
       }
 

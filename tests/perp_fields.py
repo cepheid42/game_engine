@@ -79,55 +79,55 @@ particle_params = ParticleParams(
 # ============================
 pushers = [
     ParticlePushType.Boris,
-    # ParticlePushType.HC
+    ParticlePushType.HC
 ]
 sim_names = [sim_name + '_' + pusher.get_name() for pusher in pushers]
 Ex_applied = np.full((shape[0] - 1, shape[1], shape[2]), Ex_amp)
 Bz_applied = np.full((shape[0] - 1, shape[1] - 1, shape[2]), Bz_amp)
 
-# for pusher, name in zip(pushers, sim_names):
-#     data_path = project_path + f'/data/{name}'
-#     fields_path = data_path + f'/{name}_applied_fields.bp'
-#
-#     with Stream(fields_path, 'w') as f:
-#         f.write('Ex', Ex_applied, Ex_applied.shape, (0, 0, 0), Ex_applied.shape)
-#         f.write('Bz', Bz_applied, Bz_applied.shape, (0, 0, 0), Bz_applied.shape)
-#
-#     em_params = EMParams(save_interval=save_interval, applied_fields=fields_path)
-#     metric_params = Metrics(data_path, (MetricType.ParticleDump,))
-#     particle_params.push_type = pusher
-#
-#     sim_params = Simulation(
-#         name=name,
-#         shape=shape,
-#         nthreads=1,
-#         dt=dt,
-#         t_end=t_end,
-#         nt=nt,
-#         x_range=(xmin, xmax),
-#         y_range=(ymin, ymax),
-#         z_range=(zmin, zmax),
-#         deltas=(dx, dy, dz),
-#         em_params=em_params,
-#         particle_params=particle_params,
-#         metric_params=metric_params,
-#         em_enabled=False,
-#         jdep_enabled=False,
-#         collisions_enabled=False,
-#         velocity_backstep_enabled=False,
-#         applied_fields_only=True
-#     )
-#
-#     # ===========================
-#     # ===== Compile and Run =====
-#     # ===========================
-#     print(f'Setting up "{name}"')
-#     create_data_dir(data_path)
-#     create_particles(sim_params, single_particle, data_path)
-#     update_header(sim_params, project_path=project_path)
-#
-#     compile_project(build_path, output=True)
-#     run_project(build_path + '/game_engine', output=True)
+for pusher, name in zip(pushers, sim_names):
+    data_path = project_path + f'/data/{name}'
+    fields_path = data_path + f'/{name}_applied_fields.bp'
+
+    with Stream(fields_path, 'w') as f:
+        f.write('Ex', Ex_applied, Ex_applied.shape, (0, 0, 0), Ex_applied.shape)
+        f.write('Bz', Bz_applied, Bz_applied.shape, (0, 0, 0), Bz_applied.shape)
+
+    em_params = EMParams(save_interval=save_interval, applied_fields=fields_path)
+    metric_params = Metrics(data_path, (MetricType.ParticleDump,))
+    particle_params.push_type = pusher
+
+    sim_params = Simulation(
+        name=name,
+        shape=shape,
+        nthreads=1,
+        dt=dt,
+        t_end=t_end,
+        nt=nt,
+        x_range=(xmin, xmax),
+        y_range=(ymin, ymax),
+        z_range=(zmin, zmax),
+        deltas=(dx, dy, dz),
+        em_params=em_params,
+        particle_params=particle_params,
+        metric_params=metric_params,
+        em_enabled=False,
+        jdep_enabled=False,
+        collisions_enabled=False,
+        velocity_backstep_enabled=False,
+        applied_fields_only=True
+    )
+
+    # ===========================
+    # ===== Compile and Run =====
+    # ===========================
+    print(f'Setting up "{name}"')
+    create_data_dir(data_path)
+    create_particles(sim_params, single_particle, data_path)
+    update_header(sim_params, project_path=project_path)
+
+    compile_project(build_path, output=True)
+    run_project(build_path + '/game_engine', output=True)
 
 # ===========================
 # ===== Post Processing =====

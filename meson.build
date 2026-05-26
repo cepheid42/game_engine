@@ -5,9 +5,9 @@ project(
     default_options : [
         'cpp_std=c++23',
         'warning_level=3',
-#        'b_lto=true',
-#        'optimization=0',
+#        'optimization=2',
 #        'debug=true',
+        'b_lto=true',
         'optimization=3',
         'debug=false',
 #        'werror=true',

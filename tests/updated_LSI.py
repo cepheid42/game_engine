@@ -7,6 +7,7 @@ from adios2 import FileReader
 
 from scripts.pyforce import *
 
+
 # =============================
 # ===== Simulation Params =====
 # =============================
@@ -26,10 +27,10 @@ dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
 
 dt = 4.0e-17
-t_end = 1.7e-13 #3.0e-13
+t_end = 1.8e-13 #3.0e-13
 nt = int(t_end / dt) + 1
 
-save_interval = 50
+save_interval = 5
 
 # =====================
 # ===== Particles =====
@@ -38,7 +39,7 @@ px_range = (-5e-7, 5e-7) # meters
 py_range = (ymin, ymax)
 pz_range = (-1e-5, 1e-5)
 
-ppc = (10, 1, 10)
+ppc = (6, 1, 6)
 density = 8.5e27
 temp = tuple(3 * [10000 / np.sqrt(3)])
 
@@ -98,7 +99,9 @@ metric_params = Metrics(
     data_path,
     (MetricType.ParticleEnergy,
      MetricType.FieldEnergy,
-     # MetricType.FieldDump
+     MetricType.FieldDump,
+     MetricType.ParticleDump,
+     MetricType.ParticleDiagnostics
     )
 )
 
@@ -108,7 +111,7 @@ metric_params = Metrics(
 sim_params = Simulation(
     name=sim_name,
     shape=shape,
-    nthreads=48,
+    nthreads=32,
     dt=dt,
     t_end=t_end,
     nt=nt,
@@ -141,24 +144,63 @@ run_project(build_path + '/game_engine', output=True)
 # ===========================
 J_to_kJ = 1.0e-3
 s_to_fs = 1.0e15
+s_to_ns = 1.0e9
 Vm_to_kVcm = 1.0e-5
 T_to_gauss = 1.0e4
+Am2_to_Acm2 = 1.0e-4
 
-# maxes = []
+n = 1875
+# n = 2000
+
 # for n in range(0, nt, save_interval):
 #     with FileReader(data_path + f'/fields_{n:010d}.bp') as f:
-#         # ey_lines.append(f.read('Ey')[:, 0, shape[2] // 2])
-#         # bz_lines.append(f.read('Hz')[:, 0, shape[2] // 2])
-#         # bz_lines.append(f.read('Ey')[:, 0, :])
-#         # times.append(f.read('Time'))
-#         maxes.append(f.read('Ey')[:, 0, :])
+#         print(n, f.read('Time'))
+
+# with FileReader(data_path + f'/electrons_{n:010d}.bp') as f:
+#     density = f.read("Density")[:, 0, :].T
 #
-#         # ey = f.read('Ey')[:, 0, :]
-#         # fig, ax = plt.subplots(1, 1, figsize=(6, 6), layout='constrained')
-#         # ax.contourf(ey, levels=50)
-#         # plt.savefig(data_path + f'/ey_{n:010d}.png')
-#         # plt.close(fig)
-# print(f'{np.max(np.array(maxes)):e}')
+# fig, ax = plt.subplots(1, 1, figsize=(8, 8), layout='constrained')
+# im = ax.contourf(density, levels=70, cmap='jet')
+# plt.colorbar(im, ax=ax)
+# plt.savefig(data_path + f'/lsi_density_80fs.png')
+# plt.close(fig)
+
+# Jxs = []
+# Jys = []
+# Jzs = []
+# time = 0
+# with FileReader(data_path + f'/fields_{n:010d}.bp') as f:
+#     Jxs.append(f.read("Jx")[:, 0, :].T)
+#     Jys.append(f.read("Jy")[:, 0, :].T)
+#     Jzs.append(f.read("Jz")[:, 0, :].T)
+#     time = f.read("Time")
+#
+# fig, ax = plt.subplots(3, 1, figsize=(6, 12), layout='constrained')
+#
+# fig.suptitle(f't = {time * s_to_ns} ns')
+#
+# a0 = ax[0].contourf(Jxs[-1], levels=70, cmap='jet')
+# ax[0].set_xlabel('x')
+# ax[0].set_ylabel('z')
+# ax[0].set_title('Jx')
+#
+# a1 = ax[1].contourf(Jys[-1], levels=70, cmap='jet')
+# ax[1].set_xlabel('x')
+# ax[1].set_ylabel('z')
+# ax[1].set_title('Jy')
+#
+# a2 = ax[2].contourf(Jzs[-1], levels=70, cmap='jet')
+# ax[2].set_xlabel('x')
+# ax[2].set_ylabel('z')
+# ax[2].set_title('Jz')
+#
+# plt.colorbar(a0, ax=ax[0])
+# plt.colorbar(a1, ax=ax[1])
+# plt.colorbar(a2, ax=ax[2])
+#
+# # plt.savefig(data_path + f'/lsi_jdep_75fs.png')
+# # plt.close(fig)
+# plt.show()
 
 with FileReader(data_path + '/fields_energy.bp') as f:
     variables = f.available_variables()

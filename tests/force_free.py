@@ -20,25 +20,25 @@ Tests from https://iopscience.iop.org/article/10.3847/1538-4365/aab114
 
 shape = (16, 16, 16)
 
-xmin, xmax = -1.0, 3.1e17 # meters
-ymin, ymax = -1.0, 3.1e17
-zmin, zmax = -1.0, 3.1e17
+xmin, xmax = -1.0, 2.0e6 # meters
+ymin, ymax = -1.0, 2.0e6
+zmin, zmax = -1.0, 2.0e6
 
 dx = (xmax - xmin) / (shape[0] - 1)
 dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
 
-dt = 0.01 # seconds
-t_end = 1e5 # seconds
+dt = 3.e-13 # seconds
+t_end = 7.0e-6 # seconds
 nt = int(t_end / dt) + 1
 
-save_interval = 10000
+save_interval = 20000
 
 # =====================
 # ===== Particles =====
 # =====================
-mass = 1.0
-charge = 1.0 / constants.e
+mass = constants.m_e
+charge = 1.0
 
 gamma_init = 1.0e6
 vy = velocity_from_gamma(gamma_init)
@@ -115,7 +115,8 @@ for pusher, name in zip(pushers, sim_names):
         em_enabled=False,
         jdep_enabled=False,
         collisions_enabled=False,
-        applied_fields_only=True
+        applied_fields_only=True,
+        velocity_backstep_enabled=True
     )
 
     # ===========================
@@ -161,12 +162,12 @@ plot_params = [
 fig, ax = plt.subplots(1, 2, figsize=(10, 4), layout='constrained')
 ax[0].set_xlabel('t')
 ax[0].set_ylabel('x')
-ax[0].set_xlim([0, 1e5])
+# ax[0].set_xlim([0, t_end])
 # ax[0].set_ylim([-1.4e-3, 0])
 
 ax[1].set_xlabel('t')
 ax[1].set_ylabel(r'$v_x$')
-ax[1].set_xlim([0, 1e5])
+# ax[1].set_xlim([0, 1e5])
 # ax[1].set_ylim([-2.5e-8, 0])
 
 for i, (name, data) in enumerate(sims.items()):

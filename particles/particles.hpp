@@ -174,6 +174,8 @@ struct ParticleGroup {
    void sort_particles() {
       if constexpr (push_enabled) {
          if (is_tracer or is_sorted) { return; }
+         // todo: make disabled particles have INTMAX location, so they always get sorted
+         //       to the end of the vector, THEN remove them. Maybe...
          std::erase_if(particles, [](const Particle& p) { return p.is_disabled(); });
          boost::sort::block_indirect_sort(
             particles.begin(), particles.end(),

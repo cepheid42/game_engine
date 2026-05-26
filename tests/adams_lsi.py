@@ -149,15 +149,15 @@ Vm_to_kVcm = 1.0e-5
 T_to_gauss = 1.0e4
 Am2_to_Acm2 = 1.0e-4
 
-# with FileReader(data_path + f'/electrons_{750:010d}.bp') as f:
-#     density = f.read("Density")[:, 0, :].T
-#
-# print(density.shape)
-#
-# fig, ax = plt.subplots(1, 1, figsize=(8, 8), layout='constrained')
-# im = ax.contourf(density, levels=70, cmap='jet', vmin=1e25, vmax=1.5e26)
-# plt.colorbar(im, ax=ax)
-# plt.show()
+with FileReader(data_path + f'/electrons_{750:010d}.bp') as f:
+    density = f.read("Density")[:, 0, :].T
+
+print(density.shape)
+
+fig, ax = plt.subplots(1, 1, figsize=(8, 8), layout='constrained')
+im = ax.contourf(density, levels=70, cmap='jet', vmin=1e25, vmax=1.5e26)
+plt.colorbar(im, ax=ax)
+plt.show()
 
 # Jxs = []
 # Jys = []
@@ -194,47 +194,47 @@ Am2_to_Acm2 = 1.0e-4
 #
 # plt.show()
 
-with FileReader(data_path + '/fields_energy.bp') as f:
-    variables = f.available_variables()
-    steps = int(variables['Time']['AvailableStepsCount'])
-    ex = f.read('Ex Energy', step_selection=[0, steps])
-    ey = f.read('Ey Energy', step_selection=[0, steps])
-    ez = f.read('Ez Energy', step_selection=[0, steps])
-    bx = f.read('Bx Energy', step_selection=[0, steps])
-    by = f.read('By Energy', step_selection=[0, steps])
-    bz = f.read('Bz Energy', step_selection=[0, steps])
-
-with FileReader(data_path + '/particles_energy.bp') as f:
-    variables = f.available_variables()
-    steps = int(variables['Time']['AvailableStepsCount'])
-    time = f.read('Time', step_selection=[0, steps])
-    e_energy = f.read('electrons', step_selection=[0, steps])
-    i_energy = f.read('ions', step_selection=[0, steps])
-
-time *= s_to_fs
-field_energy = (ex + ey + ez + bx + by + bz) * J_to_kJ / dy
-e_energy = e_energy * J_to_kJ / dy
-i_energy = i_energy * J_to_kJ / dy
-
-y_labels = [
-    (r'Field (kJ m$^{-1}$)', [0, 100]),
-    (r'Electron (kJ m$^{-1}$)', [0, 15]),
-    (r'Proton (kJ m$^{-1}$)', [0, 15])
-]
-
-fig, ax = plt.subplots(3, 1, figsize=(6, 10), layout='constrained')
-
-for i, a in enumerate(ax):
-    label, _ = y_labels[i]
-    a.grid()
-    a.set_xlabel('Time (fs)')
-    a.set_ylabel(label)
-
-a0 = ax[0].plot(time, field_energy, 'b-', label='TriForce')
-a1 = ax[1].plot(time, e_energy, 'b-')
-a2 = ax[2].plot(time, i_energy, 'b-')
-
-# plt.savefig(data_path + f'/lsi_comp_normal.png')
-# plt.close(fig)
-
-plt.show()
+# with FileReader(data_path + '/fields_energy.bp') as f:
+#     variables = f.available_variables()
+#     steps = int(variables['Time']['AvailableStepsCount'])
+#     ex = f.read('Ex Energy', step_selection=[0, steps])
+#     ey = f.read('Ey Energy', step_selection=[0, steps])
+#     ez = f.read('Ez Energy', step_selection=[0, steps])
+#     bx = f.read('Bx Energy', step_selection=[0, steps])
+#     by = f.read('By Energy', step_selection=[0, steps])
+#     bz = f.read('Bz Energy', step_selection=[0, steps])
+#
+# with FileReader(data_path + '/particles_energy.bp') as f:
+#     variables = f.available_variables()
+#     steps = int(variables['Time']['AvailableStepsCount'])
+#     time = f.read('Time', step_selection=[0, steps])
+#     e_energy = f.read('electrons', step_selection=[0, steps])
+#     i_energy = f.read('ions', step_selection=[0, steps])
+#
+# time *= s_to_fs
+# field_energy = (ex + ey + ez + bx + by + bz) * J_to_kJ / dy
+# e_energy = e_energy * J_to_kJ / dy
+# i_energy = i_energy * J_to_kJ / dy
+#
+# y_labels = [
+#     (r'Field (kJ m$^{-1}$)', [0, 100]),
+#     (r'Electron (kJ m$^{-1}$)', [0, 15]),
+#     (r'Proton (kJ m$^{-1}$)', [0, 15])
+# ]
+#
+# fig, ax = plt.subplots(3, 1, figsize=(6, 10), layout='constrained')
+#
+# for i, a in enumerate(ax):
+#     label, _ = y_labels[i]
+#     a.grid()
+#     a.set_xlabel('Time (fs)')
+#     a.set_ylabel(label)
+#
+# a0 = ax[0].plot(time, field_energy, 'b-', label='TriForce')
+# a1 = ax[1].plot(time, e_energy, 'b-')
+# a2 = ax[2].plot(time, i_energy, 'b-')
+#
+# # plt.savefig(data_path + f'/lsi_comp_normal.png')
+# # plt.close(fig)
+#
+# plt.show()

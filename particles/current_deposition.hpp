@@ -57,11 +57,12 @@ struct CurrentDeposition {
       static constexpr auto dtAxy = 1.0 / (dt * dx * dy);
       static constexpr auto dtAxz = 1.0 / (dt * dx * dz);
       static constexpr auto dtAyz = 1.0 / (dt * dy * dz);
+
       // Offsets for Even/Odd order interpolation
       static constexpr vec3 offset{
-         XShape::Order % 2 == 0 ? 0.5 : 0.0,
-         YShape::Order % 2 == 0 ? 0.5 : 0.0,
-         ZShape::Order % 2 == 0 ? 0.5 : 0.0
+         interpolation_order == 2 ? 0.5 : 0.0,
+         interpolation_order == 2 ? 0.5 : 0.0,
+         interpolation_order == 2 ? 0.5 : 0.0
       };
 
       // Early return if Jdep isn't needed
@@ -71,9 +72,10 @@ struct CurrentDeposition {
       const auto x_coeff = static_cast<double>(p.weight) * charge * dtAyz;
       const auto y_coeff = static_cast<double>(p.weight) * charge * dtAxz;
       const auto z_coeff = static_cast<double>(p.weight) * charge * dtAxy;
+
       // Find cell indices and determine first relay point
-      const vec3<double> i0 = getCellIndices<double>(p.old_location + offset);
-      const vec3<double> i1 = getCellIndices<double>(p.location + offset);
+      const vec3<double> i0 = getCellIndices<double>(p.old_location - offset);
+      const vec3<double> i1 = getCellIndices<double>(p.location - offset);
 
       const auto same_idx = is_equal(i0, i1);
 
