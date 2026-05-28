@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <print>
 
 namespace tf::particles {
 struct CurrentDeposition {
@@ -23,17 +24,15 @@ struct CurrentDeposition {
       // Return if particle has not moved in this direction (therefore no current)
       if (p0 == p1) { return; }
       for (auto i = Outer::Begin; i <= Outer::End; ++i) {
-         const auto idx = i - Outer::Begin;
-         const auto& s0i = shapeI0[idx];
-         const auto& dsi = shapeDI[idx];
+         const auto& s0i = shapeI0[i];
+         const auto& dsi = shapeDI[i];
          for (auto j = Middle::Begin; j <= Middle::End; ++j) {
-            const auto jdx = j - Middle::Begin;
-            const auto& s0j = shapeJ0[jdx];
-            const auto& dsj = shapeDJ[jdx];
+            const auto& s0j = shapeJ0[j];
+            const auto& dsj = shapeDJ[j];
             const auto tmp = -qA * (s0i * s0j + 0.5 * (dsi * s0j + s0i * dsj) + (1.0 / 3.0) * dsj * dsi);
             auto acc = 0.0;
             for (auto k = Inner::Begin; k <= Inner::End - 1; ++k) {
-               acc += shapeDK[k - Inner::Begin] * tmp;
+               acc += shapeDK[k] * tmp;
                const auto& [x, y, z] = Strategy::permute(ci + i, cj + j, ck + k);
                #pragma omp atomic update
                J(x, y, z) += acc;
@@ -54,9 +53,9 @@ struct CurrentDeposition {
       using JzStrategy = interp::InterpolationStrategy<2, XShape, YShape, ZShape>;
 
       // Precompute constants
-      static constexpr auto dtAxy = 1.0 / (dt * dx * dy);
+      static constexpr auto dtAxy = 2.0 / (dt * dx * dy);
       static constexpr auto dtAxz = 1.0 / (dt * dx * dz);
-      static constexpr auto dtAyz = 1.0 / (dt * dy * dz);
+      static constexpr auto dtAyz = 2.0 / (dt * dy * dz);
 
       // Offsets for Even/Odd order interpolation
       static constexpr vec3 offset{
@@ -74,15 +73,15 @@ struct CurrentDeposition {
       const auto z_coeff = static_cast<double>(p.weight) * charge * dtAxy;
 
       // Find cell indices and determine first relay point
-      const vec3<double> i0 = getCellIndices<double>(p.old_location - offset);
-      const vec3<double> i1 = getCellIndices<double>(p.location - offset);
+      const vec3 i0 = getCellIndices<double>(p.old_location - offset);
+      const vec3 i1 = getCellIndices<double>(p.location - offset);
 
       const auto same_idx = is_equal(i0, i1);
 
-      const vec3<double> relay{
-         same_idx[0] ? p.location[0] : std::max(i1[0], i0[0]) - offset[0],
-         same_idx[1] ? p.location[1] : std::max(i1[1], i0[1]) - offset[1],
-         same_idx[2] ? p.location[2] : std::max(i1[2], i0[2]) - offset[2],
+      const vec3 relay{
+         same_idx[0] ? p.location[0] : std::max(i1[0], i0[0]) + offset[0],
+         same_idx[1] ? p.location[1] : std::max(i1[1], i0[1]) + offset[1],
+         same_idx[2] ? p.location[2] : std::max(i1[2], i0[2]) + offset[2],
       };
 
       // Calculate normalized locations for first segment
@@ -127,7 +126,7 @@ struct CurrentDeposition {
    
 
    static void advance(const auto& g, auto& emdata) requires(jdep_enabled) {
-      if (g.is_tracer) { return; }
+      // if (g.is_tracer) { return; }
 
       #pragma omp parallel for num_threads(nThreads)
       for (auto pid = 0zu; pid < g.num_particles(); pid++) {

@@ -24,8 +24,8 @@ inline constexpr auto dy = 0.01;
 inline constexpr auto dz = 2e-08;
 
 inline constexpr auto dt    = 4e-17;
-inline constexpr auto t_end = 1.8e-13;
-inline constexpr auto Nt    = 4500zu;
+inline constexpr auto t_end = 1.25e-13;
+inline constexpr auto Nt    = 3125zu;
 
 inline constexpr auto sim_name = "lsi_test";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
@@ -44,11 +44,11 @@ inline constexpr auto ionization_test_enabled = false;
 enum class EMFace { X, Y, Z };
 enum class EMSide { Lo, Hi };
 
-inline constexpr auto em_save_interval = 5zu;
+inline constexpr auto em_save_interval = 10zu;
 inline constexpr auto em_subcycles = 1zu;
 inline constexpr auto dt_em = 4e-17;
 
-inline constexpr auto PMLDepth    = 25zu;
+inline constexpr auto PMLDepth    = 30zu;
 inline constexpr auto PMLGrade    = 3.5;
 inline constexpr auto PMLAlphaMax = 0.2;
 //inline constexpr auto PMLKappaMax = 1.0;
@@ -67,7 +67,7 @@ inline constexpr auto applied_fields_path = "";
 enum class ParticleBCType { Reflecting, Periodic, Outflow };
 enum class ParticlePushType { Ballistic, Boris, HigueraCary };
 
-inline constexpr auto particle_save_interval = 5zu;
+inline constexpr auto particle_save_interval = 10zu;
 inline constexpr auto sort_frequency = 100zu;
 inline constexpr auto interpolation_order = 1zu;
 inline constexpr auto ParticlePushSelect = ParticlePushType::Boris;
@@ -103,11 +103,10 @@ inline constexpr std::array<CollisionSpec, 0> collision_spec = {
 enum class MetricType { ParticleDump, ParticleDiag, ParticleEnergy, FieldDump, FieldEnergy };
 
 inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/lsi_test";
-inline constexpr std::array<MetricType, 5> metric_spec = {
+inline constexpr std::array<MetricType, 4> metric_spec = {
 	MetricType::ParticleEnergy,
 	MetricType::FieldEnergy,
 	MetricType::FieldDump,
-	MetricType::ParticleDump,
 	MetricType::ParticleDiag
 };
 

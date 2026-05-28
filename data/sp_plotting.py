@@ -79,8 +79,12 @@ ax.scatter(Ez_x, Ez_y, Ez_z, c='c', marker='$E_z$', s=180)
 wsx, wsy, wsz = np.meshgrid(dx, dy, dz)
 ax.scatter(wsx, wsy, wsz, c='tab:purple', marker='h', s=180)
 
-particle = np.array([1.0, 1.0, 1.0])
-ax.scatter(particle[0], particle[1], particle[2], c='tab:orange', marker='X', s=180)
+p1 = np.array([0.75, 1.25, 1.25])
+p2 = np.array([1.75, 1.75, 1.75])
+r0 = np.array([1.5, 1.5, 1.5])
+ax.scatter(p1[0], p1[1], p1[2], c='tab:orange', marker='X', s=180)
+ax.scatter(p2[0], p2[1], p2[2], c='tab:red', marker='X', s=180)
+ax.scatter(r0[0], r0[1], r0[2], c='tab:green', marker='X', s=180)
 
 xs = [[0.5, 0.5], [1.5, 1.5]]
 ys = [[0, 2]]

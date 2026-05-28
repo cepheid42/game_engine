@@ -236,6 +236,7 @@ struct ParticleTotalEnergyMetric final : detail::MetricBase {
          #pragma omp parallel for num_threads(nThreads) default(shared) reduction(+:result)
          for (std::size_t i = 0; i < group.num_particles(); i++) {
             if (group.particles[i].is_disabled()) { continue; }
+            if (p.location[0] < PMLDepth or > Nx - PMLDepth) { continue; }
             result += (group.particles[i].gamma() - 1.0) * static_cast<double>(group.particles[i].weight);
          }
          result *= group.mass * constants::c_sqr;

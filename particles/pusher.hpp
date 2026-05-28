@@ -42,15 +42,15 @@ void apply_particle_bcs(auto& p) {
    constexpr auto fny = static_cast<double>(Ny - 1);
    constexpr auto fnz = static_cast<double>(Nz - 1);
 
-   if (p.location[0] <= nHalo or p.location[0] >= fnx - nHalo) {
+   if (p.location[0] <= PBCDepth or p.location[0] >= fnx - PBCDepth) {
       p.location[0] = fnx + p.location[0] - 2.0 * std::floor(p.location[0] + 0.5);
       p.old_location[0] = fnx + p.old_location[0] - 2.0 * std::floor(p.old_location[0] + 0.5);
    }
-   if (p.location[1] <= nHalo or p.location[1] >= fny - nHalo) {
+   if (p.location[1] <= PBCDepth or p.location[1] >= fny - PBCDepth) {
       p.location[1] = fny + p.location[1] - 2.0 * std::floor(p.location[1] + 0.5);
       p.old_location[1] = fny + p.old_location[1] - 2.0 * std::floor(p.old_location[1] + 0.5);
    }
-   if (p.location[2] <= nHalo or p.location[2] >= fnz - nHalo) {
+   if (p.location[2] <= PBCDepth or p.location[2] >= fnz - PBCDepth) {
       p.location[2] = fnz + p.location[2] - 2.0 * std::floor(p.location[2] + 0.5);
       p.old_location[2] = fnz + p.old_location[2] - 2.0 * std::floor(p.old_location[2] + 0.5);
    }
@@ -79,11 +79,11 @@ auto FieldToParticleInterp(const auto& F,
    using KShape = Strategy::InnerShape;
    auto result = 0.0;
    for (auto i = IShape::Begin; i <= IShape::End; ++i) {
-      const auto& s0i = shapeI[i - IShape::Begin];
+      const auto& s0i = shapeI[i];
       for (auto j = JShape::Begin; j <= JShape::End; ++j) {
-         const auto& s0j = shapeJ[j - JShape::Begin];
+         const auto& s0j = shapeJ[j];
          for (auto k = KShape::Begin; k <= KShape::End; ++k) {
-            const auto& s0k = shapeK[k - KShape::Begin];
+            const auto& s0k = shapeK[k];
             const auto& [x, y, z] = Strategy::permute(ci + i, cj + j, ck + k);
             result += s0i * s0j * s0k * F(x, y, z);
          } // end for(k)
@@ -92,10 +92,9 @@ auto FieldToParticleInterp(const auto& F,
    return result;
 } // end FieldToParticle()
 
-static auto fieldAtParticle(Particle& p, const auto& emdata, const auto qdt)
+auto fieldAtParticle(Particle& p, const auto& emdata, const auto qdt)
 -> std::array<vec3<double>, 2>
 {
-
    static constexpr vec3 offset{
       interpolation_order == 2 ? 0.5 : 0.0,
       interpolation_order == 2 ? 0.5 : 0.0,
@@ -165,7 +164,7 @@ struct ParticleVelocityUpdate {
       const auto u = up + eps + cross_product(up, t);
       p.beta_gamma = u;
    } // end Higuera-Cary Velocity Update
-};
+}; // end struct ParticleVelocityUpdate
 
 struct ParticlePusher {
    using emdata_t = electromagnetics::EMData;
@@ -187,7 +186,6 @@ struct ParticlePusher {
       }
    } // end first_advance_position
 
-
    static void advance_velocity(group_t& g, const emdata_t& emdata) {
       #pragma omp parallel for num_threads(nThreads)
       for (auto pid = 0zu; pid < g.num_particles(); pid++) {
@@ -195,7 +193,7 @@ struct ParticlePusher {
          ParticleVelocityUpdate<ParticlePushSelect>()(g.particles[pid], emdata, g.qdt_over_2m);
       }
    } // end advance_velocity
-   //
+
    static void backstep_velocity(group_t& g, const emdata_t& emdata) {
       #pragma omp parallel for num_threads(nThreads)
       for (std::size_t pid = 0; pid < g.num_particles(); pid++) {

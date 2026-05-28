@@ -68,7 +68,7 @@ single_particle = Particles(
 particle_params = ParticleParams(
     save_interval=save_interval,
     bc_depth=0,
-    interp_order=2,
+    interp_order=1,
     particle_data=(single_particle,)
 )
 
@@ -103,7 +103,7 @@ for pusher, name in zip(pushers, sim_names):
     sim_params = Simulation(
         name=name,
         shape=shape,
-        nthreads=1,
+        nthreads=16,
         dt=dt,
         t_end=t_end,
         nt=nt,
@@ -114,11 +114,11 @@ for pusher, name in zip(pushers, sim_names):
         em_params=em_params,
         particle_params=particle_params,
         metric_params=metric_params,
-        em_enabled=False,
-        jdep_enabled=False,
+        # em_enabled=False,
+        # jdep_enabled=False,
         collisions_enabled=False,
         velocity_backstep_enabled=False,
-        applied_fields_only=True
+        # applied_fields_only=True
     )
 
     # ===========================

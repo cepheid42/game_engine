@@ -1,6 +1,7 @@
 #ifndef EM_UPDATES_HPP
 #define EM_UPDATES_HPP
 
+#include "program_params.hpp"
 #include "traits.hpp"
 
 #include <array>

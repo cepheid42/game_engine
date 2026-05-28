@@ -200,6 +200,15 @@ def create_particles(domain, particles, data_path):
         print('Done')
         return
 
+    if particles.distribution == 'sp_jdep':
+        pos = np.array([[px_min, py_min, pz_min]], dtype=np.float64)
+        gamma_c = 1.0005567897052046 / constants.c
+        beta_gamma = gamma_c * np.array([[temp[0], temp[1], temp[2]]], dtype=np.float64)
+        wts = np.array([1.0])
+        write_particle_file(data_path, particles, pos, beta_gamma, wts)
+        print('Done')
+        return
+
     nx, ny, nz = domain.shape
     dx, dy, dz = domain.deltas
 

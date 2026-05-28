@@ -7,7 +7,6 @@ from adios2 import FileReader
 
 from scripts.pyforce import *
 
-
 # =============================
 # ===== Simulation Params =====
 # =============================
@@ -27,10 +26,10 @@ dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
 
 dt = 4.0e-17
-t_end = 1.8e-13 #3.0e-13
+t_end = 1.25e-13 #3.0e-13
 nt = int(t_end / dt) + 1
 
-save_interval = 5
+save_interval = 10
 
 # =====================
 # ===== Particles =====
@@ -39,7 +38,7 @@ px_range = (-5e-7, 5e-7) # meters
 py_range = (ymin, ymax)
 pz_range = (-1e-5, 1e-5)
 
-ppc = (6, 1, 6)
+ppc = (4, 1, 4)
 density = 8.5e27
 temp = tuple(3 * [10000 / np.sqrt(3)])
 
@@ -100,7 +99,7 @@ metric_params = Metrics(
     (MetricType.ParticleEnergy,
      MetricType.FieldEnergy,
      MetricType.FieldDump,
-     MetricType.ParticleDump,
+     # MetricType.ParticleDump,
      MetricType.ParticleDiagnostics
     )
 )
@@ -127,17 +126,17 @@ sim_params = Simulation(
     # jdep_enabled=False
 )
 
-# ===========================
-# ===== Compile and Run =====
-# ===========================
-print(f'Setting up "{sim_name}"')
-create_data_dir(data_path)
-create_particles(sim_params, electrons, data_path)
-create_particles(sim_params, ions, data_path)
-update_header(sim_params, project_path=project_path)
-
-compile_project(build_path, output=True)
-run_project(build_path + '/game_engine', output=True)
+# # ===========================
+# # ===== Compile and Run =====
+# # ===========================
+# print(f'Setting up "{sim_name}"')
+# create_data_dir(data_path)
+# create_particles(sim_params, electrons, data_path)
+# create_particles(sim_params, ions, data_path)
+# update_header(sim_params, project_path=project_path)
+#
+# compile_project(build_path, output=True)
+# run_project(build_path + '/game_engine', output=True)
 
 # ===========================
 # ===== Post Processing =====
@@ -149,19 +148,25 @@ Vm_to_kVcm = 1.0e-5
 T_to_gauss = 1.0e4
 Am2_to_Acm2 = 1.0e-4
 
-n = 1875
-# n = 2000
+xs = np.linspace(xmin, xmax, shape[0])
+zs = np.linspace(zmin, zmax, shape[2])
 
 # for n in range(0, nt, save_interval):
 #     with FileReader(data_path + f'/fields_{n:010d}.bp') as f:
 #         print(n, f.read('Time'))
 
-# with FileReader(data_path + f'/electrons_{n:010d}.bp') as f:
+# with FileReader(data_path + f'/ions_{3000:010d}.bp') as f:
 #     density = f.read("Density")[:, 0, :].T
 #
+# from matplotlib.cm import ScalarMappable
+# from matplotlib import colors, ticker
 # fig, ax = plt.subplots(1, 1, figsize=(8, 8), layout='constrained')
-# im = ax.contourf(density, levels=70, cmap='jet')
-# plt.colorbar(im, ax=ax)
+#
+# norm = colors.LogNorm(vmin=1e26, vmax=1e28)
+# im = ax.contourf(density, levels=np.logspace(26, 28, 50), norm=norm,  cmap='jet')
+# fig.colorbar(ScalarMappable(norm=norm, cmap='jet'), ax=ax, shrink=0.82)
+# plt.show()
+
 # plt.savefig(data_path + f'/lsi_density_80fs.png')
 # plt.close(fig)
 
@@ -169,27 +174,40 @@ n = 1875
 # Jys = []
 # Jzs = []
 # time = 0
-# with FileReader(data_path + f'/fields_{n:010d}.bp') as f:
-#     Jxs.append(f.read("Jx")[:, 0, :].T)
-#     Jys.append(f.read("Jy")[:, 0, :].T)
-#     Jzs.append(f.read("Jz")[:, 0, :].T)
+# with FileReader(data_path + f'/fields_{2500:010d}.bp') as f:
+#     # Jxs.append(f.read("Jx")[:, 0, :].T)
+#     # Jys.append(f.read("Jy")[:, 0, :].T)
+#     # Jzs.append(f.read("Jz")[:, 0, :].T)
+#
+#     # Jxs.append(f.read("Ex")[:, 0, :].T)
+#     # Jys.append(f.read("Ey")[:, 0, :].T)
+#     # Jzs.append(f.read("Ez")[:, 0, :].T)
+#
+#     Jxs.append(f.read("Hx")[:, 0, :].T * constants.mu_0)
+#     Jys.append(f.read("Hy")[:, 0, :].T * constants.mu_0)
+#     Jzs.append(f.read("Hz")[:, 0, :].T * constants.mu_0)
+#
 #     time = f.read("Time")
 #
 # fig, ax = plt.subplots(3, 1, figsize=(6, 12), layout='constrained')
 #
 # fig.suptitle(f't = {time * s_to_ns} ns')
 #
-# a0 = ax[0].contourf(Jxs[-1], levels=70, cmap='jet')
+# # a0 = ax[0].contourf(xs[:-1], zs, Jxs[-1], levels=70, cmap='jet', vmin=-5e12, vmax=5e12)
+# a0 = ax[0].contourf(xs, zs[:-1], Jxs[-1], levels=70, cmap='jet')
 # ax[0].set_xlabel('x')
 # ax[0].set_ylabel('z')
 # ax[0].set_title('Jx')
 #
-# a1 = ax[1].contourf(Jys[-1], levels=70, cmap='jet')
+# # a1 = ax[1].contourf(xs, zs, Jys[-1], levels=70, cmap='jet')
+# a1 = ax[1].contourf(xs[:-1], zs[:-1], Jys[-1], levels=70, cmap='jet')
 # ax[1].set_xlabel('x')
 # ax[1].set_ylabel('z')
 # ax[1].set_title('Jy')
 #
-# a2 = ax[2].contourf(Jzs[-1], levels=70, cmap='jet')
+# # a2 = ax[2].contourf(xs, zs[:-1], Jzs[-1], levels=70, cmap='jet')
+# a2 = ax[2].contourf(xs[:-1], zs, Jzs[-1], levels=70, cmap='jet')
+#
 # ax[2].set_xlabel('x')
 # ax[2].set_ylabel('z')
 # ax[2].set_title('Jz')
@@ -198,19 +216,46 @@ n = 1875
 # plt.colorbar(a1, ax=ax[1])
 # plt.colorbar(a2, ax=ax[2])
 #
-# # plt.savefig(data_path + f'/lsi_jdep_75fs.png')
-# # plt.close(fig)
 # plt.show()
 
-with FileReader(data_path + '/fields_energy.bp') as f:
-    variables = f.available_variables()
-    steps = int(variables['Time']['AvailableStepsCount'])
-    ex = f.read('Ex Energy', step_selection=[0, steps])
-    ey = f.read('Ey Energy', step_selection=[0, steps])
-    ez = f.read('Ez Energy', step_selection=[0, steps])
-    bx = f.read('Bx Energy', step_selection=[0, steps])
-    by = f.read('By Energy', step_selection=[0, steps])
-    bz = f.read('Bz Energy', step_selection=[0, steps])
+# with FileReader(data_path + '/fields_energy.bp') as f:
+#     variables = f.available_variables()
+#     steps = int(variables['Time']['AvailableStepsCount'])
+#     ex = f.read('Ex Energy', step_selection=[0, steps])
+#     ey = f.read('Ey Energy', step_selection=[0, steps])
+#     ez = f.read('Ez Energy', step_selection=[0, steps])
+#     bx = f.read('Bx Energy', step_selection=[0, steps])
+#     by = f.read('By Energy', step_selection=[0, steps])
+#     bz = f.read('Bz Energy', step_selection=[0, steps])
+
+Exs = []
+Eys = []
+Ezs = []
+Hxs = []
+Hys = []
+Hzs = []
+for n in range(0, nt, save_interval):
+    with FileReader(data_path + f'/fields_{n:010d}.bp') as f:
+        Exs.append(np.sum(f.read('Ex')[50:-50, 0, 50:-50]**2))
+        Eys.append(np.sum(f.read('Ey')[50:-50, 0, 50:-50]**2))
+        Ezs.append(np.sum(f.read('Ez')[50:-50, 0, 50:-50]**2))
+        Hxs.append(np.sum(f.read('Hx')[50:-50, 0, 50:-50]**2))
+        Hys.append(np.sum(f.read('Hy')[50:-50, 0, 50:-50]**2))
+        Hzs.append(np.sum(f.read('Hz')[50:-50, 0, 50:-50]**2))
+
+Exs = np.array(Exs)
+Eys = np.array(Eys)
+Ezs = np.array(Ezs)
+Hxs = np.array(Hxs)
+Hys = np.array(Hys)
+Hzs = np.array(Hzs)
+
+ex = 0.5 * constants.epsilon_0 * Exs * dx * dy * dz
+ey = 0.5 * constants.epsilon_0 * Eys * dx * dy * dz
+ez = 0.5 * constants.epsilon_0 * Ezs * dx * dy * dz
+bx = 0.5 * constants.mu_0 * Hxs * dx * dy * dz
+by = 0.5 * constants.mu_0 * Hys * dx * dy * dz
+bz = 0.5 * constants.mu_0 * Hzs * dx * dy * dz
 
 with FileReader(data_path + '/particles_energy.bp') as f:
     variables = f.available_variables()

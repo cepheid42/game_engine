@@ -25,9 +25,18 @@ struct Particle {
    float weight;
 
    // todo: store cell_ids as uint16 and fractional position as floats, then calculate as needed
+   [[nodiscard]] auto is_disabled() const -> bool { return weight <= 0.0f; }
 
-   [[nodiscard]] auto       gamma() const -> double { return std::sqrt(1.0 + beta_gamma.length_squared()); }
-   [[nodiscard]] auto is_disabled() const -> bool   { return weight <= 0.0f; }
+   // todo: maybe beta gamma is the problem, since gamma might be wrong here
+   [[nodiscard]] auto gamma() const -> double { return std::sqrt(1.0 + beta_gamma.length_squared()); }
+
+   [[nodiscard]] auto position() const -> vec3<double> {
+      return {
+         x_range[0] + dx * location[0],
+         y_range[0] + dy * location[1],
+         z_range[0] + dz * location[2]
+      };
+   }
 }; // end struct Particle
 
 template <typename T = std::size_t>
@@ -41,28 +50,6 @@ constexpr auto getCellIndex(const auto& loc) -> std::size_t {
    const auto [x, y, z] = getCellIndices(loc);
    return z + ((Nz - 1) * y) + ((Ny - 1) * (Nz - 1) * x);
 }
-
-// constexpr auto getParticlePosition(const auto& loc) {
-//    // Should this return a vec3 or std::array?
-//    return {
-//       x_range[0] + dx * loc[0],
-//       y_range[0] + dy * loc[1],
-//       z_range[0] + dz * loc[2]
-//    };
-// }
-// constexpr auto calculateGammaV(const auto& v) {
-//    // Calculates gamma using regular velocity
-//    return 1.0 / std::sqrt(1.0 - (v / constants::c).length_squared());
-// }
-//
-// constexpr auto calculateGammaP(const auto& p, const auto m) {
-//    // Calculates gamma using momentum
-//    return std::sqrt(1.0 + (p / (constants::c * m)).length_squared());
-// }
-// constexpr auto calculateGammaB(const auto& p) {
-//    // calculates gamma using gamma*beta
-//    return std::sqrt(1.0 + p.length_squared());
-// }
 
 static void initializeFromFile(const std::string& filename, auto& group) {
    constexpr vec3 deltas{dx, dy, dz};
