@@ -60,9 +60,9 @@ template<ParticleBCType BC>
 requires (BC == ParticleBCType::Outflow)
 void apply_particle_bcs(auto& p) {
    const auto [inew, jnew, knew] = getCellIndices(p.location);
-   const auto disabled = ((inew < PBCDepth or inew > Nx - 2 - PBCDepth) and !x_collapsed) or
-                         ((jnew < PBCDepth or jnew > Ny - 2 - PBCDepth) and !y_collapsed) or
-                         ((knew < PBCDepth or knew > Nz - 2 - PBCDepth) and !z_collapsed);
+   const auto disabled = (!x_collapsed and (inew < PBCDepth or inew > Nx - 2 - PBCDepth)) or
+                         (!y_collapsed and (jnew < PBCDepth or jnew > Ny - 2 - PBCDepth)) or
+                         (!z_collapsed and (knew < PBCDepth or knew > Nz - 2 - PBCDepth));
    if (disabled) {
       p.weight = -1.0f;
    }
@@ -137,6 +137,9 @@ struct ParticleVelocityUpdate {
    static void operator()(Particle& p, const auto& emdata, const auto qdt)
    requires (P == ParticlePushType::Boris)
    {
+      // todo: maybe figure a way to interpolate all Ex first for every particle, then Ey, etc...
+      //       might help improve performance since it's not trying to shuffle all the fields through
+      //       at the same time.
       const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
       const auto um = p.beta_gamma + eps;
       const auto t = bet / std::sqrt(1.0 + um.length_squared());

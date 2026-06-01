@@ -3,13 +3,16 @@
 
 #include "array.hpp"
 #include "em_data.hpp"
+#include "em_definitions.hpp"
 #include "interpolation.hpp"
+#include "mdspan.hpp"
 #include "particles.hpp"
 #include "program_params.hpp"
 
 #include <adios2.h>
 #include <algorithm>
 #include <memory>
+#include <print>
 #include <unordered_map>
 
 namespace tf::metrics {
@@ -114,6 +117,8 @@ struct EMTotalEnergyMetric final : detail::MetricBase {
    static void write(const auto&, const auto&, const auto, const auto) requires(!em_enabled) {}
 
    void write(const std::string& dir, const std::string&, const std::size_t step, const double time) override {
+      using mdspan_t = std::mdspan<double, std::dextents<std::size_t, 3>, std::layout_stride>;
+
       static constexpr auto cell_volume = dx * dy * dz;
       const std::string file{dir + "/fields_energy.bp"};
 
@@ -122,45 +127,79 @@ struct EMTotalEnergyMetric final : detail::MetricBase {
       auto Ex_energy = 0.0;
       auto Ey_energy = 0.0;
       auto Ez_energy = 0.0;
-      auto Bx_energy = 0.0;
-      auto By_energy = 0.0;
-      auto Bz_energy = 0.0;
+      auto Hx_energy = 0.0;
+      auto Hy_energy = 0.0;
+      auto Hz_energy = 0.0;
 
-      const auto& Ex = em_map.at("Ex");
-      const auto& Ey = em_map.at("Ey");
-      const auto& Ez = em_map.at("Ez");
-      const auto& Hx = em_map.at("Hx");
-      const auto& Hy = em_map.at("Hy");
-      const auto& Hz = em_map.at("Hz");
+      constexpr auto x0 = x_collapsed ? 0 : PMLDepth;
+      constexpr auto y0 = y_collapsed ? 0 : PMLDepth;
+      constexpr auto z0 = z_collapsed ? 0 : PMLDepth;
+      constexpr auto nx = x_collapsed ? 1 : Nx - PMLDepth;
+      constexpr auto ny = y_collapsed ? 1 : Ny - PMLDepth;
+      constexpr auto nz = z_collapsed ? 1 : Nz - PMLDepth;
+      constexpr auto ncx = x_collapsed ? 1 : Nx - PMLDepth - 1;
+      constexpr auto ncy = y_collapsed ? 1 : Ny - PMLDepth - 1;
+      constexpr auto ncz = z_collapsed ? 1 : Nz - PMLDepth - 1;
+      
+      const auto Ex = mdspan_t{&em_map.at("Ex")(x0, y0, z0), {std::extents{ncx, ny, nz}, electromagnetics::ex_stride}};
+      const auto Ey = mdspan_t{&em_map.at("Ey")(x0, y0, z0), {std::extents{nx, ncy, nz}, electromagnetics::ey_stride}};
+      const auto Ez = mdspan_t{&em_map.at("Ez")(x0, y0, z0), {std::extents{nx, ny, ncz}, electromagnetics::ez_stride}};
+      const auto Hx = mdspan_t{&em_map.at("Hx")(x0, y0, z0), {std::extents{nx, ncy, ncz}, electromagnetics::hx_stride}};
+      const auto Hy = mdspan_t{&em_map.at("Hy")(x0, y0, z0), {std::extents{ncx, ny, ncz}, electromagnetics::hy_stride}};
+      const auto Hz = mdspan_t{&em_map.at("Hz")(x0, y0, z0), {std::extents{ncx, ncy, nz}, electromagnetics::hz_stride}};
 
-      // todo: fix this to use the right volumes for non-uniform mesh!
       #pragma omp parallel num_threads(nThreads) default(shared)
       {
-         #pragma omp for reduction(+:Ex_energy)
-         for (auto i = 0zu; i < Ex.size(); i++) {
-            Ex_energy += math::SQR(Ex[i]);
+         #pragma omp for collapse(3) reduction(+:Ex_energy)
+         for (auto i = 0zu; i < Ex.extent(0); i++) {
+            for (auto j = 0zu; j < Ex.extent(1); j++) {
+               for (auto k = 0zu; k < Ex.extent(2); k++) {
+                  Ex_energy += math::SQR(Ex[i, j, k]);
+               }
+            }
          }
-         #pragma omp for reduction(+:Ey_energy)
-         for (auto i = 0zu; i < Ey.size(); i++) {
-            Ey_energy += math::SQR(Ey[i]);
+         #pragma omp for collapse(3) reduction(+:Ey_energy)
+         for (auto i = 0zu; i < Ey.extent(0); i++) {
+            for (auto j = 0zu; j < Ey.extent(1); j++) {
+               for (auto k = 0zu; k < Ey.extent(2); k++) {
+                  Ey_energy += math::SQR(Ey[i, j, k]);
+               }
+            }
          }
-         #pragma omp for reduction(+:Ez_energy)
-         for (auto i = 0zu; i < Ez.size(); i++) {
-            Ez_energy += math::SQR(Ez[i]);
+         #pragma omp for collapse(3) reduction(+:Ez_energy)
+         for (auto i = 0zu; i < Ez.extent(0); i++) {
+            for (auto j = 0zu; j < Ez.extent(1); j++) {
+               for (auto k = 0zu; k < Ez.extent(2); k++) {
+                  Ez_energy += math::SQR(Ez[i, j, k]);
+               }
+            }
          }
-         #pragma omp for reduction(+:Bx_energy)
-         for (auto i = 0zu; i < Hx.size(); i++) {
-            Bx_energy += math::SQR(Hx[i]);
+
+         #pragma omp for collapse(3) reduction(+:Hx_energy)
+         for (auto i = 0zu; i < Hx.extent(0); i++) {
+            for (auto j = 0zu; j < Hx.extent(1); j++) {
+               for (auto k = 0zu; k < Hx.extent(2); k++) {
+                  Hx_energy += math::SQR(Hx[i, j, k]);
+               }
+            }
          }
-         #pragma omp for reduction(+:By_energy)
-         for (auto i = 0zu; i < Hy.size(); i++) {
-            By_energy += math::SQR(Hy[i]);
+         #pragma omp for collapse(3) reduction(+:Hy_energy)
+         for (auto i = 0zu; i < Hy.extent(0); i++) {
+            for (auto j = 0zu; j < Hy.extent(1); j++) {
+               for (auto k = 0zu; k < Hy.extent(2); k++) {
+                  Hy_energy += math::SQR(Hy[i, j, k]);
+               }
+            }
          }
-         #pragma omp for reduction(+:Bz_energy)
-         for (auto i = 0zu; i < Hz.size(); i++) {
-            Bz_energy += math::SQR(Hz[i]);
+         #pragma omp for collapse(3) reduction(+:Hz_energy)
+         for (auto i = 0zu; i < Hz.extent(0); i++) {
+            for (auto j = 0zu; j < Hz.extent(1); j++) {
+               for (auto k = 0zu; k < Hz.extent(2); k++) {
+                  Hz_energy += math::SQR(Hz[i, j, k]);
+               }
+            }
          }
-      }
+      } // end parallel
 
       // append after step 0
       adios2::Engine writer = io.Open(file, (step == 0) ? adios2::Mode::Write : adios2::Mode::Append);
@@ -168,9 +207,9 @@ struct EMTotalEnergyMetric final : detail::MetricBase {
       writer.Put(var_ex_energy, Ex_energy * 0.5 * constants::eps0 * cell_volume);
       writer.Put(var_ey_energy, Ey_energy * 0.5 * constants::eps0 * cell_volume);
       writer.Put(var_ez_energy, Ez_energy * 0.5 * constants::eps0 * cell_volume);
-      writer.Put(var_bx_energy, Bx_energy * 0.5 * constants::mu0 * cell_volume);
-      writer.Put(var_by_energy, By_energy * 0.5 * constants::mu0 * cell_volume);
-      writer.Put(var_bz_energy, Bz_energy * 0.5 * constants::mu0 * cell_volume);
+      writer.Put(var_bx_energy, Hx_energy * 0.5 * constants::mu0 * cell_volume);
+      writer.Put(var_by_energy, Hy_energy * 0.5 * constants::mu0 * cell_volume);
+      writer.Put(var_bz_energy, Hz_energy * 0.5 * constants::mu0 * cell_volume);
       writer.Put(var_step, step);
       writer.Put(var_dt, dt);
       writer.Put(var_time, time);
@@ -235,9 +274,15 @@ struct ParticleTotalEnergyMetric final : detail::MetricBase {
 
          #pragma omp parallel for num_threads(nThreads) default(shared) reduction(+:result)
          for (std::size_t i = 0; i < group.num_particles(); i++) {
-            if (group.particles[i].is_disabled()) { continue; }
-            if (p.location[0] < PMLDepth or > Nx - PMLDepth) { continue; }
-            result += (group.particles[i].gamma() - 1.0) * static_cast<double>(group.particles[i].weight);
+            const auto& p = group.particles[i];
+
+            const auto [inew, jnew, knew] = particles::getCellIndices(p.location);
+            const auto disabled = (!x_collapsed and (inew < PMLDepth or inew > Nx - 2 - PMLDepth)) or
+                                  (!y_collapsed and (jnew < PMLDepth or jnew > Ny - 2 - PMLDepth)) or
+                                  (!z_collapsed and (knew < PMLDepth or knew > Nz - 2 - PMLDepth));
+            
+            if (disabled or p.is_disabled()) { continue; }
+            result += (p.gamma() - 1.0) * static_cast<double>(p.weight);
          }
          result *= group.mass * constants::c_sqr;
          writer.Put(gv.variable, result);
@@ -309,14 +354,20 @@ struct ParticleDumpMetric final : detail::MetricBase {
       var_gamma.SetSelection({{0, 0}, {nParticles, 1}}); // {{start}, {count}}
       
       for (const auto& p: group.particles) {
-         // if (p.is_disabled()) { continue; }
+         if (p.is_disabled()) { continue; }
+
 
          for (std::size_t d = 0; d < 3; d++) {
             position.push_back(lb[d] + delta[d] * p.location[d]);
             velocity.push_back(constants::c * p.beta_gamma[d] / p.gamma());
          }
          weight.push_back(p.weight);
-         gamma.push_back(p.gamma());
+         if (group.is_photons) {
+            // beta_gamma == momentum for photons
+            gamma.push_back(p.k_energy);
+         } else {
+            gamma.push_back(p.gamma());
+         }
       }
       
       adios2::Engine writer = io.Open(file, adios2::Mode::Write);

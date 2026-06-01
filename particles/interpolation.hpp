@@ -132,10 +132,10 @@ struct Table {
    explicit Table() = default;
 
    explicit Table(const std::string& filepath, const auto xscale=1.0, const auto yscale=1.0) {
-      std::ifstream file(std::string{sim_path} + filepath);
+      std::ifstream file(filepath);
 
       if (!file.is_open()) {
-         throw std::runtime_error("Unable to open cross section table: " + filepath);
+         throw std::runtime_error("Table: Unable to open cross section table: " + filepath);
       }
 
       double x{};
@@ -178,17 +178,17 @@ struct MultiTable {
    : data(16)
    {
       using namespace tf;
-      std::ifstream file(std::string{sim_path} + filepath);
+      std::ifstream file(filepath);
 
       if (!file.is_open()) {
-         throw std::runtime_error("Unable to open cross section table: " + filepath);
+         throw std::runtime_error("MultiTable: Unable to open cross section table: " + filepath);
       }
 
       double val{};
       std::string line;
       while (std::getline(file, line)) {
          std::istringstream buffer(line);
-         std::size_t col{0zu};
+         auto col{0zu};
          while (buffer >> val) {
             data[col].push_back(val);
             col++;

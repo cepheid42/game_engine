@@ -10,7 +10,7 @@ from scripts.pyforce import *
 # =============================
 # ===== Simulation Params =====
 # =============================
-sim_name = 'lsi_test'
+sim_name = 'lsi_test_'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
@@ -26,10 +26,10 @@ dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
 
 dt = 4.0e-17
-t_end = 1.25e-13 #3.0e-13
+t_end = 3.0e-13
 nt = int(t_end / dt) + 1
 
-save_interval = 10
+save_interval = 75
 
 # =====================
 # ===== Particles =====
@@ -38,7 +38,7 @@ px_range = (-5e-7, 5e-7) # meters
 py_range = (ymin, ymax)
 pz_range = (-1e-5, 1e-5)
 
-ppc = (4, 1, 4)
+ppc = (10, 1, 10)
 density = 8.5e27
 temp = tuple(3 * [10000 / np.sqrt(3)])
 
@@ -96,11 +96,12 @@ em_params = EMParams(
 # ==========================
 metric_params = Metrics(
     data_path,
-    (MetricType.ParticleEnergy,
-     MetricType.FieldEnergy,
-     MetricType.FieldDump,
-     # MetricType.ParticleDump,
-     MetricType.ParticleDiagnostics
+    (
+        MetricType.ParticleEnergy,
+        MetricType.FieldEnergy,
+        # MetricType.FieldDump,
+        # MetricType.ParticleDump,
+        # MetricType.ParticleDiagnostics
     )
 )
 
@@ -110,7 +111,7 @@ metric_params = Metrics(
 sim_params = Simulation(
     name=sim_name,
     shape=shape,
-    nthreads=32,
+    nthreads=48,
     dt=dt,
     t_end=t_end,
     nt=nt,
@@ -138,86 +139,79 @@ sim_params = Simulation(
 # compile_project(build_path, output=True)
 # run_project(build_path + '/game_engine', output=True)
 
-# ===========================
-# ===== Post Processing =====
-# ===========================
-J_to_kJ = 1.0e-3
-s_to_fs = 1.0e15
-s_to_ns = 1.0e9
-Vm_to_kVcm = 1.0e-5
-T_to_gauss = 1.0e4
-Am2_to_Acm2 = 1.0e-4
-
-xs = np.linspace(xmin, xmax, shape[0])
-zs = np.linspace(zmin, zmax, shape[2])
-
-# for n in range(0, nt, save_interval):
-#     with FileReader(data_path + f'/fields_{n:010d}.bp') as f:
-#         print(n, f.read('Time'))
-
-# with FileReader(data_path + f'/ions_{3000:010d}.bp') as f:
-#     density = f.read("Density")[:, 0, :].T
+# # ===========================
+# # ===== Post Processing =====
+# # ===========================
+# xs = np.linspace(xmin, xmax, shape[0])
+# zs = np.linspace(zmin, zmax, shape[2])
 #
-# from matplotlib.cm import ScalarMappable
-# from matplotlib import colors, ticker
-# fig, ax = plt.subplots(1, 1, figsize=(8, 8), layout='constrained')
+# # for n in range(0, nt, save_interval):
+# #     with FileReader(data_path + f'/fields_{n:010d}.bp') as f:
+# #         print(n, f.read('Time'))
 #
-# norm = colors.LogNorm(vmin=1e26, vmax=1e28)
-# im = ax.contourf(density, levels=np.logspace(26, 28, 50), norm=norm,  cmap='jet')
-# fig.colorbar(ScalarMappable(norm=norm, cmap='jet'), ax=ax, shrink=0.82)
-# plt.show()
-
-# plt.savefig(data_path + f'/lsi_density_80fs.png')
-# plt.close(fig)
-
-# Jxs = []
-# Jys = []
-# Jzs = []
-# time = 0
-# with FileReader(data_path + f'/fields_{2500:010d}.bp') as f:
-#     # Jxs.append(f.read("Jx")[:, 0, :].T)
-#     # Jys.append(f.read("Jy")[:, 0, :].T)
-#     # Jzs.append(f.read("Jz")[:, 0, :].T)
+# # with FileReader(data_path + f'/ions_{3000:010d}.bp') as f:
+# #     density = f.read("Density")[:, 0, :].T
+# #
+# # from matplotlib.cm import ScalarMappable
+# # from matplotlib import colors, ticker
+# # fig, ax = plt.subplots(1, 1, figsize=(8, 8), layout='constrained')
+# #
+# # norm = colors.LogNorm(vmin=1e26, vmax=1e28)
+# # im = ax.contourf(density, levels=np.logspace(26, 28, 50), norm=norm,  cmap='jet')
+# # fig.colorbar(ScalarMappable(norm=norm, cmap='jet'), ax=ax, shrink=0.82)
+# # plt.show()
 #
-#     # Jxs.append(f.read("Ex")[:, 0, :].T)
-#     # Jys.append(f.read("Ey")[:, 0, :].T)
-#     # Jzs.append(f.read("Ez")[:, 0, :].T)
+# # plt.savefig(data_path + f'/lsi_density_80fs.png')
+# # plt.close(fig)
 #
-#     Jxs.append(f.read("Hx")[:, 0, :].T * constants.mu_0)
-#     Jys.append(f.read("Hy")[:, 0, :].T * constants.mu_0)
-#     Jzs.append(f.read("Hz")[:, 0, :].T * constants.mu_0)
+# # Jxs = []
+# # Jys = []
+# # Jzs = []
+# # time = 0
+# # with FileReader(data_path + f'/fields_{2500:010d}.bp') as f:
+# #     # Jxs.append(f.read("Jx")[:, 0, :].T)
+# #     # Jys.append(f.read("Jy")[:, 0, :].T)
+# #     # Jzs.append(f.read("Jz")[:, 0, :].T)
+# #
+# #     # Jxs.append(f.read("Ex")[:, 0, :].T)
+# #     # Jys.append(f.read("Ey")[:, 0, :].T)
+# #     # Jzs.append(f.read("Ez")[:, 0, :].T)
+# #
+# #     Jxs.append(f.read("Hx")[:, 0, :].T * constants.mu_0)
+# #     Jys.append(f.read("Hy")[:, 0, :].T * constants.mu_0)
+# #     Jzs.append(f.read("Hz")[:, 0, :].T * constants.mu_0)
+# #
+# #     time = f.read("Time")
+# #
+# # fig, ax = plt.subplots(3, 1, figsize=(6, 12), layout='constrained')
+# #
+# # fig.suptitle(f't = {time * s_to_ns} ns')
+# #
+# # # a0 = ax[0].contourf(xs[:-1], zs, Jxs[-1], levels=70, cmap='jet', vmin=-5e12, vmax=5e12)
+# # a0 = ax[0].contourf(xs, zs[:-1], Jxs[-1], levels=70, cmap='jet')
+# # ax[0].set_xlabel('x')
+# # ax[0].set_ylabel('z')
+# # ax[0].set_title('Jx')
+# #
+# # # a1 = ax[1].contourf(xs, zs, Jys[-1], levels=70, cmap='jet')
+# # a1 = ax[1].contourf(xs[:-1], zs[:-1], Jys[-1], levels=70, cmap='jet')
+# # ax[1].set_xlabel('x')
+# # ax[1].set_ylabel('z')
+# # ax[1].set_title('Jy')
+# #
+# # # a2 = ax[2].contourf(xs, zs[:-1], Jzs[-1], levels=70, cmap='jet')
+# # a2 = ax[2].contourf(xs[:-1], zs, Jzs[-1], levels=70, cmap='jet')
+# #
+# # ax[2].set_xlabel('x')
+# # ax[2].set_ylabel('z')
+# # ax[2].set_title('Jz')
+# #
+# # plt.colorbar(a0, ax=ax[0])
+# # plt.colorbar(a1, ax=ax[1])
+# # plt.colorbar(a2, ax=ax[2])
+# #
+# # plt.show()
 #
-#     time = f.read("Time")
-#
-# fig, ax = plt.subplots(3, 1, figsize=(6, 12), layout='constrained')
-#
-# fig.suptitle(f't = {time * s_to_ns} ns')
-#
-# # a0 = ax[0].contourf(xs[:-1], zs, Jxs[-1], levels=70, cmap='jet', vmin=-5e12, vmax=5e12)
-# a0 = ax[0].contourf(xs, zs[:-1], Jxs[-1], levels=70, cmap='jet')
-# ax[0].set_xlabel('x')
-# ax[0].set_ylabel('z')
-# ax[0].set_title('Jx')
-#
-# # a1 = ax[1].contourf(xs, zs, Jys[-1], levels=70, cmap='jet')
-# a1 = ax[1].contourf(xs[:-1], zs[:-1], Jys[-1], levels=70, cmap='jet')
-# ax[1].set_xlabel('x')
-# ax[1].set_ylabel('z')
-# ax[1].set_title('Jy')
-#
-# # a2 = ax[2].contourf(xs, zs[:-1], Jzs[-1], levels=70, cmap='jet')
-# a2 = ax[2].contourf(xs[:-1], zs, Jzs[-1], levels=70, cmap='jet')
-#
-# ax[2].set_xlabel('x')
-# ax[2].set_ylabel('z')
-# ax[2].set_title('Jz')
-#
-# plt.colorbar(a0, ax=ax[0])
-# plt.colorbar(a1, ax=ax[1])
-# plt.colorbar(a2, ax=ax[2])
-#
-# plt.show()
-
 # with FileReader(data_path + '/fields_energy.bp') as f:
 #     variables = f.available_variables()
 #     steps = int(variables['Time']['AvailableStepsCount'])
@@ -227,81 +221,52 @@ zs = np.linspace(zmin, zmax, shape[2])
 #     bx = f.read('Bx Energy', step_selection=[0, steps])
 #     by = f.read('By Energy', step_selection=[0, steps])
 #     bz = f.read('Bz Energy', step_selection=[0, steps])
-
-Exs = []
-Eys = []
-Ezs = []
-Hxs = []
-Hys = []
-Hzs = []
-for n in range(0, nt, save_interval):
-    with FileReader(data_path + f'/fields_{n:010d}.bp') as f:
-        Exs.append(np.sum(f.read('Ex')[50:-50, 0, 50:-50]**2))
-        Eys.append(np.sum(f.read('Ey')[50:-50, 0, 50:-50]**2))
-        Ezs.append(np.sum(f.read('Ez')[50:-50, 0, 50:-50]**2))
-        Hxs.append(np.sum(f.read('Hx')[50:-50, 0, 50:-50]**2))
-        Hys.append(np.sum(f.read('Hy')[50:-50, 0, 50:-50]**2))
-        Hzs.append(np.sum(f.read('Hz')[50:-50, 0, 50:-50]**2))
-
-Exs = np.array(Exs)
-Eys = np.array(Eys)
-Ezs = np.array(Ezs)
-Hxs = np.array(Hxs)
-Hys = np.array(Hys)
-Hzs = np.array(Hzs)
-
-ex = 0.5 * constants.epsilon_0 * Exs * dx * dy * dz
-ey = 0.5 * constants.epsilon_0 * Eys * dx * dy * dz
-ez = 0.5 * constants.epsilon_0 * Ezs * dx * dy * dz
-bx = 0.5 * constants.mu_0 * Hxs * dx * dy * dz
-by = 0.5 * constants.mu_0 * Hys * dx * dy * dz
-bz = 0.5 * constants.mu_0 * Hzs * dx * dy * dz
-
-with FileReader(data_path + '/particles_energy.bp') as f:
-    variables = f.available_variables()
-    steps = int(variables['Time']['AvailableStepsCount'])
-    time = f.read('Time', step_selection=[0, steps])
-    e_energy = f.read('electrons', step_selection=[0, steps])
-    i_energy = f.read('ions', step_selection=[0, steps])
-
-time *= s_to_fs
-field_energy = (ex + ey + ez + bx + by + bz) * J_to_kJ / dy
-e_energy = e_energy * J_to_kJ / dy
-i_energy = i_energy * J_to_kJ / dy
-
-smith_field_data = np.genfromtxt('./data/smith_lsi_field_energy.csv', delimiter=',')
-smith_electron_data = np.genfromtxt('./data/smith_lsi_electron_energy.csv', delimiter=',')
-smith_proton_data = np.genfromtxt('./data/smith_lsi_proton_energy.csv', delimiter=',')
-
-y_labels = [
-    (r'Field (kJ m$^{-1}$)', smith_field_data, [0, 100]),
-    (r'Electron (kJ m$^{-1}$)', smith_electron_data, [0, 15]),
-    (r'Proton (kJ m$^{-1}$)', smith_proton_data, [0, 15])
-]
-
-fig, ax = plt.subplots(3, 1, figsize=(6, 10), layout='constrained')
-
-for i, a in enumerate(ax):
-    label, _, _ = y_labels[i]
-    a.grid()
-    a.set_xlabel('Time (fs)')
-    a.set_ylabel(label)
-
-ax[0].plot(time, field_energy, 'b-', label='TriForce')
-ax[1].plot(time, e_energy, 'b-')
-ax[2].plot(time, i_energy, 'b-')
-
-ax[0].plot(smith_field_data[:, 0], smith_field_data[:, 1], 'r--', label='Smith')
-ax[1].plot(smith_electron_data[:, 0], smith_electron_data[:, 1], 'r--')
-ax[2].plot(smith_proton_data[:, 0], smith_proton_data[:, 1], 'r--')
-
-ax[0].set_ylim([0, 100])
-ax[1].set_ylim([0, 15])
-ax[2].set_ylim([0, 15])
-
-ax[0].legend()
-
-# plt.savefig(data_path + f'/lsi_comp_normal.png')
-# plt.close(fig)
-
-plt.show()
+#
+# with FileReader(data_path + '/particles_energy.bp') as f:
+#     variables = f.available_variables()
+#     steps = int(variables['Time']['AvailableStepsCount'])
+#     time = f.read('Time', step_selection=[0, steps])
+#     e_energy = f.read('electrons', step_selection=[0, steps])
+#     i_energy = f.read('ions', step_selection=[0, steps])
+#
+# time *= s_to_fs
+# field_energy = (ex + ey + ez + bx + by + bz) * J_to_kJ / dy
+# e_energy = e_energy * J_to_kJ / dy
+# i_energy = i_energy * J_to_kJ / dy
+#
+# smith_field_data = np.genfromtxt('./data/smith_lsi_field_energy.csv', delimiter=',')
+# smith_electron_data = np.genfromtxt('./data/smith_lsi_electron_energy.csv', delimiter=',')
+# smith_proton_data = np.genfromtxt('./data/smith_lsi_proton_energy.csv', delimiter=',')
+#
+# y_labels = [
+#     (r'Field (kJ m$^{-1}$)', smith_field_data, [0, 100]),
+#     (r'Electron (kJ m$^{-1}$)', smith_electron_data, [0, 15]),
+#     (r'Proton (kJ m$^{-1}$)', smith_proton_data, [0, 15])
+# ]
+#
+# fig, ax = plt.subplots(3, 1, figsize=(6, 10), layout='constrained')
+#
+# for i, a in enumerate(ax):
+#     label, _, _ = y_labels[i]
+#     a.grid()
+#     a.set_xlabel('Time (fs)')
+#     a.set_ylabel(label)
+#
+# ax[0].plot(time, field_energy, 'b-', label='TriForce')
+# ax[1].plot(time, e_energy, 'b-')
+# ax[2].plot(time, i_energy, 'b-')
+#
+# ax[0].plot(smith_field_data[:, 0], smith_field_data[:, 1], 'r--', label='Smith')
+# ax[1].plot(smith_electron_data[:, 0], smith_electron_data[:, 1], 'r--')
+# ax[2].plot(smith_proton_data[:, 0], smith_proton_data[:, 1], 'r--')
+#
+# ax[0].set_ylim([0, 100])
+# ax[1].set_ylim([0, 15])
+# ax[2].set_ylim([0, 15])
+#
+# ax[0].legend()
+#
+# # plt.savefig(data_path + f'/lsi_comp_normal.png')
+# # plt.close(fig)
+#
+# plt.show()

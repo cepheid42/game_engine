@@ -62,5 +62,12 @@ using field_t = TypeList<
    FieldIntegrator<ExplicitUpdateFunctor<TypeListAt<y_collapsed ? 0 : 3, EMDiffTypes>, TypeListAt<x_collapsed ? 0 : 1, EMDiffTypes>>>
 >;
 
+inline constexpr auto ex_stride = std::array{Ny * Nz, Nz, 1zu};
+inline constexpr auto ey_stride = std::array{(Ny - 1) * Nz, Nz, 1zu};
+inline constexpr auto ez_stride = std::array{Ny * (Nz - 1), Nz - 1, 1zu};
+inline constexpr auto hx_stride = std::array{(Ny - 1) * (Nz - 1), Nz - 1, 1zu};
+inline constexpr auto hy_stride = ez_stride;
+inline constexpr auto hz_stride = ey_stride;
+
 } // end namespace tf::electromagnetics
 #endif //EM_DEFINITIONS_HPP

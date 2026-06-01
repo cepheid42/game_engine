@@ -78,28 +78,28 @@ auto linspace(T start, T stop, std::size_t n_points, const bool endpoint = true)
 //
 //  return diff < std::max(abs_th, epsilon * norm);
 // }
-
-//  // This function checks if two values are within tolerance of each other
-//  template<class T>
-//  bool approximatelyEqual(T a, T b, T tol = static_cast<T>(1.0e-10)) { return std::abs(a - b) <= tol; }
-//
-//  // This function create a uniform spread of points over a given range
-//  // This should mimic Numpy's linspace function exactly.
-//  template<std::floating_point T>
-//  std::vector<T> linspace(T start, T stop, size_t n_points, const bool endpoint=true) {
-//    std::vector<T> result(n_points);
-//    if (endpoint) {
-//      n_points -= 1;
-//      result[result.size() - 1] = stop;
-//    }
-//    auto delta = (stop - start) / static_cast<T>(n_points);
-//    T val = start;
-//    for (size_t i = 0; i < n_points; ++i) {
-//      result[i] = val;
-//      val += delta;
-//    }
-//    return result;
-//  }
+  //
+  // // This function checks if two values are within tolerance of each other
+  // template<class T>
+  // bool approximatelyEqual(T a, T b, T tol = static_cast<T>(1.0e-10)) { return std::abs(a - b) <= tol; }
+  //
+  // // This function create a uniform spread of points over a given range
+  // // This should mimic Numpy's linspace function exactly.
+  // template<std::floating_point T>
+  // std::vector<T> linspace(T start, T stop, size_t n_points, const bool endpoint=true) {
+  //   std::vector<T> result(n_points);
+  //   if (endpoint) {
+  //     n_points -= 1;
+  //     result[result.size() - 1] = stop;
+  //   }
+  //   auto delta = (stop - start) / static_cast<T>(n_points);
+  //   T val = start;
+  //   for (size_t i = 0; i < n_points; ++i) {
+  //     result[i] = val;
+  //     val += delta;
+  //   }
+  //   return result;
+  // }
 //
 //
 //  // This function creates a set of points that are exactly halfway between the points of the provided vector

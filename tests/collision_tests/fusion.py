@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import constants
 from adios2 import FileReader
 
-from core.pytriforce.domain_params import *
-from core.pytriforce.particles.particle_generation import create_particles
+from scripts.pyforce import *
+
 
 # =============================
 # ===== Simulation Params =====
 # =============================
 sim_name = 'fusion_test'
-project_path = '/'
+project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
 
@@ -26,7 +29,6 @@ dz = (zmax - zmin) / (shape[2] - 1)
 dt = 5.0e-14
 t_end = 1.0e-12
 nt = int(t_end / dt) + 1
-cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
 # =====================
 # ===== Particles =====
@@ -113,14 +115,14 @@ DD_params = FusionParams(
     products=('neutrons', 'helium3'),
     energy_gain=3.269e6,
     production_multiplier=1.0e10,
-    cross_section_file='/tests/cross_section_data/DD_nHe3_BH_eV_m2.txt'
+    cross_section_file=project_path + '/tests/collision_tests/cross_section_data/DD_nHe3_BH_eV_m2.txt'
 )
 
 DT_params = FusionParams(
     products=('neutrons', 'helium4'),
     energy_gain=17.589e6,
     production_multiplier=1.0e10,
-    cross_section_file='/tests/cross_section_data/DT_nHe4_BH_eV_m2.txt'
+    cross_section_file=project_path + '/tests/collision_tests/cross_section_data/DT_nHe4_BH_eV_m2.txt'
 )
 
 # ==========================
@@ -171,7 +173,7 @@ for c in collision_types:
         tritium.temp = (TeV, TeV, TeV)
 
         particle_params = ParticleParams(
-            particle_bcs='periodic',
+            particle_bcs=ParticleBCType.Periodic,
             particle_data=particles,
             collisions=(collision,)
         )
@@ -183,7 +185,6 @@ for c in collision_types:
             dt=dt,
             t_end=t_end,
             nt=nt,
-            cfl=cfl,
             x_range=(xmin, xmax),
             y_range=(ymin, ymax),
             z_range=(zmin, zmax),
@@ -192,7 +193,9 @@ for c in collision_types:
             metric_params=metric_params,
             em_enabled=False,
             push_enabled=False,
-            jdep_enabled=False
+            jdep_enabled=False,
+            velocity_backstep_enabled=False,
+            collisions_enabled=True
         )
 
         # ===========================
@@ -202,13 +205,8 @@ for c in collision_types:
         create_particles(sim_params, tritium, data_path)
         update_header(sim_params, project_path=project_path)
 
-        subprocess.run(
-            ['meson', 'compile', '-C', build_path, '-j4'],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        ).check_returncode()
-
-        subprocess.run(build_path + '/game_engine').check_returncode()
+        compile_project(build_path, output=True)
+        run_project(build_path + '/game_engine', output=True)
         print()
 
 

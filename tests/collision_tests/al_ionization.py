@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import constants
 from adios2 import FileReader
 
-from core.pytriforce.domain_params import *
-from core.pytriforce.particles.particle_generation import create_particles
+from scripts.pyforce import *
 
 # =============================
 # ===== Simulation Params =====
 # =============================
 sim_name = 'ionization'
-project_path = '/'
+project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
 
@@ -26,7 +28,6 @@ dz = (zmax - zmin) / (shape[2] - 1)
 dt = 5.0e-18
 t_end = 3.18e-15
 nt = int(t_end / dt) + 1
-cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
 save_interval = 10
 
@@ -99,12 +100,12 @@ ionized_aluminum = Particles(
 ionization_params = IonizationParams(
     products=('electron_products', 'Al_products'),
     ionization_energy=5.9858,
-    cross_section_file='/tests/cross_section_data/eAl0_ionization_eV_m2.txt'
+    cross_section_file=project_path + '/tests/collision_tests/cross_section_data/eAl0_ionization_eV_m2.txt'
 )
 
 particle_params = ParticleParams(
     save_interval=save_interval,
-    particle_bcs='periodic',
+    particle_bcs=ParticleBCType.Periodic,
     particle_data=(electrons, electron_products, neutral_aluminum, ionized_aluminum),
     collisions=(
         Collision(
@@ -133,7 +134,6 @@ sim_params = Simulation(
     dt=dt,
     t_end=t_end,
     nt=nt,
-    cfl=cfl,
     x_range=(xmin, xmax),
     y_range=(ymin, ymax),
     z_range=(zmin, zmax),
@@ -142,7 +142,10 @@ sim_params = Simulation(
     metric_params=metric_params,
     em_enabled=False,
     push_enabled=False,
-    jdep_enabled=False
+    jdep_enabled=False,
+    velocity_backstep_enabled=False,
+    collisions_enabled=True,
+    ionization_test_enabled=True
 )
 
 # ===========================
@@ -151,15 +154,10 @@ sim_params = Simulation(
 print(f'Setting up "{sim_name}"')
 create_particles(sim_params, electrons, data_path)
 create_particles(sim_params, neutral_aluminum, data_path)
-update_header(sim_params, project_path=project_path, ionization_test_override=True)
+update_header(sim_params, project_path=project_path)
 
-subprocess.run(
-    ['meson', 'compile', '-C', build_path, '-j4'],
-    stdout=subprocess.DEVNULL,
-    stderr=subprocess.DEVNULL
-).check_returncode()
-
-subprocess.run(build_path + '/game_engine').check_returncode()
+compile_project(build_path, output=True)
+run_project(build_path + '/game_engine', output=True)
 
 # ===========================
 # ===== Post Processing =====

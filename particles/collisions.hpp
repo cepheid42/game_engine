@@ -174,7 +174,7 @@ struct Collisions {
          auto KE = 0.0;
          for (auto& p : c) {
             ttl_weight += p.weight;
-            KE += (p.gamma - 1.0) * p.weight * mc2;
+            KE += (p.gamma() - 1.0) * p.weight * mc2;
          }
          return {ttl_weight * cell_vol_inv, (2.0 / 3.0) * KE / (ttl_weight * constants::q_e)};
       };

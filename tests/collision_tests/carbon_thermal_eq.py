@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
 
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import constants
 from adios2 import FileReader
 
-from core.pytriforce.domain_params import *
+from scripts.pyforce import *
+
 
 # =============================
 # ===== Simulation Params =====
 # =============================
 sim_name = 'carbon_thermal_eq'
-project_path = '/'
+project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
 
 shape = (2, 2, 2)
+
 xmin, xmax = 0.0, 1e-6
 ymin, ymax = 0.0, 1e-6
 zmin, zmax = 0.0, 1e-6
@@ -24,7 +29,6 @@ dz = (zmax - zmin) / (shape[2] - 1)
 t_end = 5e-12
 dt = 5e-16
 nt = int(t_end / dt) + 1
-cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
 save_interval = nt // 100
 
@@ -74,7 +78,7 @@ carbon2 = Particles(
 # ==========================================
 particle_params = ParticleParams(
     save_interval=save_interval,
-    particle_bcs='periodic',
+    particle_bcs=ParticleBCType.Periodic,
     interp_order=1,
     particle_data=(carbon1, carbon2),
     collisions=(
@@ -102,7 +106,6 @@ sim_params = Simulation(
     dt=dt,
     t_end=t_end,
     nt=nt,
-    cfl=cfl,
     x_range=(xmin, xmax),
     y_range=(ymin, ymax),
     z_range=(zmin, zmax),
@@ -111,7 +114,9 @@ sim_params = Simulation(
     metric_params=metric_params,
     push_enabled=False,
     jdep_enabled=False,
-    em_enabled=False
+    em_enabled=False,
+    velocity_backstep_enabled=False,
+    collisions_enabled=True
 )
 
 # ===========================
@@ -122,13 +127,8 @@ create_particles(sim_params, carbon1, data_path)
 create_particles(sim_params, carbon2, data_path)
 update_header(sim_params, project_path=project_path)
 
-subprocess.run(
-    ['meson', 'compile', '-C', build_path, '-j4'],
-    stdout=subprocess.DEVNULL,
-    stderr=subprocess.DEVNULL
-).check_returncode()
-
-subprocess.run(build_path + '/game_engine').check_returncode()
+compile_project(build_path, output=True)
+run_project(build_path + '/game_engine', output=True)
 
 # ===========================
 # ===== Post Processing =====

@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import constants
 from adios2 import FileReader
 
-from core.pytriforce.domain_params import *
-from core.pytriforce.particles.particle_generation import create_particles
+from scripts.pyforce import *
 
 # =============================
 # ===== Simulation Params =====
 # =============================
 sim_name = 'cu_brems'
-project_path = '/'
+project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
 
@@ -26,7 +28,6 @@ dz = (zmax - zmin) / (shape[2] - 1)
 dt = 1.0e-15
 t_end = 4.2e-14
 nt = int(t_end / dt) + 1
-cfl = constants.c * dt * np.sqrt(1/dx**2 + 1/dy**2 + 1/dz**2)
 
 # =====================
 # ===== Particles =====
@@ -89,12 +90,12 @@ radiation_params = RadiationParams(
     products='photons',
     reduce_electron_energy=False,
     production_multiplier=1.0e5,
-    cross_section_file='/tests/cross_section_data/SB_G4_Z29_kdsdk_MeV_barns.csv'
+    cross_section_file=project_path + '/tests/collision_tests/cross_section_data/SB_G4_Z29_kdsdk_MeV_barns.csv'
 )
 
 particle_params = ParticleParams(
     save_interval=1,
-    particle_bcs='periodic',
+    particle_bcs=ParticleBCType.Periodic,
     interp_order=1,
     particle_data=(electrons, copper, photons),
     collisions=(
@@ -124,7 +125,6 @@ sim_params = Simulation(
     dt=dt,
     t_end=t_end,
     nt=nt,
-    cfl=cfl,
     x_range=(xmin, xmax),
     y_range=(ymin, ymax),
     z_range=(zmin, zmax),
@@ -133,7 +133,9 @@ sim_params = Simulation(
     metric_params=metric_params,
     em_enabled=False,
     push_enabled=False,
-    jdep_enabled=False
+    jdep_enabled=False,
+    velocity_backstep_enabled=False,
+    collisions_enabled=True
 )
 
 # ===========================
@@ -156,13 +158,8 @@ for name, cppc, _, _, _ in sims:
     create_particles(sim_params, copper, data_path)
     update_header(sim_params, project_path=project_path)
 
-    subprocess.run(
-        ['meson', 'compile', '-C', build_path, '-j4'],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
-    ).check_returncode()
-
-    subprocess.run(build_path + '/game_engine').check_returncode()
+    compile_project(build_path, output=True)
+    run_project(build_path + '/game_engine', output=True)
 
 # ===========================
 # ===== Post Processing =====
@@ -201,7 +198,7 @@ Ngamma_theory = e_den * cu_den * v_e * length * sigmaB * time_theory
 
 ax[0].plot(time_theory * 1e15, Ngamma_theory, '-k', label='Theory')
 
-Martinez_fig9b_data = np.loadtxt("/tests/mikes_files/Martinez_fig9b_data.csv", delimiter=",")
+Martinez_fig9b_data = np.loadtxt('/home/cepheid/TriForce/game_engine/tests/mikes_files/Martinez_fig9b_data.csv', delimiter=",")
 ax[1].plot(Martinez_fig9b_data[:,0], Martinez_fig9b_data[:,1], '-k')
 
 me_c2 = constants.electron_mass * constants.speed_of_light**2

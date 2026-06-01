@@ -52,10 +52,13 @@ struct CurrentDeposition {
       using JyStrategy = interp::InterpolationStrategy<1, ZShape, XShape, YShape>;
       using JzStrategy = interp::InterpolationStrategy<2, XShape, YShape, ZShape>;
 
+      static constexpr auto xf = y_collapsed or z_collapsed ? 2.0 : 1.0;
+      static constexpr auto yf = x_collapsed or z_collapsed ? 2.0 : 1.0;
+      static constexpr auto zf = x_collapsed or y_collapsed ? 2.0 : 1.0;
       // Precompute constants
-      static constexpr auto dtAxy = 2.0 / (dt * dx * dy);
-      static constexpr auto dtAxz = 1.0 / (dt * dx * dz);
-      static constexpr auto dtAyz = 2.0 / (dt * dy * dz);
+      static constexpr auto dtAxy = xf / (dt * dx * dy);
+      static constexpr auto dtAxz = yf / (dt * dx * dz);
+      static constexpr auto dtAyz = zf / (dt * dy * dz);
 
       // Offsets for Even/Odd order interpolation
       static constexpr vec3 offset{

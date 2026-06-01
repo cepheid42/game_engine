@@ -10,7 +10,6 @@
 #include <boost/sort/sort.hpp>
 #include <adios2.h>
 
-#include <algorithm>
 #include <print>
 #include <span>
 #include <utility>
@@ -23,20 +22,20 @@ struct Particle {
    vec3<double> location;
    vec3<double> old_location;
    float weight;
+   double k_energy{0.0};
 
    // todo: store cell_ids as uint16 and fractional position as floats, then calculate as needed
    [[nodiscard]] auto is_disabled() const -> bool { return weight <= 0.0f; }
 
-   // todo: maybe beta gamma is the problem, since gamma might be wrong here
    [[nodiscard]] auto gamma() const -> double { return std::sqrt(1.0 + beta_gamma.length_squared()); }
 
-   [[nodiscard]] auto position() const -> vec3<double> {
-      return {
-         x_range[0] + dx * location[0],
-         y_range[0] + dy * location[1],
-         z_range[0] + dz * location[2]
-      };
-   }
+   // [[nodiscard]] auto position() const -> vec3<double> {
+   //    return {
+   //       x_range[0] + dx * location[0],
+   //       y_range[0] + dy * location[1],
+   //       z_range[0] + dz * location[2]
+   //    };
+   // }
 }; // end struct Particle
 
 template <typename T = std::size_t>
