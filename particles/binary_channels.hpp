@@ -25,10 +25,10 @@ struct ParticlePairData {
 };
             
 struct CoulombData {
-   double coef1;
-   double coef2;
-   double bmax2;
-   double scatter_lowt;
+   double coef1{};
+   double coef2{};
+   double bmax2{};
+   double scatter_lowt{};
 };
 
 struct COMData {
@@ -56,16 +56,13 @@ void coulombCollision(const auto& params, const auto& spec, const auto& cell_dat
    auto& particle2 = params.particle2;
    const auto& m1 = params.mass1;
    const auto& m2 = params.mass2;
-   const auto& gb1 = particle1.beta_gamma;
-   const auto& gb2 = particle2.beta_gamma;
+   const auto& v1 = particle1.velocity;
+   const auto& v2 = particle2.velocity;
    const auto& w1 = particle1.weight;
    const auto& w2 = particle2.weight;
+   const auto& gamma1 = particle1.gamma;
+   const auto& gamma2 = particle2.gamma;
    const auto& cspec = spec.coulomb;
-
-   const auto gamma1 = particle1.gamma();
-   const auto gamma2 = particle2.gamma();
-   const auto v1 = constants::c * gb1 / gamma1;
-   const auto v2 = constants::c * gb2 / gamma2;
 
    const auto scatter_p1 = params.rand[0] * w1 < w2;
    const auto scatter_p2 = params.rand[0] * w2 < w1;
@@ -79,7 +76,13 @@ void coulombCollision(const auto& params, const auto& spec, const auto& cell_dat
 
    const auto vcm = (p1 + p2) / (m1 * gamma1 + m2 * gamma2);
    const auto vcm2 = vcm.length_squared();
+
+   // Guard against rare roundoff or already-corrupted particle states before forming gamma_cm.
+   // if (!std::isfinite(vcm2) or vcm2 >= constants::c_sqr) { return; }
+
    const auto gamma_cm = 1.0 / std::sqrt(1.0 - vcm2 * constants::over_c_sqr);
+
+   // if (!std::isfinite(gamma_cm)) { return; }
 
    const auto u1 = p1 / m1;
    const auto u2 = p2 / m2;
@@ -90,8 +93,31 @@ void coulombCollision(const auto& params, const auto& spec, const auto& cell_dat
    const auto gamma1_cm = (gamma1 - vcm_dot_u1 * constants::over_c_sqr) * gamma_cm;
    const auto gamma2_cm = (gamma2 - vcm_dot_u2 * constants::over_c_sqr) * gamma_cm;
 
-   const auto p1_star = p1 + m1 * gamma1 * vcm * ((gamma_cm - 1.0) * vcm_dot_u1 / vcm2 - gamma_cm);
+   // if (!std::isfinite(gamma1_cm) or !std::isfinite(gamma2_cm) or gamma1_cm < 1.0 or gamma2_cm < 1.0) { return; }
+
+   // Avoid the vcm2 denominator when the lab frame is already effectively the COM frame.
+   // constexpr auto vcm2_floor = 1.0e-30 * constants::c_sqr;
+
+   // Bad old code: includes one extra factor of gamma1 in the first term and divides by vcm2 unconditionally.
+   // const auto p1_star = p1 + m1 * gamma1 * vcm * ((gamma_cm - 1.0) * vcm_dot_u1 / vcm2 - gamma_cm);
+   const auto p1_star = p1 + m1 * vcm * ((gamma_cm - 1.0) * vcm_dot_u1 / vcm2 - gamma_cm * gamma1);;
+
+   // const auto p1_star = (vcm2 < vcm2_floor)
+   //    ? p1
+   //    : p1 + m1 * vcm * ((gamma_cm - 1.0) * vcm_dot_u1 / vcm2 - gamma_cm * gamma1);
+
    const auto p1_star_len = p1_star.length();
+
+   // if (!std::isfinite(p1_star_len) or p1_star_len == 0.0) { return; }
+
+   // // Diagnostic invariant check: the transformed COM momentum magnitude should match gamma1_cm.
+   // const auto p1_star_expected =
+   //    m1 * constants::c * std::sqrt(std::max(0.0, math::SQR(gamma1_cm) - 1.0));
+   // const auto p1_star_rel_err =
+   //    std::abs(p1_star_len - p1_star_expected) / std::max(p1_star_expected, std::numeric_limits<double>::min());
+
+   // // If this trips, set a breakpoint here; the pair has inconsistent relativistic COM kinematics.
+   // if (!std::isfinite(p1_star_rel_err) or p1_star_rel_err > 1.0e-8) { return; }
 
    const auto gamma_coef1 = gamma_cm / (m1 * gamma1 + m2 * gamma2);
    const auto gamma_coef2 = 1.0 + constants::c_sqr * (gamma1_cm * m1) * (gamma2_cm * m2) / math::SQR(p1_star_len);
@@ -128,22 +154,79 @@ void coulombCollision(const auto& params, const auto& spec, const auto& cell_dat
 
    // Perez (2012) eq 12
    const auto p1_perp = std::sqrt(math::SQR(p1_star[0]) + math::SQR(p1_star[1]));
+   // const auto p1_perp_floor = 1.0e-30 * p1_star_len;
+
+   // if (!std::isfinite(p1_perp)) { return; }
+
+   // Bad old code: divides by p1_perp unconditionally, so p1_star parallel to z gives 0/0.
    const vec3 p1f_star {
       dv0 * (p1_star[0] * p1_star[2] / p1_perp) - dv1 * (p1_star[1] * p1_star_len / p1_perp) + cos_theta * p1_star[0],
       dv0 * (p1_star[1] * p1_star[2] / p1_perp) + dv1 * (p1_star[0] * p1_star_len / p1_perp) + cos_theta * p1_star[1],
      -dv0 * p1_perp + cos_theta * p1_star[2]
    };
 
+   // const auto p1f_star = [&]() -> vec3<double> {
+   //    if (p1_perp < p1_perp_floor) {
+   //       // p1_star is almost parallel to z, so scatter directly about the z axis.
+   //       const auto sign_z = (p1_star[2] >= 0.0) ? 1.0 : -1.0;
+   //       return vec3<double>{
+   //          p1_star_len * sin_theta * std::cos(phi),
+   //          p1_star_len * sin_theta * std::sin(phi),
+   //          sign_z * p1_star_len * cos_theta
+   //       };
+   //    }
+   //
+   //    return vec3<double>{
+   //       dv0 * (p1_star[0] * p1_star[2] / p1_perp) - dv1 * (p1_star[1] * p1_star_len / p1_perp) + cos_theta * p1_star[0],
+   //       dv0 * (p1_star[1] * p1_star[2] / p1_perp) + dv1 * (p1_star[0] * p1_star_len / p1_perp) + cos_theta * p1_star[1],
+   //      -dv0 * p1_perp + cos_theta * p1_star[2]
+   //    };
+   // }();
+
+   // if (!std::isfinite(p1f_star[0]) or !std::isfinite(p1f_star[1]) or !std::isfinite(p1f_star[2])) { return; }
+
+   // Bad old code: divides by vcm2 unconditionally.
    const auto pcoef = (gamma_cm - 1.0) * dot_product(vcm, p1f_star) / vcm2;
+   // const auto pcoef = (vcm2 < vcm2_floor)
+   //    ? 0.0
+   //    : (gamma_cm - 1.0) * dot_product(vcm, p1f_star) / vcm2;
 
    if (scatter_p1) {
       const auto p1f = p1f_star + vcm * (pcoef + m1 * gamma1_cm * gamma_cm);
-      particle1.beta_gamma = p1f / (m1 * constants::c);
+      const auto gamma1f = gamma_from_momentum(p1f, m1);
+
+      // Bad old code: assigned gamma and velocity without checking for non-finite values.
+      // particle1.velocity = p1f / (m1 * gamma1f);
+      // particle1.gamma = gamma1f;
+
+      // if (!std::isfinite(gamma1f) or gamma1f < 1.0) { return; }
+
+      const auto v1f = p1f / (m1 * gamma1f);
+
+      // if (!std::isfinite(v1f[0]) or !std::isfinite(v1f[1]) or !std::isfinite(v1f[2])) { return; }
+      // if (v1f.length_squared() >= constants::c_sqr) { return; }
+
+      particle1.velocity = v1f;
+      particle1.gamma = gamma1f;
    }
 
    if (scatter_p2) {
       const auto p2f = -p1f_star + vcm * (-pcoef + m2 * gamma2_cm * gamma_cm);
-      particle2.beta_gamma = p2f / (m2 * constants::c);
+      const auto gamma2f = gamma_from_momentum(p2f, m2);
+
+      // Bad old code: assigned gamma and velocity without checking for non-finite values.
+      // particle2.velocity = p2f / (m2 * gamma2f);
+      // particle2.gamma = gamma2f;
+
+      // if (!std::isfinite(gamma2f) or gamma2f < 1.0) { return; }
+
+      const auto v2f = p2f / (m2 * gamma2f);
+
+      // if (!std::isfinite(v2f[0]) or !std::isfinite(v2f[1]) or !std::isfinite(v2f[2])) { return; }
+      // if (v2f.length_squared() >= constants::c_sqr) { return; }
+
+      particle2.velocity = v2f;
+      particle2.gamma = gamma2f;
    }
 } // end coulombCollision()
 
@@ -159,16 +242,13 @@ void ionizationCollision(
    auto& particle2 = params.particle2;
    const auto& m1 = params.mass1;
    const auto& m2 = params.mass2;
-   const auto& gb1 = particle1.beta_gamma;
-   const auto& gb2 = particle2.beta_gamma;
+   const auto& v1 = particle1.velocity;
+   const auto& v2 = particle2.velocity;
    const auto& w1 = particle1.weight; // Do not use weight/dup here;
    const auto& w2 = particle2.weight;
+   const auto& gamma1 = particle1.gamma;
+   const auto& gamma2 = particle2.gamma;
    const auto& ionization = spec.ionization;
-
-   const auto gamma1 = particle1.gamma();
-   const auto gamma2 = particle2.gamma();
-   const auto v1 = constants::c * gb1 / gamma1;
-   const auto v2 = constants::c * gb2 / gamma2;
 
    const auto wi_eff = w2 / ionization.rejection_multiplier;
    const auto dv_len = (v1 - v2).length();
@@ -183,28 +263,28 @@ void ionizationCollision(
 
    const auto p1 = gamma1 * m1 * v1;
    const auto p2 = gamma2 * m2 * v2;
-   
+
    const auto vcm = (p1 + p2) / (m1 * gamma1 + m2 * gamma2);
    const auto vcm2 = vcm.length_squared();
    const auto gamma_cm = 1.0 / std::sqrt(1.0 - vcm2 * constants::over_c_sqr);
-   
+
    const auto u1 = p1 / m1;
    const auto u2 = p2 / m2;
-   
+
    const auto vcm_dot_u1 = dot_product(vcm, u1);
    const auto vcm_dot_u2 = dot_product(vcm, u2);
-   
+
    const auto gamma1_cm = (gamma1 - vcm_dot_u1 * constants::over_c_sqr) * gamma_cm;
    const auto gamma2_cm = (gamma2 - vcm_dot_u2 * constants::over_c_sqr) * gamma_cm;
-   
+
    const auto u1_cm = u1 + ((gamma_cm - 1.0) / vcm2 * vcm_dot_u1 - gamma_cm * gamma1) * vcm;
    const auto u2_cm = u2 + ((gamma_cm - 1.0) / vcm2 * vcm_dot_u2 - gamma_cm * gamma2) * vcm;
-   
+
    const auto dv2_cm = (u1_cm / gamma1_cm - u2_cm / gamma2_cm).length_squared();
    const auto vrel2_cm = dv2_cm / math::SQR(1.0 - dv2_cm * constants::over_c_sqr);
-   
+
    const auto gamma_rel = 1.0 / std::sqrt(1.0 - vrel2_cm * constants::over_c_sqr);
-   
+
    const auto energy_com_eV = (gamma_rel - 1.0) * params.reduced_mass * constants::c_sqr / constants::q_e;
 
    // Skip if COM energy is below ionization energy threshold
@@ -237,21 +317,24 @@ void ionizationCollision(
       const auto product_weight = static_cast<float>(std::min(static_cast<double>(w2), wi_eff * params.nDups / ionization.production_multiplier));
       const auto E_ejected = energy_com_eV - ionization.ionization_energy - E_scatter;
       const auto p_ejected = v1 * gamma1 * m1 * std::sqrt(E_ejected / energy_com_eV); // todo: this can be simplified a bit, dont need p for anything but getting v
-      const auto gb_ejected = p_ejected / (m1 * constants::c);
+      const auto gamma_ejected = gamma_from_momentum(p_ejected, m1);
+      const auto v_ejected = p_ejected / (gamma_ejected * m1);
 
       #pragma omp critical
       {
          buffers.g1_products.emplace_back(
-            gb_ejected,
+            v_ejected,
             particle2.location,
             particle2.location,
+            gamma_ejected,
             product_weight
          );
 
          buffers.g2_products.emplace_back(
-            particle2.beta_gamma,
+            particle2.velocity,
             particle2.location,
             particle2.location,
+            particle2.gamma,
             product_weight
          );
       }
@@ -303,12 +386,16 @@ void ionizationCollision(
 
    if (electron_scatters) {
       const auto p1s_final = p1f_cm + vcms * (pcoef + m1 * gamma1_cms * gamma_cms);
-      particle1.beta_gamma = p1s_final / (m1 * constants::c);
+      const auto gamma1f = gamma_from_momentum(p1s_final, m1);
+      particle1.velocity = p1s_final / (m1 * gamma1f);
+      particle1.gamma = gamma1f;
    }
 
    if (target_ionizes) {
       const auto p2s_final = -p1f_cm + vcms * (-pcoef + m2 * gamma2_cms * gamma_cms);
-      particle2.beta_gamma = p2s_final / (m2 * constants::c);
+      const auto gamma2f = gamma_from_momentum(p2s_final, m2);
+      particle2.velocity = p2s_final / (m2 * gamma2f);
+      particle2.gamma = gamma2f;
    }
 } // end ionizationCollision()
 
@@ -326,17 +413,13 @@ void fusionCollision(
    auto& particle2 = params.particle2;
    const auto& m1 = params.mass1;
    const auto& m2 = params.mass2;
-   const auto& gb1 = particle1.beta_gamma;
-   const auto& gb2 = particle2.beta_gamma;
+   const auto& v1 = particle1.velocity;
+   const auto& v2 = particle2.velocity;
    const auto& w1 = particle1.weight;
    const auto& w2 = particle2.weight;
-
+   const auto& gamma1 = particle1.gamma;
+   const auto& gamma2 = particle2.gamma;
    const auto& fusion = spec.fusion;
-
-   const auto gamma1 = particle1.gamma();
-   const auto gamma2 = particle2.gamma();
-   const auto v1 = constants::c * gb1 / gamma1;
-   const auto v2 = constants::c * gb2 / gamma2;
 
    const auto dv = v1 - v2;
    const auto dv_len = dv.length();
@@ -436,38 +519,46 @@ void fusionCollision(
       -sin_theta * v4_rot[0] + cos_theta * v4_rot[2]
    };
 
-   const auto gb_prod1 = (u3 + v2) / constants::c;
-   const auto gb_prod2 = (u4 + v2) / constants::c;
+   const auto v_prod1 = u3 + v2;
+   const auto v_prod2 = u4 + v2;
+
+   const auto gamma_prod1 = gamma_from_velocity(v_prod1);
+   const auto gamma_prod2 = gamma_from_velocity(v_prod2);
+
    const auto product_weight = static_cast<float>(std::min(w1, w2) / prod_mult);
 
    #pragma omp critical
    {
       // Half of each product is placed at each input particle position, for 4 total particles
       buffers.g1_products.emplace_back(
-         gb_prod1,
+         v_prod1,
          particle1.location,
          particle1.location,
+         gamma_prod1,
          product_weight / 2.0f
       );
 
       buffers.g1_products.emplace_back(
-         gb_prod1,
+         v_prod1,
          particle2.location,
          particle2.location,
+         gamma_prod1,
          product_weight / 2.0f
       );
 
       buffers.g2_products.emplace_back(
-         gb_prod2,
+         v_prod2,
          particle1.location,
          particle1.location,
+         gamma_prod2,
          product_weight / 2.0f
       );
 
       buffers.g2_products.emplace_back(
-         gb_prod2,
+         v_prod2,
          particle2.location,
          particle2.location,
+         gamma_prod2,
          product_weight / 2.0f
       );
    }
@@ -477,111 +568,113 @@ void fusionCollision(
 } // end fusionCollision()
 
 
-void bremsstrahlungCollision(
-   const auto& params,
-   const auto& spec,
-   auto& buffers,
-   const auto& cs_table
-)
-{
-   auto& electron = params.particle1;
-   auto& ion = params.particle2;
-   const auto& gb1 = electron.beta_gamma;
-   const auto& gb2 = ion.beta_gamma;
-   const auto& w1 = electron.weight;
-   const auto& w2 = ion.weight;
-   const auto& m1 = params.mass1;
-   const auto& m2 = params.mass2;
-   const auto& brem = spec.radiation;
-
-   const auto gamma_e = electron.gamma();
-   const auto gamma_i = ion.gamma();
-   const auto v1 = constants::c * gb1 / gamma_e;
-   const auto v2 = constants::c * gb2 / gamma_i;
-
-   const auto p_e = gamma_e * m1 * v1;
-   const auto p_i = gamma_i * m2 * v2;
-
-   const auto beta_ve = p_e / constants::m_e_c_sqr;
-   const auto beta_vi = p_i / (m2 * constants::c_sqr);
-
-   const auto beta_ei = dot_product(beta_ve, beta_vi);
-   const auto beta_i2 = beta_vi.length_squared();
-   const auto gamma_ei = gamma_e * gamma_i;
-
-   // Calculation is done in ion frame, so compute lorentz transform of electron velocity
-   const auto coef = (gamma_i - 1.0) * beta_ei / beta_i2 - gamma_i;
-
-   const auto p_ep = p_e + coef * constants::m_e_c * gamma_e * beta_ve;
-
-   const auto gamma_ep = gamma_ei * (1.0 - beta_ei);
-   const auto v_ep = p_ep.length() / (constants::m_e * gamma_ep);
-
-   // Electron energy in ion frame (eV)
-   const auto electron_energy_eV = (gamma_ep - 1.0) * constants::m_e_c_sqr / constants::q_e;
-
-   // Total cross-section and photon energy from differential cross-section
-   const auto cross_section_m2 = cs_table.lerp_cumulative(electron_energy_eV);
-
-   const auto probability_coef = cross_section_m2 * params.max_weight * params.scatter_coef * brem.rate_multiplier
-                                 * v_ep * gamma_ep / gamma_ei;
-
-   auto prod_mult = brem.production_multiplier;
-   auto scatter_probability = probability_coef * prod_mult;
-
-   // Method requires P<1 so reduced the multiplier until that is satisfied
-   while (scatter_probability > 1.0 and prod_mult > 1.0) {
-      prod_mult /= 10.0;
-      scatter_probability = probability_coef * prod_mult;
-   }
-
-   // Production multiplier only applies to likelihood of photon production
-   // and reduces weight accordingly. Use the probability computed without
-   // the multiplier to determine if the electron loses energy
-   auto make_photon = params.rand[0] < scatter_probability;
-   auto remove_electron_energy = params.rand[0] < probability_coef and params.rand[2] <= w2 / params.max_weight and brem.reduce_electron_energy;
-
-   if (!(make_photon or remove_electron_energy)) { return; }
-
-   // Sample photon energy from cumulative differential cross-section
-   // start by finding the closest electron energy in table.
-   auto k_over_gm1 = cs_table.lerp(electron_energy_eV, params.rand[1]);
-
-   // _p stands for prime in Martinez
-   // photon energy and momentum in ion frame
-   const auto k_photon_energy_p = k_over_gm1 * (gamma_ep - 1.0);
-   const auto photon_momentum_p = k_photon_energy_p * p_ep / p_ep.length(); // unit_vector?
-
-   // Inverse lorentz transform of photon energy and momentum
-   const auto beta_photon_p = photon_momentum_p * constants::c;
-   const auto dot_beta_photon_p_i = dot_product(beta_photon_p, -beta_vi); // minus for inverse
-   auto k_photon_energy = k_photon_energy_p * gamma_i * (1.0 - dot_beta_photon_p_i);
-
-   if (make_photon) {
-      const auto photon_momentum = photon_momentum_p * constants::m_e_c_sqr
-                                   + ((gamma_i - 1.0) / beta_i2 * dot_beta_photon_p_i - gamma_i)
-                                   * constants::m_e_c * k_photon_energy_p * beta_photon_p;
-      const auto photon_weight = std::min(w1, w2) / prod_mult;
-
-      // add photon to product buffer
-      buffers.g1_products.emplace_back(
-         photon_momentum,
-         electron.location,
-         electron.location,
-         photon_weight,
-         k_photon_energy
-      );
-   } // end if(make_photon)
-
-   if (remove_electron_energy) {
-      auto gamma_e_new = gamma_e - k_photon_energy;
-      if (gamma_e_new <= 1.0) {
-         gamma_e_new = 1.0 + 1.0e-8;
-      }
-      const auto new_momentum = p_e * std::sqrt((gamma_e_new - 1.0) / (gamma_e - 1.0));
-      electron.beta_gamma = new_momentum / (m1 * constants::c);
-   }
-} // end bremsstrahlungCollision()
+// void bremsstrahlungCollision(
+//    const auto& params,
+//    const auto& spec,
+//    auto& buffers,
+//    const auto& cs_table
+// )
+// {
+//    auto& electron = params.particle1;
+//    auto& ion = params.particle2;
+//    const auto& v1 = electron.velocity;
+//    const auto& v2 = ion.velocity;
+//    const auto& w1 = electron.weight;
+//    const auto& w2 = ion.weight;
+//    const auto& m1 = params.mass1;
+//    const auto& m2 = params.mass2;
+//    const auto& gamma_e = electron.gamma;
+//    const auto& gamma_i = ion.gamma;
+//    const auto& brem = spec.radiation;
+//
+//    const auto p_e = gamma_e * m1 * v1;
+//    const auto p_i = gamma_i * m2 * v2;
+//
+//    const auto beta_ve = p_e / constants::m_e_c_sqr;
+//    const auto beta_vi = p_i / (m2 * constants::c_sqr);
+//
+//    const auto beta_ei = dot(beta_ve, beta_vi);
+//    const auto beta_i2 = beta_vi.length_squared();
+//    const auto gamma_ei = gamma_e * gamma_i;
+//
+//    // Calculation is done in ion frame, so compute lorentz transform of electron velocity
+//    const auto coef = (gamma_i - 1.0) * beta_ei / beta_i2 - gamma_i;
+//
+//    const auto p_ep = p_e + coef * constants::m_e_c * gamma_e * beta_ve;
+//
+//    const auto gamma_ep = gamma_ei * (1.0 - beta_ei);
+//    const auto v_ep = p_ep.length() / (constants::m_e * gamma_ep);
+//
+//    // Electron energy in ion frame (eV)
+//    const auto electron_energy_eV = (gamma_ep - 1.0) * constants::m_e_c_sqr / constants::q_e;
+//
+//    // Total cross-section and photon energy from differential cross-section
+//    const auto cross_section_m2 = cs_table.lerp_cumulative(electron_energy_eV);
+//
+//    const auto probability_coef = cross_section_m2 * params.max_weight * params.scatter_coef * brem.rate_multiplier
+//                                  * v_ep * gamma_ep / gamma_ei;
+//
+//    // std::println("{:18.15e}: {:18.15e}, {:16.10f}, {:18.15f}, {:18.15f}, {:18.15f}", probability_coef, cross_section_m2, params.scatter_coef, v_ep, gamma_ep, gamma_ei);
+//
+//    auto prod_mult = brem.production_multiplier;
+//    auto scatter_probability = probability_coef * prod_mult;
+//
+//    // Method requires P<1 so reduced the multiplier until that is satisfied
+//    while (scatter_probability > 1.0 and prod_mult > 1.0) {
+//       prod_mult /= 10.0;
+//       scatter_probability = probability_coef * prod_mult;
+//    }
+//
+//    // Production multiplier only applies to likelihood of photon production
+//    // and reduces weight accordingly. Use the probability computed without
+//    // the multiplier to determine if the electron loses energy
+//    auto make_photon = params.rand[0] < scatter_probability;
+//    auto remove_electron_energy = params.rand[0] < probability_coef and params.rand[2] <= w2 / params.max_weight and brem.reduce_electron_energy;
+//
+//    if (!(make_photon or remove_electron_energy)) { return; }
+//
+//    // std::println("Photon this, motherfucker!");
+//
+//    // Sample photon energy from cumulative differential cross-section
+//    // start by finding the closest electron energy in table.
+//    auto k_over_gm1 = cs_table.lerp(electron_energy_eV, params.rand[1]);
+//
+//    // _p stands for prime in Martinez
+//    // photon energy and momentum in ion frame
+//    const auto k_photon_energy_p = k_over_gm1 * (gamma_ep - 1.0);
+//    const auto photon_momentum_p = k_photon_energy_p * p_ep / p_ep.length(); // unit_vector?
+//
+//    // Inverse lorentz transform of photon energy and momentum
+//    const auto beta_photon_p = photon_momentum_p * constants::c;
+//    const auto dot_beta_photon_p_i = dot(beta_photon_p, -beta_vi); // minus for inverse
+//    auto k_photon_energy = k_photon_energy_p * gamma_i * (1.0 - dot_beta_photon_p_i);
+//
+//    if (make_photon) {
+//       const auto photon_momentum = photon_momentum_p * constants::m_e_c_sqr
+//                                    + ((gamma_i - 1.0) / beta_i2 * dot_beta_photon_p_i - gamma_i)
+//                                    * constants::m_e_c * k_photon_energy_p * beta_photon_p;
+//       const auto photon_weight = std::min(w1, w2) / prod_mult;
+//
+//       // add photon to product buffer
+//       buffers.g1_products.emplace_back(
+//          photon_momentum,
+//          k_photon_energy,
+//          electron.location,
+//          electron.location,
+//          photon_weight
+//       );
+//    } // end if(make_photon)
+//
+//    if (remove_electron_energy) {
+//       auto gamma_e_new = gamma_e - k_photon_energy;
+//       if (gamma_e_new <= 1.0) {
+//          gamma_e_new = 1.0 + 1.0e-8;
+//       }
+//       electron.gamma = gamma_e_new;
+//       const auto new_momentum = p_e * std::sqrt((gamma_e_new - 1.0) / (gamma_e - 1.0));
+//       electron.velocity = new_momentum / (m1 * gamma_e_new);
+//    }
+// } // end bremsstrahlungCollision()
 } // end namespace tf::collisions
 
 #endif //GAME_ENGINE_BINARY_CHANNELS_HPP

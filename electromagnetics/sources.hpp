@@ -173,7 +173,10 @@ struct GaussianBeam {
       constexpr auto omega_env = constants::pi / 60.0e-15;
       constexpr auto E0 = -2.75e13; // V/m
       constexpr auto w0 = 2.5479e-6;   // meters, waste size
-      constexpr auto xspot = 15.0e-6;
+
+      // constexpr auto xspot = 15.0e-6;
+      constexpr auto xspot = 10.0e-6;
+
       constexpr auto xR = constants::pi * math::SQR(w0) / lambda;
       constexpr auto RC = xspot * (1.0 + math::SQR(xR / xspot));
       constexpr auto kn = 2.0 * constants::pi / lambda;
@@ -183,12 +186,10 @@ struct GaussianBeam {
       const auto c1 = 1.288 * E0 * w0 / wx; // Fudge it, fudge it all
 
       for (auto k = z0; k < z1; ++k) {
-         const auto kdx = k - z0;
-         field(x0, 0, k) += c1 * std::exp(-math::SQR(zs[kdx] / wx))
+         field(x0, 0, k) += c1 * std::exp(-math::SQR(zs[k] / wx))
                                * std::sin(omega_env * t)
-                               * std::sin(omega * t + 0.5 * kn * math::SQR(zs[kdx]) / RC - gouy);
+                               * std::sin(omega * t + 0.5 * kn * math::SQR(zs[k]) / RC - gouy);
       }
-
       // const auto H_src = src.eval(t);
       // for (size_t i = x0; i < x1; ++i) {
       //    for (size_t j = y0; j < y1; ++j) {

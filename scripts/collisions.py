@@ -1,5 +1,8 @@
 from dataclasses import dataclass, field
 
+from scripts.particles import Particles
+
+
 @dataclass
 class CoulombParams:
     coulomb_log: float = 10.0
@@ -97,8 +100,8 @@ class Collision:
 
         return (
             '   CollisionSpec{\n'
-            f'      .group1 = "{self.groups[0]}",\n'
-            f'      .group2 = "{self.groups[1]}",\n'
+            f'      .group1 = "{self.groups[0].name}",\n'
+            f'      .group2 = "{self.groups[1].name}",\n'
             f'      .channels = {{"{channels}"}},\n'
             f'      .step_interval = {self.step_interval},\n'
             f'      .probability_search_area = {1.0},\n'

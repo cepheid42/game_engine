@@ -126,5 +126,6 @@ int main() {
    timers["Main"].stop_timer();
 
    print_final_timers(timers);
+   save_final_timers(timers);
    return 0;
 }

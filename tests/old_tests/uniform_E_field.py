@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# #!/usr/bin/env python3
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,49 +7,47 @@ from scipy import constants
 
 from scripts.pyforce import *
 
-
 # =============================
 # ===== Simulation Params =====
 # =============================
-sim_name = 'uniform_B_field'
+sim_name = 'uniform_E_field'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
+data_path = project_path + f'/data/{sim_name}'
 
 '''
 Tests from https://iopscience.iop.org/article/10.3847/1538-4365/aab114
 '''
 
-shape = (16, 16, 16)
+shape = (51, 51, 51)
 
-mass = constants.m_e
-charge = 1.0
-gamma_an = 1e6
-Rc = 1.0
-v_perp = velocity_from_gamma(gamma_an)
-Bz_amp = gamma_an * mass * v_perp / (constants.e * Rc)
-omega_c = constants.e * Bz_amp / (gamma_an * mass)
-Tc = 2 * np.pi / omega_c
-
-xmin, xmax = -1.1, 1.1 # meters
-ymin, ymax = -1.1, 1.1
-zmin, zmax = -1.1, 1.1
+xmin, xmax = -0.5, 1.5 # meters
+ymin, ymax = -0.5, 1.5
+zmin, zmax = -0.5, 1.5
 
 dx = (xmax - xmin) / (shape[0] - 1)
 dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
 
-dt = Tc / 100 # seconds
-t_end = 10000 * dt # seconds
+dt = 3.4e-12 # seconds
+t_end = 3.4e-9 # seconds
 nt = int(t_end / dt) + 1
 
-save_interval = 200
+save_interval = 20
 
 # =====================
 # ===== Particles =====
 # =====================
-px_range = (-1.0, 0.0) # meters
-py_range = (0.0, 0.0)
-pz_range = (0.0, 0.0)
+mass = constants.m_e
+charge = 1.0
+Ex_amp = 5.0e7 # 50 MV/m
+
+gamma_half = np.sqrt(1.0 + (charge * constants.e * Ex_amp * 0.5 * dt / (mass * constants.c))**2)
+x_half = (mass * constants.c**2) / (charge * constants.e * Ex_amp) * (gamma_half - 1.0)
+
+px_range = (0.0, dx) #(x_half, dx) # meters
+py_range = (ymax / 2, dy)
+pz_range = (zmax / 2, dz)
 
 single_particle = Particles(
     name='sp',
@@ -57,11 +55,10 @@ single_particle = Particles(
     charge=charge,
     atomic_number=0,
     tracer=True,
-    # actually velocity for sp_uniformB distribution
-    temp=(0.0, v_perp, 0.0),
+    temp=(0.0, 0.0, 0.0), # eV
     density=1.0, # m^-3,
     ppc=(1, 1, 1),
-    distribution='sp_uniformB',
+    distribution='sp_uniformE',
     px_range=px_range,
     py_range=py_range,
     pz_range=pz_range
@@ -84,15 +81,15 @@ pushers = [
     ParticlePushType.Boris,
     ParticlePushType.HC
 ]
-sim_names = [sim_name + '_' + pusher.get_name() for pusher in pushers]
-Bz_applied = np.full((shape[0] - 1, shape[1] - 1, shape[2]), Bz_amp)
+sim_names = [sim_name + '_' + pusher.split(':')[-1] for pusher in pushers]
+Ex_applied = np.full((shape[0] - 1, shape[1], shape[2]), Ex_amp)
 
 for pusher, name in zip(pushers, sim_names):
     data_path = project_path + f'/data/{name}'
     fields_path = data_path + f'/{name}_applied_fields.bp'
 
     with Stream(fields_path, 'w') as f:
-        f.write('Bz', Bz_applied, Bz_applied.shape, (0, 0, 0), Bz_applied.shape)
+        f.write('Ex', Ex_applied, Ex_applied.shape, (0, 0, 0), Ex_applied.shape)
 
     em_params = EMParams(save_interval=save_interval, applied_fields=fields_path)
     metric_params = Metrics(data_path, (MetricType.ParticleDump,))
@@ -115,7 +112,7 @@ for pusher, name in zip(pushers, sim_names):
         em_enabled=False,
         jdep_enabled=False,
         collisions_enabled=False,
-        # velocity_backstep_enabled=False,
+        velocity_backstep_enabled=False,
         applied_fields_only=True
     )
 
@@ -123,7 +120,6 @@ for pusher, name in zip(pushers, sim_names):
     # ===== Compile and Run =====
     # ===========================
     print(f'Setting up "{name}"')
-
     create_data_dir(data_path)
     create_particles(sim_params, single_particle, data_path)
     update_header(sim_params, project_path=project_path)
@@ -137,65 +133,53 @@ for pusher, name in zip(pushers, sim_names):
 sims = dict()
 for name in sim_names:
     sim_path = project_path + f'/data/{name}'
-    vel = []
     pos = []
     gs = []
     times = []
     for n in range(save_interval, nt, save_interval):
         file = f'/{single_particle.name}_tracer_{n:010d}.bp'
         with FileReader(sim_path + file) as f:
-            vel.append(f.read('Velocity'))
             pos.append(f.read('Position'))
             gs.append(f.read('Gamma'))
             times.append(f.read("Time"))
 
     sims[name] = ParticlePlotData(
-        velocities=np.array(vel).reshape(-1, 3),
         positions=np.array(pos).reshape(-1, 3),
         gammas=np.array(gs).flatten(),
         times=np.array(times).flatten()
     )
 
 plot_params = [
-    ('--', 'r', 'P', 8, 'full'), # Boris
-    ('--', 'b', 'D', 8, 'none')  # HC
+    ('--', 'b', 'P', 8, 'full'), # Boris
+    ('-.', 'r', 'D', 8, 'none')  # HC
 ]
 
-p_Rc = plt.Circle((0, 0), Rc, fill=False, label=r'$R_c$')
+fig, ax = plt.subplots(1, 2, figsize=(10, 4), layout='constrained')
 
-fig, ax = plt.subplots(1, 3, figsize=(16, 4), layout='constrained')
+ax[0].set_xlabel('time')
+ax[0].set_ylabel(r'$|x - x_{an}|$ / $|x_{an}|$')
+ax[0].set_yscale('log')
+ax[0].set_xlim([0, t_end])
+ax[0].set_ylim([1e-4, 1])
 
-ax[0].set_xlabel('x')
-ax[0].set_ylabel('y')
-ax[0].set_aspect('equal')
-ax[0].set_xlim([xmin, xmax])
-ax[0].set_ylim([ymin, ymax])
-ax[0].add_patch(p_Rc)
-
-ax[1].set_xlabel(r't / $T_c$')
+ax[1].set_xlabel('time')
 ax[1].set_ylabel(r'$|\gamma - \gamma_{an}|$ / $\gamma_{an}$')
-ax[1].set_xlim([0, 100])
-ax[1].set_ylim([1e-16, 1e-13])
 ax[1].set_yscale('log')
+# ax[1].set_xlim([0, 10e8])
+# ax[1].set_ylim([1e-16, 1e-10])
 
-ax[2].set_xlabel(r't / $T_c$')
-ax[2].set_ylabel(r'$|\theta_c - \theta_{an}|$')
-ax[2].set_xlim([0, 100])
-ax[2].set_ylim([0, 0.25])
 
 for i, (name, data) in enumerate(sims.items()):
     name = name.split('_')[-1]
     ls, c, m, ms, fs = plot_params[i]
     mark_every = data.times.shape[0] // 20
+    gamma_an = np.sqrt(1.0 + (charge * constants.e * Ex_amp * data.times / (mass * constants.c))**2)
     gammas = np.abs(data.gammas - gamma_an) / gamma_an
-    theta_an = -omega_c * data.times
-    theta_c = -np.pi + np.unwrap(np.arctan2(data.positions[:, 1], data.positions[:, 0]))
-    thetas = np.abs(theta_c - theta_an)
-    ax[0].plot(data.positions[:, 0], data.positions[:, 1], c=c, label=name)
-    ax[1].plot(data.times / Tc, gammas, c=c, marker=m, ms=ms, markevery=mark_every, fillstyle=fs, label=name)
-    ax[2].plot(data.times / Tc, thetas, c=c, marker=m, ms=ms, markevery=mark_every, fillstyle=fs, label=name)
+    x_an = (mass * constants.c**2) / (charge * constants.e * Ex_amp) * (gamma_an - 1.0)
+    xs = np.abs(data.positions[:, 0] - x_an) / np.abs(x_an)
+    ax[0].plot(data.times, xs, ls=ls, c=c, marker=m, ms=ms, markevery=mark_every, fillstyle=fs, label=name)
+    ax[1].plot(data.times, gammas, ls=ls, c=c, marker=m, ms=ms, markevery=mark_every, fillstyle=fs, label=name)
 
 ax[0].legend()
 ax[1].legend()
-ax[2].legend()
 plt.show()

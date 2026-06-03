@@ -24,10 +24,10 @@ from scripts.collisions import (
 )
 
 from scripts.utilities import (
-    # calculate_dt,
-    # calculate_cfl,
-    # velocity_from_gamma,
-    # gamma_from_velocity,
+    calculate_dt,
+    calculate_cfl,
+    velocity_from_gamma,
+    gamma_from_velocity,
     create_data_dir,
     compile_project,
     run_project,

@@ -142,14 +142,14 @@ struct Collisions {
                break;
             }
          case ChannelType::Bremmstrahlung:
-            {
-               bremsstrahlungCollision(
-                  pair_data,
-                  specs,
-                  buffers["radiation"],
-                  brem_cs
-               );
-            }
+            // {
+            //    bremsstrahlungCollision(
+            //       pair_data,
+            //       specs,
+            //       buffers["radiation"],
+            //       brem_cs
+            //    );
+            // }
          default:
             break;
       }
@@ -174,7 +174,7 @@ struct Collisions {
          auto KE = 0.0;
          for (auto& p : c) {
             ttl_weight += p.weight;
-            KE += (p.gamma() - 1.0) * p.weight * mc2;
+            KE += (p.gamma - 1.0) * p.weight * mc2;
          }
          return {ttl_weight * cell_vol_inv, (2.0 / 3.0) * KE / (ttl_weight * constants::q_e)};
       };
@@ -232,6 +232,7 @@ struct Collisions {
       
          const auto np1 = cell1.size();
          const auto np2 = cell2.size();
+         if (np1 == 0 or np2 == 0) { continue; }
          assert(np1 != 0 and np2 != 0);
       
          const auto np1_lt_np2 = np1 < np2;

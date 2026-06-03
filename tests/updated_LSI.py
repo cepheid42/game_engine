@@ -4,13 +4,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import constants
 from adios2 import FileReader
+from datetime import datetime
 
 from scripts.pyforce import *
 
 # =============================
 # ===== Simulation Params =====
 # =============================
-sim_name = 'lsi_test_'
+timestamp = datetime.today().strftime('%y%m%d%H%M')
+sim_name = f'lsi_test_coulomb_{timestamp}'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
@@ -78,7 +80,12 @@ particle_params = ParticleParams(
     particle_bcs=ParticleBCType.Outflow,
     push_type=ParticlePushType.Boris,
     interp_order=1,
-    particle_data=(electrons, ions)
+    particle_data=(electrons, ions),
+    collisions=(
+        Collision(groups=(electrons, ions), channels=('coulomb',)),
+        Collision(groups=(ions, ions), channels=('coulomb',), self_scatter=True),
+        Collision(groups=(electrons, electrons), channels=('coulomb',), self_scatter=True),
+    )
 )
 
 # ==================================
@@ -97,10 +104,10 @@ em_params = EMParams(
 metric_params = Metrics(
     data_path,
     (
-        MetricType.ParticleEnergy,
-        MetricType.FieldEnergy,
+        # MetricType.ParticleEnergy,
+        # MetricType.FieldEnergy,
         # MetricType.FieldDump,
-        # MetricType.ParticleDump,
+        MetricType.ParticleDump,
         # MetricType.ParticleDiagnostics
     )
 )
@@ -122,22 +129,22 @@ sim_params = Simulation(
     em_params=em_params,
     particle_params=particle_params,
     metric_params=metric_params,
-    collisions_enabled=False,
+    # collisions_enabled=False,
     # push_enabled=False,
     # jdep_enabled=False
 )
 
-# # ===========================
-# # ===== Compile and Run =====
-# # ===========================
-# print(f'Setting up "{sim_name}"')
-# create_data_dir(data_path)
-# create_particles(sim_params, electrons, data_path)
-# create_particles(sim_params, ions, data_path)
-# update_header(sim_params, project_path=project_path)
-#
-# compile_project(build_path, output=True)
-# run_project(build_path + '/game_engine', output=True)
+# ===========================
+# ===== Compile and Run =====
+# ===========================
+print(f'Setting up "{sim_name}"')
+create_data_dir(data_path)
+create_particles(sim_params, electrons, data_path)
+create_particles(sim_params, ions, data_path)
+update_header(sim_params, project_path=project_path)
+
+compile_project(build_path, output=True)
+run_project(build_path + '/game_engine', output=True)
 
 # # ===========================
 # # ===== Post Processing =====
@@ -211,7 +218,7 @@ sim_params = Simulation(
 # # plt.colorbar(a2, ax=ax[2])
 # #
 # # plt.show()
-#
+
 # with FileReader(data_path + '/fields_energy.bp') as f:
 #     variables = f.available_variables()
 #     steps = int(variables['Time']['AvailableStepsCount'])
@@ -260,9 +267,9 @@ sim_params = Simulation(
 # ax[1].plot(smith_electron_data[:, 0], smith_electron_data[:, 1], 'r--')
 # ax[2].plot(smith_proton_data[:, 0], smith_proton_data[:, 1], 'r--')
 #
-# ax[0].set_ylim([0, 100])
-# ax[1].set_ylim([0, 15])
-# ax[2].set_ylim([0, 15])
+# # ax[0].set_ylim([0, 100])
+# # ax[1].set_ylim([0, 15])
+# # ax[2].set_ylim([0, 15])
 #
 # ax[0].legend()
 #

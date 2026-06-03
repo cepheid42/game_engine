@@ -11,7 +11,7 @@ from scripts.pyforce import *
 # ===== Simulation Params =====
 # =============================
 sim_name = 'lsi_test_2ndorder'
-project_path = '/home/cepheid/TriForce/game_engine'
+project_path = '/'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
 

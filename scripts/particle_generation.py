@@ -112,10 +112,11 @@ def maxwell_juttner_distribution(mass, T_M, count):
     return velocities
 
 
-def write_particle_file(data_path, particles, positions, beta_gammas, weights):
+def write_particle_file(data_path, particles, positions, velocities, gammas, weights):
     with Stream(data_path + f'/{particles.name.lower().replace(" ","_")}.bp', 'w') as f:
         f.write("Position", positions.copy(), positions.shape, [0, 0], positions.shape)
-        f.write("BetaGamma", beta_gammas.copy(), beta_gammas.shape, [0, 0], beta_gammas.shape)
+        f.write("Velocity", velocities.copy(), velocities.shape, [0, 0], velocities.shape)
+        f.write("Gamma", gammas.copy(), gammas.shape, [0], gammas.shape)
         f.write("Weight", weights, weights.shape, [0], weights.shape)
         f.write_attribute('Name', particles.name)
         f.write_attribute('Mass', particles.mass)
@@ -127,13 +128,7 @@ def write_particle_file(data_path, particles, positions, beta_gammas, weights):
         f.write_attribute("Unit", "m", "Position")
 
 
-def create_particles(domain, particles, data_path):
-    if not os.path.exists(data_path):
-        print(f'Creating simulation data directory "{data_path}"...')
-        os.makedirs(data_path)
-
-    print(f'Creating "{particles.name}" particle file...', end=' ', flush=True)
-
+def generate_particle_file(domain, particles, data_path):
     # ----- Unpack particle params -----
     temp = particles.temp
     density = particles.density
@@ -151,7 +146,7 @@ def create_particles(domain, particles, data_path):
         pos = np.array([[px_min, py_min, pz_min]], dtype=np.float64)
         vel = np.zeros_like(pos)
         wts = np.array([1.0])
-        write_particle_file(data_path, particles, pos, vel, wts)
+        write_particle_file(data_path, particles, pos, vel, wts, wts)
         print('Done')
         return
 
@@ -159,19 +154,19 @@ def create_particles(domain, particles, data_path):
         # temperature == velocity for these cases
         pos = np.array([[px_min, py_min, pz_min]], dtype=np.float64)
         wts = np.array([1.0])
-        gamma_c = 1.0e6 / constants.c
-        beta_gamma = gamma_c * np.array([[temp[0], temp[1], temp[2]]], dtype=np.float64)
-        write_particle_file(data_path, particles, pos, beta_gamma, wts)
+        gammas = np.array([1.0e6], dtype=np.float64)
+        velocities = np.array([[temp[0], temp[1], temp[2]]], dtype=np.float64)
+        write_particle_file(data_path, particles, pos, velocities, gammas, wts)
         print('Done')
         return
 
     if particles.distribution == 'sp_forcefree':
         # temperature == velocity for these cases
         pos = np.array([[px_min, py_min, pz_min]], dtype=np.float64)
-        wts = np.array([1.0])
-        gamma_c = 1.0e6 / constants.c
-        beta_gamma = gamma_c * np.array([[temp[0], temp[1], temp[2]]], dtype=np.float64)
-        write_particle_file(data_path, particles, pos, beta_gamma, wts)
+        wts = np.array([1.0], dtype=np.float64)
+        gammas = np.array([1.0e6], dtype=np.float64)
+        velocties = np.array([[temp[0], temp[1], temp[2]]], dtype=np.float64)
+        write_particle_file(data_path, particles, pos, velocties, gammas, wts)
         print('Done')
         return
 
@@ -179,33 +174,24 @@ def create_particles(domain, particles, data_path):
         pos = np.array([[0, 0, 0]], dtype=np.float64)
         vel = np.array([[0, 0, 0]], dtype=np.float64)
         wts = np.array([1.0])
-        write_particle_file(data_path, particles, pos, vel, wts)
-        print('Done')
-        return
-
-    if particles.distribution == 'sp_magneticmirror':
-        pos = np.array([[px_min, py_min, pz_min]], dtype=np.float64)
-        wts = np.array([1.0])
-        gamma_c = 100.0 / constants.c
-        beta_gamma = gamma_c * np.array([[temp[0], temp[1], temp[2]]], dtype=np.float64)
-        write_particle_file(data_path, particles, pos, beta_gamma, wts)
+        write_particle_file(data_path, particles, pos, vel, wts, wts)
         print('Done')
         return
 
     if particles.distribution == 'sp_harmosc':
         pos = np.array([[px_min, py_min, pz_min]], dtype=np.float64)
         vel = np.zeros_like(pos)
-        wts = np.array([1.0])
-        write_particle_file(data_path, particles, pos, vel, wts)
+        wts = np.array([1.0], dtype=np.float64)
+        write_particle_file(data_path, particles, pos, vel, wts, wts)
         print('Done')
         return
 
     if particles.distribution == 'sp_jdep':
         pos = np.array([[px_min, py_min, pz_min]], dtype=np.float64)
-        gamma_c = 1.0005567897052046 / constants.c
-        beta_gamma = gamma_c * np.array([[temp[0], temp[1], temp[2]]], dtype=np.float64)
-        wts = np.array([1.0])
-        write_particle_file(data_path, particles, pos, beta_gamma, wts)
+        gammas = np.array([1.0005567897052046], dtype=np.float64)
+        velocities = np.array([[temp[0], temp[1], temp[2]]], dtype=np.float64)
+        wts = np.array([1.0], dtype=np.float64)
+        write_particle_file(data_path, particles, pos, velocities, gammas, wts)
         print('Done')
         return
 
@@ -280,8 +266,15 @@ def create_particles(domain, particles, data_path):
 
     betas = velocities / constants.c
     gammas = 1.0 / np.sqrt(1.0 - (betas**2).sum(axis=1))
-    beta_gammas = betas * gammas[:, None]
 
-    write_particle_file(data_path, particles, positions, beta_gammas, weights)
+    write_particle_file(data_path, particles, positions, velocities, gammas, weights)
 
-    print('Done')
+
+def create_particles(domain, particles, data_path):
+    if not os.path.exists(data_path):
+        raise EnvironmentError(f'Data path not found: {data_path}')
+
+    for p in particles:
+        print(f'Creating "{p.name}" particle file...', end=' ', flush=True)
+        generate_particle_file(domain, p, data_path)
+        print('Done')

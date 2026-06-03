@@ -82,9 +82,9 @@ particle_params = ParticleParams(
     interp_order=1,
     particle_data=(carbon1, carbon2),
     collisions=(
-        Collision(groups=('carbon1', 'carbon2'), channels=('coulomb',)),
-        Collision(groups=('carbon1', 'carbon1'), channels=('coulomb',), self_scatter=True),
-        Collision(groups=('carbon2', 'carbon2'), channels=('coulomb',), self_scatter=True),
+        Collision(groups=(carbon1, carbon2), channels=('coulomb',)),
+        Collision(groups=(carbon1, carbon1), channels=('coulomb',), self_scatter=True),
+        Collision(groups=(carbon1, carbon2), channels=('coulomb',), self_scatter=True),
     )
 )
 

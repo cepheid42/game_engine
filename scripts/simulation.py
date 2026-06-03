@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from scipy import constants
 import numpy as np
+import shutil
 
 from scripts.particles import ParticleParams
 
@@ -60,7 +61,7 @@ class Simulation:
     ionization_test_enabled: bool = False
 
 
-def update_header(params, project_path):
+def update_header(params, project_path, data_path):
     print('Updating header...', end=' ')
     nx, ny, nz = params.shape
     xmin, xmax = params.x_range
@@ -73,6 +74,7 @@ def update_header(params, project_path):
     metrics = params.metric_params
 
     project_path = Path(project_path)
+    data_path = Path(data_path)
     header_path = project_path / "params/program_params.hpp"
 
     # Check if various dimensions are collapsed
@@ -198,4 +200,6 @@ def update_header(params, project_path):
         cur_header = f.read()
         if cur_header != program_params:
             f.write(program_params)
+
+    shutil.copy(header_path, data_path)
     print('Done.')

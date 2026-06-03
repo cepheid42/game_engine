@@ -2,6 +2,7 @@
 #define TRIFORCE_TIMER_H
 
 #include <chrono>
+#include <fstream>
 #include <print>
 #include <string>
 #include <unordered_map>
@@ -54,6 +55,17 @@ inline void print_final_timers(std::unordered_map<std::string, Timer>& timers) {
    std::println("        IO: {}", std::chrono::hh_mm_ss(timers["IO"].elapsed));
    std::println("Collisions: {}", std::chrono::hh_mm_ss(timers["Collisions"].elapsed));
    std::println("     Total: {}", std::chrono::hh_mm_ss(timers["Main"].elapsed));
+}
+
+inline void save_final_timers(std::unordered_map<std::string, Timer>& timers) {
+   std::ofstream file(std::string{metric_data_path} + "/timers.txt");
+   file << "EM: " << std::chrono::hh_mm_ss(timers["EM"].elapsed) << '\n';
+   file << "Push: " << std::chrono::hh_mm_ss(timers["Push"].elapsed) << '\n';
+   file << "Jdep: " << std::chrono::hh_mm_ss(timers["Jdep"].elapsed) << '\n';
+   file << "IO: " << std::chrono::hh_mm_ss(timers["IO"].elapsed) << '\n';
+   file << "Collisions: " << std::chrono::hh_mm_ss(timers["Collisions"].elapsed) << '\n';
+   file << "Total: " << std::chrono::hh_mm_ss(timers["Main"].elapsed) << std::endl;
+   file.close();
 }
 
 } // end namespace tf::utilities

@@ -2,7 +2,7 @@ import os
 import subprocess
 import numpy as np
 from dataclasses import dataclass, field
-# from scipy import constants
+from scipy import constants
 
 J_to_kJ = 1.0e-3
 s_to_fs = 1.0e15
@@ -13,20 +13,20 @@ Am2_to_Acm2 = 1.0e-4
 m_to_cm = 1.0e-2
 
 
-# def calculate_cfl(dt, dx, dy, dz):
-#     return constants.c * dt * np.sqrt(1.0/dx**2 + 1.0/dy**2 + 1.0/dz**2)
-#
-#
-# def calculate_dt(cfl, dx, dy, dz):
-#     return cfl / (constants.c * np.sqrt(1.0/dx**2 + 1.0/dy**2 + 1.0/dz**2))
-#
-#
-# def velocity_from_gamma(gamma):
-#     return constants.c * np.sqrt(1.0 - 1.0 / gamma**2)
-#
-#
-# def gamma_from_velocity(v):
-#     return 1.0 / np.sqrt(1.0 - (v / constants.c)**2)
+def calculate_cfl(dt, dx, dy, dz):
+    return constants.c * dt * np.sqrt(1.0/dx**2 + 1.0/dy**2 + 1.0/dz**2)
+
+
+def calculate_dt(cfl, dx, dy, dz):
+    return cfl / (constants.c * np.sqrt(1.0/dx**2 + 1.0/dy**2 + 1.0/dz**2))
+
+
+def velocity_from_gamma(gamma):
+    return constants.c * np.sqrt(1.0 - 1.0 / gamma**2)
+
+
+def gamma_from_velocity(v):
+    return 1.0 / np.sqrt(1.0 - (v / constants.c)**2)
 
 
 def create_data_dir(data_path):

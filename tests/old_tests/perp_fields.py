@@ -13,6 +13,7 @@ from scripts.pyforce import *
 sim_name = 'perp_fields'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
+data_path = project_path + f'/data/{sim_name}'
 
 '''
 Tests from https://iopscience.iop.org/article/10.3847/1538-4365/aab114

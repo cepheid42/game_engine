@@ -18,24 +18,14 @@
 namespace tf::particles
 {
 struct Particle {
-   vec3<double> beta_gamma;
+   vec3<double> velocity;
    vec3<double> location;
    vec3<double> old_location;
+   double gamma;
    float weight;
-   double k_energy{0.0};
 
    // todo: store cell_ids as uint16 and fractional position as floats, then calculate as needed
    [[nodiscard]] auto is_disabled() const -> bool { return weight <= 0.0f; }
-
-   [[nodiscard]] auto gamma() const -> double { return std::sqrt(1.0 + beta_gamma.length_squared()); }
-
-   // [[nodiscard]] auto position() const -> vec3<double> {
-   //    return {
-   //       x_range[0] + dx * location[0],
-   //       y_range[0] + dy * location[1],
-   //       z_range[0] + dz * location[2]
-   //    };
-   // }
 }; // end struct Particle
 
 template <typename T = std::size_t>
@@ -63,18 +53,21 @@ static void initializeFromFile(const std::string& filename, auto& group) {
    reader.BeginStep();
 
    const auto p_data = io.InquireVariable<double>("Position");
-   const auto v_data = io.InquireVariable<double>("BetaGamma"); // gamma * beta
+   const auto v_data = io.InquireVariable<double>("Velocity");
    const auto w_data = io.InquireVariable<double>("Weight");
+   const auto g_data = io.InquireVariable<double>("Gamma");
 
    const auto num_particles = p_data.Shape()[0];
 
    std::vector<double> p_vec(3 * num_particles);
    std::vector<double> v_vec(3 * num_particles);
    std::vector<double> w_vec(num_particles);
+   std::vector<double> g_vec(num_particles);
 
    reader.Get(p_data, p_vec, adios2::Mode::Sync);
    reader.Get(v_data, v_vec, adios2::Mode::Sync);
    reader.Get(w_data, w_vec, adios2::Mode::Sync);
+   reader.Get(g_data, g_vec, adios2::Mode::Sync);
 
    for (auto i = 0lu; i < num_particles; i++) {
       const vec3 pos{p_vec[3 * i], p_vec[3 * i + 1], p_vec[3 * i + 2]};
@@ -82,11 +75,13 @@ static void initializeFromFile(const std::string& filename, auto& group) {
       const auto weight = w_vec[i];
 
       const auto loc = (pos - mins) / deltas;
+      const auto gamma = g_vec[i];
 
       group.particles.emplace_back(
          vel,
          loc,
          loc,
+         gamma,
          weight
       );
    }

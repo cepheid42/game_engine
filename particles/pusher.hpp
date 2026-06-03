@@ -125,7 +125,7 @@ auto fieldAtParticle(Particle& p, const auto& emdata, const auto qdt)
    const auto byc = FieldToParticleInterp<ByStrategy>(emdata.By_total, zh, xh, yf, hid.z, hid.x, fid.y);
    const auto bzc = FieldToParticleInterp<BzStrategy>(emdata.Bz_total, xh, yh, zf, hid.x, hid.y, fid.z);
 
-   return {(qdt / constants::c) * vec3{exc, eyc, ezc}, qdt * vec3{bxc, byc, bzc}};
+   return {qdt * vec3{exc, eyc, ezc}, qdt * vec3{bxc, byc, bzc}};
 } // end FieldAtParticle
 
 template<ParticlePushType P>
@@ -141,13 +141,14 @@ struct ParticleVelocityUpdate {
       //       might help improve performance since it's not trying to shuffle all the fields through
       //       at the same time.
       const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
-      const auto um = p.beta_gamma + eps;
-      const auto t = bet / std::sqrt(1.0 + um.length_squared());
+      const auto um = p.gamma * p.velocity + eps;
+      const auto t = bet / std::sqrt(1.0 + um.length_squared() * constants::over_c_sqr);
       const auto s = 2.0 * t / (1.0 + t.length_squared());
       const auto u_prime = um + cross_product(um, t);
       const auto u_plus = um + cross_product(u_prime, s);
       const auto u = u_plus + eps;
-      p.beta_gamma = u;
+      p.gamma = std::sqrt(1.0 + u.length_squared() * constants::over_c_sqr);
+      p.velocity = u / p.gamma;
    } // end Boris Velocity Update
 
    static void operator()(Particle& p, const auto& emdata, const auto qdt)
@@ -155,9 +156,9 @@ struct ParticleVelocityUpdate {
    {
       const auto& [eps, bet] = fieldAtParticle(p, emdata, qdt);
 
-      const auto um = p.beta_gamma + eps;
+      const auto um = p.gamma * p.velocity + eps;
       const auto tau2 = bet.length_squared();
-      const auto gamma_m2 = 1.0 + um.length_squared();
+      const auto gamma_m2 = 1.0 + um.length_squared() * constants::over_c_sqr;
       const auto sigma = gamma_m2 - tau2;
       const auto u_star2 = math::SQR(dot_product(um, bet / constants::c));
       const auto gamma_new = std::sqrt(0.5 * (sigma + std::sqrt(math::SQR(sigma) + 4.0 * (tau2 + u_star2))));
@@ -165,7 +166,8 @@ struct ParticleVelocityUpdate {
       const auto s = 1.0 / (1.0 + t.length_squared());
       const auto up = s * (um + dot_product(um, t) * t + cross_product(um, t));
       const auto u = up + eps + cross_product(up, t);
-      p.beta_gamma = u;
+      p.gamma = std::sqrt(1.0 + u.length_squared() * constants::over_c_sqr);
+      p.velocity = u / p.gamma;
    } // end Higuera-Cary Velocity Update
 }; // end struct ParticleVelocityUpdate
 
@@ -173,11 +175,11 @@ struct ParticlePusher {
    using emdata_t = electromagnetics::EMData;
    using group_t = ParticleGroup;
 
-   static constexpr vec3 cdt_delta_inv{constants::c * dt / dx, constants::c * dt / dy, constants::c * dt / dz};
+   static constexpr vec3 dt_delta_inv{dt / dx, dt / dy, dt / dz};
 
    static void update_position(Particle& p) {
       p.old_location = p.location;
-      p.location += (cdt_delta_inv * p.beta_gamma / p.gamma());
+      p.location += (dt_delta_inv * p.velocity);
       apply_particle_bcs<PBCSelect>(p);
    } // end update_position()
 
