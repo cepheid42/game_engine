@@ -2,6 +2,7 @@
 #define PROGRAM_PARAM_HPP
 
 #include "particle_spec.hpp"
+#include "sources_spec.hpp"
 
 #include <array>
 
@@ -27,7 +28,7 @@ inline constexpr auto dt    = 2e-17;
 inline constexpr auto t_end = 1.5e-13;
 inline constexpr auto Nt    = 7500zu;
 
-inline constexpr auto sim_name = "adams_lsi_coulomb";
+inline constexpr auto sim_name = "rlsi_allocator";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
 
 inline constexpr auto   em_enabled = true;
@@ -61,6 +62,8 @@ inline constexpr std::array BCSelect = {1zu, 1zu, 2zu, 2zu, 1zu, 1zu};
 inline constexpr auto laser_enabled = true;
 inline constexpr auto applied_fields_path = "";
 
+constexpr auto laser_spec = LaserSpec{.lambda=8e-07, .E0=-27500000000000.0, .w0=2.5479e-06, .xspot=5e-06, .scale=0.60454};
+
 /*---------------------------------------------------------------/
 /-                     Particle Parameters                      -/
 /---------------------------------------------------------------*/
@@ -77,7 +80,7 @@ inline constexpr auto PBCDepth = 3zu;
 inline constexpr std::array<ParticleGroupSpec, 2> particle_spec = {
    ParticleGroupSpec{
       .name = "electrons",
-      .filepath = "/data/adams_lsi_coulomb/electrons.bp",
+      .filepath = "/data/rlsi_allocator/electrons.bp",
       .mass = 9.1093837139e-31,
       .charge = -1.0,
       .atomic_number = 0,
@@ -85,7 +88,7 @@ inline constexpr std::array<ParticleGroupSpec, 2> particle_spec = {
    },
    ParticleGroupSpec{
       .name = "ions",
-      .filepath = "/data/adams_lsi_coulomb/ions.bp",
+      .filepath = "/data/rlsi_allocator/ions.bp",
       .mass = 1.67262192595e-27,
       .charge = 1.0,
       .atomic_number = 1,
@@ -128,12 +131,10 @@ inline constexpr std::array<CollisionSpec, 3> collision_spec = {
 /---------------------------------------------------------------*/
 enum class MetricType { ParticleDump, ParticleDiag, ParticleEnergy, FieldDump, FieldEnergy };
 
-inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/adams_lsi_coulomb";
-inline constexpr std::array<MetricType, 5> metric_spec = {
+inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/rlsi_allocator";
+inline constexpr std::array<MetricType, 3> metric_spec = {
 	MetricType::ParticleEnergy,
 	MetricType::FieldEnergy,
-	MetricType::FieldDump,
-	MetricType::ParticleDump,
 	MetricType::ParticleDiag
 };
 

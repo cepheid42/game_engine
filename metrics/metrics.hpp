@@ -531,55 +531,53 @@ struct ParticleMetric final : detail::MetricBase {
 
       std::ranges::fill(density, 0.0);
       std::ranges::fill(T_avg, 0.0);
-      std::ranges::fill(KE_total, 0.0);
+      // std::ranges::fill(KE_total, 0.0);
 
-      // first order density
       #pragma omp parallel num_threads(nThreads) default(shared)
       {
-         #pragma omp for
-         for (auto pid = 0zu; pid < group.num_particles(); pid++) {
-            const auto& p   = group.particles[pid];
-            if (p.is_disabled()) { continue; }
-
-            const vec3 loc_half = particles::getCellIndices<double>(p.location - offset);
-            const vec3 hid = loc_half.to_uint();
-
-            const vec3 p_half = p.location - loc_half;
-
-            const auto shapeI0 = XShape::shape_array(p_half[0]);
-            const auto shapeJ0 = YShape::shape_array(p_half[1]);
-            const auto shapeK0 = ZShape::shape_array(p_half[2]);
-
-            for (auto i = XShape::Begin; i <= XShape::End; ++i) {
-               const auto& s0i = shapeI0[i];
-               for (auto j = YShape::Begin; j <= YShape::End; ++j) {
-                  const auto& s0j = shapeJ0[j];
-                  for (auto k = ZShape::Begin; k <= ZShape::End; ++k) {
-                     const auto& s0k = shapeK0[k];
-                     #pragma omp atomic update
-                     density(hid[0] + i, hid[1] + j, hid[2] + k) += s0i * s0j * s0k * p.weight;
-                     #pragma omp atomic update
-                     T_avg(hid[0] + i, hid[1] + j, hid[2] + k) += s0i * s0j * s0k * p.weight * mc2 * (p.gamma - 1.0);
-
-                  } // end for(k)
-               } // end for(j)
-            } // end for(i)
-         }
-
          // #pragma omp for
-         // for (std::size_t pid = 0; pid < group.num_particles(); pid++) {
+         // for (auto pid = 0zu; pid < group.num_particles(); pid++) {
          //    const auto& p   = group.particles[pid];
-         //    const auto [i, j, k] = particles::getCellIndices(p.location);
-         //    #pragma omp atomic update
-         //    density(i, j, k) += p.weight;
-         //    #pragma omp atomic update
-         //    KE_total(i, j, k) += p.weight * mc2 * (p.gamma - 1.0);
+         //    if (p.is_disabled()) { continue; }
+         //
+         //    const vec3 loc_half = particles::getCellIndices<double>(p.location - offset);
+         //    const vec3 hid = loc_half.to_uint();
+         //
+         //    const vec3 p_half = p.location - loc_half;
+         //
+         //    const auto shapeI0 = XShape::shape_array(p_half[0]);
+         //    const auto shapeJ0 = YShape::shape_array(p_half[1]);
+         //    const auto shapeK0 = ZShape::shape_array(p_half[2]);
+         //
+         //    for (auto i = XShape::Begin; i <= XShape::End; ++i) {
+         //       const auto& s0i = shapeI0[i];
+         //       for (auto j = YShape::Begin; j <= YShape::End; ++j) {
+         //          const auto& s0j = shapeJ0[j];
+         //          for (auto k = ZShape::Begin; k <= ZShape::End; ++k) {
+         //             const auto& s0k = shapeK0[k];
+         //             #pragma omp atomic update
+         //             density(hid[0] + i, hid[1] + j, hid[2] + k) += s0i * s0j * s0k * p.weight;
+         //             #pragma omp atomic update
+         //             T_avg(hid[0] + i, hid[1] + j, hid[2] + k) += s0i * s0j * s0k * p.weight * mc2 * (p.gamma - 1.0);
+         //          } // end for(k)
+         //       } // end for(j)
+         //    } // end for(i)
          // }
+
+         #pragma omp for
+         for (std::size_t pid = 0; pid < group.num_particles(); pid++) {
+            const auto& p   = group.particles[pid];
+            const auto [i, j, k] = particles::getCellIndices(p.location);
+            #pragma omp atomic update
+            density(i, j, k) += p.weight;
+            #pragma omp atomic update
+            T_avg(i, j, k) += p.weight * mc2 * (p.gamma - 1.0);
+         }
 
          #pragma omp for
          for (auto i = 0zu; i < T_avg.size(); i++) {
             if (density[i] == 0.0) { continue; }
-            T_avg[i] = temp_coef * KE_total[i] / density[i];
+            T_avg[i] *= temp_coef / density[i];
          }
 
          #pragma omp for

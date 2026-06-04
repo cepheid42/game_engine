@@ -17,6 +17,25 @@ class MetricType(StrEnum):
 
 
 @dataclass
+class Laser:
+    wavelength: float = 0.0
+    amplitude: float = 0.0
+    w0: float = 0.0
+    xspot: float = 0.0
+    scale: float = 0.0
+
+    def __repr__(self):
+        return (
+            'constexpr auto laser_spec = LaserSpec{'
+            f'.lambda={self.wavelength}, '
+            f'.E0={self.amplitude}, '
+            f'.w0={self.w0}, '
+            f'.xspot={self.xspot}, '
+            f'.scale={self.scale}'
+            '};\n'
+        )
+
+@dataclass
 class EMParams:
     save_interval: int = 10
     nhalo: int = 0
@@ -25,7 +44,7 @@ class EMParams:
     pml_alpha_max: float = 0.2
     em_bcs: tuple = (2, 2, 2, 2, 2, 2)
     applied_fields: str = ''
-    laser_enabled: bool = False # todo: these should be specs instead
+    laser_spec: Laser = field(default_factory=Laser)
 
 
 @dataclass
@@ -95,6 +114,8 @@ def update_header(params, project_path, data_path):
     particle_types = ',\n'.join([str(p) for p in particles.particle_data])
     collision_types = ',\n'.join([str(c) for c in particles.collisions])
 
+    laser_enabled = em_params.laser_spec.wavelength != 0.0
+
     if params.applied_fields_only:
         assert em_params.applied_fields != ''
 
@@ -103,6 +124,7 @@ def update_header(params, project_path, data_path):
         '#define PROGRAM_PARAM_HPP\n'
         '\n'
         '#include "particle_spec.hpp"\n'
+        '#include "sources_spec.hpp"\n'
         '\n'
         '#include <array>\n'
         '\n'
@@ -159,9 +181,10 @@ def update_header(params, project_path, data_path):
         '// Periodic = 0, PML = 1, Reflecting = 2\n'
         f'inline constexpr std::array BCSelect = {{{bc_str}}};\n'
         '\n'
-        f'inline constexpr auto laser_enabled = {str(em_params.laser_enabled).lower()};\n'
+        f'inline constexpr auto laser_enabled = {str(laser_enabled).lower()};\n'
         f'inline constexpr auto applied_fields_path = "{em_params.applied_fields}";\n'
         '\n'
+        f'{em_params.laser_spec}\n'
         '/*---------------------------------------------------------------/\n'
         '/-                     Particle Parameters                      -/\n'
         '/---------------------------------------------------------------*/\n'

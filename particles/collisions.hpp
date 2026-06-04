@@ -20,9 +20,47 @@
 namespace tf::collisions
 {
 
+template <typename T>
+struct LoggingAllocator {
+   using value_type = T;
+
+   // int num_alloc{0};
+   // int num_elements{0};
+   // ~LoggingAllocator() {
+   //    std::println("Total number of elements: {}", num_elements);
+   //    std::println("Total number of allocations: {}", num_alloc);
+   //    std::println("Average number of elements: {}", num_elements / num_alloc);
+   // }
+
+   LoggingAllocator() = default;
+
+   template <typename U> explicit constexpr LoggingAllocator(const LoggingAllocator<U>&) noexcept {}
+
+   T* allocate(const std::size_t n) {
+      // num_alloc++;
+      // num_elements += n;
+      std::println("Allocating {} elements of size {}", n, n * sizeof(T));
+      return static_cast<T*>(::operator new(n * sizeof(T)));
+   }
+
+   void deallocate(T* p, const std::size_t n) noexcept {
+      std::println("Deallocating {}", n);
+      ::operator delete(p);
+   }
+
+   template<typename U, typename V>
+   friend bool operator==(const LoggingAllocator<U>&, const LoggingAllocator<V>&) { return true; }
+
+   template<typename U, typename V>
+   friend bool operator!=(const LoggingAllocator<U>&, const LoggingAllocator<V>&) { return false; }
+};
+
 struct Collisions {
    using group_t = particles::ParticleGroup;
    using particle_vec = std::vector<particles::Particle>;
+
+   template<typename T>
+   using pool_vec = std::vector<T, LoggingAllocator<T>>;
 
    struct Products {
       using group_t = particles::ParticleGroup;
@@ -214,11 +252,15 @@ struct Collisions {
       }
 
       std::ranges::generate(rngs, [&]{ return rng(generator); });
-      
+
+      std::vector<std::size_t> pids1(100);
+      std::vector<std::size_t> pids2(100);
+      std::vector<double> nDups(25);
+
       std::vector<std::size_t> cell_ids(g1.cell_map.size());
       std::transform(g1.cell_map.begin(), g1.cell_map.end(), cell_ids.begin(), [](auto& kv) { return kv.first; });
 
-      #pragma omp parallel for num_threads(nThreads)
+      #pragma omp parallel for num_threads(nThreads) private(pids1, pids2, nDups)
       for (auto j = 0zu; j < cell_ids.size(); j++) {
          const auto tid = omp_get_thread_num();
          const auto z_code = cell_ids[j];
@@ -241,9 +283,12 @@ struct Collisions {
          const auto n_pairs = specs.self_scatter ? n_partners / 2 : n_partners;
          const auto scatter_coef = static_cast<double>(n_partners) * dt / (dx * dy * dz);
       
-         std::vector<std::size_t> pids1(n_partners);
-         std::vector<std::size_t> pids2(n_partners);
-         std::vector<double> nDups(std::min(np1, np2));
+         // std::vector<std::size_t> pids1(n_partners);
+         // std::vector<std::size_t> pids2(n_partners);
+         // std::vector<double> nDups(std::min(np1, np2));
+         pids1.resize(n_partners);
+         pids2.resize(n_partners);
+         nDups.resize(std::min(np1, np2));
 
          const auto cell_data = getCoulombData(cell1, cell2, scatter_coef);
 

@@ -161,29 +161,38 @@ struct GaussianBeam {
      zs(math::linspace(z_range[0], z_range[1], Nz - 1))
    {}
 
-   void apply(const double t) const {
+
+   static void apply(const auto) requires(!laser_enabled) {}
+
+   void apply(const auto t) const requires(laser_enabled) {
       if (t > 60.0e-15) { return; }
 
       constexpr auto x0 = PMLDepth + 10zu;
       constexpr auto z0 = PMLDepth + 10zu;
       constexpr auto z1 = Nz - z0 - 1zu;
 
-      constexpr auto lambda = 8.0e-7;
+      // constexpr auto lambda = 8.0e-7;
+      // constexpr auto E0 = -2.75e13;  // V/m
+      // constexpr auto w0 = 2.5479e-6; // meters, waste size
+      // // constexpr auto xspot = 15.0e-6;
+      // constexpr auto xspot = 5.0e-6;
+
+      constexpr auto lambda = laser_spec.lambda;
+      constexpr auto E0 = laser_spec.E0;
+      constexpr auto w0 = laser_spec.w0;
+      constexpr auto xspot = laser_spec.xspot;
+      constexpr auto scale = laser_spec.scale;
+
       constexpr auto omega = 2.0 * constants::pi * constants::c / lambda;
       constexpr auto omega_env = constants::pi / 60.0e-15;
-      constexpr auto E0 = -2.75e13; // V/m
-      constexpr auto w0 = 2.5479e-6;   // meters, waste size
-
-      // constexpr auto xspot = 15.0e-6;
-      constexpr auto xspot = 10.0e-6;
-
       constexpr auto xR = constants::pi * math::SQR(w0) / lambda;
       constexpr auto RC = xspot * (1.0 + math::SQR(xR / xspot));
       constexpr auto kn = 2.0 * constants::pi / lambda;
 
       const auto wx = w0 * std::sqrt(1.0 + math::SQR(xspot / xR));
       const auto gouy = std::atan(xspot / xR);
-      const auto c1 = 1.288 * E0 * w0 / wx; // Fudge it, fudge it all
+
+      const auto c1 = scale * E0 * w0 / wx; // Fudge it, fudge it all
 
       for (auto k = z0; k < z1; ++k) {
          field(x0, 0, k) += c1 * std::exp(-math::SQR(zs[k] / wx))

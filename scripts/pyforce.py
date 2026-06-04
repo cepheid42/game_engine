@@ -3,6 +3,7 @@ from scripts.simulation import (
     Metrics,
     Simulation,
     EMParams,
+    Laser,
     update_header
 )
 
@@ -31,12 +32,11 @@ from scripts.utilities import (
     create_data_dir,
     compile_project,
     run_project,
-    ParticlePlotData,
-    J_to_kJ,
-    s_to_ns,
-    s_to_fs,
-    Vm_to_kVcm,
-    T_to_gauss,
-    Am2_to_Acm2,
-    m_to_cm
+)
+
+from scripts.plotting import (
+    plot_density,
+    plot_temperature,
+    plot_field_energy,
+    plot_particle_energy
 )
