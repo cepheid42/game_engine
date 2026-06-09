@@ -23,7 +23,8 @@ struct vec3 {
    constexpr auto operator[](std::size_t i) const -> const T& { return *(reinterpret_cast<const T*>(this) + i); }
 
    [[nodiscard]] constexpr auto length_squared() const -> T { return x * x + y * y + z * z; }
-   [[nodiscard]] constexpr auto length() const -> T { return std::hypot(x, y, z); }
+   // [[nodiscard]] constexpr auto length() const -> T { return std::hypot(x, y, z); }
+   [[nodiscard]] constexpr auto length() const -> T { return std::sqrt(x * x + y * y + z * z); }
 
    // Unary Negation
    constexpr auto operator-() const -> vec3 { return {-x, -y, -z}; }

@@ -29,7 +29,7 @@ int main() {
 
    std::unordered_map<std::string, ParticleGroup> particle_groups{};
    for (const auto& species: particle_spec) {
-      particle_groups.insert({std::string{species.name}, ParticleGroup(species)});
+      particle_groups.emplace(std::string{species.name}, ParticleGroup(species));
    }
 
    std::vector<Collisions> collisions;

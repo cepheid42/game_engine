@@ -54,7 +54,7 @@ def plot_density(group, step, data_path, xs, zs, block=True):
     plt.show(block=block)
 
 
-def plot_temperature(group, step, data_path, xs, zs, block=True):
+def plot_temperature(group, step, data_path, xs, zs, block=True, save=False):
     filename = f'/{group}_{step:010d}.bp'
     with FileReader(data_path + filename) as f:
         temp = f.read("Temperature")[:, 0, :].T
@@ -84,7 +84,11 @@ def plot_temperature(group, step, data_path, xs, zs, block=True):
     cbar.ax.get_yaxis().labelpad = 15
     cbar.ax.set_ylabel('eV')
 
-    plt.show(block=block)
+    if save:
+        plt.savefig(data_path + f'/{group}_temperature_{step}.png')
+        plt.close(fig)
+    else:
+        plt.show(block=block)
 
 def plot_field_energy(data_path, block=True):
     with FileReader(data_path + '/fields_energy.bp') as f:
@@ -104,7 +108,7 @@ def plot_field_energy(data_path, block=True):
     ax.set_xlabel('Time (ns)')
     ax.set_ylabel(r'Joules')
     ax.set_title('Field Energy')
-    ax.plot(time, field_energy / 0.01)
+    ax.plot(time, field_energy)
     plt.show(block=block)
 
 
@@ -127,9 +131,32 @@ def plot_particle_energy(data_path, block=True):
     ax.set_title('Particle Energy')
 
     for k, v in particles.items():
-        ax.plot(time, v / 0.01, label=f'{k.capitalize()} Energy')
+        ax.plot(time, v, label=f'{k.capitalize()} Energy')
 
     ax.legend()
     plt.show(block=block)
+
+def plot_total_neutron_yield(data_path, bounds, block=True):
+    start, stop, step = bounds
+
+    times = []
+    density = []
+    for n in range(start, stop + step, step):
+        filename = f'/neutrons_{n:010d}.bp'
+        with FileReader(data_path + filename) as f:
+            density.append(f.read('Density').sum())
+            times.append(f.read('Time') * s_to_ns)
+
+    times = np.array(times)
+    density = np.array(density)
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8), layout='constrained')
+    ax.set_xlabel('Time (ns)')
+    ax.set_ylabel('Y')
+    ax.set_title('Neutron Yield')
+
+    ax.plot(times, density)
+    plt.show()
+
 
 

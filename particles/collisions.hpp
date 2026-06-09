@@ -20,47 +20,9 @@
 namespace tf::collisions
 {
 
-template <typename T>
-struct LoggingAllocator {
-   using value_type = T;
-
-   // int num_alloc{0};
-   // int num_elements{0};
-   // ~LoggingAllocator() {
-   //    std::println("Total number of elements: {}", num_elements);
-   //    std::println("Total number of allocations: {}", num_alloc);
-   //    std::println("Average number of elements: {}", num_elements / num_alloc);
-   // }
-
-   LoggingAllocator() = default;
-
-   template <typename U> explicit constexpr LoggingAllocator(const LoggingAllocator<U>&) noexcept {}
-
-   T* allocate(const std::size_t n) {
-      // num_alloc++;
-      // num_elements += n;
-      std::println("Allocating {} elements of size {}", n, n * sizeof(T));
-      return static_cast<T*>(::operator new(n * sizeof(T)));
-   }
-
-   void deallocate(T* p, const std::size_t n) noexcept {
-      std::println("Deallocating {}", n);
-      ::operator delete(p);
-   }
-
-   template<typename U, typename V>
-   friend bool operator==(const LoggingAllocator<U>&, const LoggingAllocator<V>&) { return true; }
-
-   template<typename U, typename V>
-   friend bool operator!=(const LoggingAllocator<U>&, const LoggingAllocator<V>&) { return false; }
-};
-
 struct Collisions {
    using group_t = particles::ParticleGroup;
    using particle_vec = std::vector<particles::Particle>;
-
-   template<typename T>
-   using pool_vec = std::vector<T, LoggingAllocator<T>>;
 
    struct Products {
       using group_t = particles::ParticleGroup;
@@ -77,6 +39,7 @@ struct Collisions {
    group_t& g2;
    std::map<std::string, Products> products{};
    std::map<std::string, Buffers> buffers{};
+   std::map<std::string, interp::Table> tables{};
 
    CollisionSpec specs;
 
@@ -86,11 +49,11 @@ struct Collisions {
    std::vector<double> rngs;
 
    bool has_coulomb;
-   enum struct ChannelType { None, Ionization, Fusion, Bremmstrahlung };
+   enum struct ChannelType { None, Ionization, FusionA, FusionB, Bremmstrahlung };
    std::vector<ChannelType> channels{};
 
-   interp::Table ionization_cs{};
-   interp::Table fusion_cs{};
+   // interp::Table ionization_cs{};
+   // interp::Table fusion_cs{};
    interp::MultiTable brem_cs{};
 
    Collisions(const auto& params_, auto& group_map)
@@ -112,21 +75,37 @@ struct Collisions {
          buffers.emplace("ionization", Buffers{});
 
          if (not specs.ionization.cross_section_file.empty() and specs.ionization.constant_cross_section == 0.0) {
-            ionization_cs = interp::Table(std::string{specs.ionization.cross_section_file}, 1.0, 1.0); // eV and m^2
+            tables.emplace("ionization", interp::Table(std::string{specs.ionization.cross_section_file}, 1.0, 1.0)); // eV and m^2
          }
       }
 
       if (std::ranges::contains(params_.channels, "fusion")) {
-         channels.push_back(ChannelType::Fusion);
-         products.emplace(
-            "fusion",
-            Products{&group_map.at(std::string(params_.fusion.product1)),
-                     &group_map.at(std::string(params_.fusion.product2))}
-         );
-         buffers.emplace("fusion", Buffers{});
+         auto channel = 0;
+         for (auto& spec : params_.fusion) {
+            if (spec.product1.empty() and spec.product2.empty()) {
+               continue;
+            }
+            if (channel == 0) {
+               channels.push_back(ChannelType::FusionA);
+            } else if (channel == 1) {
+               channels.push_back(ChannelType::FusionB);
+            }
 
-         if (not specs.fusion.cross_section_file.empty() and specs.fusion.constant_cross_section == 0.0) {
-            fusion_cs = interp::Table(std::string{specs.fusion.cross_section_file}, 1.0, 1.0);
+            std::string name{"fusion" + std::to_string(channel)};
+
+            products.emplace(
+               name,
+               Products{&group_map.at(std::string(spec.product1)),
+                        &group_map.at(std::string(spec.product2))}
+            );
+
+            buffers.emplace(name, Buffers{});
+
+            if (not spec.cross_section_file.empty() and spec.constant_cross_section == 0.0) {
+               tables.emplace(name, interp::Table(std::string{spec.cross_section_file}, 1.0, 1.0));
+            }
+
+            channel++;
          }
       }
 
@@ -142,7 +121,6 @@ struct Collisions {
             brem_cs = interp::MultiTable(std::string{specs.radiation.cross_section_file});
          }
       }
-
       if (channels.empty()) { channels.push_back(ChannelType::None); }
    }
 
@@ -161,21 +139,40 @@ struct Collisions {
             {
                ionizationCollision(
                   pair_data,
-                  specs,
+                  specs.ionization,
+                  specs.probability_search_area,
                   buffers["ionization"],
-                  ionization_cs
+                  tables["ionization"]
                );
                break;
             }
-         case ChannelType::Fusion:
+         case ChannelType::FusionA:
+            {
+               // std::println("DD -> He3 + n");
+               fusionCollision(
+                  pair_data,
+                  specs.fusion[0],
+                  specs.probability_search_area,
+                  buffers["fusion0"],
+                  tables["fusion0"],
+                  products["fusion0"].product1->mass,
+                  products["fusion0"].product2->mass
+               );
+
+               if (!buffers["fusion0"].g1_products.empty())
+                  std::println("Neutrons = {}", buffers["fusion0"].g1_products.size());
+               break;
+            }
+         case ChannelType::FusionB:
             {
                fusionCollision(
                   pair_data,
-                  specs,
-                  buffers["fusion"],
-                  fusion_cs,
-                  products["fusion"].product1->mass,
-                  products["fusion"].product2->mass
+                  specs.fusion[1],
+                  specs.probability_search_area,
+                  buffers["fusion1"],
+                  tables["fusion1"],
+                  products["fusion1"].product1->mass,
+                  products["fusion1"].product2->mass
                );
                break;
             }
@@ -183,7 +180,7 @@ struct Collisions {
             // {
             //    bremsstrahlungCollision(
             //       pair_data,
-            //       specs,
+            //       specs.radiation,
             //       buffers["radiation"],
             //       brem_cs
             //    );
@@ -282,10 +279,7 @@ struct Collisions {
          const auto n_partners = specs.self_scatter ? np1 - 1 + np1 % 2 : std::max(np1, np2);
          const auto n_pairs = specs.self_scatter ? n_partners / 2 : n_partners;
          const auto scatter_coef = static_cast<double>(n_partners) * dt / (dx * dy * dz);
-      
-         // std::vector<std::size_t> pids1(n_partners);
-         // std::vector<std::size_t> pids2(n_partners);
-         // std::vector<double> nDups(std::min(np1, np2));
+
          pids1.resize(n_partners);
          pids2.resize(n_partners);
          nDups.resize(std::min(np1, np2));

@@ -139,7 +139,6 @@ def generate_particle_file(domain, particles, data_path):
     pz_min, pz_max = particles.pz_range
 
     if particles.distribution == 'none':
-        print('Done')
         return
 
     if particles.distribution == 'sp_uniformE':
@@ -147,7 +146,6 @@ def generate_particle_file(domain, particles, data_path):
         vel = np.zeros_like(pos)
         wts = np.array([1.0])
         write_particle_file(data_path, particles, pos, vel, wts, wts)
-        print('Done')
         return
 
     if particles.distribution == 'sp_uniformB':
@@ -157,7 +155,6 @@ def generate_particle_file(domain, particles, data_path):
         gammas = np.array([1.0e6], dtype=np.float64)
         velocities = np.array([[temp[0], temp[1], temp[2]]], dtype=np.float64)
         write_particle_file(data_path, particles, pos, velocities, gammas, wts)
-        print('Done')
         return
 
     if particles.distribution == 'sp_forcefree':
@@ -167,7 +164,6 @@ def generate_particle_file(domain, particles, data_path):
         gammas = np.array([1.0e6], dtype=np.float64)
         velocties = np.array([[temp[0], temp[1], temp[2]]], dtype=np.float64)
         write_particle_file(data_path, particles, pos, velocties, gammas, wts)
-        print('Done')
         return
 
     if particles.distribution == 'sp_perpfields':
@@ -175,7 +171,6 @@ def generate_particle_file(domain, particles, data_path):
         vel = np.array([[0, 0, 0]], dtype=np.float64)
         wts = np.array([1.0])
         write_particle_file(data_path, particles, pos, vel, wts, wts)
-        print('Done')
         return
 
     if particles.distribution == 'sp_harmosc':
@@ -183,7 +178,6 @@ def generate_particle_file(domain, particles, data_path):
         vel = np.zeros_like(pos)
         wts = np.array([1.0], dtype=np.float64)
         write_particle_file(data_path, particles, pos, vel, wts, wts)
-        print('Done')
         return
 
     if particles.distribution == 'sp_jdep':
@@ -192,7 +186,6 @@ def generate_particle_file(domain, particles, data_path):
         velocities = np.array([[temp[0], temp[1], temp[2]]], dtype=np.float64)
         wts = np.array([1.0], dtype=np.float64)
         write_particle_file(data_path, particles, pos, velocities, gammas, wts)
-        print('Done')
         return
 
     nx, ny, nz = domain.shape

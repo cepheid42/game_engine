@@ -56,7 +56,7 @@ struct CollisionSpec {
    bool self_scatter;
    CoulombSpec coulomb{};
    IonizationSpec ionization{};
-   FusionSpec fusion{};
+   std::array<FusionSpec, 2> fusion{};
    RadiationSpec radiation{};
 };
 

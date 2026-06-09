@@ -112,14 +112,14 @@ helium4 = Particles(
 # ===== Collisions and Particle Params =====
 # ==========================================
 DD_params = FusionParams(
-    products=('neutrons', 'helium3'),
+    products=(neutrons, helium3),
     energy_gain=3.269e6,
     production_multiplier=1.0e10,
     cross_section_file=project_path + '/tests/collision_tests/cross_section_data/DD_nHe3_BH_eV_m2.txt'
 )
 
 DT_params = FusionParams(
-    products=('neutrons', 'helium4'),
+    products=(neutrons, helium4),
     energy_gain=17.589e6,
     production_multiplier=1.0e10,
     cross_section_file=project_path + '/tests/collision_tests/cross_section_data/DT_nHe4_BH_eV_m2.txt'
@@ -148,19 +148,19 @@ for c in collision_types:
     if c == 'DD':
         particles = (deuterium, neutrons, helium3)
         collision = Collision(
-            groups=('deuterium', 'deuterium'),
+            groups=(deuterium, deuterium),
             channels=('fusion',),
             step_interval=1,
             self_scatter=True,
-            fusion=DD_params
+            fusion=(DD_params,)
         )
     else: # DT
         particles = (tritium, deuterium, neutrons, helium4)
         collision = Collision(
-            groups=('tritium', 'deuterium'),
+            groups=(tritium, deuterium),
             channels=('fusion',),
             step_interval=1,
-            fusion=DT_params
+            fusion=(DT_params,)
         )
 
     for t in collision_temps:
@@ -174,6 +174,8 @@ for c in collision_types:
 
         particle_params = ParticleParams(
             particle_bcs=ParticleBCType.Periodic,
+            push_type=ParticlePushType.Boris,
+            interp_order=1,
             particle_data=particles,
             collisions=(collision,)
         )
@@ -201,9 +203,9 @@ for c in collision_types:
         # ===========================
         # ===== Compile and Run =====
         # ===========================
-        create_particles(sim_params, deuterium, data_path)
-        create_particles(sim_params, tritium, data_path)
-        update_header(sim_params, project_path=project_path)
+        create_data_dir(data_path)
+        create_particles(sim_params, [deuterium,tritium], data_path)
+        update_header(sim_params, project_path=project_path, data_path=data_path)
 
         compile_project(build_path, output=True)
         run_project(build_path + '/game_engine', output=True)

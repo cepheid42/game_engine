@@ -36,9 +36,9 @@ struct CIC {
    static constexpr std::size_t Order   = 1;
    static constexpr std::size_t Support = 2;
 
-   static constexpr auto eval(const double x) { return 1.0 - std::abs(x); }
+   static constexpr auto eval(const auto x) { return 1.0 - std::abs(x); }
 
-   static constexpr auto shape_array(const double x) {
+   static constexpr auto shape_array(const auto x) {
       return std::array{
          eval(x),
          eval(x - 1.0)

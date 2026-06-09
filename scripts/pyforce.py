@@ -38,5 +38,6 @@ from scripts.plotting import (
     plot_density,
     plot_temperature,
     plot_field_energy,
-    plot_particle_energy
+    plot_particle_energy,
+    plot_total_neutron_yield
 )

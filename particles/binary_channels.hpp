@@ -77,12 +77,7 @@ void coulombCollision(const auto& params, const auto& spec, const auto& cell_dat
    const auto vcm = (p1 + p2) / (m1 * gamma1 + m2 * gamma2);
    const auto vcm2 = vcm.length_squared();
 
-   // Guard against rare roundoff or already-corrupted particle states before forming gamma_cm.
-   // if (!std::isfinite(vcm2) or vcm2 >= constants::c_sqr) { return; }
-
    const auto gamma_cm = 1.0 / std::sqrt(1.0 - vcm2 * constants::over_c_sqr);
-
-   // if (!std::isfinite(gamma_cm)) { return; }
 
    const auto u1 = p1 / m1;
    const auto u2 = p2 / m2;
@@ -93,31 +88,11 @@ void coulombCollision(const auto& params, const auto& spec, const auto& cell_dat
    const auto gamma1_cm = (gamma1 - vcm_dot_u1 * constants::over_c_sqr) * gamma_cm;
    const auto gamma2_cm = (gamma2 - vcm_dot_u2 * constants::over_c_sqr) * gamma_cm;
 
-   // if (!std::isfinite(gamma1_cm) or !std::isfinite(gamma2_cm) or gamma1_cm < 1.0 or gamma2_cm < 1.0) { return; }
-
-   // Avoid the vcm2 denominator when the lab frame is already effectively the COM frame.
-   // constexpr auto vcm2_floor = 1.0e-30 * constants::c_sqr;
-
    // Bad old code: includes one extra factor of gamma1 in the first term and divides by vcm2 unconditionally.
    // const auto p1_star = p1 + m1 * gamma1 * vcm * ((gamma_cm - 1.0) * vcm_dot_u1 / vcm2 - gamma_cm);
-   const auto p1_star = p1 + m1 * vcm * ((gamma_cm - 1.0) * vcm_dot_u1 / vcm2 - gamma_cm * gamma1);;
-
-   // const auto p1_star = (vcm2 < vcm2_floor)
-   //    ? p1
-   //    : p1 + m1 * vcm * ((gamma_cm - 1.0) * vcm_dot_u1 / vcm2 - gamma_cm * gamma1);
+   const auto p1_star = p1 + m1 * vcm * ((gamma_cm - 1.0) * vcm_dot_u1 / vcm2 - gamma_cm * gamma1);
 
    const auto p1_star_len = p1_star.length();
-
-   // if (!std::isfinite(p1_star_len) or p1_star_len == 0.0) { return; }
-
-   // // Diagnostic invariant check: the transformed COM momentum magnitude should match gamma1_cm.
-   // const auto p1_star_expected =
-   //    m1 * constants::c * std::sqrt(std::max(0.0, math::SQR(gamma1_cm) - 1.0));
-   // const auto p1_star_rel_err =
-   //    std::abs(p1_star_len - p1_star_expected) / std::max(p1_star_expected, std::numeric_limits<double>::min());
-
-   // // If this trips, set a breakpoint here; the pair has inconsistent relativistic COM kinematics.
-   // if (!std::isfinite(p1_star_rel_err) or p1_star_rel_err > 1.0e-8) { return; }
 
    const auto gamma_coef1 = gamma_cm / (m1 * gamma1 + m2 * gamma2);
    const auto gamma_coef2 = 1.0 + constants::c_sqr * (gamma1_cm * m1) * (gamma2_cm * m2) / math::SQR(p1_star_len);
@@ -154,57 +129,19 @@ void coulombCollision(const auto& params, const auto& spec, const auto& cell_dat
 
    // Perez (2012) eq 12
    const auto p1_perp = std::sqrt(math::SQR(p1_star[0]) + math::SQR(p1_star[1]));
-   // const auto p1_perp_floor = 1.0e-30 * p1_star_len;
 
-   // if (!std::isfinite(p1_perp)) { return; }
-
-   // Bad old code: divides by p1_perp unconditionally, so p1_star parallel to z gives 0/0.
    const vec3 p1f_star {
       dv0 * (p1_star[0] * p1_star[2] / p1_perp) - dv1 * (p1_star[1] * p1_star_len / p1_perp) + cos_theta * p1_star[0],
       dv0 * (p1_star[1] * p1_star[2] / p1_perp) + dv1 * (p1_star[0] * p1_star_len / p1_perp) + cos_theta * p1_star[1],
      -dv0 * p1_perp + cos_theta * p1_star[2]
    };
 
-   // const auto p1f_star = [&]() -> vec3<double> {
-   //    if (p1_perp < p1_perp_floor) {
-   //       // p1_star is almost parallel to z, so scatter directly about the z axis.
-   //       const auto sign_z = (p1_star[2] >= 0.0) ? 1.0 : -1.0;
-   //       return vec3<double>{
-   //          p1_star_len * sin_theta * std::cos(phi),
-   //          p1_star_len * sin_theta * std::sin(phi),
-   //          sign_z * p1_star_len * cos_theta
-   //       };
-   //    }
-   //
-   //    return vec3<double>{
-   //       dv0 * (p1_star[0] * p1_star[2] / p1_perp) - dv1 * (p1_star[1] * p1_star_len / p1_perp) + cos_theta * p1_star[0],
-   //       dv0 * (p1_star[1] * p1_star[2] / p1_perp) + dv1 * (p1_star[0] * p1_star_len / p1_perp) + cos_theta * p1_star[1],
-   //      -dv0 * p1_perp + cos_theta * p1_star[2]
-   //    };
-   // }();
-
-   // if (!std::isfinite(p1f_star[0]) or !std::isfinite(p1f_star[1]) or !std::isfinite(p1f_star[2])) { return; }
-
-   // Bad old code: divides by vcm2 unconditionally.
    const auto pcoef = (gamma_cm - 1.0) * dot_product(vcm, p1f_star) / vcm2;
-   // const auto pcoef = (vcm2 < vcm2_floor)
-   //    ? 0.0
-   //    : (gamma_cm - 1.0) * dot_product(vcm, p1f_star) / vcm2;
 
    if (scatter_p1) {
       const auto p1f = p1f_star + vcm * (pcoef + m1 * gamma1_cm * gamma_cm);
       const auto gamma1f = gamma_from_momentum(p1f, m1);
-
-      // Bad old code: assigned gamma and velocity without checking for non-finite values.
-      // particle1.velocity = p1f / (m1 * gamma1f);
-      // particle1.gamma = gamma1f;
-
-      // if (!std::isfinite(gamma1f) or gamma1f < 1.0) { return; }
-
       const auto v1f = p1f / (m1 * gamma1f);
-
-      // if (!std::isfinite(v1f[0]) or !std::isfinite(v1f[1]) or !std::isfinite(v1f[2])) { return; }
-      // if (v1f.length_squared() >= constants::c_sqr) { return; }
 
       particle1.velocity = v1f;
       particle1.gamma = gamma1f;
@@ -213,17 +150,7 @@ void coulombCollision(const auto& params, const auto& spec, const auto& cell_dat
    if (scatter_p2) {
       const auto p2f = -p1f_star + vcm * (-pcoef + m2 * gamma2_cm * gamma_cm);
       const auto gamma2f = gamma_from_momentum(p2f, m2);
-
-      // Bad old code: assigned gamma and velocity without checking for non-finite values.
-      // particle2.velocity = p2f / (m2 * gamma2f);
-      // particle2.gamma = gamma2f;
-
-      // if (!std::isfinite(gamma2f) or gamma2f < 1.0) { return; }
-
       const auto v2f = p2f / (m2 * gamma2f);
-
-      // if (!std::isfinite(v2f[0]) or !std::isfinite(v2f[1]) or !std::isfinite(v2f[2])) { return; }
-      // if (v2f.length_squared() >= constants::c_sqr) { return; }
 
       particle2.velocity = v2f;
       particle2.gamma = gamma2f;
@@ -234,7 +161,8 @@ void coulombCollision(const auto& params, const auto& spec, const auto& cell_dat
 // =============== Ionization Reactions ================================================================
 void ionizationCollision(
    const auto& params,
-   const auto& spec,
+   const auto& ionization,
+   const auto& search_area,
    auto& buffers,
    const auto& cs_table
 ) {
@@ -248,7 +176,6 @@ void ionizationCollision(
    const auto& w2 = particle2.weight;
    const auto& gamma1 = particle1.gamma;
    const auto& gamma2 = particle2.gamma;
-   const auto& ionization = spec.ionization;
 
    const auto wi_eff = w2 / ionization.rejection_multiplier;
    const auto dv_len = (v1 - v2).length();
@@ -300,7 +227,7 @@ void ionizationCollision(
    auto prod_mult = ionization.production_multiplier;
    auto scatter_probability = probability_coef * prod_mult;
 
-   while (scatter_probability > spec.probability_search_area and prod_mult > 1.0) {
+   while (scatter_probability > search_area and prod_mult > 1.0) {
       prod_mult /= 10.0;
       scatter_probability = probability_coef * prod_mult;
    }
@@ -403,7 +330,8 @@ void ionizationCollision(
 // =============== Fusion Reactions ====================================================================
 void fusionCollision(
    const auto& params,
-   const auto& spec,
+   const auto& fusion,
+   const auto& search_area,
    auto& buffers,
    const auto& cs_table,
    const auto prod_m1,
@@ -419,7 +347,7 @@ void fusionCollision(
    const auto& w2 = particle2.weight;
    const auto& gamma1 = particle1.gamma;
    const auto& gamma2 = particle2.gamma;
-   const auto& fusion = spec.fusion;
+   // const auto& fusion = spec.fusion;
 
    const auto dv = v1 - v2;
    const auto dv_len = dv.length();
@@ -449,7 +377,19 @@ void fusionCollision(
    const auto gamma_rel = 1.0 / std::sqrt(1.0 - vrel2_cm * constants::over_c_sqr);
    const auto energy_com_eV = (gamma_rel - 1.0) * params.reduced_mass * constants::c_sqr / constants::q_e;
 
-   if (cs_table.is_outofbounds(energy_com_eV) or dv_len == 0.0) { return; } // Skip if energy is below minimum of table
+   static auto max_energy = 0.0;
+   if (energy_com_eV >= max_energy) {
+      max_energy = energy_com_eV;
+      std::println("energy_com_eV = {}", max_energy);
+   }
+
+   if (dv_len == 0.0) {
+      // std::println("dv_len == 0");
+      return;
+   } // Skip if energy is below minimum of table
+   if (cs_table.is_outofbounds(energy_com_eV)) {
+      return;
+   } // Skip if energy is below minimum of table
 
    auto cross_section{fusion.constant_cross_section};
    if (cross_section == 0.0) {
@@ -460,12 +400,15 @@ void fusionCollision(
    auto prod_mult = fusion.production_multiplier;
    auto scatter_probability = probability_coef * prod_mult;
 
-   while (scatter_probability > spec.probability_search_area and prod_mult > 1.0) {
+   while (scatter_probability > search_area and prod_mult > 1.0) {
       prod_mult /= 10.0;
       scatter_probability = probability_coef * prod_mult;
    }
 
-   if (params.rand[0] > scatter_probability) { return; }
+   if (params.rand[0] > scatter_probability) {
+      // std::println("Probability too low");
+      return;
+   }
 
    const auto dv_perp = std::sqrt(math::SQR(dv[0]) + math::SQR(dv[1]));
    const auto cos_theta = dv[2] / dv_len;

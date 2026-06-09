@@ -28,7 +28,7 @@ inline constexpr auto dt    = 2e-17;
 inline constexpr auto t_end = 1.5e-13;
 inline constexpr auto Nt    = 7500zu;
 
-inline constexpr auto sim_name = "rlsi_allocator";
+inline constexpr auto sim_name = "rlsi_fusion";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
 
 inline constexpr auto   em_enabled = true;
@@ -77,52 +77,27 @@ inline constexpr auto ParticlePushSelect = ParticlePushType::Boris;
 inline constexpr auto PBCSelect = ParticleBCType::Outflow;
 inline constexpr auto PBCDepth = 3zu;
 
-inline constexpr std::array<ParticleGroupSpec, 2> particle_spec = {
+inline constexpr std::array<ParticleGroupSpec, 1> particle_spec = {
    ParticleGroupSpec{
-      .name = "electrons",
-      .filepath = "/data/rlsi_allocator/electrons.bp",
-      .mass = 9.1093837139e-31,
-      .charge = -1.0,
-      .atomic_number = 0,
-      .tracer = false
-   },
-   ParticleGroupSpec{
-      .name = "ions",
-      .filepath = "/data/rlsi_allocator/ions.bp",
-      .mass = 1.67262192595e-27,
+      .name = "deuterium",
+      .filepath = "/data/rlsi_fusion/deuterium.bp",
+      .mass = 3.344494690818129e-27,
       .charge = 1.0,
       .atomic_number = 1,
       .tracer = false
    }
 };
 
-inline constexpr std::array<CollisionSpec, 3> collision_spec = {
+inline constexpr std::array<CollisionSpec, 1> collision_spec = {
    CollisionSpec{
-      .group1 = "electrons",
-      .group2 = "ions",
-      .channels = {"coulomb"},
-      .step_interval = 1,
-      .probability_search_area = 1.0,
-      .self_scatter = false,
-      .coulomb = {.coulomb_log = 10.0, .rate_multiplier = 1.0},						
-   },
-   CollisionSpec{
-      .group1 = "ions",
-      .group2 = "ions",
-      .channels = {"coulomb"},
+      .group1 = "deuterium",
+      .group2 = "deuterium",
+      .channels = {"coulomb",},
       .step_interval = 1,
       .probability_search_area = 1.0,
       .self_scatter = true,
-      .coulomb = {.coulomb_log = 10.0, .rate_multiplier = 1.0},						
-   },
-   CollisionSpec{
-      .group1 = "electrons",
-      .group2 = "electrons",
-      .channels = {"coulomb"},
-      .step_interval = 1,
-      .probability_search_area = 1.0,
-      .self_scatter = true,
-      .coulomb = {.coulomb_log = 10.0, .rate_multiplier = 1.0},						
+      .coulomb = CoulombSpec{.coulomb_log = 0.0, .rate_multiplier = 1.0},
+			
    }
 };
 
@@ -131,7 +106,7 @@ inline constexpr std::array<CollisionSpec, 3> collision_spec = {
 /---------------------------------------------------------------*/
 enum class MetricType { ParticleDump, ParticleDiag, ParticleEnergy, FieldDump, FieldEnergy };
 
-inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/rlsi_allocator";
+inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/rlsi_fusion";
 inline constexpr std::array<MetricType, 3> metric_spec = {
 	MetricType::ParticleEnergy,
 	MetricType::FieldEnergy,

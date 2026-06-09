@@ -521,11 +521,6 @@ struct ParticleMetric final : detail::MetricBase {
    void update_metrics() {
       static constexpr auto V_cell_inv = 1.0 / (dx * dy * dz);
       static constexpr auto temp_coef  = 2.0 / (3.0 * constants::q_e);
-      static constexpr vec3 offset{
-         interpolation_order == 2 ? 0.5 : 0.0,
-         interpolation_order == 2 ? 0.5 : 0.0,
-         interpolation_order == 2 ? 0.5 : 0.0
-      };
 
       const auto mc2 = group.mass * constants::c_sqr;
 
@@ -535,6 +530,11 @@ struct ParticleMetric final : detail::MetricBase {
 
       #pragma omp parallel num_threads(nThreads) default(shared)
       {
+         // static constexpr vec3 offset{
+         //    interpolation_order == 2 ? 0.5 : 0.0,
+         //    interpolation_order == 2 ? 0.5 : 0.0,
+         //    interpolation_order == 2 ? 0.5 : 0.0
+         // };
          // #pragma omp for
          // for (auto pid = 0zu; pid < group.num_particles(); pid++) {
          //    const auto& p   = group.particles[pid];
