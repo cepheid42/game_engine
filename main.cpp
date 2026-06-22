@@ -1,11 +1,12 @@
-#include "program_params.hpp"
 #include "em_solver.hpp"
 #include "metrics.hpp"
+#include "program_params.hpp"
 #include "timers.hpp"
+#include "particles/collisions.hpp"
+#include "particles/current_deposition.hpp"
 #include "particles/particles.hpp"
 #include "particles/pusher.hpp"
-#include "particles/current_deposition.hpp"
-#include "particles/collisions.hpp"
+// #include "particles/apm.hpp"
 
 #include "barkeep.h"
 

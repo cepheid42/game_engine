@@ -129,7 +129,7 @@ struct CurrentDeposition {
    
 
    static void advance(const auto& g, auto& emdata) requires(jdep_enabled) {
-      // if (g.is_tracer) { return; }
+      if (g.is_photons or g.is_tracer) { return; }
 
       #pragma omp parallel for num_threads(nThreads)
       for (auto pid = 0zu; pid < g.num_particles(); pid++) {

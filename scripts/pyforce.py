@@ -34,10 +34,5 @@ from scripts.utilities import (
     run_project,
 )
 
-from scripts.plotting import (
-    plot_density,
-    plot_temperature,
-    plot_field_energy,
-    plot_particle_energy,
-    plot_total_neutron_yield
-)
+from scripts.plotting import *
+from scripts.tfd_functions import *

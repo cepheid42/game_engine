@@ -64,6 +64,7 @@ struct Collisions {
      rng(0.0, 1.0),
      rngs(NRNG),
      has_coulomb(std::ranges::contains(params_.channels, "coulomb"))
+     // channels(params_.channels.size())
    {
       if (std::ranges::contains(params_.channels, "ionization")) {
          channels.push_back(ChannelType::Ionization);
@@ -85,6 +86,7 @@ struct Collisions {
             if (spec.product1.empty() and spec.product2.empty()) {
                continue;
             }
+
             if (channel == 0) {
                channels.push_back(ChannelType::FusionA);
             } else if (channel == 1) {
@@ -104,7 +106,6 @@ struct Collisions {
             if (not spec.cross_section_file.empty() and spec.constant_cross_section == 0.0) {
                tables.emplace(name, interp::Table(std::string{spec.cross_section_file}, 1.0, 1.0));
             }
-
             channel++;
          }
       }
@@ -121,6 +122,7 @@ struct Collisions {
             brem_cs = interp::MultiTable(std::string{specs.radiation.cross_section_file});
          }
       }
+
       if (channels.empty()) { channels.push_back(ChannelType::None); }
    }
 
@@ -148,7 +150,6 @@ struct Collisions {
             }
          case ChannelType::FusionA:
             {
-               // std::println("DD -> He3 + n");
                fusionCollision(
                   pair_data,
                   specs.fusion[0],
@@ -158,9 +159,6 @@ struct Collisions {
                   products["fusion0"].product1->mass,
                   products["fusion0"].product2->mass
                );
-
-               if (!buffers["fusion0"].g1_products.empty())
-                  std::println("Neutrons = {}", buffers["fusion0"].g1_products.size());
                break;
             }
          case ChannelType::FusionB:
@@ -177,14 +175,14 @@ struct Collisions {
                break;
             }
          case ChannelType::Bremmstrahlung:
-            // {
-            //    bremsstrahlungCollision(
-            //       pair_data,
-            //       specs.radiation,
-            //       buffers["radiation"],
-            //       brem_cs
-            //    );
-            // }
+            {
+               bremsstrahlungCollision(
+                  pair_data,
+                  specs.radiation,
+                  buffers["radiation"],
+                  brem_cs
+               );
+            }
          default:
             break;
       }

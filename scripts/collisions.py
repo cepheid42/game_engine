@@ -90,11 +90,11 @@ class Collision:
     radiation: RadiationParams = field(default_factory=RadiationParams)
 
     def __repr__(self):
-        # channels = ', '.join([t for t in self.channels])
         channels = ''
         for c in self.channels:
-            channels += f'"{c}",'
-
+            channels += f'"{c}"'
+            if c != self.channels[-1]:
+                channels += ', '
         coulomb = ''
         ionization = ''
         fusion = ''

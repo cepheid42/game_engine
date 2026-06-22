@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
 
-import matplotlib.pyplot as plt
-import numpy as np
-from scipy import constants
-from adios2 import FileReader
-
 from scripts.pyforce import *
 
 # =============================
@@ -48,7 +43,7 @@ electrons = Particles(
     atomic_number=0,
     temp=(0.0, 0.0, e_eV), # eV
     density=e_den, # m^-3,
-    ppc=(10, 1, 10),
+    ppc=(10, 10, 10),
     distribution='constant',
     px_range=px_range,
     py_range=py_range,
@@ -62,7 +57,7 @@ copper = Particles(
     atomic_number=29,
     temp=cu_temp, # eV
     density=cu_den, # m^-3,
-    ppc=(100, 10, 10),
+    ppc=(10, 1, 10),
     distribution='thermal',
     px_range=px_range,
     py_range=py_range,
@@ -87,9 +82,9 @@ photons = Particles(
 # ===== Collisions and Particle Params =====
 # ==========================================
 radiation_params = RadiationParams(
-    products='photons',
+    products=photons,
     reduce_electron_energy=False,
-    production_multiplier=1.0e5,
+    production_multiplier=1.0e8,
     cross_section_file=project_path + '/tests/collision_tests/cross_section_data/SB_G4_Z29_kdsdk_MeV_barns.csv'
 )
 
@@ -100,7 +95,7 @@ particle_params = ParticleParams(
     particle_data=(electrons, copper, photons),
     collisions=(
         Collision(
-            groups=('electrons', 'copper'),
+            groups=(electrons, copper),
             channels=('radiation',),
             radiation=radiation_params,
         ),
@@ -142,7 +137,7 @@ sim_params = Simulation(
 # ===== Compile and Run =====
 # ===========================
 sims = [
-    ["wi2we", ( 40, 1, 100), r"$w_{\mathrm{i}} = 2w_{\mathrm{e}}$", 'o', "#db6d00"],
+    ["wi2we", ( 40, 40, 100), r"$w_{\mathrm{i}} = 2w_{\mathrm{e}}$", 'o', "#db6d00"],
     # ["wiwe",  ( 80, 1, 100), r"$w_{\mathrm{i}} = w_{\mathrm{e}}$", 's', "#006ddb"],
     # ["2wiwe", (160, 1, 100), r"$2w_{\mathrm{i}} = w_{\mathrm{e}}$", 'd', "#920000"]
 ]
@@ -153,10 +148,9 @@ for name, cppc, _, _, _ in sims:
     copper.ppc = cppc
     data_path = project_path + f'/data/{name}'
     print(f'Setting up "{name}"')
-
-    create_particles(sim_params, electrons, data_path)
-    create_particles(sim_params, copper, data_path)
-    update_header(sim_params, project_path=project_path)
+    create_data_dir(data_path)
+    create_particles(sim_params, [electrons, copper, photons], data_path)
+    update_header(sim_params, project_path=project_path, data_path=data_path)
 
     compile_project(build_path, output=True)
     run_project(build_path + '/game_engine', output=True)
@@ -244,10 +238,13 @@ for name, cppc, label, marker, color in sims:
 
     dk = np.zeros(n_bins - 1)
     for j in range(n_bins - 1):
-        dk[j] = (k_over_gm1_bins[j + 1] - k_over_gm1_bins[j]) * (gamma_e - 1.0)
-        dndk[j] = n_count[j] / dk[j]
+        kj = k_over_gm1_bins[j] * (gamma_e - 1.0)
+        kjp1 = k_over_gm1_bins[j + 1] * (gamma_e - 1.0)
+        k = 0.5 * (kjp1 + kj)
+        dk = kjp1 - kj
+        dndk[j] = k * n_count[j] / dk
 
-    ax[1].plot(k_over_gm1_bins[1:], dndk, c=color, mec=color,
+    ax[1].plot(k_over_gm1_bins[2:], dndk[1:], c=color, mec=color,
                mew=1.5, ms=3.5, fillstyle="none", linestyle="none", marker=marker, label=label)
 
 ax[0].legend()

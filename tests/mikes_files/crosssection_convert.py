@@ -1,7 +1,7 @@
 import numpy as np
 
-data_path = '/home/cepheid/TriForce/game_engine/tests/mikes_files/DD_pT_BH_keV_mbarn_231009.dat'
-output_path = '/tests/collision_tests/cross_section_data/DD_pT_BH_eV_m2.txt'
+data_path = '/home/cepheid/TriForce/game_engine/tests/mikes_files/SB_G4_Z1_kdsdk_MeV_barns.csv'
+output_path = '/tests/collision_tests/cross_section_data/SB_G4_Z1_kdsdk_eV_m2.txt'
 
 data = np.genfromtxt(data_path)
 

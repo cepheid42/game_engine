@@ -202,30 +202,46 @@ struct MultiTable {
       for (auto i = 0zu; i < n_energies; ++i) {
          data[0][i] *= 1.0e6; // MeV -> eV
 
-         const auto energy_eV = data[0][i];
-         const auto v = constants::c * std::sqrt(1.0 - 1.0 / math::SQR(1.0 + constants::q_e * energy_eV / constants::m_e_c_sqr));
-         const auto gm1 = 1.0 / std::sqrt(1.0 - math::SQR(v / constants::c)) - 1.0;
+         // The input columns kE1...kE14 are k*d(sigma)/dk evaluated at the
+         // tabulated values of x = k/(gamma-1).  The photon-number cross
+         // section is therefore the integral of k*d(sigma)/dk over dln(k),
+         // not a linear integral over x or k.
+         //
+         // The previous code created an artificial first interval 0 -> x_min,
+         // shifted all subsequent intervals by one column, and then sampled
+         // linearly in x.  That produces many photons below the nominal cutoff
+         // and too few photons in the low-energy logarithmic bins.
 
-         const auto sigma_ttl = data[n_columns + 1][i];
+         // Save the raw k*d(sigma)/dk data before overwriting the table columns
+         // with the normalized CDF values.
+         std::array<double, 14> kdsdk{};
+         for (auto j = 0zu; j < n_columns; ++j) {
+            kdsdk[j] = data[j + 1][i];
+         }
+
+         // Build the cumulative distribution beginning at x_min.  No photons
+         // are sampled below SB_k_over_gm1[0].  The first CDF value is zero at
+         // x_min, and the last CDF value is one at x_max.
+         data[1][i] = 0.0;
+         double sigma_ttl = 0.0;
 
          for (auto j = 1zu; j < n_columns; ++j) {
-            const auto k = SB_k_over_gm1[j - 1] * gm1;
-            double dk;
-            if (j == 1) {
-               dk = k;
-            } else {
-               dk = SB_k_over_gm1[j] * gm1 - k;
-            }
+            const auto dlogx = std::log(SB_k_over_gm1[j] / SB_k_over_gm1[j - 1]);
+            const auto dsigma = 0.5 * (kdsdk[j - 1] + kdsdk[j]) * dlogx;
+            sigma_ttl += dsigma;
+            data[j + 1][i] = sigma_ttl;
+         }
 
-            auto sigma_norm = data[j][i] * dk / k / sigma_ttl;
-
-            if (j == 1) {
-               data[j][i] = sigma_norm;
-            } else {
-               data[j][i] = data[j - 1][i] + sigma_norm;
+         // Normalize the CDF.  This makes data[1] = 0 and data[n_columns] = 1.
+         // The total cross section used by the collision probability is made
+         // self-consistent with this same log-integrated table.
+         if (sigma_ttl > 0.0) {
+            for (auto j = 0zu; j < n_columns; ++j) {
+               data[j + 1][i] /= sigma_ttl;
             }
          }
-         data[n_columns + 1][i] *= 1.0e-28; // barns -> m^2
+
+         data[n_columns + 1][i] = sigma_ttl * 1.0e-28; // barns -> m^2
       }
       // for (auto i = 0zu; i < n_energies; ++i) {
       //    for (auto j = 0zu; j < n_columns + 2; ++j) {
@@ -233,6 +249,10 @@ struct MultiTable {
       //    }
       //    std::println();
       // }
+   }
+
+   bool is_outofbounds(const auto e) const {
+      return e <= data[0][0] or e > data[0][data[0].size() - 1];
    }
 
    auto lerp(const auto energy, const auto U) const {
@@ -245,28 +265,33 @@ struct MultiTable {
       auto de_lb = std::abs(data[0][static_cast<size_t>(e_lb_index)] - energy);
       auto de_lbm1 = std::abs(data[0][static_cast<size_t>(e_lb_index - 1)] - energy);
 
-      auto e_nearest_index = (de_lb < de_lbm1) ? e_lb_index : (e_lb_index - 1);
+      const auto e_nearest_index = static_cast<size_t>((de_lb < de_lbm1) ? e_lb_index : (e_lb_index - 1));
 
-      size_t k_column = 0; // Starts at one since energy is in first column of table
-      auto sigma_cdf = data[k_column + 1][static_cast<size_t>(e_nearest_index)];
-      while (sigma_cdf < U and k_column < n_columns - 1) {
+      // Clamp the random variate into the open unit interval so that roundoff
+      // never asks for a value below the first CDF entry or above the last.
+      const auto Uc = std::min(std::max(static_cast<double>(U), 0.0), 1.0 - 1.0e-14);
+
+      // data[1] is CDF=0 at x_min, and data[n_columns] is CDF=1 at x_max.
+      // Find the first CDF point that exceeds the random variate.
+      size_t k_column = 1;
+      auto sigma_cdf = data[k_column + 1][e_nearest_index];
+      while (sigma_cdf < Uc and k_column < n_columns - 1) {
          ++k_column;
-         sigma_cdf = data[k_column + 1][static_cast<size_t>(e_nearest_index)];
-      } // endwhile()
-
-      const auto k_over_gm1_i = SB_k_over_gm1[k_column];
-
-      double k_over_gm1{};
-      if (k_column == 0) {
-         k_over_gm1 = k_over_gm1_i * U / sigma_cdf;
-      } else {
-         const auto k_over_gm1_m1 = SB_k_over_gm1[k_column - 1];
-         const auto sigma_norm_m1 = data[k_column][static_cast<size_t>(e_nearest_index)];
-         const auto frac = (U - sigma_norm_m1) / (sigma_cdf - sigma_norm_m1);
-         k_over_gm1 = k_over_gm1_m1 + (k_over_gm1_i - k_over_gm1_m1) * frac;
+         sigma_cdf = data[k_column + 1][e_nearest_index];
       }
 
-      return k_over_gm1;
+      const auto sigma_cdf_m1 = data[k_column][e_nearest_index];
+      const auto denom = sigma_cdf - sigma_cdf_m1;
+      const auto frac = denom > 0.0 ? (Uc - sigma_cdf_m1) / denom : 0.0;
+
+      // Interpolate in log photon-energy fraction, not linearly in x.  This is
+      // appropriate because the table is logarithmically spaced and represents
+      // k*d(sigma)/dk = d(sigma)/dln(k).
+      const auto logx0 = std::log(SB_k_over_gm1[k_column - 1]);
+      const auto logx1 = std::log(SB_k_over_gm1[k_column]);
+      const auto logx = logx0 + frac * (logx1 - logx0);
+
+      return std::exp(logx);
    }
 
    auto lerp_cumulative(const auto e) const {

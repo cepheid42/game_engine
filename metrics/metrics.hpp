@@ -328,6 +328,7 @@ struct ParticleDumpMetric final : detail::MetricBase {
       io.DefineAttribute<std::size_t>("Tracer", group.is_tracer);
       io.DefineAttribute<std::string>("Unit", "s", "Time");
       io.DefineAttribute<double>("dt", dt);
+      io.DefineAttribute<double>("Cell Volume", dx * dy * dz);
    }
 
    static void write(const auto&, const auto&, const auto, const auto) requires(!(push_enabled and coll_enabled)) {}

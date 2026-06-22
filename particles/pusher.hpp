@@ -183,6 +183,13 @@ struct ParticlePusher {
       apply_particle_bcs<PBCSelect>(p);
    } // end update_position()
 
+   static void update_position_photons(Particle& p) {
+      const auto velocity = constants::c * unit_vector(p.velocity);
+      p.old_location = p.location;
+      p.location += (dt_delta_inv * velocity);
+      apply_particle_bcs<PBCSelect>(p);
+   } // end update_position()
+
    static void advance_position(group_t& g) {
       #pragma omp parallel for num_threads(nThreads)
       for (auto pid = 0zu; pid < g.num_particles(); pid++) {
@@ -190,6 +197,14 @@ struct ParticlePusher {
          update_position(g.particles[pid]);
       }
    } // end first_advance_position
+
+   static void advance_photons(group_t& g) {
+      #pragma omp parallel for num_threads(nThreads)
+      for (auto pid = 0zu; pid < g.num_particles(); pid++) {
+         if (g.particles[pid].is_disabled()) { continue; }
+         update_position_photons(g.particles[pid]);
+      }
+   }
 
    static void advance_velocity(group_t& g, const emdata_t& emdata) {
       #pragma omp parallel for num_threads(nThreads)
@@ -207,13 +222,17 @@ struct ParticlePusher {
    }
 
    static void advance(auto& g, const auto& emdata, const auto step) requires(push_enabled) {
-      if (g.is_photons) { return; }
       g.reset_positions();
 
       if (step % sort_frequency == 0) { g.sort_particles(); }
 
-      advance_velocity(g, emdata); // n -> n+1
-      advance_position(g);         // n-1/2 -> n+1/2
+      if (not g.is_photons) {
+         advance_velocity(g, emdata); // n -> n+1
+         advance_position(g);         // n-1/2 -> n+1/2
+      } else {
+         advance_photons(g);
+      }
+
 
       g.cell_map_updated = false;
       g.is_sorted = false;
