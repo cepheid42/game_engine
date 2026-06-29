@@ -140,7 +140,7 @@ struct ParticleGroup {
    }
 
    void reset_positions() {
-      if constexpr (push_enabled and (x_collapsed or y_collapsed or z_collapsed)) {
+      if constexpr ((x_collapsed or y_collapsed or z_collapsed) and push_enabled) {
          #pragma omp parallel for num_threads(nThreads)
          for (auto pid = 0zu; pid < particles.size(); pid++) {
             if constexpr (x_collapsed) { particles[pid].location[0] = 0.5; }

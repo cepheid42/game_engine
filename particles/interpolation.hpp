@@ -169,12 +169,12 @@ struct Table {
    }
 };
 
-struct MultiTable {
+struct BremTable {
    std::vector<std::vector<double>> data;
    std::array<double, 14> SB_k_over_gm1 = {1.0e-7, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.97, 0.99, 1.0};
 
-   explicit MultiTable() = default;
-   explicit MultiTable(const std::string& filepath)
+   explicit BremTable() = default;
+   explicit BremTable(const std::string& filepath)
    : data(16)
    {
       using namespace tf;
@@ -223,7 +223,7 @@ struct MultiTable {
          // are sampled below SB_k_over_gm1[0].  The first CDF value is zero at
          // x_min, and the last CDF value is one at x_max.
          data[1][i] = 0.0;
-         double sigma_ttl = 0.0;
+         auto sigma_ttl = 0.0;
 
          for (auto j = 1zu; j < n_columns; ++j) {
             const auto dlogx = std::log(SB_k_over_gm1[j] / SB_k_over_gm1[j - 1]);
@@ -243,12 +243,6 @@ struct MultiTable {
 
          data[n_columns + 1][i] = sigma_ttl * 1.0e-28; // barns -> m^2
       }
-      // for (auto i = 0zu; i < n_energies; ++i) {
-      //    for (auto j = 0zu; j < n_columns + 2; ++j) {
-      //       std::print("{}, ", data[j][i]);
-      //    }
-      //    std::println();
-      // }
    }
 
    bool is_outofbounds(const auto e) const {

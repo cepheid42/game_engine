@@ -47,6 +47,11 @@ struct RadiationSpec {
    bool reduce_electron_energy{false};
 };
 
+struct InverseRadiationSpec {
+   std::string_view cross_section_file{};
+   double rate_multiplier{1.0};
+};
+
 struct CollisionSpec {
    std::string_view group1;
    std::string_view group2;
@@ -58,6 +63,7 @@ struct CollisionSpec {
    IonizationSpec ionization{};
    std::array<FusionSpec, 2> fusion{};
    RadiationSpec radiation{};
+   InverseRadiationSpec inverse_radiation{};
 };
 
 #endif //GAME_ENGINE_PARTICLE_SPEC_HPP

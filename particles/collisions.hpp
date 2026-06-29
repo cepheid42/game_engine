@@ -24,6 +24,8 @@ struct Collisions {
    using group_t = particles::ParticleGroup;
    using particle_vec = std::vector<particles::Particle>;
 
+   enum struct ChannelType { None, Ionization, FusionA, FusionB, Bremsstrahlung, InverseBremsstrahlung };
+
    struct Products {
       using group_t = particles::ParticleGroup;
       group_t* product1{nullptr};
@@ -37,9 +39,9 @@ struct Collisions {
 
    group_t& g1;
    group_t& g2;
-   std::map<std::string, Products> products{};
-   std::map<std::string, Buffers> buffers{};
-   std::map<std::string, interp::Table> tables{};
+   std::map<ChannelType, Products> products{};
+   std::map<ChannelType, Buffers> buffers{};
+   std::map<ChannelType, interp::Table> tables{};
 
    CollisionSpec specs;
 
@@ -49,12 +51,10 @@ struct Collisions {
    std::vector<double> rngs;
 
    bool has_coulomb;
-   enum struct ChannelType { None, Ionization, FusionA, FusionB, Bremmstrahlung };
    std::vector<ChannelType> channels{};
 
-   // interp::Table ionization_cs{};
-   // interp::Table fusion_cs{};
-   interp::MultiTable brem_cs{};
+   interp::BremTable brem_cs{};
+   // interp::InvBremTable inv_brem_cs{};
 
    Collisions(const auto& params_, auto& group_map)
    : g1(group_map.at(std::string{params_.group1})),
@@ -69,14 +69,14 @@ struct Collisions {
       if (std::ranges::contains(params_.channels, "ionization")) {
          channels.push_back(ChannelType::Ionization);
          products.emplace(
-               "ionization",
+               ChannelType::Ionization,
                Products{&group_map.at(std::string{params_.ionization.product1}),
                         &group_map.at(std::string{params_.ionization.product2})}
          );
-         buffers.emplace("ionization", Buffers{});
+         buffers.emplace(ChannelType::Ionization, Buffers{});
 
          if (not specs.ionization.cross_section_file.empty() and specs.ionization.constant_cross_section == 0.0) {
-            tables.emplace("ionization", interp::Table(std::string{specs.ionization.cross_section_file}, 1.0, 1.0)); // eV and m^2
+            tables.emplace(ChannelType::Ionization, interp::Table(std::string{specs.ionization.cross_section_file}, 1.0, 1.0)); // eV and m^2
          }
       }
 
@@ -87,41 +87,40 @@ struct Collisions {
                continue;
             }
 
-            if (channel == 0) {
-               channels.push_back(ChannelType::FusionA);
-            } else if (channel == 1) {
-               channels.push_back(ChannelType::FusionB);
-            }
-
-            std::string name{"fusion" + std::to_string(channel)};
-
+            const auto type = (channel == 0) ? ChannelType::FusionA : ChannelType::FusionB;
+            channels.push_back(type);
             products.emplace(
-               name,
+               type,
                Products{&group_map.at(std::string(spec.product1)),
                         &group_map.at(std::string(spec.product2))}
             );
 
-            buffers.emplace(name, Buffers{});
+            buffers.emplace(type, Buffers{});
 
             if (not spec.cross_section_file.empty() and spec.constant_cross_section == 0.0) {
-               tables.emplace(name, interp::Table(std::string{spec.cross_section_file}, 1.0, 1.0));
+               tables.emplace(type, interp::Table(std::string{spec.cross_section_file}, 1.0, 1.0));
             }
             channel++;
          }
       }
 
       if (std::ranges::contains(params_.channels, "radiation")) {
-         channels.push_back(ChannelType::Bremmstrahlung);
+         channels.push_back(ChannelType::Bremsstrahlung);
          products.emplace(
-            "radiation",
+            ChannelType::Bremsstrahlung,
             Products{&group_map.at(std::string(params_.radiation.product1))}
          );
-         buffers.emplace("radiation", Buffers{});
+         buffers.emplace(ChannelType::Bremsstrahlung, Buffers{});
 
          if (not specs.radiation.cross_section_file.empty()) {
-            brem_cs = interp::MultiTable(std::string{specs.radiation.cross_section_file});
+            brem_cs = interp::BremTable(std::string{specs.radiation.cross_section_file});
          }
       }
+
+      // if (std::ranges::contains(params_.channels, "inverseRadiation")) {
+      //    channels.push_back(ChannelType::InverseBremsstrahlung);
+      //    inv_brem_cs = interp::InvBremTable(std::string{specs.inverseRadiation.cross_section_file}));
+      // }
 
       if (channels.empty()) { channels.push_back(ChannelType::None); }
    }
@@ -143,8 +142,8 @@ struct Collisions {
                   pair_data,
                   specs.ionization,
                   specs.probability_search_area,
-                  buffers["ionization"],
-                  tables["ionization"]
+                  buffers[ChannelType::Ionization],
+                  tables[ChannelType::Ionization]
                );
                break;
             }
@@ -154,10 +153,10 @@ struct Collisions {
                   pair_data,
                   specs.fusion[0],
                   specs.probability_search_area,
-                  buffers["fusion0"],
-                  tables["fusion0"],
-                  products["fusion0"].product1->mass,
-                  products["fusion0"].product2->mass
+                  buffers[ChannelType::FusionA],
+                  tables[ChannelType::FusionA],
+                  products[ChannelType::FusionA].product1->mass,
+                  products[ChannelType::FusionA].product2->mass
                );
                break;
             }
@@ -167,22 +166,30 @@ struct Collisions {
                   pair_data,
                   specs.fusion[1],
                   specs.probability_search_area,
-                  buffers["fusion1"],
-                  tables["fusion1"],
-                  products["fusion1"].product1->mass,
-                  products["fusion1"].product2->mass
+                  buffers[ChannelType::FusionB],
+                  tables[ChannelType::FusionB],
+                  products[ChannelType::FusionB].product1->mass,
+                  products[ChannelType::FusionB].product2->mass
                );
                break;
             }
-         case ChannelType::Bremmstrahlung:
+         case ChannelType::Bremsstrahlung:
             {
                bremsstrahlungCollision(
                   pair_data,
                   specs.radiation,
-                  buffers["radiation"],
+                  buffers[ChannelType::Bremsstrahlung],
                   brem_cs
                );
             }
+         // case ChannelType::InverseBremsstrahlung:
+         //    {
+         //       inverseBremsstrahlungCollision(
+         //          pair_data,
+         //          specs.inverseRadiation,
+         //          inv_brem_cs
+         //       );
+         //    }
          default:
             break;
       }

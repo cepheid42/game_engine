@@ -138,13 +138,13 @@ sim_params = Simulation(
 # # ===========================
 # # ===== Compile and Run =====
 # # ===========================
-print(f'Setting up "{sim_name}"')
-create_data_dir(data_path)
-create_particles(sim_params, [electrons, boron, photons], data_path)
-update_header(sim_params, project_path=project_path, data_path=data_path)
-
-compile_project(build_path, output=True)
-run_project(build_path + '/game_engine', output=True)
+# print(f'Setting up "{sim_name}"')
+# create_data_dir(data_path)
+# create_particles(sim_params, [electrons, boron, photons], data_path)
+# update_header(sim_params, project_path=project_path, data_path=data_path)
+#
+# compile_project(build_path, output=True)
+# run_project(build_path + '/game_engine', output=True)
 
 # ===========================
 # ===== Post Processing =====
@@ -155,7 +155,7 @@ gamma = 1.0 + (E_eV * constants.e) / me_c2
 gm1 = gamma - 1.0
 
 nks = 200
-k_over_gm1 = np.logspace(m.log10(1.0e-7), m.log10(1.0 - 1.0e-7), nks)
+k_over_gm1 = np.logspace(np.log10(1.0e-7), np.log10(1.0 - 1.0e-7), nks)
 ks = k_over_gm1 * gm1
 
 dsdk = np.zeros(nks)

@@ -10,9 +10,7 @@ Written by Michael Lavell, May 4, 2024
 
 import numpy as np
 from scipy import constants
-import matplotlib.pyplot as plt
-import math as m
-from scipy.special import zeta, lambertw
+from scipy.special import lambertw
 
 good_colors=["#db6d00","#006ddb","#920000","#52a736","#9B30FF"]
 
@@ -42,7 +40,7 @@ def lThomasFermi(Z):
     return ltf / r_c * 0.885
 
 def lDebye(TeV, ni, Zstar):
-    ld = (constants.epsilon_0 * constants.e * TeV \
+    ld = (constants.epsilon_0 * constants.e * TeV
           / (constants.e**2 * ni * Zstar
              * (Zstar + 1.0)))**0.5
     return ld / r_c
@@ -57,7 +55,7 @@ def lInteratomic(ni):
     return lia / r_c
 
 def lReducedPotential(etaf, Lf, etad, Ld):
-    # function from Bertrand..
+    # function from Bertrand.
 
     # ITFD from Eq.(19) (typo in T2 '-Lf**2')
     T1 = (etaf**2 / 2.) * ( (1. + Lf**2) * np.log(1. + Lf**2) - Lf**2) / (1. + Lf**2)
@@ -77,7 +75,7 @@ def lReducedPotential(etaf, Lf, etad, Ld):
 def Elwert_factor(Z, k, g1):
     ec = 1.0
 
-    if ((k > 0.0) and (k < g1 - 1.0)):
+    if (k > 0.0) and (k < g1 - 1.0):
         g2 = g1 - k
         b1 = np.sqrt(1.0 - 1.0 / g1**2)
         b2 = np.sqrt(1.0 - 1.0 / g2**2)
@@ -104,19 +102,19 @@ def g_func(eta, dp, dm, l):
 def dif_cs_tfd_nr(k, Z, Zstar, Ti, Te, ni, ne, g1, enable_ec=True):
     cs = 0.0
 
-    if ((k > 0.0) and (k < g1-1.0)):
+    if (k > 0.0) and (k < g1 - 1.0):
 
         g2 = g1 - k
         p1 = np.sqrt(g1**2 - 1.0)
         p2 = np.sqrt(g2**2 - 1.0)
-        b1 = np.sqrt(1.0 - 1.0 / g1**2)
-        b2 = np.sqrt(1.0 - 1.0 / g2**2)
+        # b1 = np.sqrt(1.0 - 1.0 / g1**2)
+        # b2 = np.sqrt(1.0 - 1.0 / g2**2)
 
         dp = p1 + p2 # maximum momentum (defined differently in paper..)
         dm = p1 - p2 # minimum momentum
 
         eta_tf = 1.0 - Zstar / Z
-        eta_d = Zstar / Z
+        eta_d = Zstar / Zax 
 
         ltf = lThomasFermi(Z)
 
@@ -223,7 +221,7 @@ def dif_cs_tfd_mr(k, Z, Zstar, Ti, Te, ni, ne, g1, enable_ec=False):
 def dif_cs_r_mr(k, Z, Zstar, Ti, Te, ni, ne, g1, enable_ec=False):
     cs = 0.0
 
-    if ((k > 0.0) and (k < g1-1.0)):
+    if (k > 0.0) and (k < g1 - 1.0):
 
         eta_tf = 1.0 - Zstar / Z
         eta_d = Zstar / Z
@@ -256,10 +254,10 @@ def dif_cs_r_mr(k, Z, Zstar, Ti, Te, ni, ne, g1, enable_ec=False):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def zeta_Riemann(s, N):
-    zeta = 0.0
+    z = 0.0
     for i in range(N):
-        zeta += 1.0 / (i+1)**s
-    return zeta
+        z += 1.0 / (i+1)**s
+    return z
 
 
 # equation 24
@@ -268,8 +266,8 @@ def Coulomb_correction(Z):
     T1 = aZ2 / (1.0 + aZ2)
     T2 = 0.0
     for n in np.arange(1,4):
-        zeta = zeta_Riemann(2.0 * n + 1.0, 100)
-        T2 += (-aZ2)**n * (zeta - 1.0)
+        z = zeta_Riemann(2.0 * n + 1.0, 100)
+        T2 += (-aZ2)**n * (z - 1.0)
     return T1 * T2
 
 
@@ -277,7 +275,7 @@ def Coulomb_correction(Z):
 def dif_cs_tfd_ur(k, Z, Zstar, Ti, Te, ni, ne, g1, enable_ec=False):
     cs = 0.0
 
-    if ((k > 0.0) and (k < g1-1.0)):
+    if (k > 0.0) and (k < g1 - 1.0):
 
         eta_tf = 1.0 - Zstar / Z
         eta_d = Zstar / Z
@@ -317,7 +315,7 @@ def dif_cs_tfd_ur(k, Z, Zstar, Ti, Te, ni, ne, g1, enable_ec=False):
 def dif_cs_r_ur(k, Z, Zstar, Ti, Te, ni, ne, g1, enable_ec=False):
     cs = 0.0
 
-    if ((k > 0.0) and (k < g1-1.0)):
+    if (k > 0.0) and (k < g1 - 1.0):
 
         eta_tf = 1.0 - Zstar / Z
         eta_d = Zstar / Z

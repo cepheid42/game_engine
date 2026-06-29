@@ -21,7 +21,8 @@ from scripts.collisions import (
     CoulombParams,
     FusionParams,
     IonizationParams,
-    RadiationParams
+    RadiationParams,
+    InverseRadiationParams
 )
 
 from scripts.utilities import (

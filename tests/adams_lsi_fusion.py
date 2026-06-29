@@ -195,6 +195,13 @@ particle_params = ParticleParams(
             self_scatter=True,
             step_interval=coll_interval
         ),
+        # Collision(
+        #     groups=(electrons, photons),
+        #     channels=('inverse_radiation',),
+        #     inverse_radiation=InverseRadiationParams(
+        #         cross_section_file='' # Don't have any files?
+        #     )
+        # )
     )
 )
 
@@ -276,4 +283,8 @@ plot_step = 2400
 
 # plot_density(['neutrons', 'protons', 'helium3', 'tritium', 'electrons', 'deuterium', 'photons'], plot_step, data_path, xs, zs, block=block)
 # plot_temperature(['neutrons', 'protons', 'helium3', 'tritium', 'electrons', 'deuterium'], plot_step, data_path, xs, zs, block=block)
-plot_total_particle_yield(data_path, ['protons', 'neutrons', 'helium3', 'tritium', 'electrons', 'photons'], [0, nt - 2 * save_interval, save_interval])
+# plot_total_particle_yield(data_path, ['protons', 'neutrons', 'helium3', 'tritium', 'electrons', 'photons'], [0, nt - 2 * save_interval, save_interval])
+
+# plot_density(['photons'], plot_step, data_path, xs, zs, block=block)
+plot_temperature(['electrons', 'deuterium'], plot_step, data_path, xs, zs, block=block)
+

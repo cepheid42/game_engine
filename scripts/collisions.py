@@ -79,6 +79,19 @@ class RadiationParams:
         )
 
 @dataclass
+class InverseRadiationParams:
+    rate_multiplier: float = 1.0
+    cross_section_file: str = ''
+
+    def __repr__(self):
+        return (
+            'InverseRadiationSpec{\n'
+            f'         .cross_section_file = "{self.cross_section_file}",\n'
+            f'         .rate_multiplier = {self.rate_multiplier},\n'
+            '      },'
+        )
+
+@dataclass
 class Collision:
     groups: tuple = ()
     channels: tuple = ()
@@ -88,6 +101,7 @@ class Collision:
     ionization: IonizationParams = field(default_factory=IonizationParams)
     fusion: tuple = ()
     radiation: RadiationParams = field(default_factory=RadiationParams)
+    inverse_radiation: InverseRadiationParams = field(default_factory=InverseRadiationParams)
 
     def __repr__(self):
         channels = ''
@@ -99,6 +113,7 @@ class Collision:
         ionization = ''
         fusion = ''
         radiation = ''
+        inv_radiation = ''
         if 'coulomb' in self.channels:
             coulomb = f'.coulomb = {self.coulomb},\n'
 
@@ -114,7 +129,10 @@ class Collision:
         if 'radiation' in self.channels:
             radiation = f'.radiation = {self.radiation}\n'
 
-        channel_spec = '\t'.join([coulomb, ionization, fusion, radiation]).lstrip()
+        if 'inverse_radiation' in self.channels:
+            inv_radiation = f'.inverse_radiation = {self.inverse_radiation}\n'
+
+        channel_spec = '\t'.join([coulomb, ionization, fusion, radiation, inv_radiation]).lstrip()
 
         return (
             '   CollisionSpec{\n'

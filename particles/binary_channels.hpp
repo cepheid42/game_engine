@@ -643,6 +643,34 @@ void bremsstrahlungCollision(
       electron.velocity = new_momentum / (m1 * gamma_e_new);
    }
 } // end bremsstrahlungCollision()
+
+// void inverseBremCollision(
+//    const auto& params,
+//    const auto& brem,
+//    const auto& cs_table
+// ) {
+//    auto& electron = params.particle1;
+//    auto& photon = params.particle2;
+//    const auto k_photon_energy = photon.gamma;
+//    const auto photon_energy_eV = k_photon_energy * constants::m_e_c_sqr / constants::q_e;
+//
+//    const auto cross_section_m2 = interpAbsorptionCS();
+//
+//    const auto scatter_probability = cross_section_m2 * params.scatter_coef * brem.rate_multiplier * constants::c;
+//
+//    if (params.rand[0] > scatter_probability) { return; }
+//
+//    if (params.rand[2] <= photon.weight / params.max_weight) {
+//       const auto gamma_new = electron.gamma + k_photon_energy;
+//       const auto correction = std::sqrt((gamma_new - 1.0) / (electron.gamma - 1.0));
+//       electron.velocity = electron.velocity * correction;
+//       electron.gamma = gamma_new;
+//    }
+//
+//    if (params.rand[2] <= electron.weight / params.max_weight) {
+//       photon.weight = -1.0f; // disable photon
+//    }
+// } // end inverseBremCollision()
 } // end namespace tf::collisions
 
 #endif //GAME_ENGINE_BINARY_CHANNELS_HPP
