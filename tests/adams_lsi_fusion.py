@@ -169,6 +169,8 @@ particle_params = ParticleParams(
                 products=photons,
                 reduce_electron_energy=True,
                 production_multiplier=production_mult,
+                min_energy=1e-3,
+                max_energy=1e4,
                 cross_section_file=project_path + '/tests/cross_section_data/SB_G4_Z1_kdsdk_MeV_barns.csv'
             ),
             self_scatter=False,
@@ -195,13 +197,6 @@ particle_params = ParticleParams(
             self_scatter=True,
             step_interval=coll_interval
         ),
-        # Collision(
-        #     groups=(electrons, photons),
-        #     channels=('inverse_radiation',),
-        #     inverse_radiation=InverseRadiationParams(
-        #         cross_section_file='' # Don't have any files?
-        #     )
-        # )
     )
 )
 
@@ -257,8 +252,8 @@ sim_params = Simulation(
 # ===========================
 # ===== Compile and Run =====
 # ===========================
-# run = True
-run = False
+run = True
+# run = False
 
 if run:
     print(f'Setting up "{sim_name}"')

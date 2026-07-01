@@ -24,7 +24,7 @@ struct Collisions {
    using group_t = particles::ParticleGroup;
    using particle_vec = std::vector<particles::Particle>;
 
-   enum struct ChannelType { None, Ionization, FusionA, FusionB, Bremsstrahlung, InverseBremsstrahlung };
+   enum struct ChannelType { None, Ionization, FusionA, FusionB, Bremsstrahlung };
 
    struct Products {
       using group_t = particles::ParticleGroup;
@@ -51,10 +51,10 @@ struct Collisions {
    std::vector<double> rngs;
 
    bool has_coulomb;
+   bool has_radiation;
    std::vector<ChannelType> channels{};
 
-   interp::BremTable brem_cs{};
-   // interp::InvBremTable inv_brem_cs{};
+   interp::BremTFDTable brem_cs{};
 
    Collisions(const auto& params_, auto& group_map)
    : g1(group_map.at(std::string{params_.group1})),
@@ -63,8 +63,8 @@ struct Collisions {
      generator(init_mt_64()),
      rng(0.0, 1.0),
      rngs(NRNG),
-     has_coulomb(std::ranges::contains(params_.channels, "coulomb"))
-     // channels(params_.channels.size())
+     has_coulomb(std::ranges::contains(params_.channels, "coulomb")),
+     has_radiation(std::ranges::contains(params_.channels, "radiation"))
    {
       if (std::ranges::contains(params_.channels, "ionization")) {
          channels.push_back(ChannelType::Ionization);
@@ -111,16 +111,13 @@ struct Collisions {
             Products{&group_map.at(std::string(params_.radiation.product1))}
          );
          buffers.emplace(ChannelType::Bremsstrahlung, Buffers{});
-
-         if (not specs.radiation.cross_section_file.empty()) {
-            brem_cs = interp::BremTable(std::string{specs.radiation.cross_section_file});
-         }
+         brem_cs = interp::BremTFDTable(
+            g2.atomic_number,
+            g2.charge,
+            specs.radiation.min_energy,
+            specs.radiation.max_energy
+         );
       }
-
-      // if (std::ranges::contains(params_.channels, "inverseRadiation")) {
-      //    channels.push_back(ChannelType::InverseBremsstrahlung);
-      //    inv_brem_cs = interp::InvBremTable(std::string{specs.inverseRadiation.cross_section_file}));
-      // }
 
       if (channels.empty()) { channels.push_back(ChannelType::None); }
    }
@@ -182,26 +179,18 @@ struct Collisions {
                   brem_cs
                );
             }
-         // case ChannelType::InverseBremsstrahlung:
-         //    {
-         //       inverseBremsstrahlungCollision(
-         //          pair_data,
-         //          specs.inverseRadiation,
-         //          inv_brem_cs
-         //       );
-         //    }
          default:
             break;
       }
    }
 
-   CoulombData getCoulombData(const auto& cell1, const auto& cell2, const auto scatter_coef) {
+   CellData getCellData(const auto& cell1, const auto& cell2, const auto cid, const auto scatter_coef) {
       static constexpr auto cell_vol_inv = 1.0 / (dx * dy * dz);
       static constexpr auto q_eps = constants::q_e * constants::eps0;
       static constexpr auto four_pi_eps_c2_inv = 1.0 / (4.0 * constants::pi * constants::eps0 * constants::c_sqr);
       static const auto pi34_cuberoot = std::pow((4.0 / 3.0) * constants::pi, 1.0 / 3.0);
 
-      if (not has_coulomb) { return {}; } // No need to calculate all this if no coulomb collisions
+      if (not (has_coulomb or has_radiation)) { return {}; } // No need to calculate all this if no coulomb collisions
 
       const auto q1q2 = g1.charge * g2.charge;
       const auto m1_over_m2 = g1.mass / g2.mass;
@@ -231,6 +220,11 @@ struct Collisions {
       const auto d1 = m1_over_m2 * std::pow(density1, (2.0 / 3.0));
       const auto d2 = std::pow(density2, (2.0 / 3.0));
       const auto scatter_lowT = scatter_coef * pi34_cuberoot * (m1_over_m2 + 1.0) / std::max(d1, d2);
+
+      const auto l_debye = std::sqrt(lD2_1 + lD2_2);
+      if (has_radiation and l_debye != 0.0) {
+         brem_cs.updateCDF(cid, std::max(l_debye, std::sqrt(rmin2)));
+      }
 
       return {coef1, coef2, bmax2, scatter_lowT};
    }
@@ -262,7 +256,7 @@ struct Collisions {
       std::vector<std::size_t> cell_ids(g1.cell_map.size());
       std::transform(g1.cell_map.begin(), g1.cell_map.end(), cell_ids.begin(), [](auto& kv) { return kv.first; });
 
-      #pragma omp parallel for num_threads(nThreads) private(pids1, pids2, nDups)
+      // #pragma omp parallel for num_threads(nThreads) private(pids1, pids2, nDups)
       for (auto j = 0zu; j < cell_ids.size(); j++) {
          const auto tid = omp_get_thread_num();
          const auto z_code = cell_ids[j];
@@ -289,7 +283,7 @@ struct Collisions {
          pids2.resize(n_partners);
          nDups.resize(std::min(np1, np2));
 
-         const auto cell_data = getCoulombData(cell1, cell2, scatter_coef);
+         const auto cell_data = getCellData(cell1, cell2, z_code, scatter_coef);
 
          // Create vector of random integers in range [0, Np1) and [0, Np2)
          for (auto i = 0zu; i < n_partners; ++i) {
@@ -326,7 +320,7 @@ struct Collisions {
 
             ParticlePairData pair_data {
                p1, p2, reduced_mass, g1.mass, g2.mass, dups, scatter_coef,
-               std::max(weight1, weight2),
+               std::max(weight1, weight2), z_code,
                std::span{rngs.begin() + idx, rngs.begin() + idx + 5}
             };
 

@@ -22,7 +22,6 @@ from scripts.collisions import (
     FusionParams,
     IonizationParams,
     RadiationParams,
-    InverseRadiationParams
 )
 
 from scripts.utilities import (

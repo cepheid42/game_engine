@@ -65,6 +65,8 @@ class RadiationParams:
     products: Particles = None
     reduce_electron_energy: bool = False
     production_multiplier: float = 1.0
+    min_energy: float = 0.0
+    max_energy: float = 0.0
     cross_section_file: str = ''
 
     def __repr__(self):
@@ -74,22 +76,24 @@ class RadiationParams:
             f'         .product1 = "{self.products.name}",\n'
             f'         .cross_section_file = "{self.cross_section_file}",\n'
             f'         .production_multiplier = {self.production_multiplier},\n'
+            f'         .min_energy = {self.min_energy},\n'
+            f'         .max_energy = {self.max_energy},\n'
             f'         .reduce_electron_energy = {reduce_energy}\n'
             '      },'
         )
 
-@dataclass
-class InverseRadiationParams:
-    rate_multiplier: float = 1.0
-    cross_section_file: str = ''
-
-    def __repr__(self):
-        return (
-            'InverseRadiationSpec{\n'
-            f'         .cross_section_file = "{self.cross_section_file}",\n'
-            f'         .rate_multiplier = {self.rate_multiplier},\n'
-            '      },'
-        )
+# @dataclass
+# class InverseRadiationParams:
+#     rate_multiplier: float = 1.0
+#     cross_section_file: str = ''
+#
+#     def __repr__(self):
+#         return (
+#             'InverseRadiationSpec{\n'
+#             f'         .cross_section_file = "{self.cross_section_file}",\n'
+#             f'         .rate_multiplier = {self.rate_multiplier},\n'
+#             '      },'
+#         )
 
 @dataclass
 class Collision:
@@ -101,7 +105,7 @@ class Collision:
     ionization: IonizationParams = field(default_factory=IonizationParams)
     fusion: tuple = ()
     radiation: RadiationParams = field(default_factory=RadiationParams)
-    inverse_radiation: InverseRadiationParams = field(default_factory=InverseRadiationParams)
+    # inverse_radiation: InverseRadiationParams = field(default_factory=InverseRadiationParams)
 
     def __repr__(self):
         channels = ''
@@ -113,7 +117,7 @@ class Collision:
         ionization = ''
         fusion = ''
         radiation = ''
-        inv_radiation = ''
+        # inv_radiation = ''
         if 'coulomb' in self.channels:
             coulomb = f'.coulomb = {self.coulomb},\n'
 
@@ -129,10 +133,10 @@ class Collision:
         if 'radiation' in self.channels:
             radiation = f'.radiation = {self.radiation}\n'
 
-        if 'inverse_radiation' in self.channels:
-            inv_radiation = f'.inverse_radiation = {self.inverse_radiation}\n'
+        # if 'inverse_radiation' in self.channels:
+        #     inv_radiation = f'.inverse_radiation = {self.inverse_radiation}\n'
 
-        channel_spec = '\t'.join([coulomb, ionization, fusion, radiation, inv_radiation]).lstrip()
+        channel_spec = '\t'.join([coulomb, ionization, fusion, radiation]).lstrip()
 
         return (
             '   CollisionSpec{\n'

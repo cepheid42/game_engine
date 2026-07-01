@@ -145,8 +145,8 @@ sim_params = Simulation(
 # ===========================
 # ===== Compile and Run =====
 # ===========================
-# run = True
-run = False
+run = True
+# run = False
 
 if run:
     print(f'Setting up "{sim_name}"')
@@ -163,9 +163,9 @@ if run:
 xs = np.linspace(xmin, xmax, shape[0])
 zs = np.linspace(zmin, zmax, shape[2])
 
-for n in range(1000, 4010, save_interval):
-    plot_temperature('electrons', n, data_path, xs, zs, save=True)
-    plot_temperature('ions', n, data_path, xs, zs, save=True)
+# for n in range(1000, 4010, save_interval):
+#     plot_temperature('electrons', n, data_path, xs, zs, save=True)
+#     plot_temperature('ions', n, data_path, xs, zs, save=True)
 
 
 # block = True

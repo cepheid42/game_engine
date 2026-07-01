@@ -4,9 +4,54 @@
 #include "traits.hpp"
 #include "vec3.hpp"
 
+#include <array>
 #include <vector>
 
 namespace tf {
+template<typename T>
+class Array2D {
+   using value_t = T;
+
+public:
+   explicit Array2D() = default;
+
+   explicit Array2D(const std::size_t nx, const std::size_t ny)
+   : nx_(nx),
+     ny_(ny),
+     data_(nx * ny)
+   {}
+
+   auto begin() { return data_.begin(); }
+   auto   end() { return data_.end(); }
+   auto* data() { return data_.data(); }
+   
+   [[nodiscard]] auto      size() const -> std::size_t { return data_.size(); }
+   [[nodiscard]] auto num_bytes() const -> std::size_t { return size() * sizeof(T); }
+   [[nodiscard]] auto get_scid(const auto i, const auto j) const -> std::size_t { return j + ny_ * i; }
+
+   // Specialized accessors
+   auto operator()(const auto i, const auto j)       ->       T& { return data_[get_scid(i, j)]; }
+   auto operator()(const auto i, const auto j) const -> const T& { return data_[get_scid(i, j)]; }
+
+   auto operator[](const auto i)       ->       T& { return data_[i]; }
+   auto operator[](const auto i) const -> const T& { return data_[i]; }
+
+   void fill(T value) { for (auto& el: data_) el = value; }
+
+   // [[nodiscard]] bool is_inbounds(const std::size_t i, const std::size_t j, const std::size_t k) const { return i < nx_ and j < ny_ and k < nz_; }
+
+   // Dims
+   [[nodiscard]] auto dims() const -> std::array<std::size_t, 2> { return {nx_, ny_}; }
+   [[nodiscard]] auto nx() const -> std::size_t { return nx_; }
+   [[nodiscard]] auto ny() const -> std::size_t { return ny_; }
+
+private:
+   // Stride data
+   std::size_t    nx_{};
+   std::size_t    ny_{};
+   std::vector<T> data_{};
+}; // end class Array2D
+
 template<typename T>
 class Array3D {
    using value_t = T;
@@ -21,12 +66,12 @@ public:
      data_(nx * ny * nz)
    {}
 
-   explicit Array3D(const vec3<T>& dims_) : Array3D(dims_.x, dims_.y, dims_.z) {}
+   // explicit Array3D(const vec3<T>& dims_) : Array3D(dims_.x, dims_.y, dims_.z) {}
 
    auto begin() { return data_.begin(); }
    auto   end() { return data_.end(); }
    auto* data() { return data_.data(); }
-   
+
    [[nodiscard]] auto      size() const -> std::size_t { return data_.size(); }
    [[nodiscard]] auto num_bytes() const -> std::size_t { return size() * sizeof(T); }
    [[nodiscard]] auto get_scid(const auto i, const auto j, const auto k) const -> std::size_t { return k + nz_ * j + nz_ * ny_ * i; }
@@ -43,7 +88,7 @@ public:
    // [[nodiscard]] bool is_inbounds(const std::size_t i, const std::size_t j, const std::size_t k) const { return i < nx_ and j < ny_ and k < nz_; }
 
    // Dims
-   [[nodiscard]] auto dims() const -> vec3<std::size_t> { return {nx_, ny_, nz_}; }
+   [[nodiscard]] auto dims() const -> std::array<std::size_t, 3> { return {nx_, ny_, nz_}; }
    [[nodiscard]] auto nx() const -> std::size_t { return nx_; }
    [[nodiscard]] auto ny() const -> std::size_t { return ny_; }
    [[nodiscard]] auto nz() const -> std::size_t { return nz_; }
@@ -55,8 +100,6 @@ private:
    std::size_t    nz_{};
    std::vector<T> data_{};
 }; // end class Array3D
-
-
 
 template<>
 class Array3D<null_t> {
