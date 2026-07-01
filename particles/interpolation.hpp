@@ -312,14 +312,15 @@ struct BremTFDTable {
                                                          0.29552422, 0.26926672, 0.21908636, 0.14945135, 0.06667134};
 
    struct CellCDF {
-      CellCDF()
-      : cdf(num_electron_energies, num_photon_energies),
-        total_cross_sections(num_electron_energies),
+      CellCDF() = delete;
+      CellCDF(const auto n_e, const auto n_p)
+      : cdf(n_e, n_p),
+        total_cross_sections(n_e),
         prev_debye(0.0)
       {}
 
       Array2D<double> cdf;
-      std::vector<double> total_cross_sections{};
+      std::vector<double> total_cross_sections;
       double prev_debye;
    };
 
@@ -341,8 +342,13 @@ struct BremTFDTable {
      atomic_number(static_cast<double>(Z)),
      eta_D(charge / atomic_number),
      eta_TF(1.0 - eta_D),
-     lTF(4.0 * constants::pi * constants::eps0 * math::SQR(constants::h_bar) / (constants::m_e * math::SQR(constants::q_e) * std::pow(atomic_number, 1.0 / 3.0)))
-   {}
+     lTF(0.885 * (4.0 * constants::pi * constants::eps0 * math::SQR(constants::h_bar) / (constants::m_e * math::SQR(constants::q_e) * std::pow(atomic_number, 1.0 / 3.0))) / constants::r_c)
+   {
+      // for (auto i = 0zu; i < num_photon_energies; ++i) {
+      //    std::println("{}", energies[i]);
+      // }
+      // exit(0);
+   }
 
    auto ElwertFactor(const auto k, const auto gamma) const -> double {
       const auto b1 = std::sqrt(1.0 - 1.0 / math::SQR(gamma));
@@ -524,7 +530,10 @@ struct BremTFDTable {
 
    void updateCDF(const auto cid, const auto l_debye) {
       if (not cdfs.contains(cid)) {
-         cdfs.emplace(cid, CellCDF{});
+         #pragma omp critical
+         {
+            cdfs.emplace(cid, CellCDF{num_electron_energies, num_photon_energies});
+         }
       }
 
       auto& cdf = cdfs.at(cid);
@@ -540,15 +549,43 @@ struct BremTFDTable {
       return e <= energies[0] or e > energies[energies.size() - 1];
    }
 
-   auto interpolate(const auto e, const auto cid) const {
+   auto lerp_cumulative(const auto e, const auto cid) const -> double {
       const auto& cell = cdfs.at(cid);
-      const auto n_row = energies.size() - 1;
-      if (e < energies[0]) { return cell.total_cross_sections[0]; }
-      if (e > energies[n_row]) { return cell.total_cross_sections[n_row]; }
-      const auto upper = std::ranges::upper_bound(energies, e);
-      const auto idx = std::ranges::distance(energies.cbegin(), upper) - 1;
-      const auto slope = (e - energies[idx]) / (energies[idx + 1] - energies[idx]);
-      return std::lerp(cell.total_cross_sections[idx], cell.total_cross_sections[idx + 1], slope);
+      const auto n_rows = energies.size() - 1;
+
+      if (e <= energies[0] or e > energies[energies.size() - 1]) { return 0.0; }
+
+      auto idx = 0zu;
+      auto de0 = e - energies[idx];
+      auto de1 = e - energies[idx + 1];
+
+      while (std::signbit(de0) == std::signbit(de1) and idx < n_rows) {
+         de0 = e - energies[idx];
+         de1 = e - energies[idx + 1];
+         idx++;
+      }
+
+      if (idx >= n_rows) {
+         return cell.total_cross_sections[n_rows];
+      }
+
+      if (de0 < 0.0) {
+         const auto frac = (e - energies[idx - 1]) / (energies[idx] - energies[idx - 1]);
+         return cell.total_cross_sections[idx] - (1.0 - frac) * (cell.total_cross_sections[idx] - cell.total_cross_sections[idx - 1]);
+      }
+      if (de0 > 0.0) {
+         const auto frac = (e - energies[idx]) / (energies[idx + 1] - energies[idx]);
+         return cell.total_cross_sections[idx] + frac * (cell.total_cross_sections[idx + 1] - cell.total_cross_sections[idx]);
+      }
+
+      return cell.total_cross_sections[idx];
+
+      // if (e < energies[0]) { return cell.total_cross_sections[0]; }
+      // if (e > energies[n_row]) { return cell.total_cross_sections[n_row]; }
+      // const auto upper = std::ranges::upper_bound(energies, e);
+      // const auto idx = std::ranges::distance(energies.cbegin(), upper) - 1;
+      // const auto slope = (e - energies[idx]) / (energies[idx + 1] - energies[idx]);
+      // return std::lerp(cell.total_cross_sections[idx], cell.total_cross_sections[idx + 1], slope);
    }
 
    auto lerp(const auto e, const auto U, const auto cid) const {
@@ -562,8 +599,8 @@ struct BremTFDTable {
       size_t k_column = 1;
       auto sigma_cdf = cell.cdf(k_column + 1, idx);
       while (sigma_cdf < U and k_column < n_columns - 1) {
-         ++k_column;
          sigma_cdf =  cell.cdf(k_column + 1, idx);
+         ++k_column;
       }
 
       const auto sigma_cdf_m1 =  cell.cdf(k_column, idx);
@@ -576,7 +613,7 @@ struct BremTFDTable {
 
       return std::exp(logx);
    }
-};
+}; // end struct BremTFDTable
 
 } // end namespace tf::interp
 #endif //INTERPOLATION_HPP

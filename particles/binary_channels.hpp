@@ -541,7 +541,7 @@ void bremsstrahlungCollision(
    if (cs_table.is_outofbounds(electron_energy_eV)) { return; }
 
    // Total cross-section and photon energy from differential cross-section
-   const auto cross_section_m2 = cs_table.interpolate(electron_energy_eV, params.cid);
+   const auto cross_section_m2 = cs_table.lerp_cumulative(electron_energy_eV, params.cid);
 
    const auto probability_coef = cross_section_m2 * params.max_weight * params.scatter_coef * brem.rate_multiplier
                                  * v_ep * gamma_ep / gamma_ei;
@@ -559,6 +559,7 @@ void bremsstrahlungCollision(
    // and reduces weight accordingly. Use the probability computed without
    // the multiplier to determine if the electron loses energy
    const auto make_photon = params.rand[0] < scatter_probability;
+
    const auto energy_loss_probability = std::min(1.0, probability_coef);
    const auto remove_electron_energy = brem.reduce_electron_energy and params.rand[0] < energy_loss_probability and params.rand[2] <= w2 / params.max_weight;
 

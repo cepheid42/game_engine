@@ -17,6 +17,8 @@
 #include <tuple>
 #include <vector>
 
+#include "interpolation.hpp"
+
 namespace tf::collisions
 {
 
@@ -256,7 +258,7 @@ struct Collisions {
       std::vector<std::size_t> cell_ids(g1.cell_map.size());
       std::transform(g1.cell_map.begin(), g1.cell_map.end(), cell_ids.begin(), [](auto& kv) { return kv.first; });
 
-      // #pragma omp parallel for num_threads(nThreads) private(pids1, pids2, nDups)
+      #pragma omp parallel for num_threads(nThreads) private(pids1, pids2, nDups)
       for (auto j = 0zu; j < cell_ids.size(); j++) {
          const auto tid = omp_get_thread_num();
          const auto z_code = cell_ids[j];
