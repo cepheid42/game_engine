@@ -250,7 +250,7 @@ struct BremTable {
       return e <= data[0][0] or e > data[0][data[0].size() - 1];
    }
 
-   auto lerp(const auto energy, const auto U) const {
+   auto lerp(const auto energy, const auto U, const auto) const {
       const auto n_columns = SB_k_over_gm1.size();
 
       auto e_begin = data[0].begin();
@@ -289,7 +289,7 @@ struct BremTable {
       return std::exp(logx);
    }
 
-   auto lerp_cumulative(const auto e) const {
+   auto lerp_cumulative(const auto e, const auto) const {
       const auto n_col = data.size() - 1;
       const auto n_row = data[0].size() - 1;
       if (e < data[0][1]) { return data[n_col][0]; }
@@ -299,7 +299,7 @@ struct BremTable {
       const auto slope = (e - data[0][idx]) / (data[0][idx + 1] - data[0][idx]);
       return std::lerp(data[n_col][idx], data[n_col][idx + 1], slope);
    }
-}; // end struct MultiTable
+}; // end struct BremTable
 
 struct BremTFDTable {
    static constexpr auto num_electron_energies = 10zu; // rows

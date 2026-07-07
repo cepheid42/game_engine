@@ -27,10 +27,10 @@ dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
 
 dt = 2.0e-17
-t_end = 2 * dt #0.5e-13
+t_end = 3.0e-13 #0.5e-13
 nt = int(t_end / dt) + 1
 
-save_interval = 1
+save_interval = 150
 
 # =====================
 # ===== Particles =====
@@ -41,7 +41,7 @@ pz_range = (-10.0e-6, 10.0e-6)
 
 ppc = (5, 1, 5)
 density = 1.0e29 #m^-3
-temp_eV = 1000000
+temp_eV = 10
 
 deuterium = Particles(
     name='deuterium',
@@ -144,62 +144,60 @@ photons = Particles(
 # ==========================================
 # ===== Collisions and Particle Params =====
 # ==========================================
-coll_interval = 1
+coll_interval = 2
 production_mult = 1.0e8
 particle_params = ParticleParams(
     save_interval=save_interval,
     particle_bcs=ParticleBCType.Outflow,
     push_type=ParticlePushType.Boris,
-    interp_order=1,
+    interp_order=2,
     particle_data=(deuterium, neutrons, helium3, tritium, protons, electrons, photons),
-    # particle_data=(deuterium, electrons, photons),
     collisions=(
-        # Collision(
-        #     groups=(electrons, electrons),
-        #     channels=('coulomb',),
-        #     coulomb=CoulombParams(0.0, 1.0), # set LnLambda = 0 to calculate it on the fly
-        #     self_scatter=True,
-        #     step_interval=coll_interval
-        # ),
+        Collision(
+            groups=(electrons, electrons),
+            channels=('coulomb',),
+            coulomb=CoulombParams(0.0, 1.0), # set LnLambda = 0 to calculate it on the fly
+            self_scatter=True,
+            step_interval=coll_interval
+        ),
         Collision(
             groups=(electrons, deuterium),
-            # channels=('coulomb', 'radiation'),
-            channels=('radiation',),
+            channels=('coulomb', 'radiation'),
             coulomb=CoulombParams(0.0, 1.0), # set LnLambda = 0 to calculate it on the fly
             radiation=RadiationParams(
                 products=photons,
                 reduce_electron_energy=True,
                 production_multiplier=production_mult,
-                min_energy=1e3,
-                max_energy=1e10,
-                # min_energy=1e-3,
-                # max_energy=1e4,
-                # cross_section_file=project_path + '/tests/cross_section_data/SB_G4_Z1_kdsdk_MeV_barns.csv'
+                # min_energy=1e3,
+                # max_energy=1e10,
+                # use_TFD=True
+                cross_section_file=project_path + '/tests/cross_section_data/SB_G4_Z1_kdsdk_MeV_barns.csv',
+                use_TFD=False
             ),
             self_scatter=False,
             step_interval=coll_interval
         ),
-        # Collision(
-        #     groups=(deuterium, deuterium),
-        #     channels=('coulomb', 'fusion'),
-        #     coulomb=CoulombParams(0.0, 1.0), # set LnLambda = 0 to calculate it on the fly
-        #     fusion=(
-        #         FusionParams(
-        #             products=(neutrons, helium3),
-        #             energy_gain=3.269e6,
-        #             production_multiplier=production_mult,
-        #             cross_section_file=project_path + '/tests/cross_section_data/DD_nHe3_BH_eV_m2.txt'
-        #         ),
-        #         FusionParams(
-        #             products=(tritium, protons),
-        #             energy_gain=4.03e6,
-        #             production_multiplier=production_mult,
-        #             cross_section_file=project_path + '/tests/cross_section_data/DD_pT_BH_eV_m2.txt'
-        #         ),
-        #     ),
-        #     self_scatter=True,
-        #     step_interval=coll_interval
-        # ),
+        Collision(
+            groups=(deuterium, deuterium),
+            channels=('coulomb', 'fusion'),
+            coulomb=CoulombParams(0.0, 1.0), # set LnLambda = 0 to calculate it on the fly
+            fusion=(
+                FusionParams(
+                    products=(neutrons, helium3),
+                    energy_gain=3.269e6,
+                    production_multiplier=production_mult,
+                    cross_section_file=project_path + '/tests/cross_section_data/DD_nHe3_BH_eV_m2.txt'
+                ),
+                FusionParams(
+                    products=(tritium, protons),
+                    energy_gain=4.03e6,
+                    production_multiplier=production_mult,
+                    cross_section_file=project_path + '/tests/cross_section_data/DD_pT_BH_eV_m2.txt'
+                ),
+            ),
+            self_scatter=True,
+            step_interval=coll_interval
+        ),
     )
 )
 
@@ -262,7 +260,6 @@ if run:
     print(f'Setting up "{sim_name}"')
     create_data_dir(data_path)
     create_particles(sim_params, (deuterium, tritium, protons, neutrons, helium3, electrons, photons), data_path)
-    # create_particles(sim_params, (deuterium, neutrons, helium3), data_path)
     update_header(sim_params, project_path=project_path, data_path=data_path)
 
     compile_project(build_path, output=True)
@@ -273,17 +270,16 @@ if run:
 # ===========================
 xs = np.linspace(xmin, xmax, shape[0])
 zs = np.linspace(zmin, zmax, shape[2])
-#
-data_path = project_path + f'/data/{sim_name}'
+
 block = True
 # block = False
 
-plot_step = 3
+plot_step = 2850
 
-# # plot_density(['neutrons', 'protons', 'helium3', 'tritium', 'electrons', 'deuterium', 'photons'], plot_step, data_path, xs, zs, block=block)
-# # plot_temperature(['neutrons', 'protons', 'helium3', 'tritium', 'electrons', 'deuterium'], plot_step, data_path, xs, zs, block=block)
-# # plot_total_particle_yield(data_path, ['protons', 'neutrons', 'helium3', 'tritium', 'electrons', 'photons'], [0, nt - 2 * save_interval, save_interval])
-#
-plot_density(['photons'], plot_step, data_path, xs, zs, block=block)
+plot_density(['neutrons', 'protons', 'helium3', 'tritium', 'electrons', 'deuterium', 'photons'], plot_step, data_path, xs, zs, block=block)
+plot_temperature(['neutrons', 'protons', 'helium3', 'tritium', 'electrons', 'deuterium'], plot_step, data_path, xs, zs, block=block)
+# plot_total_particle_yield(data_path, ['protons', 'neutrons', 'helium3', 'tritium', 'electrons', 'photons'], [0, nt - 2 * save_interval, save_interval])
+
+# plot_density(['photons'], plot_step, data_path, xs, zs, block=block)
 # plot_temperature(['electrons', 'deuterium'], plot_step, data_path, xs, zs, block=block)
 

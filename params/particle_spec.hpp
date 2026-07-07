@@ -47,6 +47,7 @@ struct RadiationSpec {
    double min_energy{0.0};
    double max_energy{0.0};
    bool reduce_electron_energy{false};
+   bool use_TFD{false};
 };
 
 struct CollisionSpec {

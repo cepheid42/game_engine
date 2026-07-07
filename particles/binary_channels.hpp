@@ -30,6 +30,10 @@ struct CellData {
    double coef2{};
    double bmax2{};
    double scatter_lowt{};
+   // Cell-averaged Coulomb logarithm.
+   // If this is > 0, coulombCollision() uses it directly instead of recomputing
+   // a pairwise Coulomb logarithm for every Monte Carlo pair.
+   double coulomb_log{};
 };
 
 struct COMData {
@@ -51,6 +55,109 @@ constexpr auto gamma_from_momentum(const auto& p, const auto m) {
 
 // =====================================================================================================
 // =============== Coulomb Collisions ==================================================================
+
+inline void sincos_portable(const double x, double& s, double& c)
+{
+#if defined(__linux__) && (defined(__GNUC__) || defined(__clang__))
+   ::sincos(x, &s, &c);
+#else
+   s = std::sin(x);
+   c = std::cos(x);
+#endif
+}
+
+inline auto sampleCoulombAngles(const double s12, const auto& params) -> std::array<double, 4>
+{
+   double cos_theta{};
+   if (s12 >= 4.0) {
+      cos_theta = 2.0 * params.rand[1] - 1.0;
+   }
+   else {
+      const auto alpha = 0.37 * s12 - 0.005 * math::SQR(s12) - 0.0064 * math::CUBE(s12);
+      const auto sin2x2 = params.rand[1] * alpha / std::sqrt(std::max(1.0e-300, 1.0 + params.rand[1] * (math::SQR(alpha) - 1.0)));
+      cos_theta = 1.0 - (2.0 * sin2x2);
+   }
+
+   const auto sin_theta = std::sqrt(std::max(0.0, 1.0 - math::SQR(cos_theta)));
+   const auto phi = 2.0 * constants::pi * params.rand[2];
+
+   double sin_phi{};
+   double cos_phi{};
+   sincos_portable(phi, sin_phi, cos_phi);
+
+   return {cos_theta, sin_theta, cos_phi, sin_phi};
+}
+
+inline auto rotateConePerez(const auto& p, const double p_len, const double cos_theta, const double sin_theta, const double cos_phi, const double sin_phi)
+{
+   const auto p_perp = std::sqrt(math::SQR(p[0]) + math::SQR(p[1]));
+
+   if (p_perp > 1.0e-300) {
+      const auto dv0 = sin_theta * cos_phi;
+      const auto dv1 = sin_theta * sin_phi;
+
+      return vec3 {
+         dv0 * (p[0] * p[2] / p_perp) - dv1 * (p[1] * p_len / p_perp) + cos_theta * p[0],
+         dv0 * (p[1] * p[2] / p_perp) + dv1 * (p[0] * p_len / p_perp) + cos_theta * p[1],
+        -dv0 * p_perp + cos_theta * p[2]
+      };
+   }
+
+   // If the incoming vector is aligned with z, any azimuthal basis in x-y is equivalent.
+   return vec3 {
+      p_len * sin_theta * cos_phi,
+      p_len * sin_theta * sin_phi,
+      std::copysign(p_len * cos_theta, p[2])
+   };
+}
+
+void coulombCollisionNonRelativistic(const auto& params, const auto& spec, const auto& cell_data)
+{
+   auto& particle1 = params.particle1;
+   auto& particle2 = params.particle2;
+   const auto& m1 = params.mass1;
+   const auto& m2 = params.mass2;
+   const auto& v1 = particle1.velocity;
+   const auto& v2 = particle2.velocity;
+   const auto& w1 = particle1.weight;
+   const auto& w2 = particle2.weight;
+   const auto& cspec = spec.coulomb;
+
+   const auto scatter_p1 = params.rand[0] * w1 < w2;
+   const auto scatter_p2 = params.rand[0] * w2 < w1;
+   const auto g = v1 - v2;
+   const auto g_len = g.length();
+
+   // parallel particles or self particles can cause divide by zero errors
+   if (!(scatter_p1 or scatter_p2) or g_len == 0.0) { return; }
+
+   const auto m_tot = m1 + m2;
+   const auto mu = (m1 * m2) / m_tot;
+   const auto vcm = (m1 * v1 + m2 * v2) / m_tot;
+
+   const auto p_star_len = std::max(mu * g_len, 1.0e-300);
+   const auto gamma_coef1 = 1.0 / m_tot;
+   const auto gamma_coef2 = 1.0 + constants::c_sqr * m1 * m2 / math::SQR(p_star_len);
+   const auto coulomb_log = (cell_data.coulomb_log > 0.0) ? cell_data.coulomb_log : std::max(2.0, cspec.coulomb_log);
+
+   const auto s12_calc = cspec.rate_multiplier * params.max_weight * cell_data.coef1 * params.scatter_coef * gamma_coef1 * math::SQR(gamma_coef2) * coulomb_log * p_star_len * constants::over_c_sqr;
+   const auto s12_max = cell_data.scatter_lowt * cspec.rate_multiplier * params.max_weight * g_len;
+   const auto s12 = std::min(s12_max, s12_calc);
+
+   const auto [cos_theta, sin_theta, cos_phi, sin_phi] = sampleCoulombAngles(s12, params);
+   const auto g_new = rotateConePerez(g, g_len, cos_theta, sin_theta, cos_phi, sin_phi);
+
+   if (scatter_p1) {
+      particle1.velocity = vcm + (m2 / m_tot) * g_new;
+      particle1.gamma = gamma_from_velocity(particle1.velocity);
+   }
+
+   if (scatter_p2) {
+      particle2.velocity = vcm - (m1 / m_tot) * g_new;
+      particle2.gamma = gamma_from_velocity(particle2.velocity);
+   }
+}
+
 void coulombCollision(const auto& params, const auto& spec, const auto& cell_data)
 {
    auto& particle1 = params.particle1;
@@ -65,6 +172,14 @@ void coulombCollision(const auto& params, const auto& spec, const auto& cell_dat
    const auto& gamma2 = particle2.gamma;
    const auto& cspec = spec.coulomb;
 
+   // Use a nonrelativistic fast path for cold-cold pairs.  The cutoff is intentionally
+   // conservative; hot or relativistic pairs still use the original relativistic machinery.
+   static constexpr auto nonrel_gamma_minus_one_cutoff = 5.0e-3;
+   if ((gamma1 - 1.0) < nonrel_gamma_minus_one_cutoff and (gamma2 - 1.0) < nonrel_gamma_minus_one_cutoff) {
+      coulombCollisionNonRelativistic(params, spec, cell_data);
+      return;
+   }
+
    const auto scatter_p1 = params.rand[0] * w1 < w2;
    const auto scatter_p2 = params.rand[0] * w2 < w1;
    const auto dv_length = (v1 - v2).length();
@@ -77,8 +192,9 @@ void coulombCollision(const auto& params, const auto& spec, const auto& cell_dat
 
    const auto vcm = (p1 + p2) / (m1 * gamma1 + m2 * gamma2);
    const auto vcm2 = vcm.length_squared();
+   const auto vcm2_safe = std::max(vcm2, 1.0e-300);
 
-   const auto gamma_cm = 1.0 / std::sqrt(1.0 - vcm2 * constants::over_c_sqr);
+   const auto gamma_cm = 1.0 / std::sqrt(std::max(1.0e-300, 1.0 - vcm2 * constants::over_c_sqr));
 
    const auto u1 = p1 / m1;
    const auto u2 = p2 / m2;
@@ -91,15 +207,18 @@ void coulombCollision(const auto& params, const auto& spec, const auto& cell_dat
 
    // Bad old code: includes one extra factor of gamma1 in the first term and divides by vcm2 unconditionally.
    // const auto p1_star = p1 + m1 * gamma1 * vcm * ((gamma_cm - 1.0) * vcm_dot_u1 / vcm2 - gamma_cm);
-   const auto p1_star = p1 + m1 * vcm * ((gamma_cm - 1.0) * vcm_dot_u1 / vcm2 - gamma_cm * gamma1);
+   const auto p1_star = p1 + m1 * vcm * ((gamma_cm - 1.0) * vcm_dot_u1 / vcm2_safe - gamma_cm * gamma1);
 
-   const auto p1_star_len = p1_star.length();
+   const auto p1_star_len = std::max(p1_star.length(), 1.0e-300);
 
    const auto gamma_coef1 = gamma_cm / (m1 * gamma1 + m2 * gamma2);
    const auto gamma_coef2 = 1.0 + constants::c_sqr * (gamma1_cm * m1) * (gamma2_cm * m2) / math::SQR(p1_star_len);
 
    double coulomb_log_pairwise{cspec.coulomb_log};
-   if (coulomb_log_pairwise <= 0.0) {
+   if (cell_data.coulomb_log > 0.0) {
+      coulomb_log_pairwise = cell_data.coulomb_log;
+   }
+   else if (coulomb_log_pairwise <= 0.0) {
       const auto l_deBroglie = 0.5 * constants::h / p1_star_len;
       const auto b0 = gamma_coef1 * gamma_coef2 * cell_data.coef2;
       const auto bmin2 = std::max(math::SQR(b0), math::SQR(l_deBroglie));
@@ -110,34 +229,10 @@ void coulombCollision(const auto& params, const auto& spec, const auto& cell_dat
    const auto s12_max = cell_data.scatter_lowt * cspec.rate_multiplier * params.max_weight * dv_length;
    const auto s12 = std::min(s12_max, s12_calc);
 
-   auto getScatteringAngles = [&]() -> std::array<double, 2> {
-      double cos_theta;
-      if (s12 >= 4.0) {
-         cos_theta = 2.0 * params.rand[1] - 1.0;
-      }
-      else {
-         const auto alpha = 0.37 * s12 - 0.005 * math::SQR(s12) - 0.0064 * math::CUBE(s12);
-         const auto sin2x2 = params.rand[1] * alpha / std::sqrt(1.0 + params.rand[1] * (math::SQR(alpha) - 1.0));
-         cos_theta = 1.0 - (2.0 * sin2x2);
-      }
-      return {cos_theta, std::sqrt(1.0 - math::SQR(cos_theta))};
-   };
+   const auto [cos_theta, sin_theta, cos_phi, sin_phi] = sampleCoulombAngles(s12, params);
+   const auto p1f_star = rotateConePerez(p1_star, p1_star_len, cos_theta, sin_theta, cos_phi, sin_phi);
 
-   const auto [cos_theta, sin_theta] = getScatteringAngles();
-   const auto phi = 2.0 * constants::pi * params.rand[2];
-   const auto dv0 = sin_theta * std::cos(phi);
-   const auto dv1 = sin_theta * std::sin(phi);
-
-   // Perez (2012) eq 12
-   const auto p1_perp = std::sqrt(math::SQR(p1_star[0]) + math::SQR(p1_star[1]));
-
-   const vec3 p1f_star {
-      dv0 * (p1_star[0] * p1_star[2] / p1_perp) - dv1 * (p1_star[1] * p1_star_len / p1_perp) + cos_theta * p1_star[0],
-      dv0 * (p1_star[1] * p1_star[2] / p1_perp) + dv1 * (p1_star[0] * p1_star_len / p1_perp) + cos_theta * p1_star[1],
-     -dv0 * p1_perp + cos_theta * p1_star[2]
-   };
-
-   const auto pcoef = (gamma_cm - 1.0) * dot_product(vcm, p1f_star) / vcm2;
+   const auto pcoef = (gamma_cm - 1.0) * dot_product(vcm, p1f_star) / vcm2_safe;
 
    if (scatter_p1) {
       const auto p1f = p1f_star + vcm * (pcoef + m1 * gamma1_cm * gamma_cm);

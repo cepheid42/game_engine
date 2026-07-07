@@ -93,17 +93,17 @@ def plot_temperature(groups, step, data_path, xs, zs, block=True, save=False):
         ax = fig.add_subplot(gs[i])
         ax.set_title(f'{g.capitalize()} Temperature')
 
-        if g == 'deuterium':
-            temp_norm = colors.LogNorm(vmin=10, vmax=1e5)
-            im = ax.contourf(xs[:-1], zs[:-1], temperature, levels=np.logspace(1, 5, 50), cmap='jet', norm=temp_norm)
-            cbar = plt.colorbar(ScalarMappable(norm=temp_norm, cmap='jet'), ax=ax)
-        elif g == 'electrons':
-            temp_norm = colors.LogNorm(vmin=10, vmax=1e5)
-            im = ax.contourf(xs[:-1], zs[:-1], temperature, levels=np.logspace(1, 5, 50), cmap='jet', norm=temp_norm)
-            cbar = plt.colorbar(ScalarMappable(norm=temp_norm, cmap='jet'), ax=ax)
-        else:
-            im = ax.contourf(xs[:-1], zs[:-1], temperature, levels=100, cmap='jet')
-            cbar = plt.colorbar(im, ax=ax)
+        # if g == 'deuterium':
+        #     temp_norm = colors.LogNorm(vmin=10, vmax=1e5)
+        #     im = ax.contourf(xs[:-1], zs[:-1], temperature, levels=np.logspace(1, 5, 50), cmap='jet', norm=temp_norm)
+        #     cbar = plt.colorbar(ScalarMappable(norm=temp_norm, cmap='jet'), ax=ax)
+        # elif g == 'electrons':
+        #     temp_norm = colors.LogNorm(vmin=10, vmax=1e5)
+        #     im = ax.contourf(xs[:-1], zs[:-1], temperature, levels=np.logspace(1, 5, 50), cmap='jet', norm=temp_norm)
+        #     cbar = plt.colorbar(ScalarMappable(norm=temp_norm, cmap='jet'), ax=ax)
+        # else:
+        im = ax.contourf(xs[:-1], zs[:-1], temperature, levels=100, cmap='jet')
+        cbar = plt.colorbar(im, ax=ax)
         cbar.ax.get_yaxis().labelpad = 15
         cbar.ax.set_ylabel('eV')
 

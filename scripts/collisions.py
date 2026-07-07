@@ -68,8 +68,14 @@ class RadiationParams:
     min_energy: float = 0.0
     max_energy: float = 0.0
     cross_section_file: str = ''
+    use_TFD : bool = False
 
     def __repr__(self):
+        if self.use_TFD:
+            assert self.min_energy != 0.0 and self.max_energy != 0.0
+        else:
+            assert self.cross_section_file != ''
+
         reduce_energy = str(self.reduce_electron_energy).lower()
         return (
             'RadiationSpec{\n'
@@ -78,22 +84,11 @@ class RadiationParams:
             f'         .production_multiplier = {self.production_multiplier},\n'
             f'         .min_energy = {self.min_energy},\n'
             f'         .max_energy = {self.max_energy},\n'
-            f'         .reduce_electron_energy = {reduce_energy}\n'
+            f'         .reduce_electron_energy = {reduce_energy},\n'
+            f'         .use_TFD = {str(self.use_TFD).lower()}\n'
             '      },'
         )
 
-# @dataclass
-# class InverseRadiationParams:
-#     rate_multiplier: float = 1.0
-#     cross_section_file: str = ''
-#
-#     def __repr__(self):
-#         return (
-#             'InverseRadiationSpec{\n'
-#             f'         .cross_section_file = "{self.cross_section_file}",\n'
-#             f'         .rate_multiplier = {self.rate_multiplier},\n'
-#             '      },'
-#         )
 
 @dataclass
 class Collision:
