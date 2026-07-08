@@ -11,7 +11,7 @@ from scripts.pyforce import *
 # =============================
 # ===== Simulation Params =====
 # =============================
-sim_name = 'rlsi_fusion'
+sim_name = 'rlsi'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
@@ -27,10 +27,10 @@ dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
 
 dt = 2.0e-17
-t_end = 3.0e-13 #0.5e-13
+t_end = 0.5e-13
 nt = int(t_end / dt) + 1
 
-save_interval = 150
+save_interval = 50
 
 # =====================
 # ===== Particles =====
@@ -39,7 +39,7 @@ px_range = (-11.0e-6, -9.0e-6) # meters
 py_range = (ymin, ymax)
 pz_range = (-10.0e-6, 10.0e-6)
 
-ppc = (5, 1, 5)
+ppc = (4, 1, 4)
 density = 1.0e29 #m^-3
 temp_eV = 10
 
@@ -144,13 +144,13 @@ photons = Particles(
 # ==========================================
 # ===== Collisions and Particle Params =====
 # ==========================================
-coll_interval = 2
+coll_interval = 1
 production_mult = 1.0e8
 particle_params = ParticleParams(
     save_interval=save_interval,
     particle_bcs=ParticleBCType.Outflow,
     push_type=ParticlePushType.Boris,
-    interp_order=2,
+    interp_order=1,
     particle_data=(deuterium, neutrons, helium3, tritium, protons, electrons, photons),
     collisions=(
         Collision(
@@ -253,8 +253,8 @@ sim_params = Simulation(
 # ===========================
 # ===== Compile and Run =====
 # ===========================
-# run = True
-run = False
+run = True
+# run = False
 
 if run:
     print(f'Setting up "{sim_name}"')
@@ -274,10 +274,11 @@ zs = np.linspace(zmin, zmax, shape[2])
 block = True
 # block = False
 
-plot_step = 2850
+data_path = project_path + f'/data/{sim_name}_longrun'
+plot_step = 15000
 
-plot_density(['neutrons', 'protons', 'helium3', 'tritium', 'electrons', 'deuterium', 'photons'], plot_step, data_path, xs, zs, block=block)
-plot_temperature(['neutrons', 'protons', 'helium3', 'tritium', 'electrons', 'deuterium'], plot_step, data_path, xs, zs, block=block)
+# plot_density(['neutrons', 'protons', 'helium3', 'tritium', 'electrons', 'deuterium', 'photons'], plot_step, data_path, xs, zs, block=block)
+# plot_temperature(['neutrons', 'protons', 'helium3', 'tritium', 'electrons', 'deuterium'], plot_step, data_path, xs, zs, block=block)
 # plot_total_particle_yield(data_path, ['protons', 'neutrons', 'helium3', 'tritium', 'electrons', 'photons'], [0, nt - 2 * save_interval, save_interval])
 
 # plot_density(['photons'], plot_step, data_path, xs, zs, block=block)

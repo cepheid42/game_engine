@@ -2,13 +2,13 @@
 #define PARTICLE_HPP
 
 #include "constants.hpp"
-#include "math_utils.hpp"
 #include "morton.hpp"
 #include "program_params.hpp"
+#include "timers.hpp"
 #include "vec3.hpp"
 
-#include <boost/sort/sort.hpp>
 #include <adios2.h>
+#include <boost/sort/sort.hpp>
 
 #include <print>
 #include <span>
@@ -89,7 +89,7 @@ static void initializeFromFile(const std::string& filename, auto& group) {
    reader.Close();
    group.sort_particles();
    std::println("Done.");
-}
+} // end initializeFromFile()
 
 struct ParticleGroup {
    std::string name;
@@ -103,6 +103,8 @@ struct ParticleGroup {
    bool is_tracer{false};
    std::vector<Particle> particles{};
    std::map<std::size_t, std::span<Particle>> cell_map{};
+   utilities::Timer push_timer{};
+   utilities::Timer jdep_timer{};
 
    explicit ParticleGroup(const ParticleGroupSpec& spec)
    : name(spec.name),
@@ -116,6 +118,12 @@ struct ParticleGroup {
       if (not spec.filepath.empty()) {
          initializeFromFile(std::string{spec.filepath}, *this);
       }
+   }
+
+   ~ParticleGroup() {
+      std::println("{} Timers:", name);
+      std::println("\tPush: {}", std::chrono::hh_mm_ss(push_timer.elapsed));
+      std::println("\tJdep: {}", std::chrono::hh_mm_ss(jdep_timer.elapsed));
    }
 
    [[nodiscard]] std::size_t num_particles() const { return particles.size(); }
@@ -143,6 +151,8 @@ struct ParticleGroup {
       if constexpr ((x_collapsed or y_collapsed or z_collapsed) and push_enabled) {
          #pragma omp parallel for num_threads(nThreads)
          for (auto pid = 0zu; pid < particles.size(); pid++) {
+            // todo: this resets all particles to midpoint of cell, instead of actually previous location
+            //       if the particles have a full 3D layout, this will flatten them into a plane/line/point.
             if constexpr (x_collapsed) { particles[pid].location[0] = 0.5; }
             if constexpr (y_collapsed) { particles[pid].location[1] = 0.5; }
             if constexpr (z_collapsed) { particles[pid].location[2] = 0.5; }

@@ -128,16 +128,18 @@ struct CurrentDeposition {
    } // end updateJ()
    
 
-   static void advance(const auto& g, auto& emdata) requires(jdep_enabled) {
+   static void advance(auto& g, auto& emdata) requires(jdep_enabled) {
+      g.jdep_timer.start_timer();
       if (g.is_photons or g.is_tracer) { return; }
 
       #pragma omp parallel for num_threads(nThreads)
       for (auto pid = 0zu; pid < g.num_particles(); pid++) {
          updateJ(g.particles[pid], emdata, g.charge);
       }
+      g.jdep_timer.stop_timer();
    }
 
-   static void advance(const auto&, auto&) requires(!jdep_enabled) {}
+   static void advance(auto&, auto&) requires(!jdep_enabled) {}
 }; // end struct CurrentDeposition
 } // namespace tf::particles
 
