@@ -11,14 +11,15 @@ from scripts.pyforce import *
 # =============================
 # ===== Simulation Params =====
 # =============================
-sim_name = 'rlsi_300fs'
+sim_name = 'lsi_full'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
 
-shape = (551, 2, 151)
 
-xmin, xmax = -15.5e-6, -4.5e-6
+shape = (1551, 2, 1551)
+
+xmin, xmax = -15.5e-6, 15.5e-6
 ymin, ymax = 0.0, 0.01
 zmin, zmax = -15.5e-6, 15.5e-6
 
@@ -35,9 +36,9 @@ save_interval = 150
 # =====================
 # ===== Particles =====
 # =====================
-px_range = (-11.0e-6, -9.0e-6) # meters
+px_range = (-5e-7, 5e-7) # meters
 py_range = (ymin, ymax)
-pz_range = (-10.0e-6, 10.0e-6)
+pz_range = (-1e-5, 1e-5)
 
 ppc = (5, 1, 5)
 density = 1.0e29 #m^-3
@@ -168,9 +169,6 @@ particle_params = ParticleParams(
                 products=photons,
                 reduce_electron_energy=True,
                 production_multiplier=production_mult,
-                # min_energy=1e3,
-                # max_energy=1e10,
-                # use_TFD=True
                 cross_section_file=project_path + '/tests/cross_section_data/SB_G4_Z1_kdsdk_MeV_barns.csv',
                 use_TFD=False
             ),
@@ -209,7 +207,7 @@ em_params = EMParams(
     save_interval=save_interval,
     pml_depth=15,
     em_bcs=(1, 1, 2, 2, 1, 1),
-    laser_spec=Laser(8.0e-7, -2.75e13, 2.5479e-6, 5.0e-6, 0.60454),
+    laser_spec=Laser(8.0e-7, -2.75e13, 2.5479e-6, 15.0e-6, 1.28855495),
 )
 
 # ==========================
@@ -220,9 +218,9 @@ metric_params = Metrics(
     (
         # MetricType.ParticleEnergy,
         # MetricType.FieldEnergy,
-        # MetricType.FieldDump,
+        MetricType.FieldDump,
         # MetricType.ParticleDump,
-        MetricType.ParticleDiagnostics,
+        # MetricType.ParticleDiagnostics,
     )
 )
 
@@ -243,11 +241,14 @@ sim_params = Simulation(
     em_params=em_params,
     particle_params=particle_params,
     metric_params=metric_params,
-    collisions_enabled=True,
-    push_enabled=True,
-    jdep_enabled=True,
+    # collisions_enabled=True,
+    # push_enabled=True,
+    # jdep_enabled=True,
+    collisions_enabled=False,
+    push_enabled=False,
+    jdep_enabled=False,
     em_enabled=True,
-    velocity_backstep_enabled=True,
+    velocity_backstep_enabled=False,
 )
 
 # ===========================
@@ -274,8 +275,7 @@ zs = np.linspace(zmin, zmax, shape[2])
 block = True
 # block = False
 
-data_path = project_path + f'/data/{sim_name}_longrun'
-plot_step = 15000
+# plot_step = 15000
 
 # plot_density(['neutrons', 'protons', 'helium3', 'tritium', 'electrons', 'deuterium', 'photons'], plot_step, data_path, xs, zs, block=block)
 # plot_temperature(['neutrons', 'protons', 'helium3', 'tritium', 'electrons', 'deuterium'], plot_step, data_path, xs, zs, block=block)

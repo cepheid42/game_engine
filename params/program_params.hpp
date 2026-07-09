@@ -6,37 +6,37 @@
 
 #include <array>
 
-inline constexpr auto nThreads = 48;
+inline constexpr auto nThreads = 64;
 
 inline constexpr auto x_collapsed = false;
 inline constexpr auto y_collapsed = true;
 inline constexpr auto z_collapsed = false;
 
-inline constexpr auto Nx = 551zu;
+inline constexpr auto Nx = 1551zu;
 inline constexpr auto Ny = 2zu;
-inline constexpr auto Nz = 151zu;
+inline constexpr auto Nz = 1551zu;
 
-inline constexpr std::array x_range = {-1.55e-05, -4.5e-06};
+inline constexpr std::array x_range = {-1.55e-05, 1.55e-05};
 inline constexpr std::array y_range = {0.0, 0.01};
 inline constexpr std::array z_range = {-1.55e-05, 1.55e-05};
 
 inline constexpr auto dx = 2e-08;
 inline constexpr auto dy = 0.01;
-inline constexpr auto dz = 2.0666666666666666e-07;
+inline constexpr auto dz = 2e-08;
 
 inline constexpr auto dt    = 2e-17;
-inline constexpr auto t_end = 5e-14;
-inline constexpr auto Nt    = 2501zu;
+inline constexpr auto t_end = 3e-13;
+inline constexpr auto Nt    = 15000zu;
 
-inline constexpr auto sim_name = "rlsi";
+inline constexpr auto sim_name = "lsi_full";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
 
 inline constexpr auto   em_enabled = true;
-inline constexpr auto push_enabled = true;
-inline constexpr auto jdep_enabled = true;
-inline constexpr auto coll_enabled = true;
+inline constexpr auto push_enabled = false;
+inline constexpr auto jdep_enabled = false;
+inline constexpr auto coll_enabled = false;
 inline constexpr auto applied_fields_only = false;
-inline constexpr auto velocity_backstep_enabled = true;
+inline constexpr auto velocity_backstep_enabled = false;
 inline constexpr auto ionization_test_enabled = false;
 
 /*---------------------------------------------------------------/
@@ -45,7 +45,7 @@ inline constexpr auto ionization_test_enabled = false;
 enum class EMFace { X, Y, Z };
 enum class EMSide { Lo, Hi };
 
-inline constexpr auto em_save_interval = 50zu;
+inline constexpr auto em_save_interval = 150zu;
 inline constexpr auto em_subcycles = 1zu;
 inline constexpr auto dt_em = 2e-17;
 
@@ -62,7 +62,7 @@ inline constexpr std::array BCSelect = {1zu, 1zu, 2zu, 2zu, 1zu, 1zu};
 inline constexpr auto laser_enabled = true;
 inline constexpr auto applied_fields_path = "";
 
-constexpr auto laser_spec = LaserSpec{.lambda=8e-07, .E0=-27500000000000.0, .w0=2.5479e-06, .xspot=5e-06, .scale=0.60454};
+constexpr auto laser_spec = LaserSpec{.lambda=8e-07, .E0=-27500000000000.0, .w0=2.5479e-06, .xspot=1.5e-05, .scale=1.28855495};
 
 /*---------------------------------------------------------------/
 /-                     Particle Parameters                      -/
@@ -70,7 +70,7 @@ constexpr auto laser_spec = LaserSpec{.lambda=8e-07, .E0=-27500000000000.0, .w0=
 enum class ParticleBCType { Reflecting, Periodic, Outflow };
 enum class ParticlePushType { Ballistic, Boris, HigueraCary };
 
-inline constexpr auto particle_save_interval = 50zu;
+inline constexpr auto particle_save_interval = 150zu;
 inline constexpr auto sort_frequency = 100zu;
 inline constexpr auto interpolation_order = 1zu;
 inline constexpr auto ParticlePushSelect = ParticlePushType::Boris;
@@ -80,7 +80,7 @@ inline constexpr auto PBCDepth = 3zu;
 inline constexpr std::array<ParticleGroupSpec, 7> particle_spec = {
    ParticleGroupSpec{
       .name = "deuterium",
-      .filepath = "/data/rlsi/deuterium.bp",
+      .filepath = "/data/lsi_full/deuterium.bp",
       .mass = 3.344494690818129e-27,
       .charge = 1.0,
       .atomic_number = 1,
@@ -120,7 +120,7 @@ inline constexpr std::array<ParticleGroupSpec, 7> particle_spec = {
    },
    ParticleGroupSpec{
       .name = "electrons",
-      .filepath = "/data/rlsi/electrons.bp",
+      .filepath = "/data/lsi_full/electrons.bp",
       .mass = 9.1093837139e-31,
       .charge = -1.0,
       .atomic_number = 0,
@@ -203,9 +203,9 @@ inline constexpr std::array<CollisionSpec, 3> collision_spec = {
 /---------------------------------------------------------------*/
 enum class MetricType { ParticleDump, ParticleDiag, ParticleEnergy, FieldDump, FieldEnergy };
 
-inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/rlsi";
+inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/lsi_full";
 inline constexpr std::array<MetricType, 1> metric_spec = {
-	MetricType::ParticleDiag
+	MetricType::FieldDump
 };
 
 #endif //PROGRAM_PARAM_HPP

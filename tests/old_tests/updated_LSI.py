@@ -13,7 +13,7 @@ from scripts.pyforce import *
 # =============================
 timestamp = datetime.today().strftime('%y%m%d%H%M')
 sim_name = f'lsi_test_coulomb_{timestamp}'
-project_path = '/home/cepheid/TriForce/game_engine'
+project_path = '/'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
 
