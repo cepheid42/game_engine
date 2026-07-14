@@ -11,13 +11,13 @@ from scripts.pyforce import *
 # =============================
 # ===== Simulation Params =====
 # =============================
-sim_name = 'lsi_norad'
+sim_name = 'lsi_smith_reduced'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
 
 
-shape = (1551, 2, 1551)
+shape = (1551, 2, 401)
 
 xmin, xmax = -15.5e-6, 15.5e-6
 ymin, ymax = 0.0, 0.01
@@ -40,13 +40,13 @@ px_range = (-5e-7, 5e-7) # meters
 py_range = (ymin, ymax)
 pz_range = (-1e-5, 1e-5)
 
-ppc = (5, 1, 5)
-density = 1.0e29 #m^-3
-temp_eV = 10
+ppc = (10, 1, 10)
+density = 8.5e28 #m^-3
+temp_eV = 10000
 
-deuterium = Particles(
-    name='deuterium',
-    mass=2.0141017778 * constants.atomic_mass,
+hydrogen = Particles(
+    name='hydrogen',
+    mass=1.008 * constants.atomic_mass,
     charge=1,
     atomic_number=1,
     temp=tuple(3 * [temp_eV]),
@@ -72,76 +72,6 @@ electrons = Particles(
     pz_range=pz_range
 )
 
-neutrons = Particles(
-    name='neutrons',
-    mass=constants.m_n,
-    charge=0,
-    atomic_number=0,
-    temp=tuple(3 * [0.0]), # eV
-    density=0.0, # m^-3,
-    ppc=tuple(3 * [0.0]),
-    distribution='none',
-    px_range=px_range,
-    py_range=py_range,
-    pz_range=pz_range
-)
-
-helium3 = Particles(
-    name='helium3',
-    mass=3.016029322 * constants.atomic_mass,
-    charge=2,
-    atomic_number=2,
-    temp=tuple(3 * [0.0]), # eV
-    density=0.0, # m^-3,
-    ppc=tuple(3 * [0.0]),
-    distribution='none',
-    px_range=px_range,
-    py_range=py_range,
-    pz_range=pz_range
-)
-
-protons = Particles(
-    name='protons',
-    mass=constants.m_p,
-    charge=1,
-    atomic_number=1,
-    temp=tuple(3 * [0.0]),
-    density=0.0,
-    ppc=tuple(3 * [0.0]),
-    distribution='none',
-    px_range=px_range,
-    py_range=py_range,
-    pz_range=pz_range
-)
-
-tritium = Particles(
-    name='tritium',
-    mass=3.01605 * constants.atomic_mass,
-    charge=1,
-    atomic_number=1,
-    temp=tuple(3 * [0.0]), # eV
-    density=0.0, # m^-3,
-    ppc=tuple(3 * [0.0]),
-    distribution='none',
-    px_range=px_range,
-    py_range=py_range,
-    pz_range=pz_range
-)
-
-photons = Particles(
-    name='photons',
-    mass=0.0,
-    charge=0.0,
-    atomic_number=0,
-    temp=tuple(3 * [0.0]), # eV
-    density=0.0, # m^-3,
-    ppc=tuple(3 * [0.0]),
-    distribution='none',
-    px_range=px_range,
-    py_range=py_range,
-    pz_range=pz_range
-)
-
 # ==========================================
 # ===== Collisions and Particle Params =====
 # ==========================================
@@ -152,7 +82,7 @@ particle_params = ParticleParams(
     particle_bcs=ParticleBCType.Outflow,
     push_type=ParticlePushType.Boris,
     interp_order=1,
-    particle_data=(deuterium, neutrons, helium3, tritium, protons, electrons, photons),
+    particle_data=(hydrogen, electrons),
     collisions=(
         Collision(
             groups=(electrons, electrons),
@@ -162,38 +92,16 @@ particle_params = ParticleParams(
             step_interval=coll_interval
         ),
         Collision(
-            groups=(electrons, deuterium),
-            # channels=('coulomb', 'radiation'),
+            groups=(electrons, hydrogen),
             channels=('coulomb',),
             coulomb=CoulombParams(0.0, 1.0), # set LnLambda = 0 to calculate it on the fly
-            radiation=RadiationParams(
-                products=photons,
-                reduce_electron_energy=True,
-                production_multiplier=production_mult,
-                cross_section_file=project_path + '/tests/cross_section_data/SB_G4_Z1_kdsdk_MeV_barns.csv',
-                use_TFD=False
-            ),
             self_scatter=False,
             step_interval=coll_interval
         ),
         Collision(
-            groups=(deuterium, deuterium),
-            channels=('coulomb', 'fusion'),
+            groups=(hydrogen, hydrogen),
+            channels=('coulomb',),
             coulomb=CoulombParams(0.0, 1.0), # set LnLambda = 0 to calculate it on the fly
-            fusion=(
-                FusionParams(
-                    products=(neutrons, helium3),
-                    energy_gain=3.269e6,
-                    production_multiplier=production_mult,
-                    cross_section_file=project_path + '/tests/cross_section_data/DD_nHe3_BH_eV_m2.txt'
-                ),
-                FusionParams(
-                    products=(tritium, protons),
-                    energy_gain=4.03e6,
-                    production_multiplier=production_mult,
-                    cross_section_file=project_path + '/tests/cross_section_data/DD_pT_BH_eV_m2.txt'
-                ),
-            ),
             self_scatter=True,
             step_interval=coll_interval
         ),
@@ -217,8 +125,8 @@ em_params = EMParams(
 metric_params = Metrics(
     data_path,
     (
-        # MetricType.ParticleEnergy,
-        # MetricType.FieldEnergy,
+        MetricType.ParticleEnergy,
+        MetricType.FieldEnergy,
         # MetricType.FieldDump,
         # MetricType.ParticleDump,
         MetricType.ParticleDiagnostics,
@@ -252,13 +160,13 @@ sim_params = Simulation(
 # ===========================
 # ===== Compile and Run =====
 # ===========================
-# run = True
-run = False
+run = True
+# run = False
 
 if run:
     print(f'Setting up "{sim_name}"')
     create_data_dir(data_path)
-    create_particles(sim_params, (deuterium, tritium, protons, neutrons, helium3, electrons, photons), data_path)
+    create_particles(sim_params, (hydrogen, electrons), data_path)
     update_header(sim_params, project_path=project_path, data_path=data_path)
 
     compile_project(build_path, output=True)
@@ -270,17 +178,15 @@ if run:
 xs = np.linspace(xmin, xmax, shape[0])
 zs = np.linspace(zmin, zmax, shape[2])
 
-# data_path = project_path + f'/data/lsi_full'
+# data_path = project_path + f'/data/lsi_smith'
 
 block = True
 # block = False
 
-plot_step = 7200
+plot_step = 7500
 
-plot_density(['neutrons', 'protons', 'helium3', 'tritium', 'electrons', 'deuterium', 'photons'], plot_step, data_path, xs, zs, block=block)
-# plot_temperature(['neutrons', 'protons', 'helium3', 'tritium', 'electrons', 'deuterium'], plot_step, data_path, xs, zs, block=block)
-plot_total_particle_yield(data_path, ['photons'], [0, 7200, save_interval])
-#
-# plot_density(['photons'], plot_step, data_path, xs, zs, block=block)
-# plot_temperature(['electrons', 'deuterium'], plot_step, data_path, xs, zs, block=block)
+# plot_density(['electrons', 'hydrogen'], plot_step, data_path, xs, zs, block=block)
+# plot_temperature(['electrons', 'hydrogen'], plot_step, data_path, xs, zs, block=block)
 
+# plot_field_energy(data_path, block=block)
+# plot_particle_energy(data_path, block=block)
