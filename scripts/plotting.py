@@ -15,16 +15,7 @@ Am2_to_Acm2 = 1.0e-4
 m_to_cm = 1.0e-2
 inv_cubic_m_to_cubic_cm = 1.0e-6
 
-@dataclass
-class ParticlePlotData:
-    velocities : np.ndarray = field(default_factory=lambda: np.zeros(shape=(1, 3), dtype=np.float64))
-    positions : np.ndarray = field(default_factory=lambda: np.zeros(shape=(1, 3), dtype=np.float64))
-    weights : np.ndarray = field(default_factory=lambda: np.zeros(shape=(1,), dtype=np.float64))
-    gammas : np.ndarray = field(default_factory=lambda: np.zeros(shape=(1,), dtype=np.float64))
-    times : np.ndarray = field(default_factory=lambda: np.zeros(shape=(1,), dtype=np.float64))
-
-
-def plot_density(groups, step, data_path, xs, zs, block=True):
+def plot_density(groups, step, data_path, xs, zs, block=True, save=False):
     from matplotlib import gridspec
 
     if isinstance(groups, str):
@@ -55,7 +46,10 @@ def plot_density(groups, step, data_path, xs, zs, block=True):
         cbar.ax.set_ylabel(r'$\text{cm}^{-1}$')
 
     fig.suptitle(f'nt = {times:.7f} ns')
-    plt.show(block=block)
+    if save:
+        plt.savefig(data_path + '/density.png')
+    else:
+        plt.show(block=block)
 
     # den_norm = colors.LogNorm(vmin=1e21, vmax=2e23)
     # im = ax.contourf(xs[:-1], zs[:-1], density, levels=np.logspace(21, 24, 50), cmap='jet', norm=den_norm)
@@ -108,7 +102,10 @@ def plot_temperature(groups, step, data_path, xs, zs, block=True, save=False):
         cbar.ax.set_ylabel('eV')
 
     fig.suptitle(f'nt = {times:.7f} ns')
-    plt.show(block=block)
+    if save:
+        plt.savefig(data_path + '/temperature.png')
+    else:
+        plt.show(block=block)
 
     # temp_norm = colors.LogNorm(vmin=1, vmax=1e4)
     # im = ax.contourf(xs[:-1], zs[:-1], temp, levels=np.logspace(1, 4.5, 50), cmap='jet', norm=temp_norm)
@@ -125,7 +122,7 @@ def plot_temperature(groups, step, data_path, xs, zs, block=True, save=False):
     # cbar = plt.colorbar(im, ax=ax)
 
 
-def plot_field_energy(data_path, block=True):
+def plot_field_energy(data_path, smith_data, block=True, save=False):
     with FileReader(data_path + '/fields_energy.bp') as f:
         variables = f.available_variables()
         steps = int(variables['Time']['AvailableStepsCount'])
@@ -137,17 +134,24 @@ def plot_field_energy(data_path, block=True):
         by = f.read('By Energy', step_selection=[0, steps])
         bz = f.read('Bz Energy', step_selection=[0, steps])
 
-    time *= s_to_ns
-    field_energy = (ex + ey + ez + bx + by + bz) # Just joules
+    # time *= s_to_ns
+    field_energy = (ex + ey + ez + bx + by + bz) * J_to_kJ / 0.01 # kJ/dy # Just joules
     fig, ax = plt.subplots(1, 1, figsize=(8, 8), layout='constrained')
     ax.set_xlabel('Time (ns)')
     ax.set_ylabel(r'Joules')
     ax.set_title('Field Energy')
-    ax.plot(time, field_energy)
-    plt.show(block=block)
+    ax.plot(field_energy, label='TriForce')
+
+    smith_field_data = np.genfromtxt(smith_data, delimiter=',')
+    ax.plot(smith_field_data[:, 0], smith_field_data[:, 1], 'r--', label='Smith')
+
+    if save:
+        plt.savefig(data_path + '/field_energy.png')
+    else:
+        plt.show(block=block)
 
 
-def plot_particle_energy(data_path, block=True):
+def plot_particle_energy(data_path, smith_data, block=True, save=False):
     particles = dict()
     with FileReader(data_path + '/particles_energy.bp') as f:
         variables = f.available_variables()
@@ -166,10 +170,20 @@ def plot_particle_energy(data_path, block=True):
     ax.set_title('Particle Energy')
 
     for k, v in particles.items():
-        ax.plot(time, v, label=f'{k.capitalize()} Energy')
+        ax.plot(time, v * J_to_kJ / 0.01, label=f'{k.capitalize()} Energy')
+
+    electron_data = np.genfromtxt(smith_data + f'/smith_lsi_electron_energy.csv', delimiter=',')
+    proton_data = np.genfromtxt(smith_data + f'/smith_lsi_proton_energy.csv', delimiter=',')
+
+    ax.plot(electron_data[:, 0], electron_data[:, 1], 'r--', label='Smith Electron')
+    ax.plot(proton_data[:, 0], proton_data[:, 1], 'g--', label='Smith Ion')
 
     ax.legend()
-    plt.show(block=block)
+    if save:
+        plt.savefig(data_path + '/particle_energy.png')
+    else:
+        plt.show(block=block)
+
 
 
 def plot_total_particle_yield(data_path, groups, bounds, block=True):

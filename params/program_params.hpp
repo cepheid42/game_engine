@@ -14,7 +14,7 @@ inline constexpr auto z_collapsed = false;
 
 inline constexpr auto Nx = 1551zu;
 inline constexpr auto Ny = 2zu;
-inline constexpr auto Nz = 401zu;
+inline constexpr auto Nz = 1551zu;
 
 inline constexpr std::array x_range = {-1.55e-05, 1.55e-05};
 inline constexpr std::array y_range = {0.0, 0.01};
@@ -22,19 +22,19 @@ inline constexpr std::array z_range = {-1.55e-05, 1.55e-05};
 
 inline constexpr auto dx = 2e-08;
 inline constexpr auto dy = 0.01;
-inline constexpr auto dz = 7.75e-08;
+inline constexpr auto dz = 2e-08;
 
-inline constexpr auto dt    = 2e-17;
+inline constexpr auto dt    = 4e-17;
 inline constexpr auto t_end = 3e-13;
-inline constexpr auto Nt    = 15000zu;
+inline constexpr auto Nt    = 7500zu;
 
-inline constexpr auto sim_name = "lsi_smith_reduced";
+inline constexpr auto sim_name = "lsi_smith";
 inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
 
 inline constexpr auto   em_enabled = true;
 inline constexpr auto push_enabled = true;
 inline constexpr auto jdep_enabled = true;
-inline constexpr auto coll_enabled = true;
+inline constexpr auto coll_enabled = false;
 inline constexpr auto applied_fields_only = false;
 inline constexpr auto velocity_backstep_enabled = true;
 inline constexpr auto ionization_test_enabled = false;
@@ -45,9 +45,9 @@ inline constexpr auto ionization_test_enabled = false;
 enum class EMFace { X, Y, Z };
 enum class EMSide { Lo, Hi };
 
-inline constexpr auto em_save_interval = 150zu;
+inline constexpr auto em_save_interval = 75zu;
 inline constexpr auto em_subcycles = 1zu;
-inline constexpr auto dt_em = 2e-17;
+inline constexpr auto dt_em = 4e-17;
 
 inline constexpr auto PMLDepth    = 15zu;
 inline constexpr auto PMLGrade    = 3.5;
@@ -70,7 +70,7 @@ constexpr auto laser_spec = LaserSpec{.lambda=8e-07, .E0=-27500000000000.0, .w0=
 enum class ParticleBCType { Reflecting, Periodic, Outflow };
 enum class ParticlePushType { Ballistic, Boris, HigueraCary };
 
-inline constexpr auto particle_save_interval = 150zu;
+inline constexpr auto particle_save_interval = 75zu;
 inline constexpr auto sort_frequency = 100zu;
 inline constexpr auto interpolation_order = 1zu;
 inline constexpr auto ParticlePushSelect = ParticlePushType::Boris;
@@ -80,7 +80,7 @@ inline constexpr auto PBCDepth = 3zu;
 inline constexpr std::array<ParticleGroupSpec, 2> particle_spec = {
    ParticleGroupSpec{
       .name = "hydrogen",
-      .filepath = "/data/lsi_smith_reduced/hydrogen.bp",
+      .filepath = "/data/lsi_smith/hydrogen.bp",
       .mass = 1.67382338147136e-27,
       .charge = 1.0,
       .atomic_number = 1,
@@ -88,7 +88,7 @@ inline constexpr std::array<ParticleGroupSpec, 2> particle_spec = {
    },
    ParticleGroupSpec{
       .name = "electrons",
-      .filepath = "/data/lsi_smith_reduced/electrons.bp",
+      .filepath = "/data/lsi_smith/electrons.bp",
       .mass = 9.1093837139e-31,
       .charge = -1.0,
       .atomic_number = 0,
@@ -96,37 +96,8 @@ inline constexpr std::array<ParticleGroupSpec, 2> particle_spec = {
    }
 };
 
-inline constexpr std::array<CollisionSpec, 3> collision_spec = {
-   CollisionSpec{
-      .group1 = "electrons",
-      .group2 = "electrons",
-      .channels = {"coulomb"},
-      .step_interval = 1,
-      .probability_search_area = 1.0,
-      .self_scatter = true,
-      .coulomb = CoulombSpec{.coulomb_log = 0.0, .rate_multiplier = 1.0},
-			
-   },
-   CollisionSpec{
-      .group1 = "electrons",
-      .group2 = "hydrogen",
-      .channels = {"coulomb"},
-      .step_interval = 1,
-      .probability_search_area = 1.0,
-      .self_scatter = false,
-      .coulomb = CoulombSpec{.coulomb_log = 0.0, .rate_multiplier = 1.0},
-			
-   },
-   CollisionSpec{
-      .group1 = "hydrogen",
-      .group2 = "hydrogen",
-      .channels = {"coulomb"},
-      .step_interval = 1,
-      .probability_search_area = 1.0,
-      .self_scatter = true,
-      .coulomb = CoulombSpec{.coulomb_log = 0.0, .rate_multiplier = 1.0},
-			
-   }
+inline constexpr std::array<CollisionSpec, 0> collision_spec = {
+
 };
 
 /*---------------------------------------------------------------/
@@ -134,7 +105,7 @@ inline constexpr std::array<CollisionSpec, 3> collision_spec = {
 /---------------------------------------------------------------*/
 enum class MetricType { ParticleDump, ParticleDiag, ParticleEnergy, FieldDump, FieldEnergy };
 
-inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/lsi_smith_reduced";
+inline constexpr auto metric_data_path = "/home/cepheid/TriForce/game_engine/data/lsi_smith";
 inline constexpr std::array<MetricType, 3> metric_spec = {
 	MetricType::ParticleEnergy,
 	MetricType::FieldEnergy,

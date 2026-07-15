@@ -11,13 +11,13 @@ from scripts.pyforce import *
 # =============================
 # ===== Simulation Params =====
 # =============================
-sim_name = 'lsi_smith_reduced'
+sim_name = 'lsi_smith'
 project_path = '/home/cepheid/TriForce/game_engine'
 build_path = project_path + '/buildDir'
 data_path = project_path + f'/data/{sim_name}'
 
 
-shape = (1551, 2, 401)
+shape = (1551, 2, 1551)
 
 xmin, xmax = -15.5e-6, 15.5e-6
 ymin, ymax = 0.0, 0.01
@@ -27,11 +27,11 @@ dx = (xmax - xmin) / (shape[0] - 1)
 dy = (ymax - ymin) / (shape[1] - 1)
 dz = (zmax - zmin) / (shape[2] - 1)
 
-dt = 2.0e-17
+dt = 4.0e-17
 t_end = 3.0e-13
 nt = int(t_end / dt) + 1
 
-save_interval = 150
+save_interval = 75
 
 # =====================
 # ===== Particles =====
@@ -83,29 +83,29 @@ particle_params = ParticleParams(
     push_type=ParticlePushType.Boris,
     interp_order=1,
     particle_data=(hydrogen, electrons),
-    collisions=(
-        Collision(
-            groups=(electrons, electrons),
-            channels=('coulomb',),
-            coulomb=CoulombParams(0.0, 1.0), # set LnLambda = 0 to calculate it on the fly
-            self_scatter=True,
-            step_interval=coll_interval
-        ),
-        Collision(
-            groups=(electrons, hydrogen),
-            channels=('coulomb',),
-            coulomb=CoulombParams(0.0, 1.0), # set LnLambda = 0 to calculate it on the fly
-            self_scatter=False,
-            step_interval=coll_interval
-        ),
-        Collision(
-            groups=(hydrogen, hydrogen),
-            channels=('coulomb',),
-            coulomb=CoulombParams(0.0, 1.0), # set LnLambda = 0 to calculate it on the fly
-            self_scatter=True,
-            step_interval=coll_interval
-        ),
-    )
+    # collisions=(
+    #     Collision(
+    #         groups=(electrons, electrons),
+    #         channels=('coulomb',),
+    #         coulomb=CoulombParams(0.0, 1.0), # set LnLambda = 0 to calculate it on the fly
+    #         self_scatter=True,
+    #         step_interval=coll_interval
+    #     ),
+    #     Collision(
+    #         groups=(electrons, hydrogen),
+    #         channels=('coulomb',),
+    #         coulomb=CoulombParams(0.0, 1.0), # set LnLambda = 0 to calculate it on the fly
+    #         self_scatter=False,
+    #         step_interval=coll_interval
+    #     ),
+    #     Collision(
+    #         groups=(hydrogen, hydrogen),
+    #         channels=('coulomb',),
+    #         coulomb=CoulombParams(0.0, 1.0), # set LnLambda = 0 to calculate it on the fly
+    #         self_scatter=True,
+    #         step_interval=coll_interval
+    #     ),
+    # )
 )
 
 
@@ -117,6 +117,7 @@ em_params = EMParams(
     pml_depth=15,
     em_bcs=(1, 1, 2, 2, 1, 1),
     laser_spec=Laser(8.0e-7, -2.75e13, 2.5479e-6, 15.0e-6, 1.28855495),
+    # laser_spec=Laser(8.0e-7, -2.75e13, 2.5479e-6, 15.0e-6, 0.644),
 )
 
 # ==========================
@@ -150,18 +151,23 @@ sim_params = Simulation(
     em_params=em_params,
     particle_params=particle_params,
     metric_params=metric_params,
-    collisions_enabled=True,
+    # collisions_enabled=True,
     push_enabled=True,
     jdep_enabled=True,
     em_enabled=True,
     velocity_backstep_enabled=True,
+    collisions_enabled=False,
+    # push_enabled=False,
+    # jdep_enabled=False,
+    # velocity_backstep_enabled=False,
+    # em_enabled=True
 )
 
 # ===========================
 # ===== Compile and Run =====
 # ===========================
-run = True
-# run = False
+# run = True
+run = False
 
 if run:
     print(f'Setting up "{sim_name}"')
@@ -183,10 +189,16 @@ zs = np.linspace(zmin, zmax, shape[2])
 block = True
 # block = False
 
-plot_step = 7500
+plot_step = 15000
+save = False
 
-# plot_density(['electrons', 'hydrogen'], plot_step, data_path, xs, zs, block=block)
-# plot_temperature(['electrons', 'hydrogen'], plot_step, data_path, xs, zs, block=block)
+data_path = project_path + f'/data/lsi_smith'
 
-# plot_field_energy(data_path, block=block)
-# plot_particle_energy(data_path, block=block)
+
+# plot_density(['electrons', 'hydrogen'], plot_step, data_path, xs, zs, block=block, save=save)
+# plot_temperature(['electrons', 'hydrogen'], plot_step, data_path, xs, zs, block=block, save=save)
+
+smith_field_data = '/home/cepheid/TriForce/game_engine/tests/data/smith_lsi_field_energy.csv'
+smith_particle_data = '/home/cepheid/TriForce/game_engine/tests/data'
+plot_field_energy(data_path,  smith_field_data, block=block, save=save)
+plot_particle_energy(data_path, smith_particle_data, block=block, save=save)
