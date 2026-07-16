@@ -134,13 +134,13 @@ def plot_field_energy(data_path, smith_data, block=True, save=False):
         by = f.read('By Energy', step_selection=[0, steps])
         bz = f.read('Bz Energy', step_selection=[0, steps])
 
-    # time *= s_to_ns
+    time *= s_to_fs
     field_energy = (ex + ey + ez + bx + by + bz) * J_to_kJ / 0.01 # kJ/dy # Just joules
     fig, ax = plt.subplots(1, 1, figsize=(8, 8), layout='constrained')
     ax.set_xlabel('Time (ns)')
     ax.set_ylabel(r'Joules')
     ax.set_title('Field Energy')
-    ax.plot(field_energy, label='TriForce')
+    ax.plot(time, field_energy, label='TriForce')
 
     smith_field_data = np.genfromtxt(smith_data, delimiter=',')
     ax.plot(smith_field_data[:, 0], smith_field_data[:, 1], 'r--', label='Smith')

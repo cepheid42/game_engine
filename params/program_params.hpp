@@ -6,7 +6,7 @@
 
 #include <array>
 
-inline constexpr auto nThreads = 64;
+inline constexpr auto nThreads = 48;
 
 inline constexpr auto x_collapsed = false;
 inline constexpr auto y_collapsed = true;
@@ -34,7 +34,7 @@ inline constexpr auto sim_path = "/home/cepheid/TriForce/game_engine";
 inline constexpr auto   em_enabled = true;
 inline constexpr auto push_enabled = true;
 inline constexpr auto jdep_enabled = true;
-inline constexpr auto coll_enabled = false;
+inline constexpr auto coll_enabled = true;
 inline constexpr auto applied_fields_only = false;
 inline constexpr auto velocity_backstep_enabled = true;
 inline constexpr auto ionization_test_enabled = false;
@@ -62,7 +62,7 @@ inline constexpr std::array BCSelect = {1zu, 1zu, 2zu, 2zu, 1zu, 1zu};
 inline constexpr auto laser_enabled = true;
 inline constexpr auto applied_fields_path = "";
 
-constexpr auto laser_spec = LaserSpec{.lambda=8e-07, .E0=-27500000000000.0, .w0=2.5479e-06, .xspot=1.5e-05, .scale=1.28855495};
+constexpr auto laser_spec = LaserSpec{.lambda=8e-07, .E0=-27500000000000.0, .w0=2.5479e-06, .xspot=1.5e-05, .scale=1.288};
 
 /*---------------------------------------------------------------/
 /-                     Particle Parameters                      -/
@@ -81,7 +81,7 @@ inline constexpr std::array<ParticleGroupSpec, 2> particle_spec = {
    ParticleGroupSpec{
       .name = "hydrogen",
       .filepath = "/data/lsi_smith/hydrogen.bp",
-      .mass = 1.67382338147136e-27,
+      .mass = 1.67262192595e-27,
       .charge = 1.0,
       .atomic_number = 1,
       .tracer = false

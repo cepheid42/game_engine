@@ -31,7 +31,7 @@ dt = 4.0e-17
 t_end = 3.0e-13
 nt = int(t_end / dt) + 1
 
-save_interval = 75
+save_interval = 20
 
 # =====================
 # ===== Particles =====
@@ -41,15 +41,15 @@ py_range = (ymin, ymax)
 pz_range = (-1e-5, 1e-5)
 
 ppc = (10, 1, 10)
-density = 8.5e28 #m^-3
-temp_eV = 10000
+density = 8.5e27 #m^-3
+temp = tuple(3 * [10000 / np.sqrt(3)])
 
 hydrogen = Particles(
     name='hydrogen',
-    mass=1.008 * constants.atomic_mass,
+    mass=constants.m_p, #1.008 * constants.atomic_mass,
     charge=1,
     atomic_number=1,
-    temp=tuple(3 * [temp_eV]),
+    temp=temp,
     density=density,
     ppc=ppc,
     distribution='relativistic',
@@ -63,7 +63,7 @@ electrons = Particles(
     mass=constants.m_e,
     charge=-1,
     atomic_number=0,
-    temp=tuple(3 * [temp_eV]),
+    temp=temp,
     density=density,
     ppc=ppc,
     distribution='relativistic',
@@ -116,7 +116,7 @@ em_params = EMParams(
     save_interval=save_interval,
     pml_depth=15,
     em_bcs=(1, 1, 2, 2, 1, 1),
-    laser_spec=Laser(8.0e-7, -2.75e13, 2.5479e-6, 15.0e-6, 1.28855495),
+    laser_spec=Laser(8.0e-7, -2.75e13, 2.5479e-6, 15.0e-6, 1.288),
     # laser_spec=Laser(8.0e-7, -2.75e13, 2.5479e-6, 15.0e-6, 0.644),
 )
 
@@ -129,8 +129,8 @@ metric_params = Metrics(
         MetricType.ParticleEnergy,
         MetricType.FieldEnergy,
         # MetricType.FieldDump,
-        # MetricType.ParticleDump,
-        MetricType.ParticleDiagnostics,
+        MetricType.ParticleDump,
+        # MetricType.ParticleDiagnostics,
     )
 )
 
@@ -140,7 +140,7 @@ metric_params = Metrics(
 sim_params = Simulation(
     name=sim_name,
     shape=shape,
-    nthreads=64,
+    nthreads=48,
     dt=dt,
     t_end=t_end,
     nt=nt,
@@ -151,23 +151,22 @@ sim_params = Simulation(
     em_params=em_params,
     particle_params=particle_params,
     metric_params=metric_params,
-    # collisions_enabled=True,
+    collisions_enabled=True,
     push_enabled=True,
     jdep_enabled=True,
-    em_enabled=True,
     velocity_backstep_enabled=True,
-    collisions_enabled=False,
+    # collisions_enabled=False,
     # push_enabled=False,
     # jdep_enabled=False,
     # velocity_backstep_enabled=False,
-    # em_enabled=True
+    em_enabled=True
 )
 
 # ===========================
 # ===== Compile and Run =====
 # ===========================
-# run = True
-run = False
+run = True
+# run = False
 
 if run:
     print(f'Setting up "{sim_name}"')
@@ -194,7 +193,6 @@ save = False
 
 data_path = project_path + f'/data/lsi_smith'
 
-
 # plot_density(['electrons', 'hydrogen'], plot_step, data_path, xs, zs, block=block, save=save)
 # plot_temperature(['electrons', 'hydrogen'], plot_step, data_path, xs, zs, block=block, save=save)
 
@@ -202,3 +200,4 @@ smith_field_data = '/home/cepheid/TriForce/game_engine/tests/data/smith_lsi_fiel
 smith_particle_data = '/home/cepheid/TriForce/game_engine/tests/data'
 plot_field_energy(data_path,  smith_field_data, block=block, save=save)
 plot_particle_energy(data_path, smith_particle_data, block=block, save=save)
+
