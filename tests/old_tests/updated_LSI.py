@@ -219,61 +219,61 @@ run_project(build_path + '/game_engine', output=True)
 # #
 # # plt.show()
 
-# with FileReader(data_path + '/fields_energy.bp') as f:
-#     variables = f.available_variables()
-#     steps = int(variables['Time']['AvailableStepsCount'])
-#     ex = f.read('Ex Energy', step_selection=[0, steps])
-#     ey = f.read('Ey Energy', step_selection=[0, steps])
-#     ez = f.read('Ez Energy', step_selection=[0, steps])
-#     bx = f.read('Bx Energy', step_selection=[0, steps])
-#     by = f.read('By Energy', step_selection=[0, steps])
-#     bz = f.read('Bz Energy', step_selection=[0, steps])
-#
-# with FileReader(data_path + '/particles_energy.bp') as f:
-#     variables = f.available_variables()
-#     steps = int(variables['Time']['AvailableStepsCount'])
-#     time = f.read('Time', step_selection=[0, steps])
-#     e_energy = f.read('electrons', step_selection=[0, steps])
-#     i_energy = f.read('ions', step_selection=[0, steps])
-#
-# time *= s_to_fs
-# field_energy = (ex + ey + ez + bx + by + bz) * J_to_kJ / dy
-# e_energy = e_energy * J_to_kJ / dy
-# i_energy = i_energy * J_to_kJ / dy
-#
-# smith_field_data = np.genfromtxt('./data/smith_lsi_field_energy.csv', delimiter=',')
-# smith_electron_data = np.genfromtxt('./data/smith_lsi_electron_energy.csv', delimiter=',')
-# smith_proton_data = np.genfromtxt('./data/smith_lsi_proton_energy.csv', delimiter=',')
-#
-# y_labels = [
-#     (r'Field (kJ m$^{-1}$)', smith_field_data, [0, 100]),
-#     (r'Electron (kJ m$^{-1}$)', smith_electron_data, [0, 15]),
-#     (r'Proton (kJ m$^{-1}$)', smith_proton_data, [0, 15])
-# ]
-#
-# fig, ax = plt.subplots(3, 1, figsize=(6, 10), layout='constrained')
-#
-# for i, a in enumerate(ax):
-#     label, _, _ = y_labels[i]
-#     a.grid()
-#     a.set_xlabel('Time (fs)')
-#     a.set_ylabel(label)
-#
-# ax[0].plot(time, field_energy, 'b-', label='TriForce')
-# ax[1].plot(time, e_energy, 'b-')
-# ax[2].plot(time, i_energy, 'b-')
-#
-# ax[0].plot(smith_field_data[:, 0], smith_field_data[:, 1], 'r--', label='Smith')
-# ax[1].plot(smith_electron_data[:, 0], smith_electron_data[:, 1], 'r--')
-# ax[2].plot(smith_proton_data[:, 0], smith_proton_data[:, 1], 'r--')
-#
-# # ax[0].set_ylim([0, 100])
-# # ax[1].set_ylim([0, 15])
-# # ax[2].set_ylim([0, 15])
-#
-# ax[0].legend()
-#
-# # plt.savefig(data_path + f'/lsi_comp_normal.png')
-# # plt.close(fig)
-#
-# plt.show()
+with FileReader(data_path + '/fields_energy.bp') as f:
+    variables = f.available_variables()
+    steps = int(variables['Time']['AvailableStepsCount'])
+    ex = f.read('Ex Energy', step_selection=[0, steps])
+    ey = f.read('Ey Energy', step_selection=[0, steps])
+    ez = f.read('Ez Energy', step_selection=[0, steps])
+    bx = f.read('Bx Energy', step_selection=[0, steps])
+    by = f.read('By Energy', step_selection=[0, steps])
+    bz = f.read('Bz Energy', step_selection=[0, steps])
+
+with FileReader(data_path + '/particles_energy.bp') as f:
+    variables = f.available_variables()
+    steps = int(variables['Time']['AvailableStepsCount'])
+    time = f.read('Time', step_selection=[0, steps])
+    e_energy = f.read('electrons', step_selection=[0, steps])
+    i_energy = f.read('ions', step_selection=[0, steps])
+
+time *= s_to_fs
+field_energy = (ex + ey + ez + bx + by + bz) * J_to_kJ / dy
+e_energy = e_energy * J_to_kJ / dy
+i_energy = i_energy * J_to_kJ / dy
+
+smith_field_data = np.genfromtxt('./data/smith_lsi_field_energy.csv', delimiter=',')
+smith_electron_data = np.genfromtxt('./data/smith_lsi_electron_energy.csv', delimiter=',')
+smith_proton_data = np.genfromtxt('./data/smith_lsi_proton_energy.csv', delimiter=',')
+
+y_labels = [
+    (r'Field (kJ m$^{-1}$)', smith_field_data, [0, 100]),
+    (r'Electron (kJ m$^{-1}$)', smith_electron_data, [0, 15]),
+    (r'Proton (kJ m$^{-1}$)', smith_proton_data, [0, 15])
+]
+
+fig, ax = plt.subplots(3, 1, figsize=(6, 10), layout='constrained')
+
+for i, a in enumerate(ax):
+    label, _, _ = y_labels[i]
+    a.grid()
+    a.set_xlabel('Time (fs)')
+    a.set_ylabel(label)
+
+ax[0].plot(time, field_energy, 'b-', label='TriForce')
+ax[1].plot(time, e_energy, 'b-')
+ax[2].plot(time, i_energy, 'b-')
+
+ax[0].plot(smith_field_data[:, 0], smith_field_data[:, 1], 'r--', label='Smith')
+ax[1].plot(smith_electron_data[:, 0], smith_electron_data[:, 1], 'r--')
+ax[2].plot(smith_proton_data[:, 0], smith_proton_data[:, 1], 'r--')
+
+# ax[0].set_ylim([0, 100])
+# ax[1].set_ylim([0, 15])
+# ax[2].set_ylim([0, 15])
+
+ax[0].legend()
+
+# plt.savefig(data_path + f'/lsi_comp_normal.png')
+# plt.close(fig)
+
+plt.show()

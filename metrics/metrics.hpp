@@ -36,11 +36,12 @@ struct EMFieldsMetric final : detail::MetricBase {
       adios2::Variable<double> variable;
    };
 
-   EMFieldsMetric(auto& em_map, adios2::IO&& io_)
+   EMFieldsMetric(auto& em_map, adios2::IO&& io_, const auto interval)
    : io(io_),
      var_step(io.DefineVariable<std::size_t>("Step")),
      var_dt(io.DefineVariable<double>("dt")),
-     var_time(io.DefineVariable<double>("Time"))
+     var_time(io.DefineVariable<double>("Time")),
+     save_interval(interval)
    {
       for (auto& [name, field] : em_map) {
          auto nm = name;
@@ -68,7 +69,7 @@ struct EMFieldsMetric final : detail::MetricBase {
    void write(const std::string& dir, const std::string& step_ext, const std::size_t step, const double time) override {
       const std::string file = dir + "/fields_" + step_ext;
 
-      if (step % em_save_interval != 0) { return; }
+      if (step % save_interval != 0) { return; }
 
       adios2::Engine writer = io.Open(file, adios2::Mode::Write);
       writer.BeginStep();
@@ -89,6 +90,7 @@ struct EMFieldsMetric final : detail::MetricBase {
    adios2::Variable<double>      var_dt;
    adios2::Variable<double>      var_time;
    std::vector<FieldVariable>    fields;
+   std::size_t save_interval;
 }; // end struct EMFieldsMetric
 
 // =====================================
@@ -96,7 +98,7 @@ struct EMFieldsMetric final : detail::MetricBase {
 struct EMTotalEnergyMetric final : detail::MetricBase {
    using field_map = std::unordered_map<std::string, Array3D<double>&>;
 
-   EMTotalEnergyMetric(field_map& em_map_, adios2::IO&& io_)
+   EMTotalEnergyMetric(field_map& em_map_, adios2::IO&& io_, const auto interval)
    : io(io_),
      em_map(em_map_),
      var_ex_energy(io.DefineVariable<double>("Ex Energy")),
@@ -107,7 +109,8 @@ struct EMTotalEnergyMetric final : detail::MetricBase {
      var_bz_energy(io.DefineVariable<double>("Bz Energy")),
      var_step(io.DefineVariable<std::size_t>("Step")),
      var_dt(io.DefineVariable<double>("dt")),
-     var_time(io.DefineVariable<double>("Time"))
+     var_time(io.DefineVariable<double>("Time")),
+     save_interval(interval)
    {
       io.DefineAttribute<std::string>("Unit", "s", "Time");
       io.DefineAttribute<std::string>("Unit", "s", "dt");
@@ -122,7 +125,7 @@ struct EMTotalEnergyMetric final : detail::MetricBase {
       static constexpr auto cell_volume = dx * dy * dz;
       const std::string file{dir + "/fields_energy.bp"};
 
-      if (step % em_save_interval != 0) { return; }
+      if (step % save_interval != 0) { return; }
 
       auto Ex_energy = 0.0;
       auto Ey_energy = 0.0;
@@ -228,6 +231,7 @@ struct EMTotalEnergyMetric final : detail::MetricBase {
    adios2::Variable<std::size_t> var_step;
    adios2::Variable<double>      var_dt;
    adios2::Variable<double>      var_time;
+   std::size_t save_interval;
 }; // end struct EMTotalEnergyMetric
 
 // =========================================
@@ -241,11 +245,12 @@ struct ParticleTotalEnergyMetric final : detail::MetricBase {
       adios2::Variable<double> variable;
    };
 
-   ParticleTotalEnergyMetric(const auto& group_map, adios2::IO&& io_)
+   ParticleTotalEnergyMetric(const auto& group_map, adios2::IO&& io_, const auto interval)
    : io(io_),
      var_step(io.DefineVariable<std::size_t>("Step")),
      var_dt(io.DefineVariable<double>("dt")),
-     var_time(io.DefineVariable<double>("Time"))
+     var_time(io.DefineVariable<double>("Time")),
+     save_interval(interval)
    {
       for (auto& [name, g] : group_map) {
          groups.push_back(GroupVariable{
@@ -263,7 +268,7 @@ struct ParticleTotalEnergyMetric final : detail::MetricBase {
    void write(const std::string& dir, const std::string&, const std::size_t step, const double time) override {
       const std::string file{dir + "/particles_energy.bp"};
 
-      if (step % particle_save_interval != 0) { return; }
+      if (step % save_interval != 0) { return; }
 
       adios2::Engine writer = io.Open(file, (step == 0) ? adios2::Mode::Write : adios2::Mode::Append);
       writer.BeginStep();
@@ -282,9 +287,19 @@ struct ParticleTotalEnergyMetric final : detail::MetricBase {
                                   (!z_collapsed and (knew < PMLDepth or knew > Nz - 2 - PMLDepth));
             
             if (disabled or p.is_disabled()) { continue; }
-            result += (p.gamma - 1.0) * static_cast<double>(p.weight);
+
+            if (group.is_photons) {
+               // Photons store momentum in velocity field instead and k (energy) in the gamma field
+               result += p.velocity.length() * p.weight * constants::c;
+               // result += p.gamma * p.weight; // k (gamma) should be photon energy
+            } else {
+               result += (p.gamma - 1.0) * static_cast<double>(p.weight);
+            }
          }
-         result *= group.mass * constants::c_sqr;
+
+         if (not group.is_photons) {
+            result *= group.mass * constants::c_sqr;
+         }
          writer.Put(gv.variable, result);
       }
 
@@ -300,6 +315,7 @@ struct ParticleTotalEnergyMetric final : detail::MetricBase {
    adios2::Variable<std::size_t> var_step;
    adios2::Variable<double>      var_dt;
    adios2::Variable<double>      var_time;
+   std::size_t save_interval;
 }; // end struct ParticleTotalEnergyMetric
 
 // =========================================
@@ -307,7 +323,7 @@ struct ParticleTotalEnergyMetric final : detail::MetricBase {
 struct ParticleDumpMetric final : detail::MetricBase {
    using group_t = particles::ParticleGroup;
 
-   ParticleDumpMetric(const group_t& group_, adios2::IO&& io_)
+   ParticleDumpMetric(const group_t& group_, adios2::IO&& io_, const auto interval)
    : io(io_),
      group(group_),
      var_loc(io.DefineVariable<double>("Position", {group.num_particles(), 3}, {0, 0}, {group.num_particles(), 3})),
@@ -315,7 +331,8 @@ struct ParticleDumpMetric final : detail::MetricBase {
      var_gamma(io.DefineVariable<double>("Gamma", {group.num_particles(), 1}, {0, 0}, {group.num_particles(), 1})),
      var_w(io.DefineVariable<float>("Weight", {group.num_particles(), 1}, {0, 0}, {group.num_particles(), 1})),
      var_step(io.DefineVariable<std::size_t>("Step", {1}, {0}, {1}, adios2::ConstantDims)),
-     var_time(io.DefineVariable<double>("Time", {1}, {0}, {1}, adios2::ConstantDims))
+     var_time(io.DefineVariable<double>("Time", {1}, {0}, {1}, adios2::ConstantDims)),
+     save_interval(interval)
    {
       io.DefineAttribute<std::string>("Name", group.name);
       io.DefineAttribute<double>("Mass", group.mass);
@@ -339,7 +356,7 @@ struct ParticleDumpMetric final : detail::MetricBase {
 
       const std::string file{dir + "/" + group.name + "_dump_" + step_ext};
 
-      if (step % particle_save_interval != 0) { return; }
+      if (step % save_interval != 0) { return; }
 
       const auto nParticles = group.num_particles();
       var_loc.SetShape({nParticles, 3});
@@ -396,6 +413,7 @@ struct ParticleDumpMetric final : detail::MetricBase {
    std::vector<double>           velocity{};
    std::vector<double>           gamma{};
    std::vector<float>            weight{};
+   std::size_t save_interval;
 }; // end struct ParticleDumpMetric
 
 // =========================================
@@ -403,15 +421,16 @@ struct ParticleDumpMetric final : detail::MetricBase {
 struct ParticleTracerMetric final : detail::MetricBase {
    using group_t = particles::ParticleGroup;
 
-   ParticleTracerMetric(const group_t& group_, adios2::IO&& io_)
+   ParticleTracerMetric(const group_t& group_, adios2::IO&& io_, const auto interval)
    : io(io_),
      group(group_),
-     var_p(io.DefineVariable<double>("Position", {particle_save_interval, 3}, {0, 0}, {particle_save_interval, 3}, adios2::ConstantDims)),
-     var_v(io.DefineVariable<double>("Velocity", {particle_save_interval, 3}, {0, 0}, {particle_save_interval, 3}, adios2::ConstantDims)),
-     var_w(io.DefineVariable<double>("Weight",   {particle_save_interval, 1}, {0, 0}, {particle_save_interval, 1}, adios2::ConstantDims)),
-     var_g(io.DefineVariable<double>("Gamma",    {particle_save_interval, 1}, {0, 0}, {particle_save_interval, 1}, adios2::ConstantDims)),
-     var_t(io.DefineVariable<double>("Time",     {particle_save_interval, 1}, {0, 0}, {particle_save_interval, 1}, adios2::ConstantDims)),
-     var_s(io.DefineVariable<std::size_t>("Step",{particle_save_interval, 1}, {0, 0}, {particle_save_interval, 1}, adios2::ConstantDims))
+     save_interval(interval),
+     var_p(io.DefineVariable<double>("Position", {save_interval, 3}, {0, 0}, {save_interval, 3}, adios2::ConstantDims)),
+     var_v(io.DefineVariable<double>("Velocity", {save_interval, 3}, {0, 0}, {save_interval, 3}, adios2::ConstantDims)),
+     var_w(io.DefineVariable<double>("Weight",   {save_interval, 1}, {0, 0}, {save_interval, 1}, adios2::ConstantDims)),
+     var_g(io.DefineVariable<double>("Gamma",    {save_interval, 1}, {0, 0}, {save_interval, 1}, adios2::ConstantDims)),
+     var_t(io.DefineVariable<double>("Time",     {save_interval, 1}, {0, 0}, {save_interval, 1}, adios2::ConstantDims)),
+     var_s(io.DefineVariable<std::size_t>("Step",{save_interval, 1}, {0, 0}, {save_interval, 1}, adios2::ConstantDims))
    {
       io.DefineAttribute<double>("Mass", group.mass);
       io.DefineAttribute<double>("Charge", group.charge);
@@ -444,7 +463,7 @@ struct ParticleTracerMetric final : detail::MetricBase {
       steps.push_back(step);
 
 
-      if (step % particle_save_interval == 0zu and step > 0zu) {
+      if (step % save_interval == 0zu and step > 0zu) {
          const std::string file{dir + "/" + group.name + "_tracer_" + step_ext};
          adios2::Engine writer = io.Open(file, adios2::Mode::Write);
 
@@ -471,6 +490,7 @@ struct ParticleTracerMetric final : detail::MetricBase {
 
    adios2::IO                    io;
    const group_t&                group;
+   std::size_t save_interval;
    adios2::Variable<double>      var_p;
    adios2::Variable<double>      var_v;
    adios2::Variable<double>      var_w;
@@ -483,6 +503,7 @@ struct ParticleTracerMetric final : detail::MetricBase {
    std::vector<double>           gamma{};
    std::vector<double>           times{};
    std::vector<std::size_t>      steps{};
+
 }; // end struct ParticleTracerMetric
 
 // ========================================================
@@ -493,7 +514,7 @@ struct ParticleMetric final : detail::MetricBase {
    using YShape = interp::InterpolationShape<y_collapsed ? 1 : interpolation_order>::Type;
    using ZShape = interp::InterpolationShape<z_collapsed ? 1 : interpolation_order>::Type;
 
-   ParticleMetric(const group_t& g_, adios2::IO&& io_)
+   ParticleMetric(const group_t& g_, adios2::IO&& io_, const auto interval)
    : io(io_),
      group(g_),
      var_density(io.DefineVariable<double>("Density", {Nx - 1, Ny - 1, Nz - 1}, {0, 0, 0},  {Nx - 1, Ny - 1, Nz - 1}, adios2::ConstantDims)),
@@ -503,7 +524,8 @@ struct ParticleMetric final : detail::MetricBase {
      var_time(io.DefineVariable<double>("Time")),
      density(Nx - 1, Ny - 1, Nz - 1),
      T_avg(Nx - 1, Ny - 1,  Nz - 1),
-     KE_total(Nx - 1, Ny - 1,  Nz - 1)
+     KE_total(Nx - 1, Ny - 1,  Nz - 1),
+     save_interval(interval)
    {
      io.DefineAttribute<std::string>("Name", group.name);
      io.DefineAttribute<double>("Mass", group.mass);
@@ -569,6 +591,11 @@ struct ParticleMetric final : detail::MetricBase {
          for (std::size_t pid = 0; pid < group.num_particles(); pid++) {
             const auto& p   = group.particles[pid];
             const auto [i, j, k] = particles::getCellIndices(p.location);
+            const auto disabled = (!x_collapsed and (i < PMLDepth or i > Nx - 2 - PMLDepth)) or
+                                  (!y_collapsed and (j < PMLDepth or j > Ny - 2 - PMLDepth)) or
+                                  (!z_collapsed and (k < PMLDepth or k > Nz - 2 - PMLDepth));
+
+            if (disabled or p.is_disabled()) { continue; }
             #pragma omp atomic update
             density(i, j, k) += p.weight;
             #pragma omp atomic update
@@ -591,7 +618,7 @@ struct ParticleMetric final : detail::MetricBase {
    void write(const std::string& dir, const std::string& step_ext, const std::size_t step, const double time) override {
       const std::string file{dir + "/" + group.name + "_" + step_ext};
 
-      if (step % particle_save_interval != 0) { return; }
+      if (step % save_interval != 0) { return; }
 
       update_metrics();
 
@@ -619,6 +646,7 @@ struct ParticleMetric final : detail::MetricBase {
    Array3D<double>          T_avg;
    Array3D<double>          KE_total;
    std::array<std::size_t, 3> dims{Nx - 1, Ny - 1, Nz - 1};
+   std::size_t save_interval;
 }; // end struct ParticleMetric
 
 // =======================================
@@ -636,15 +664,15 @@ public:
       //
       // data_dir += "_" + std::string(timestr);
 
-      for (const auto& s : spec) {
-         switch (s) {
+      for (const auto& [m, i] : spec) {
+         switch (m) {
             case MetricType::ParticleDump:
                {
                   for (auto& [name, g] : p_groups) {
                      if (g.is_tracer) {
-                        metrics.push_back(std::make_unique<ParticleTracerMetric>(g, adios.DeclareIO("Particles_" + name + "_tracer")));
+                        metrics.push_back(std::make_unique<ParticleTracerMetric>(g, adios.DeclareIO("Particles_" + name + "_tracer"), i));
                      } else {
-                        metrics.push_back(std::make_unique<ParticleDumpMetric>(g, adios.DeclareIO("Particles_" + name + "_dump")));
+                        metrics.push_back(std::make_unique<ParticleDumpMetric>(g, adios.DeclareIO("Particles_" + name + "_dump"), i));
                      }
                   }
                   break;
@@ -652,23 +680,23 @@ public:
             case MetricType::ParticleDiag:
                {
                   for (auto& [name, g] : p_groups) {
-                     metrics.push_back(std::make_unique<ParticleMetric>(g, adios.DeclareIO("Particles_" + name)));
+                     metrics.push_back(std::make_unique<ParticleMetric>(g, adios.DeclareIO("Particles_" + name), i));
                   }
                   break;
                }
             case MetricType::ParticleEnergy:
                {
-                  metrics.push_back(std::make_unique<ParticleTotalEnergyMetric>(p_groups, adios.DeclareIO("Particle_energy")));
+                  metrics.push_back(std::make_unique<ParticleTotalEnergyMetric>(p_groups, adios.DeclareIO("Particle_energy"), i));
                   break;
                }
             case MetricType::FieldDump:
                {
-                  metrics.push_back(std::make_unique<EMFieldsMetric>(em_map,  adios.DeclareIO("EMFields_dump")));
+                  metrics.push_back(std::make_unique<EMFieldsMetric>(em_map,  adios.DeclareIO("EMFields_dump"), i));
                   break;
                }
             case MetricType::FieldEnergy:
                {
-                  metrics.push_back(std::make_unique<EMTotalEnergyMetric>(em_map,  adios.DeclareIO("EMFields_energy")));
+                  metrics.push_back(std::make_unique<EMTotalEnergyMetric>(em_map,  adios.DeclareIO("EMFields_energy"), i));
                   break;
                }
             default:

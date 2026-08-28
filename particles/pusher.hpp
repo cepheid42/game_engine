@@ -222,7 +222,6 @@ struct ParticlePusher {
    }
 
    static void advance(auto& g, const auto& emdata, const auto step) requires(push_enabled) {
-      g.push_timer.start_timer();
       g.reset_positions();
 
       if (step % sort_frequency == 0) { g.sort_particles(); }
@@ -234,10 +233,8 @@ struct ParticlePusher {
          advance_photons(g);
       }
 
-
       g.cell_map_updated = false;
       g.is_sorted = false;
-      g.push_timer.stop_timer();
    } // end advance()
 
    static void advance(auto&, const auto&, const auto) requires (!push_enabled) {}

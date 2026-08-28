@@ -118,6 +118,14 @@ int main() {
          timers["Collisions"].stop_timer();
       }
 
+      if (step % 250 == 0) {
+         std::string p_count{'\n'};
+         for (const auto& g : particle_groups | std::views::values) {
+            p_count += g.name + ": " + std::to_string(g.particles.size()) + '\n';
+         }
+         std::println("{}", p_count);
+      }
+
       // Metrics output
       timers["IO"].start_timer();
       metrics.write(step, time);

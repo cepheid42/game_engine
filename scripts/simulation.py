@@ -37,7 +37,6 @@ class Laser:
 
 @dataclass
 class EMParams:
-    save_interval: int = 10
     nhalo: int = 0
     pml_depth: int = 10
     pml_grade: float = 3.5
@@ -53,7 +52,10 @@ class Metrics:
     metrics: tuple = ()
 
     def __repr__(self):
-        return ',\n\t'.join(m for m in self.metrics)
+        result = ''
+        for m, i in self.metrics:
+            result += f'std::tuple{{{m}, {i}zu}},\n\t'
+        return result.strip()
 
 
 @dataclass
@@ -127,6 +129,7 @@ def update_header(params, project_path, data_path):
         '#include "sources_spec.hpp"\n'
         '\n'
         '#include <array>\n'
+        '#include <tuple>\n'
         '\n'
         f'inline constexpr auto nThreads = {params.nthreads};\n'
         '\n'
@@ -167,7 +170,6 @@ def update_header(params, project_path, data_path):
         'enum class EMFace { X, Y, Z };\n'
         'enum class EMSide { Lo, Hi };\n'
         '\n'
-        f'inline constexpr auto em_save_interval = {int(em_params.save_interval)}zu;\n'
         f'inline constexpr auto em_subcycles = {int(num_subcycles_em)}zu;\n'
         f'inline constexpr auto dt_em = {float(dt_em)};\n'
         '\n'
@@ -191,7 +193,6 @@ def update_header(params, project_path, data_path):
         'enum class ParticleBCType { Reflecting, Periodic, Outflow };\n'
         'enum class ParticlePushType { Ballistic, Boris, HigueraCary };\n'
         '\n'
-        f'inline constexpr auto particle_save_interval = {particles.save_interval}zu;\n'
         f'inline constexpr auto sort_frequency = {particles.sort_frequency}zu;\n'
         f'inline constexpr auto interpolation_order = {particles.interp_order}zu;\n'
         f'inline constexpr auto ParticlePushSelect = {str(particles.push_type)};\n'
@@ -212,7 +213,7 @@ def update_header(params, project_path, data_path):
         'enum class MetricType { ParticleDump, ParticleDiag, ParticleEnergy, FieldDump, FieldEnergy };\n'
         '\n'
         f'inline constexpr auto metric_data_path = "{metrics.data_path}";\n'
-        f'inline constexpr std::array<MetricType, {len(metrics.metrics)}> metric_spec = {{\n'
+        f'inline constexpr std::array<std::tuple<MetricType, std::size_t>, {len(metrics.metrics)}> metric_spec = {{\n'
         f'\t{metrics}\n'
         '};\n'
         '\n'

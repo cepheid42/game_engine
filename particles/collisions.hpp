@@ -59,8 +59,6 @@ struct Collisions {
    interp::BremTFDTable bremtfd_cs{};
    interp::BremTable brem_cs{};
 
-   utilities::Timer step_timer{};
-
    Collisions(const auto& params_, auto& group_map)
    : g1(group_map.at(std::string{params_.group1})),
      g2(group_map.at(std::string{params_.group2})),
@@ -134,10 +132,6 @@ struct Collisions {
       }
 
       if (channels.empty()) { channels.push_back(ChannelType::None); }
-   }
-
-   ~Collisions() {
-      std::println("{}-{} Collisions: {}", g1.name, g2.name, std::chrono::hh_mm_ss(step_timer.elapsed));
    }
 
    static std::mt19937_64 init_mt_64() {
@@ -259,7 +253,6 @@ struct Collisions {
    }
 
    void advance(const auto step) requires (coll_enabled) {
-      step_timer.start_timer();
       if (step % specs.step_interval != 0) { return; }
 
       const auto reduced_mass = (g1.mass * g2.mass) / (g1.mass + g2.mass);
@@ -378,7 +371,6 @@ struct Collisions {
             product2.is_sorted = false;
          }
       } // end for(buffers)
-      step_timer.stop_timer();
    } // end update()
 
    static void advance(const auto) requires (not coll_enabled) {}

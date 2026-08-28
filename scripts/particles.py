@@ -19,7 +19,6 @@ class ParticleBCType(StrEnum):
 
 @dataclass
 class ParticleParams:
-    save_interval: int = 1
     push_type: ParticlePushType = ParticlePushType.Boris
     particle_bcs: ParticleBCType = ParticleBCType.Outflow
     bc_depth : int = 3

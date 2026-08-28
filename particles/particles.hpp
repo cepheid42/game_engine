@@ -103,8 +103,6 @@ struct ParticleGroup {
    bool is_tracer{false};
    std::vector<Particle> particles{};
    std::map<std::size_t, std::span<Particle>> cell_map{};
-   utilities::Timer push_timer{};
-   utilities::Timer jdep_timer{};
 
    explicit ParticleGroup(const ParticleGroupSpec& spec)
    : name(spec.name),
@@ -118,12 +116,6 @@ struct ParticleGroup {
       if (not spec.filepath.empty()) {
          initializeFromFile(std::string{spec.filepath}, *this);
       }
-   }
-
-   ~ParticleGroup() {
-      std::println("{} Timers:", name);
-      std::println("\tPush: {}", std::chrono::hh_mm_ss(push_timer.elapsed));
-      std::println("\tJdep: {}", std::chrono::hh_mm_ss(jdep_timer.elapsed));
    }
 
    [[nodiscard]] std::size_t num_particles() const { return particles.size(); }
